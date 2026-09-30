@@ -1,0 +1,22 @@
+<div class="container-fluid h-100">
+  <div class="row h-100">
+    <!-- Content -->
+    <div class="col-12 content d-flex flex-column px-0">
+
+      <!-- Header -->
+      <div class="header p-2">
+        <app-header-component></app-header-component>
+      </div>
+
+      <!-- Main -->
+      <div class="main flex-grow-1 p-3">
+        <ng-content select="[main]"></ng-content>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer p-2 text-center">
+        <app-footer-component></app-footer-component>
+      </div>
+    </div>
+  </div>
+</div>

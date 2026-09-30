@@ -1,0 +1,10 @@
+.accion-text {
+  font-size: 20px;
+  color: #1E257B;
+  font-weight: 600;
+  font-family: 'Titillium Web', sans-serif;
+  line-height: 1;
+  cursor: default;
+  margin-top: 5px;
+  margin-left: 10px;
+}

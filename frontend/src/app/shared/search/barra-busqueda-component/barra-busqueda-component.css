@@ -1,0 +1,27 @@
+.input-group {
+    width: 200px;
+}
+
+input.form-control {
+    height: 30px;
+    font-size: 14px;
+    color: #454444;  
+    font-family: 'Titillium Web', sans-serif; 
+}
+
+.input-group-text {
+    background-color: white;
+    border-left: 0;
+    padding: 4px;
+}
+
+.icon-lupa {
+    width: 18px;
+    height: 18px;
+}
+
+input.form-control:focus {
+    box-shadow: none;
+    outline: none;
+    border-color: #1E257B; 
+}

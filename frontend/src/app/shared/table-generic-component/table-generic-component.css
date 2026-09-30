@@ -1,0 +1,16 @@
+thead th {
+  color: #1E257B;
+  font-family: 'Titillium Web', sans-serif;
+  font-size: 14px;
+  font-weight: semi-bold;
+  letter-spacing: 0.35;
+  text-transform: uppercase;
+}
+
+tbody td {
+  color: #454444;
+  font-family: 'Titillium Web', sans-serif;
+  font-size: 12px;
+  font-weight: semi-bold;
+  letter-spacing: 0.35;
+}

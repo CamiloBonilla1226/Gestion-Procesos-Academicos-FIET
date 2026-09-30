@@ -1,0 +1,32 @@
+<div class="user-card" *ngIf="usuario">
+  <h2 class="title">Bienvenid@, {{ usuario.username }}</h2>
+
+  <div class="user-info">
+    <p><strong>Nombre completo:</strong> {{ usuario.nombres }} {{ usuario.apellidos }}</p>
+    <p><strong>Username:</strong> {{ usuario.username }}</p>
+    <p><strong>Tipo de documento:</strong> {{ usuario.tipoDocumento }}</p>
+    <p><strong>Número de documento:</strong> {{ usuario.numeroDocumento }}</p>
+    <p><strong>Correo electrónico:</strong> {{ usuario.correoElectronico }}</p>
+    <p><strong>Teléfono:</strong> {{ usuario.telefono || 'No registrado' }}</p>
+
+    <p>
+      <strong>Estado:</strong>
+      <span [ngClass]="usuario.estado ? 'activo' : 'inactivo'">
+        {{ usuario.estado ? '✅ Activo' : '❌ Inactivo' }}
+      </span>
+    </p>
+
+    <p *ngIf="usuario.objTipoUsuario">
+      <strong>Tipo de usuario:</strong> {{ usuario.objTipoUsuario.nombre }}
+    </p>
+
+    <p *ngIf="usuario.roles?.length">
+      <strong>Roles:</strong>
+      <span *ngFor="let rol of usuario.roles; let last = last">
+        {{ rol.nombre }}<span *ngIf="!last">, </span>
+      </span>
+    </p>
+
+    <app-change-password-component [uuidUsuario]="usuario.uuidUsuario"></app-change-password-component>
+  </div>
+</div>

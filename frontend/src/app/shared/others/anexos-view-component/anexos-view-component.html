@@ -1,0 +1,17 @@
+<div *ngIf="anexos.length === 0">
+  <p>No hay anexos disponibles.</p>
+</div>
+
+<div *ngFor="let a of anexos" class="anexo-item">
+
+  <div class="info">
+    📄 <strong>{{ a.nombre }}</strong>
+  </div>
+
+  <div class="acciones">
+    <button class="btn-descargar" (click)="descargar(a)">
+      <img src="buttons/download.svg" alt="Descargar" width="24" height="24">
+    </button>
+  </div>
+
+</div>

@@ -1,0 +1,197 @@
+<app-card-main-component [preTitleComponent]="pretitleComponentComponent"
+  [preTitleInputs]="{ imgUrl: 'buttons/configuracion.svg' }" [title]="'Gestión de Tipos de Solicitudes'"
+  [bodyComponent]="tableComponent"
+  [bodyInputs]="{ headers: headers, data: paginatedData, actionTemplate: actionTemplate }" [buttons]="buttonsCard">
+</app-card-main-component>
+
+<ng-template #actionTemplate let-row>
+  <div class="d-flex gap-2">
+    <app-button-component imgUrl="buttons/edit.svg" color="white" width="18px" height="18px"
+      (clicked)="abrirModalActualizarTipoSolicitud(row)">
+    </app-button-component>
+
+    <app-button-component imgUrl="buttons/eye.svg" color="white" width="18px" height="18px" (clicked)="verMasInfo(row)">
+    </app-button-component>
+
+    <app-button-component imgUrl="buttons/employee.svg" color="white" width="18px" height="18px"
+      (clicked)="abrirModalActualizarFuncionarioTipoSolicitud(row)">
+    </app-button-component>
+  </div>
+</ng-template>
+
+<ng-template #busquedaTipoSolicitud>
+  <app-barra-busqueda-component [placeholder]="'Buscar Tipo Solicitud'" (valueChange)="onBuscarTipoSolicitud($event)">
+  </app-barra-busqueda-component>
+</ng-template>
+
+<ng-template #busquedaFuncionario>
+  <app-barra-busqueda-component [placeholder]="'Buscar Funcionario'" (valueChange)="onBuscarFuncionario($event)">
+  </app-barra-busqueda-component>
+</ng-template>
+
+<app-generic-dialog-info-component [visible]="tipoInfoDialogVisible" (visibleChange)="tipoInfoDialogVisible = $event"
+  [title]="'Información del Tipo de Solicitud'" [data]="selectedTipoInfo">
+</app-generic-dialog-info-component>
+
+<app-generic-dialog-upload-file-component [(visible)]="tipoUploadDialogVisible" title="Subir archivo"
+  (upload)="guardarArchivo($event)">
+</app-generic-dialog-upload-file-component>
+
+<app-generic-dialog-form-component [visible]="funcionarioFormActualizarDialogVisible"
+  (visibleChange)="funcionarioFormActualizarDialogVisible = $event" [title]="'Asignar Funcionario'"
+  (save)="guardarFuncionarioTipoSolicitud()">
+
+  <app-input-select-component #inputFuncionario
+    [(value)]="selectedTipoSolicitudActualizarFuncionarioForm.uuidUsuarioFuncionario"
+    [label]="'Nuevo Funcionario Encargado'" [options]="funcionariosOptions" [required]="true">
+  </app-input-select-component>
+</app-generic-dialog-form-component>
+
+<app-generic-dialog-steps-form-component [visible]="dialogoStepsVisible" (visibleChange)="dialogoStepsVisible = $event"
+  [title]="'Crear Tipo de Solicitud'" [steps]="steps" (save)="guardarTipoSolicitud()">
+</app-generic-dialog-steps-form-component>
+
+<ng-template #step1>
+  <app-input-text-component #inputNombreTS [(value)]="nuevoTipoSolicitud.nombre"
+    [label]="'Nombre del Tipo de Solicitud'" [required]="true">
+  </app-input-text-component>
+
+  <app-input-text-tarea-component #inputDescripcionTS [(value)]="nuevoTipoSolicitud.descripcion"
+    [label]="'Descripción del Tipo de Solicitud'" [required]="false">
+  </app-input-text-tarea-component>
+
+  <app-input-select-component #inputSeccionTS [(value)]="nuevoTipoSolicitud.seccion" [label]="'Sección'"
+    [options]="secciones" [required]="true">
+  </app-input-select-component>
+
+  <app-input-select-component #inputPerfilSolicitanteTS [options]="perfilesSolicitante"
+    [(value)]="nuevoTipoSolicitud.perfilSolicitante" label="Perfil del Solicitante" placeholder="Seleccione un perfil"
+    [required]="true">
+  </app-input-select-component>
+
+  <app-input-select-component #inputFuncionarioTS [(value)]="nuevoTipoSolicitud.uuidFuncionario"
+    [label]="'Funcionario Encargado'" [options]="funcionariosOptions" [required]="true">
+  </app-input-select-component>
+
+</ng-template>
+
+<ng-template #step2>
+  <div class="flex flex-col gap-3">
+    <app-input-text-component #inputTipoAnexoNombre [(value)]="nuevoTipoAnexo.nombre"
+      [label]="'Nombre del Tipo de Anexo'" [required]="true" [forceValidation]="forceAnexoValidation">
+    </app-input-text-component>
+
+    <app-input-text-tarea-component #inputTipoAnexoDescripcion [(value)]="nuevoTipoAnexo.descripcion"
+      [label]="'Descripción del Tipo de Anexo'" [required]="false" [forceValidation]="forceAnexoValidation">
+    </app-input-text-tarea-component>
+
+    <app-input-select-component #inputTipoAnexoFormato [(value)]="nuevoTipoAnexo.formato" [label]="'Formato del Anexo'"
+      [options]="formatos" [required]="true" [forceValidation]="forceAnexoValidation">
+    </app-input-select-component>
+
+    <app-input-select-component #inputTipoAnexoObligatoriedad [(value)]="nuevoTipoAnexo.obligatoriedad"
+      [label]="'¿Es obligatorio este tipo de anexo?'" [options]="booleano" [required]="true"
+      [forceValidation]="forceAnexoValidation">
+    </app-input-select-component>
+
+    <div class="mt-2">
+      <app-simple-button-component label="Agregar Anexo" width="100px" height="30px" (clicked)="agregarTipoAnexo()">
+      </app-simple-button-component>
+    </div>
+  </div>
+
+  <div *ngIf="tiposAnexos.length > 0" class="anexos-contenedor">
+    <ul class="anexo-list" style="list-style: none; padding-left: 0;">
+      <li *ngFor="let anexo of tiposAnexos; let i = index" class="anexo-item">
+        <div class="anexo-left">
+          <app-button-component class="anexo-btn" imgUrl="buttons/trash.svg" color="white" width="18px" height="18px"
+            (clicked)="eliminarTipoAnexo(i)">
+          </app-button-component>
+        </div>
+
+        <div class="anexo-label">
+          {{ anexo.nombre }} / {{ anexo.formato }} / {{ anexo.obligatoriedad ? 'Obligatorio' : 'Opcional' }}
+        </div>
+      </li>
+    </ul>
+  </div>
+</ng-template>
+
+<app-generic-dialog-steps-form-component [visible]="actualizarDialogVisible"
+  (visibleChange)="actualizarDialogVisible = $event" [title]="'Actualizar Tipo de Solicitud'" [steps]="stepsActualizar"
+  (save)="actualizarTipoSolicitud()">
+</app-generic-dialog-steps-form-component>
+
+<ng-template #step1Update>
+  <app-input-text-component #inputNombreTSUpdate [(value)]="nuevoTipoSolicitudUpdate.nombre"
+    [label]="'Nombre del Tipo de Solicitud (Actualizar)'" [required]="true">
+  </app-input-text-component>
+
+  <app-input-text-tarea-component #inputDescripcionTSUpdate [(value)]="nuevoTipoSolicitudUpdate.descripcion"
+    [label]="'Descripción del Tipo de Solicitud (Actualizar)'" [required]="false">
+  </app-input-text-tarea-component>
+
+  <app-input-select-component #inputSeccionTSUpdate [(value)]="nuevoTipoSolicitudUpdate.seccion"
+    [label]="'Sección (Actualizar)'" [options]="secciones" [required]="true">
+  </app-input-select-component>
+
+  <app-input-select-component #inputPerfilSolicitanteTSUpdate [options]="perfilesSolicitante"
+    [(value)]="nuevoTipoSolicitudUpdate.perfilSolicitante" label="Perfil del Solicitante"
+    placeholder="Seleccione un perfil" [required]="true">
+  </app-input-select-component>
+
+
+  <app-input-select-component #inputFuncionarioTSUpdate [(value)]="nuevoTipoSolicitudUpdate.uuidFuncionario"
+    [label]="'Funcionario Encargado (Actualizar)'" [options]="funcionariosOptions" [required]="true">
+  </app-input-select-component>
+</ng-template>
+
+<ng-template #step2Update>
+  <div class="flex flex-col gap-3">
+    <app-input-text-component #inputTipoAnexoNombreUpdate [(value)]="nuevoTipoAnexoUpdate.nombre"
+      [label]="'Nombre del Tipo de Anexo (Actualizar)'" [required]="true"
+      [forceValidation]="forceAnexoValidationUpdate">
+    </app-input-text-component>
+
+    <app-input-text-tarea-component #inputTipoAnexoDescripcionUpdate [(value)]="nuevoTipoAnexoUpdate.descripcion"
+      [label]="'Descripción del Tipo de Anexo (Actualizar)'" [required]="false"
+      [forceValidation]="forceAnexoValidationUpdate">
+    </app-input-text-tarea-component>
+
+    <app-input-select-component #inputTipoAnexoFormatoUpdate [(value)]="nuevoTipoAnexoUpdate.formato"
+      [label]="'Formato del Anexo (Actualizar)'" [options]="formatos" [required]="true"
+      [forceValidation]="forceAnexoValidationUpdate">
+    </app-input-select-component>
+
+    <app-input-select-component #inputTipoAnexoObligatoriedadUpdate [(value)]="nuevoTipoAnexoUpdate.obligatoriedad"
+      [label]="'¿Es obligatorio este tipo de anexo? (Actualizar)'" [options]="booleano" [required]="true"
+      [forceValidation]="forceAnexoValidationUpdate">
+    </app-input-select-component>
+
+    <div class="mt-2">
+      <app-simple-button-component label="Agregar Anexo" width="100px" height="30px"
+        (clicked)="agregarTipoAnexoUpdate()">
+      </app-simple-button-component>
+    </div>
+  </div>
+
+  <div *ngIf="tiposAnexosUpdate.length > 0" class="anexos-contenedor">
+    <ul class="anexo-list" style="list-style: none; padding-left: 0;">
+      <li *ngFor="let anexo of tiposAnexosUpdate; let i = index" class="anexo-item">
+        <div class="anexo-left">
+          <app-button-component class="anexo-btn" imgUrl="buttons/trash.svg" color="white" width="18px" height="18px"
+            (clicked)="eliminarTipoAnexoUpdate(i)">
+          </app-button-component>
+        </div>
+
+        <div class="anexo-label">
+          {{ anexo.nombre }} / {{ anexo.formato }} / {{ anexo.obligatoriedad ? 'Obligatorio' : 'Opcional' }}
+        </div>
+      </li>
+    </ul>
+  </div>
+</ng-template>
+
+<app-paginator *ngIf="totalElements > 0" [totalPages]="totalPages" [currentPage]="currentPage"
+  (pageChange)="onPageChange($event)">
+</app-paginator>

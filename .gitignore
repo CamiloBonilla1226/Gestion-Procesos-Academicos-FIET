@@ -1,0 +1,18 @@
+# --- Backend (Java / Maven) ---
+backend/**/target/
+backend/**/*.class
+backend/uploads/*
+!backend/uploads/README
+
+# --- Frontend (Angular / Node) ---
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/*.log
+
+# --- IDE / OS ---
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db

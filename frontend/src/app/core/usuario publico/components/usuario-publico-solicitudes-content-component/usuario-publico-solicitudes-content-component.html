@@ -1,0 +1,21 @@
+<app-card-main-component [title]="'Solicitudes Disponibles'" [bodyComponent]="tableComponent"
+  [bodyInputs]="{ headers: headers, data: paginatedData, actionTemplate: actionTemplate }">
+</app-card-main-component>
+
+<ng-template #actionTemplate let-row>
+  <app-button-component imgUrl="buttons/eye.svg" color="white" width="18px" height="18px" (clicked)="verMasInfo(row)">
+  </app-button-component>
+</ng-template>
+
+<ng-template #busquedaTipoSolicitud>
+  <app-barra-busqueda-component placeholder="Buscar Tipo de Solicitud" (valueChange)="onBuscarTipoSolicitud($event)">
+  </app-barra-busqueda-component>
+</ng-template>
+
+<app-generic-dialog-info-component [visible]="tipoInfoDialogVisible" (visibleChange)="tipoInfoDialogVisible = $event"
+  title="Información del Tipo de Solicitud" [data]="selectedTipoInfo">
+</app-generic-dialog-info-component>
+
+<app-paginator *ngIf="totalElements > 0" [totalPages]="totalPages" [currentPage]="currentPage"
+  (pageChange)="onPageChange($event)">
+</app-paginator>

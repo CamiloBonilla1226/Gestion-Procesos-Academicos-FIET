@@ -1,0 +1,21 @@
+.custom-footer {
+  background-color: #F2EFFA; 
+}
+
+.color-line {
+  height: 5px;
+}
+
+.color-segment {
+  flex: 1;
+  height: 10px;
+}
+
+.footer-content {
+  font-size: 0.85rem;
+  color: #928F9A;
+}
+
+.footer-content strong {
+  color: #5E5D67;
+}

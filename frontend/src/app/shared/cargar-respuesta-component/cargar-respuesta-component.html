@@ -1,0 +1,34 @@
+<div class="file-upload-container">
+
+    <label class="anexo-label">
+        Archivo de respuesta
+    </label>
+
+    <small class="text-muted">
+        Formatos permitidos: PDF, DOCX
+    </small>
+
+    <p-fileUpload #fileUpload mode="basic" name="archivo" [auto]="true" [customUpload]="true" [showUploadButton]="false"
+        [showCancelButton]="false" chooseLabel="Seleccionar archivo" [disabled]="!!archivo"
+        (onSelect)="onFileSelect($event)">
+    </p-fileUpload>
+
+    <div *ngIf="archivo" class="uploaded-file">
+        <span>{{ archivo.name }}</span>
+
+        <div class="acciones">
+            <button class="btn-confirmar" (click)="confirmarCarga()">
+                Confirmar
+            </button>
+
+            <button class="remove-btn" (click)="limpiar()">
+                X
+            </button>
+        </div>
+    </div>
+
+    <div *ngIf="errorFormato" class="error-text">
+        Formato inválido. Solo se permiten archivos PDF o DOCX.
+    </div>
+
+</div>

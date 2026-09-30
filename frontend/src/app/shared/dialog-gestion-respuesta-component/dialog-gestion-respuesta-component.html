@@ -1,0 +1,35 @@
+<p-dialog [(visible)]="visible" [modal]="true" [closable]="false" styleClass="custom-dialog">
+
+    <ng-template pTemplate="header">
+        <div class="custom-dialog-header">
+            Asignar Respuesta
+            <button type="button" class="close-btn" (click)="cerrar()">X</button>
+        </div>
+    </ng-template>
+
+    <div class="dialog-content">
+
+        <div *ngIf="cargando">
+            Cargando información...
+        </div>
+
+        <ng-container *ngIf="!cargando">
+            <app-descargar-respuesta-component *ngIf="respuesta?.urlRespuesta" [uuidRespuesta]="respuesta.uuidRespuesta"
+                [urlRespuesta]="respuesta.urlRespuesta" [nombreArchivo]="respuesta.urlRespuesta.split('/').pop()"
+                (eliminado)="onArchivoEliminado()">
+            </app-descargar-respuesta-component>
+
+            <app-cargar-respuesta-component *ngIf="!respuesta?.urlRespuesta"
+                (archivoSeleccionado)="onArchivoSeleccionado($event)">
+            </app-cargar-respuesta-component>
+
+        </ng-container>
+
+    </div>
+
+    <ng-template pTemplate="footer">
+        <app-simple-button-component label="OK" width="50px" height="30px" (clicked)="cerrar()">
+        </app-simple-button-component>
+    </ng-template>
+
+</p-dialog>

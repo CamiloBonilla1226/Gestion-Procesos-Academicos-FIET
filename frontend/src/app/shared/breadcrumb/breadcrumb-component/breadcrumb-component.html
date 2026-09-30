@@ -1,0 +1,18 @@
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+  <ol class="breadcrumb">
+
+    <li class="breadcrumb-item" style="margin-left: 15px;">
+      {{ role }}
+    </li>
+
+    @for (item of breadcrumbs; track item) {
+    <li class="breadcrumb-item">
+      @if (item.url) {
+      <a [href]="item.url" class="breadcrumb-link">{{ item.label }}</a>
+      } @else {
+      <span>{{ item.label }}</span>
+      }
+    </li>
+    }
+  </ol>
+</nav>

@@ -1,0 +1,41 @@
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+}
+
+.page-item {
+  margin: 0 5px;
+}
+
+.page-link {
+  border: 1px solid #1E257B;
+  padding: 6px 12px;
+  border-radius: 4px;
+  background-color: white;
+  color: #1E257B;
+}
+
+.page-link:hover {
+  background-color: #1E257B;
+  color: white;
+}
+
+.page-item.active .page-link {
+  background-color: #1E257B;
+  color: white;
+}
+
+.page-item.disabled .page-link {
+  background-color: #f1f1f1;
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+.page-link:focus {
+  outline: none;     
+  box-shadow: none;
+}

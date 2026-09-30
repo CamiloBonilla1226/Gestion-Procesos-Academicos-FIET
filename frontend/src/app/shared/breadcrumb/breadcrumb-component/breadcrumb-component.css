@@ -1,0 +1,15 @@
+.breadcrumb {
+  --bs-breadcrumb-divider: '>'; 
+  color: #928F9A; 
+  font-size: 14px;
+  height: 0px;
+  font-family: 'Titillium Web', sans-serif;
+  font-size: small;
+  font-weight: semi-bold;
+  letter-spacing: 0.35;
+}
+
+
+.breadcrumb-item + .breadcrumb-item::before {
+  color: #DB141C;
+}

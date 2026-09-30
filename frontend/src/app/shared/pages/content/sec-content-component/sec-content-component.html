@@ -1,0 +1,61 @@
+<app-card-main-component [preTitleComponent]="pretitleComponentComponent"
+  [preTitleInputs]="{ imgUrl: 'buttons/solicitudes.svg' }" [title]="'Gestión de Solicitudes'"
+  [bodyComponent]="tableComponent"
+  [bodyInputs]="{ headers: headers, data: paginatedData, actionTemplate: actionTemplate }">
+</app-card-main-component>
+
+<ng-template #headerSolicitud>
+  <app-barra-busqueda-component placeholder="Buscar Solicitud" (valueChange)="buscarSolicitudes($event)">
+  </app-barra-busqueda-component>
+</ng-template>
+
+<ng-template #actionTemplate let-row>
+  <div class="d-flex gap-2">
+    <app-button-component imgUrl="buttons/edit.svg" color="white" width="18px" height="18px"
+      (clicked)="abrirModalActualizarSolicitud(row)">
+    </app-button-component>
+
+    <app-button-component imgUrl="buttons/eye.svg" color="white" width="18px" height="18px" (clicked)="verMasInfo(row)">
+    </app-button-component>
+  </div>
+</ng-template>
+
+<app-generic-dialog-info-component [visible]="solicitudInfoDialogVisible"
+  (visibleChange)="solicitudInfoDialogVisible = $event" [title]="'Información de Solicitud'"
+  [data]="selectedSolicitudInfo" [showCustomContent]="dialogUsaComponente">
+
+  <app-anexos-view-component *ngIf="dialogUsaComponente" [anexos]="solicitudAnexos">
+  </app-anexos-view-component>
+
+</app-generic-dialog-info-component>
+
+<app-generic-dialog-form-component [visible]="actualizarSolicitudDialogVisible"
+  (visibleChange)="actualizarSolicitudDialogVisible = $event" [title]="'Actualizar Solicitud'"
+  (save)="guardarSolicitudActualizada()">
+
+  <app-input-text-component #inputConsecutivoActualizar [(value)]="solicitudActualizar.consecutivo"
+    [label]="'Consecutivo Solicitante'" [required]="false">
+  </app-input-text-component>
+
+  <app-input-text-component #inputNombreActualizar [(value)]="solicitudActualizar.nombre"
+    [label]="'Nombre de la Solicitud'" [required]="true">
+  </app-input-text-component>
+
+  <app-input-text-tarea-component #inputDescripcionActualizar [(value)]="solicitudActualizar.descripcion"
+    [label]="'Descripción'" [required]="false">
+  </app-input-text-tarea-component>
+
+  <app-input-select-component #inputEstadoActualizar [(value)]="solicitudActualizar.estado" [label]="'Estado'"
+    [options]="estadosSolicitud" [required]="true">
+  </app-input-select-component>
+
+  <app-input-select-component #inputFuncionarioActualizar [(value)]="solicitudActualizar.uuidFuncionario"
+    [label]="'Funcionario Responsable'" [options]="funcionariosOptions" [required]="true">
+  </app-input-select-component>
+
+</app-generic-dialog-form-component>
+
+
+<app-paginator *ngIf="totalElements > 0" [totalPages]="totalPages" [currentPage]="currentPage"
+  (pageChange)="onPageChange($event)">
+</app-paginator>

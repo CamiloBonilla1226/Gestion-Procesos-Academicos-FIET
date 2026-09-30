@@ -1,0 +1,53 @@
+<app-generic-dialog-steps-form-component [visible]="visible" (visibleChange)="visibleChange.emit($event)"
+  title="Enviar Solicitud Pública" [steps]="steps" (save)="enviarSolicitud()">
+</app-generic-dialog-steps-form-component>
+
+<ng-template #step1>
+  <app-input-select-component #inputTipoDocumento label="Tipo de Documento"
+    [(value)]="solicitudPublica.informacionSolicitante.tipoDocumento" [options]="tiposDocumento" [required]="true">
+  </app-input-select-component>
+
+  <app-input-text-component #inputNumeroDocumento label="Número de Documento"
+    [(value)]="solicitudPublica.informacionSolicitante.numeroDocumento" [required]="true">
+  </app-input-text-component>
+
+  <app-input-text-component #inputNombres label="Nombres" [(value)]="solicitudPublica.informacionSolicitante.nombres"
+    [required]="true">
+  </app-input-text-component>
+
+  <app-input-text-component #inputApellidos label="Apellidos"
+    [(value)]="solicitudPublica.informacionSolicitante.apellidos" [required]="true">
+  </app-input-text-component>
+
+  <app-input-text-component #inputCorreo label="Correo Electrónico"
+    [(value)]="solicitudPublica.informacionSolicitante.correoElectronico" [required]="true">
+  </app-input-text-component>
+
+  <app-input-text-component #inputTelefono label="Teléfono" [(value)]="solicitudPublica.informacionSolicitante.telefono"
+    [required]="true">
+  </app-input-text-component>
+</ng-template>
+
+<ng-template #step2>
+  <app-input-text-component #inputNombreSolicitud label="Nombre de la Solicitud" [(value)]="solicitudPublica.nombre"
+    [required]="true">
+  </app-input-text-component>
+
+  <app-input-text-tarea-component #inputDescripcionSolicitud label="Descripción"
+    [(value)]="solicitudPublica.descripcion" [required]="false">
+  </app-input-text-tarea-component>
+
+  <app-input-select-component #inputTipoSolicitud label="Tipo de Solicitud"
+    [(value)]="solicitudPublica.uuidTipoSolicitud" (valueChange)="onTipoSolicitudChange($event)"
+    [options]="tiposSolicitudOptions" [required]="true">
+  </app-input-select-component>
+</ng-template>
+
+<ng-template #step3>
+  <div *ngIf="tipoSolicitudSeleccionado as tipo">
+    <app-input-anexo-upload-component *ngFor="let anexo of tipo.anexos; let i = index" #inputAnexo [tipoAnexo]="anexo"
+      [uploadedFile]="archivosAnexos[i]" (fileSelected)="onArchivoCargado($event, i, anexo.nombre)"
+      (fileRemoved)="onArchivoRemovido(i)">
+    </app-input-anexo-upload-component>
+  </div>
+</ng-template>

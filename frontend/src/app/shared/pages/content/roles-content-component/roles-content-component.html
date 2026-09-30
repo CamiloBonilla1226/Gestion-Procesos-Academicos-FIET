@@ -1,0 +1,47 @@
+<app-card-main-component [preTitleComponent]="pretitleComponentComponent"
+  [preTitleInputs]="{ imgUrl: 'buttons/roles.svg' }" [title]="'Gestión de Roles'" [bodyComponent]="tableComponent"
+  [bodyInputs]="{ headers: headers, data: paginatedData, actionTemplate: actionTemplate }" [buttons]="buttons">
+</app-card-main-component>
+
+<ng-template #botonNombre>
+  <app-button-component imgUrl="buttons/ordenar.svg" color="white" width="18px" height="18px"
+    (clicked)="ordenarPorNombre()">
+  </app-button-component>
+</ng-template>
+
+<ng-template #botonDescripcion>
+  <app-button-component imgUrl="buttons/ordenar.svg" color="white" width="18px" height="18px"
+    (clicked)="ordenarPorDescripcion()">
+  </app-button-component>
+</ng-template>
+
+<ng-template #actionTemplate let-row>
+  <div class="d-flex gap-2">
+    <app-button-component imgUrl="buttons/edit.svg" color="white" width="18px" height="18px"
+      (clicked)="abrirModalActualizarRol(row)">
+    </app-button-component>
+
+    <app-button-component imgUrl="buttons/eye.svg" color="white" width="18px" height="18px" (clicked)="verMasInfo(row)">
+    </app-button-component>
+  </div>
+</ng-template>
+
+<app-paginator [totalPages]="totalPages" [currentPage]="currentPage" (pageChange)="onPageChange($event)">
+</app-paginator>
+
+<app-generic-dialog-info-component [visible]="rolInfoDialogVisible" (visibleChange)="rolInfoDialogVisible = $event"
+  [title]="'Información del Rol'" [data]="selectedRolInfo">
+</app-generic-dialog-info-component>
+
+<app-generic-dialog-form-component [visible]="rolFormDialogVisible" (visibleChange)="rolFormDialogVisible = $event"
+  [title]="'Actualizar Rol'" (save)="guardarRolActualizado()">
+
+  <app-input-text-tarea-component #inputDescripcion [(value)]="selectedRolForm.descripcion" [label]="'Descripción'"
+    [required]="true">
+  </app-input-text-tarea-component>
+
+  <app-input-select-component #inputEstado [(value)]="selectedRolForm.estado" [label]="'Estado'"
+    [options]="estadosBooleano" [required]="true">
+  </app-input-select-component>
+
+</app-generic-dialog-form-component>

@@ -1,0 +1,14 @@
+.btn.custom-btn {
+  font-family: 'Titillium Web', sans-serif;
+  font-size:small;
+  color: white;
+  font-weight:regular;
+  letter-spacing: 0.15; 
+  border-radius: 4px;     
+}
+
+.btn[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed !important;
+  box-shadow: none;
+}

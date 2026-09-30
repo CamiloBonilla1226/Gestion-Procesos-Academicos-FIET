@@ -1,0 +1,40 @@
+.card {
+  max-width: 800px;
+  margin: 3rem auto;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  background-color: #fff;
+}
+
+.card-content {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between; 
+  gap: 2rem; 
+}
+
+.form-section {
+  flex: 1;
+}
+
+.image-section {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.card-logo {
+  max-width: 100%;
+  height: auto;
+}
+
+.title {
+  font-size: 24px;
+  font-family: 'Titillium Web', sans-serif;
+  font-weight: bold;
+  color: #1E257B;
+  margin-bottom: 1.5rem;
+}

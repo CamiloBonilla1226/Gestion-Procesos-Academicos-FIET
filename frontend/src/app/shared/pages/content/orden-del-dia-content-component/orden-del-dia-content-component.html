@@ -1,0 +1,109 @@
+<app-card-main-component [preTitleComponent]="pretitleComponentComponent"
+  [preTitleInputs]="{ imgUrl: 'buttons/orden-del-dia.svg' }" [title]="'Gestión Orden del Día'"
+  [bodyComponent]="tableComponent" [bodyInputs]="{
+    headers: headers,
+    data: paginatedData,
+    actionTemplate: actionTemplate
+  }" [buttons]="buttonsCard">
+</app-card-main-component>
+
+<app-orden-del-dia-visualizador-component [(visible)]="ordenDelDiaVisible" [orden]="ordenSeleccionada">
+</app-orden-del-dia-visualizador-component>
+
+<ng-template #actionTemplate let-row>
+  <div class="d-flex gap-2">
+    <app-button-component imgUrl="buttons/edit.svg" color="white" width="18px" height="18px"
+      (clicked)="abrirActualizarOrden(row)">
+    </app-button-component>
+
+    <app-button-component imgUrl="buttons/eye.svg" color="white" width="18px" height="18px" (clicked)="verMasInfo(row)">
+    </app-button-component>
+
+    <app-button-component imgUrl="buttons/folder.svg" color="white" width="18px" height="18px"
+      (clicked)="abrirOrdenDelDia(row)">
+    </app-button-component>
+  </div>
+</ng-template>
+
+<app-paginator *ngIf="totalElements > 0" [totalPages]="totalPages" [currentPage]="currentPage"
+  (pageChange)="onPageChange($event)">
+</app-paginator>
+
+<ng-template #busquedaNumeroActa>
+  <app-barra-busqueda-component [placeholder]="'Buscar número de acta'" (valueChange)="onBuscarPorNumeroActa($event)">
+  </app-barra-busqueda-component>
+</ng-template>
+
+<app-generic-dialog-info-component [visible]="ordenInfoDialogVisible" (visibleChange)="ordenInfoDialogVisible = $event"
+  [title]="'Información Orden del Día'" [data]="selectedOrdenInfo">
+</app-generic-dialog-info-component>
+
+<app-generic-dialog-form-component [visible]="ordenFormDialogVisible" (visibleChange)="ordenFormDialogVisible = $event"
+  [title]="'Crear Orden del Día'" (save)="guardarOrden()">
+
+  <app-input-text-component #inputNombre [(value)]="selectedOrdenForm.nombre" [label]="'Nombre'" [required]="true">
+  </app-input-text-component>
+
+  <app-input-text-component #inputNumeroActa [(value)]="selectedOrdenForm.numeroActa" [label]="'Número Acta'"
+    [required]="true">
+  </app-input-text-component>
+
+  <app-input-text-tarea-component #inputDescripcion [(value)]="selectedOrdenForm.descripcion" [label]="'Descripción'">
+  </app-input-text-tarea-component>
+
+  <app-input-text-component #inputCiudad [(value)]="selectedOrdenForm.ciudad" [label]="'Ciudad'">
+  </app-input-text-component>
+
+  <app-input-date-component #inputFecha [(value)]="selectedOrdenForm.fecha" [label]="'Fecha'">
+  </app-input-date-component>
+
+  <app-input-text-component #inputHoraInicio [(value)]="selectedOrdenForm.horaInicio" [label]="'Hora Inicio'">
+  </app-input-text-component>
+
+  <app-input-text-component #inputHoraFin [(value)]="selectedOrdenForm.horaFin" [label]="'Hora Fin'">
+  </app-input-text-component>
+
+  <app-input-text-component #inputLugar [(value)]="selectedOrdenForm.lugarReunion" [label]="'Lugar'">
+  </app-input-text-component>
+
+</app-generic-dialog-form-component>
+
+<app-generic-dialog-form-component [visible]="ordenFormActualizarDialogVisible"
+  (visibleChange)="ordenFormActualizarDialogVisible = $event" [title]="'Actualizar Orden del Día'"
+  (save)="guardarOrdenActualizada()">
+
+  <app-input-text-component #inputNombreActualizar [(value)]="selectedOrdenActualizarForm.nombre" [label]="'Nombre'"
+    [required]="true">
+  </app-input-text-component>
+
+  <app-input-text-component #inputNumeroActaActualizar [(value)]="selectedOrdenActualizarForm.numeroActa"
+    [label]="'Número Acta'" [required]="true">
+  </app-input-text-component>
+
+  <app-input-text-tarea-component #inputDescripcionActualizar [(value)]="selectedOrdenActualizarForm.descripcion"
+    [label]="'Descripción'">
+  </app-input-text-tarea-component>
+
+  <app-input-text-component #inputCiudadActualizar [(value)]="selectedOrdenActualizarForm.ciudad" [label]="'Ciudad'">
+  </app-input-text-component>
+
+  <app-input-date-component #inputFechaActualizar [(value)]="selectedOrdenActualizarForm.fecha" [label]="'Fecha'">
+  </app-input-date-component>
+
+  <app-input-text-component #inputHoraInicioActualizar [(value)]="selectedOrdenActualizarForm.horaInicio"
+    [label]="'Hora Inicio'">
+  </app-input-text-component>
+
+  <app-input-text-component #inputHoraFinActualizar [(value)]="selectedOrdenActualizarForm.horaFin"
+    [label]="'Hora Fin'">
+  </app-input-text-component>
+
+  <app-input-text-component #inputLugarActualizar [(value)]="selectedOrdenActualizarForm.lugarReunion"
+    [label]="'Lugar'">
+  </app-input-text-component>
+
+  <app-input-select-component #inputEstadoActualizar [(value)]="selectedOrdenActualizarForm.estado" [label]="'Estado'"
+    [options]="estadosBooleano" [required]="true">
+  </app-input-select-component>
+
+</app-generic-dialog-form-component>

@@ -1,0 +1,22 @@
+<div class="card shadow-sm rounded mt-3">
+  <div class="card-header d-flex justify-content-between align-items-center bg-white border-0">
+    <div class="d-flex align-items-center gap-2">
+      <ng-container>
+        <ng-container *ngComponentOutlet="preTitleComponent; inputs: preTitleInputs;"></ng-container>
+      </ng-container>
+      <h5 class="title-custom mb-0">{{ title }}</h5>
+    </div>
+
+    <div class="d-flex gap-2">
+      <app-button-component *ngFor="let btn of buttons" [imgUrl]="btn.imgUrl" [color]="btn.color" [width]="btn.width"
+        [height]="btn.height" (clicked)="btn.onClick()">
+      </app-button-component>
+    </div>
+  </div>
+
+  <div class="line my-0"></div>
+
+  <div class="card-body">
+    <ng-container *ngComponentOutlet="bodyComponent; inputs: bodyInputs"></ng-container>
+  </div>
+</div>

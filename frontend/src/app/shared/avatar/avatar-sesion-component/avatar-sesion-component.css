@@ -1,0 +1,44 @@
+.avatar-custom {
+    width: 55px;            
+    height: 55px;           
+    border: 2px solid #1E257B; 
+    border-radius: 50%;
+    background-color: white; 
+    color: #1E257B;   
+    font-family: 'Titillium Web', sans-serif;
+    font-size: 16px;
+    font-weight: bold;
+    letter-spacing: 0.35;     
+}
+
+.user-name {
+    font-size: 1rem;           
+    color: #1E257B;    
+    font-family: 'Titillium Web', sans-serif;
+    font-weight: bold;
+    letter-spacing: 0.35;         
+}
+
+.dropdown-custom {
+    font-size: 0.85rem;  
+    padding: 0.25rem 0.5rem;
+    background-color: #fff !important; 
+    color: #1E257B !important; 
+    font-family: 'Titillium Web', sans-serif;
+    border-color: #928F9A;    
+}
+
+.dropdown-menu-white .dropdown-item{
+    background-color: #fff !important;
+    color: #454444 !important;
+    font-family: 'Titillium Web', sans-serif;
+    font-size: 12px;
+    font-size: 0.85rem;  
+}
+
+.dropdown-menu-white .dropdown-item:hover,
+.dropdown-menu-white .dropdown-item:focus,
+.dropdown-menu-white .dropdown-item:active {
+  background-color: #FFB000 !important;
+  color: #fff !important;
+}

@@ -1,0 +1,13 @@
+.divider {
+    display: inline-block;
+    width: 1px;         
+    height: 50px;       
+    background-color: #1E257B;
+    align-self: center; 
+}
+
+.navbar-custom .navbar-brand {
+  color: #1E257B;
+  font-weight: 600;
+}
+

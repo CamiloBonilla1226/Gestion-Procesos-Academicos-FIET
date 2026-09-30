@@ -1,0 +1,42 @@
+<div class="file-upload-container">
+
+  <label class="anexo-label">
+    {{ tipoAnexo.nombre }}
+    <span *ngIf="tipoAnexo.obligatoriedad" class="required">*</span>
+  </label>
+
+  <small class="text-muted">
+    {{ tipoAnexo.descripcion }}
+  </small>
+
+  <small class="text-muted">
+    {{ tipoAnexo.formato }}
+  </small>
+
+  <small class="text-muted">
+    {{ tipoAnexo.obligatoriedad ? 'Obligatorio' : 'Opcional' }}
+  </small>
+
+  <p-fileUpload mode="basic" name="file" [auto]="true" [customUpload]="true" [showUploadButton]="false"
+    [showCancelButton]="false" chooseLabel="Seleccionar archivo" [disabled]="!!uploadedFile"
+    (onSelect)="onFileSelect($event)">
+  </p-fileUpload>
+
+  <div *ngIf="uploadedFile" class="uploaded-file">
+    <span>
+      {{ uploadedFile.name }}
+    </span>
+    <button class="remove-btn" (click)="removeFile()">
+      Remover
+    </button>
+  </div>
+
+  <div *ngIf="errorFormato" class="error-text">
+    Formato inválido. Permitidos: {{ tipoAnexo.formato }}
+  </div>
+
+  <div *ngIf="esInvalido()" class="error-text">
+    Este anexo es obligatorio
+  </div>
+
+</div>

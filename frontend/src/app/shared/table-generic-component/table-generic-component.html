@@ -1,0 +1,22 @@
+<table class="table table-bordered">
+  <thead>
+    <tr>
+      <th *ngFor="let header of headers">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <span>{{ header.title }}</span>
+          <ng-container *ngIf="header.headerTemplate" [ngTemplateOutlet]="header.headerTemplate">
+          </ng-container>
+        </div>
+      </th>
+      <th *ngIf="actionTemplate">Acciones</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let row of data">
+      <td *ngFor="let header of headers">{{ row[header.title] }}</td>
+      <td *ngIf="actionTemplate">
+        <ng-container *ngTemplateOutlet="actionTemplate; context: { $implicit: row }"></ng-container>
+      </td>
+    </tr>
+  </tbody>
+</table>

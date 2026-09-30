@@ -1,0 +1,13 @@
+.navbar-custom {
+  background-color: white;
+}
+
+
+.navbar-custom .navbar-brand {
+  color: #1E257B;
+  font-family: 'Titillium Web', sans-serif;
+  font-size: 24px;
+  font-weight: bold;
+  letter-spacing: 0.35;
+}
+

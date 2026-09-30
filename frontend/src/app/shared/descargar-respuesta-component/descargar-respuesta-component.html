@@ -1,0 +1,15 @@
+<div class="anexo-item">
+    <div class="info">
+        📄 <strong> Respuesta cargado </strong>
+    </div>
+
+    <div class="acciones">
+        <button class="btn-descargar" (click)="descargar()">
+            <img src="buttons/download.svg" width="24" height="24">
+        </button>
+
+        <button *ngIf="mostrarEliminar" class="btn-eliminar" (click)="eliminar()">
+            <img src="buttons/delete.svg" width="24" height="24">
+        </button>
+    </div>
+</div>

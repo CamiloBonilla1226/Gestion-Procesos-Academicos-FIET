@@ -1,0 +1,9 @@
+<div class="sidebar d-flex flex-column align-items-center text-center">
+  <img src="logos/unicauca-big.png" alt="logo" class="mb-4 mt-3" style="width: 100px; height: auto;">
+
+  @for (btn of buttons; track btn) {
+  <app-button-group-component class="w-100 mb-2" [label]="btn.label"
+    [imgUrl]="btn.imgUrl !== undefined ? btn.imgUrl : ''" (clicked)="onButtonClick(btn.route)">
+  </app-button-group-component>
+  }
+</div>

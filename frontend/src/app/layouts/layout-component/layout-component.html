@@ -1,0 +1,33 @@
+<div class="container-fluid h-100">
+  <div class="row h-100">
+
+    <!-- Sidebar -->
+    <div class="col-2 sidebar">
+      <ng-content select="[sidebar]"></ng-content>
+    </div>
+
+    <!-- Content -->
+    <div class="col-10 content d-flex flex-column px-0">
+
+      <!-- Header -->
+      <div class="header p-2">
+        <ng-content select="[header]"></ng-content>
+      </div>
+
+      <!-- Breadcrumb -->
+      <div class="breadcrumb-container p-2">
+        <ng-content select="[breadcrumb]"></ng-content>
+      </div>
+
+      <!-- Main -->
+      <div class="main flex-grow-1 p-3">
+        <ng-content select="[main]"></ng-content>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer p-2 text-center">
+        <ng-content select="[footer]"></ng-content>
+      </div>
+    </div>
+  </div>
+</div>

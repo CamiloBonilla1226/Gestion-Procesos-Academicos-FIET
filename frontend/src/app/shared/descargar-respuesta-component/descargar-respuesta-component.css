@@ -1,0 +1,58 @@
+.anexo-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid #ddd;
+  font-family: 'Titillium Web', sans-serif;
+  font-size: 14px;
+  letter-spacing: 0.35px;
+}
+
+.info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #1E257B;
+  flex: 1;
+}
+
+.info strong {
+  font-weight: 600;
+}
+
+.acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-descargar {
+  background-color: #1E257B;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-descargar img {
+  display: block;
+}
+
+.btn-eliminar {
+  background-color: #d9534f;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-eliminar:hover {
+  background-color: #c9302c;
+}

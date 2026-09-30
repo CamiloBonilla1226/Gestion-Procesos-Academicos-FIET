@@ -1,0 +1,10 @@
+<button type="button" class="btn custom-btn d-flex align-items-center" [disabled]="disabled" [ngStyle]="{ 
+          'background-color': color,
+          'width': width,
+          'height': height
+        }" (click)="onClick()">
+
+  <img *ngIf="imgUrl" [src]="imgUrl" alt="icon" class="button-icon me-2" />
+
+  <span>{{ label }}</span>
+</button>

@@ -1,0 +1,21 @@
+<app-layout-component>
+  <div sidebar>
+    <ng-container *ngComponentOutlet="sidebarComponent"></ng-container>
+  </div>
+
+  <div header>
+    <ng-container *ngComponentOutlet="headerComponent"></ng-container>
+  </div>
+
+  <div breadcrumb>
+    <ng-container *ngComponentOutlet="breadcrumbComponent; inputs: breadcrumbInputs"></ng-container>
+  </div>
+
+  <div main>
+    <ng-container *ngComponentOutlet="mainComponent"></ng-container>
+  </div>
+
+  <div footer>
+    <app-footer-simple-component></app-footer-simple-component>
+  </div>
+</app-layout-component>

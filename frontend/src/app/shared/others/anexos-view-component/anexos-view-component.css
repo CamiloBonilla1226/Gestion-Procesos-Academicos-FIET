@@ -1,0 +1,28 @@
+.anexo-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+    font-family: 'Titillium Web', sans-serif;
+    font-size: large;
+    font-weight: semi-bold;
+    letter-spacing: 0.35px;
+}
+
+.info {
+    font-size: 14px;
+}
+
+.acciones button {
+    margin-left: 8px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-descargar {
+    background-color: #1E257B;
+    color: white;
+}
+

@@ -1,0 +1,42 @@
+# Orquestación local del backend + base de datos de
+# "Gestión de Procesos Académicos FIET" (trabajo de grado).
+# Base heredada de https://github.com/jdacamacho/back-fiet-sc.
+#
+# Uso:
+#   1) Generar el jar:  cd solicitudes && ./mvnw clean install -DskipTests
+#   2) Levantar todo:   docker compose up --build
+# El backend queda en http://localhost:8080 y MySQL expuesto en el
+# puerto 3307 del host (3306 dentro del contenedor).
+version: '3'
+
+services:
+  solicitudes-consejo-de-facultad:
+    build: .
+    mem_limit: 512m
+    ports:
+      - "8080:8080"
+    environment:
+      SERVER_PORT: 8080
+      DB_URL: jdbc:mysql://cfiet_database:3306/cfiet?createDatabaseIfNotExist=true&serverTimezone=UTC
+      DB_USER_NAME: root
+      DB_PASSWORD: mysql
+      UPLOADS_PATH: /app/uploads
+    volumes:
+      - ./uploads:/app/uploads
+    restart: always
+    depends_on:
+      cfiet_database:
+        condition: service_healthy
+  cfiet_database:
+    image: mysql:8.0.33
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: mysql
+      MYSQL_PASSWORD: mysql
+      MYSQL_DATABASE: cfiet_database
+    restart: always
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 10s
+      retries: 10

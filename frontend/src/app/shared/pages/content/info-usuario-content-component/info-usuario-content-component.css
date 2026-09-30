@@ -1,0 +1,32 @@
+.user-card {
+  max-width: 400px;
+  margin: 2rem auto;
+  padding: 1.5rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #fefefe;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  font-family: 'Titillium Web', sans-serif;
+  color: #454444;
+  text-align: left; 
+}
+
+.title{
+  font-weight: 600;
+  color: #1E257B;
+}
+
+.user-card h2 {
+  text-align: center; 
+  margin-bottom: 1rem;
+  color: #1E257B;
+}
+
+.user-card p {
+  margin: 0.5rem 0;
+  font-size: 16px;
+}
+
+.user-card strong {
+  color: #1E257B;
+}

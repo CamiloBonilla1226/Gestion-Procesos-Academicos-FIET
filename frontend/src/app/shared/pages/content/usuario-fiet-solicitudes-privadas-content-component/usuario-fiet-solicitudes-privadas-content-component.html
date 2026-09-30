@@ -1,0 +1,28 @@
+<app-card-main-component [preTitleComponent]="pretitleComponentComponent"
+  [preTitleInputs]="{ imgUrl: 'buttons/solicitudes.svg' }" [title]="'Envío de Solicitudes'"
+  [bodyComponent]="tableComponent"
+  [bodyInputs]="{ headers: headers, data: paginatedData, actionTemplate: actionTemplate }" [buttons]="buttonsCard">
+</app-card-main-component>
+
+<app-enviar-solicitud-usuario-fiet-component *ngIf="enviarSolicitudVisible" [(visible)]="enviarSolicitudVisible">
+</app-enviar-solicitud-usuario-fiet-component>
+
+<ng-template #actionTemplate let-row>
+  <div class="d-flex gap-2">
+    <app-button-component imgUrl="buttons/eye.svg" color="white" width="18px" height="18px" (clicked)="verMasInfo(row)">
+    </app-button-component>
+  </div>
+</ng-template>
+
+<ng-template #busquedaTipoSolicitud>
+  <app-barra-busqueda-component [placeholder]="'Buscar Tipo Solicitud'" (valueChange)="onBuscarTipoSolicitud($event)">
+  </app-barra-busqueda-component>
+</ng-template>
+
+<app-generic-dialog-info-component [visible]="tipoInfoDialogVisible" (visibleChange)="tipoInfoDialogVisible = $event"
+  [title]="'Información del Tipo de Solicitud'" [data]="selectedTipoInfo">
+</app-generic-dialog-info-component>
+
+<app-paginator *ngIf="totalElements > 0" [totalPages]="totalPages" [currentPage]="currentPage"
+  (pageChange)="onPageChange($event)">
+</app-paginator>

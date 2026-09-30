@@ -1,0 +1,45 @@
+.file-upload-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  font-family: 'Titillium Web', sans-serif; 
+}
+
+::ng-deep .file-upload-container .p-fileupload-basic .p-button {
+    background-color: #1E257B !important; 
+    color: #fff !important;
+    font-family: 'Titillium Web', sans-serif;
+    font-weight: 600;
+    border-radius: 6px;
+    border: none;
+}
+
+::ng-deep .file-upload-container .p-fileupload-basic .p-button:hover {
+    background-color: #141a5a !important; 
+}
+
+.remove-btn {
+  background-color: #d9534f; 
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-family: 'Titillium Web', sans-serif;
+  font-weight: 600;
+}
+
+.remove-btn:hover {
+  background-color: #c9302c; 
+}
+
+.uploaded-file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f4f4f4;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #333;
+}

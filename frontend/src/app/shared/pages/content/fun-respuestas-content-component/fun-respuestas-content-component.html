@@ -1,0 +1,47 @@
+<app-card-main-component [preTitleComponent]="pretitleComponentComponent"
+    [preTitleInputs]="{ imgUrl: 'buttons/respuestas.svg' }" [title]="'Gestión de Respuestas'"
+    [bodyComponent]="tableComponent"
+    [bodyInputs]="{ headers: headers, data: paginatedData, actionTemplate: actionTemplate }">
+</app-card-main-component>
+
+<ng-template #actionTemplate let-row>
+    <div class="d-flex gap-2">
+        <app-button-component imgUrl="buttons/eye.svg" color="white" width="18px" height="18px"
+            (clicked)="verMasInfo(row)">
+        </app-button-component>
+
+        <app-button-component imgUrl="buttons/edit.svg" color="white" width="18px" height="18px"
+            (clicked)="abrirCargarRespuesta(row)">
+        </app-button-component>
+    </div>
+
+</ng-template>
+
+<app-paginator *ngIf="totalElements > 0" [totalPages]="totalPages" [currentPage]="currentPage"
+    (pageChange)="onPageChange($event)">
+</app-paginator>
+
+<ng-template #busquedaSolicitud>
+    <app-barra-busqueda-component [placeholder]="'Buscar por solicitud'" (valueChange)="onBuscarSolicitud($event)">
+    </app-barra-busqueda-component>
+</ng-template>
+
+<app-dialog-gestion-respuesta-component
+  [(visible)]="dialogGestionVisible"
+  [uuidRespuesta]="selectedRespuestaUuid"
+  (respuestaModificada)="cargarRespuestas(currentPage, busquedaActual)">
+</app-dialog-gestion-respuesta-component>
+
+
+
+<app-generic-dialog-info-component [visible]="respuestaInfoDialogVisible"
+    (visibleChange)="respuestaInfoDialogVisible = $event" [title]="'Información de la Respuesta'"
+    [data]="selectedRespuestaInfo" [showCustomContent]="!!respuestaUrl">
+
+    <ng-container *ngIf="respuestaUrl && nombreArchivoRespuesta">
+        <app-descargar-respuesta-component [urlRespuesta]="respuestaUrl" [nombreArchivo]="nombreArchivoRespuesta"
+            [mostrarEliminar]="false">
+        </app-descargar-respuesta-component>
+    </ng-container>
+
+</app-generic-dialog-info-component>

@@ -1,0 +1,36 @@
+<app-generic-dialog-steps-form-component [visible]="visible" (visibleChange)="visibleChange.emit($event)"
+  title="Enviar Solicitud" [steps]="steps" (save)="enviarSolicitud()">
+</app-generic-dialog-steps-form-component>
+
+<ng-template #step1>
+
+  <app-input-text-component [(value)]="nuevaSolicitud.consecutivo" label="Consecutivo" [required]="false">
+  </app-input-text-component>
+
+  <app-input-text-component [(value)]="nuevaSolicitud.nombre" label="Nombre de la Solicitud" [required]="true">
+  </app-input-text-component>
+
+  <app-input-text-tarea-component [(value)]="nuevaSolicitud.descripcion" label="Descripción" [required]="false">
+  </app-input-text-tarea-component>
+
+  <app-input-select-component [(value)]="nuevaSolicitud.uuidTipoSolicitud" (valueChange)="onTipoSolicitudChange($event)"
+    label="Tipo de Solicitud" [options]="tiposSolicitudOptions" [required]="true">
+  </app-input-select-component>
+
+
+  <app-input-select-component [(value)]="nuevaSolicitud.uuidOrdenDelDia" label="Orden del Día"
+    [options]="ordenesDelDiaOptions" [required]="true">
+  </app-input-select-component>
+
+</ng-template>
+
+<ng-template #step2>
+  <div *ngIf="tipoSolicitudSeleccionado as tipo">
+
+    <app-input-anexo-upload-component *ngFor="let anexo of tipo.anexos; let i = index" [tipoAnexo]="anexo"
+      [uploadedFile]="archivosAnexos[i]" (fileSelected)="onArchivoCargado($event, i, anexo.nombre)"
+      (fileRemoved)="onArchivoRemovido(i)">
+    </app-input-anexo-upload-component>
+
+  </div>
+</ng-template>

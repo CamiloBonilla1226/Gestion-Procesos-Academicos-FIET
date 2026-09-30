@@ -1,0 +1,88 @@
+:host ::ng-deep .custom-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+:host ::ng-deep .p-dialog.custom-dialog {
+  min-width: 800px !important;
+  max-width: 90% !important;
+}
+
+:host ::ng-deep .p-dialog.custom-dialog .p-dialog-header {
+  background-color: white !important;
+  justify-content: space-between;
+  color: #1E257B !important;
+  font-weight: bold !important;
+  font-size: 16px !important;
+  font-family: 'Titillium Web', sans-serif !important;
+  line-height: 1.5 !important;
+  border-bottom: 1px solid #CFCDD4 !important;
+  padding-bottom: 5px !important;
+}
+
+:host ::ng-deep .p-dialog.custom-dialog .p-dialog-content {
+  background-color: white !important;
+  color: #454444 !important;
+  font-family: 'Titillium Web', sans-serif;
+
+  scrollbar-width: thin;
+  scrollbar-color: #ccc white;
+}
+
+/* Scrollbar WebKit */
+:host ::ng-deep .p-dialog.custom-dialog .p-dialog-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+:host ::ng-deep .p-dialog.custom-dialog .p-dialog-content::-webkit-scrollbar-track {
+  background: white;
+}
+
+:host ::ng-deep .p-dialog.custom-dialog .p-dialog-content::-webkit-scrollbar-thumb {
+  background-color: #ccc;
+  border-radius: 10px;
+  border: 2px solid white;
+}
+
+:host ::ng-deep .p-dialog.custom-dialog .p-dialog-content::-webkit-scrollbar-thumb:hover {
+  background-color: #aaa;
+}
+
+:host ::ng-deep .p-dialog.custom-dialog .p-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  background-color: white !important;
+  border-top: 1px solid #CFCDD4 !important;
+}
+
+.dialog-content {
+  padding-top: 10px;
+}
+
+.close-btn {
+  background-color: white;
+  color: #DB141C;
+  border: none;
+  padding: 8px 12px;
+  font-family: 'Titillium Web', sans-serif;
+  font-size: large;
+  font-weight: semi-bold;
+  letter-spacing: 0.35px;
+}
+
+:host ::ng-deep .p-dialog .p-dialog-footer app-simple-button-component {
+  margin-top: 20px;
+}
+
+:host ::ng-deep .p-dialog-mask:has(.custom-dialog) {
+  background: transparent !important;
+}
+
+:host ::ng-deep .p-dialog.custom-dialog {
+  border: 4px solid transparent !important;
+  border-radius: 12px !important;
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.25) !important;
+  background: white !important;
+}

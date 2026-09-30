@@ -1,0 +1,22 @@
+.small-input .form-control {
+  height: 36px;        
+  font-size: 12px;     
+  padding: 0.25rem 0.5rem;
+  background: #fff;    
+  color: #454444;         
+  border-radius: 6px;   
+  box-shadow: none;  
+  font-family: 'Titillium Web', sans-serif; 
+}
+
+.small-input .form-control:focus {
+  border-color: #ccc;   
+  box-shadow: none;     
+}
+
+.small-input label {
+  font-size: 13px;
+  color: #1E257B;    
+  font-weight: 600; 
+  font-family: 'Titillium Web', sans-serif;
+}

@@ -1,0 +1,18 @@
+<app-card-main-component [preTitleComponent]="pretitleComponentComponent"
+  [preTitleInputs]="{ imgUrl: 'buttons/historial.svg' }" [title]="'Historial'" [bodyComponent]="tableComponent"
+  [bodyInputs]="{ headers: headers, data: paginatedData }">
+</app-card-main-component>
+
+<ng-template #busquedaResponsable>
+  <app-barra-busqueda-component [placeholder]="'Buscar Responsable'" (valueChange)="onBuscarResponsable($event)">
+  </app-barra-busqueda-component>
+</ng-template>
+
+<ng-template #busquedaFecha>
+  <app-barra-busqueda-component [placeholder]="'Buscar Fecha'" (valueChange)="onBuscarFecha($event)">
+  </app-barra-busqueda-component>
+</ng-template>
+
+<app-paginator *ngIf="totalElements > 0" [totalPages]="totalPages" [currentPage]="currentPage"
+  (pageChange)="onPageChange($event)">
+</app-paginator>

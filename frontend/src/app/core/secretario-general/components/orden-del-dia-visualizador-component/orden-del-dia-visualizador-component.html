@@ -1,0 +1,173 @@
+<p-dialog [(visible)]="visible" [modal]="true" [closable]="false" styleClass="custom-dialog">
+
+    <ng-template pTemplate="header">
+        <div class="custom-dialog-header">
+            {{ title }}
+            <button type="button" class="close-btn" (click)="close()">X</button>
+        </div>
+
+    </ng-template>
+
+    <div *ngIf="orden" class="mb-2">
+        <div class="dialog-row">
+            <span class="field-name">Nombre:</span>
+            <span class="field-value ms-2">{{ orden.nombre }}</span>
+        </div>
+
+        <div class="dialog-row">
+            <span class="field-name">Descripción:</span>
+            <span class="field-value ms-2">{{ orden.descripcion }}</span>
+        </div>
+
+        <div class="dialog-row">
+            <span class="field-name">Ciudad:</span>
+            <span class="field-value ms-2">{{ orden.ciudad }}</span>
+        </div>
+
+        <div class="dialog-row">
+            <span class="field-name">Lugar de reunión:</span>
+            <span class="field-value ms-2">{{ orden.lugarReunion }}</span>
+        </div>
+
+        <div class="dialog-row">
+            <span class="field-name">Fecha:</span>
+            <span class="field-value ms-2">{{ orden.fecha }}</span>
+        </div>
+
+        <div class="dialog-row">
+            <span class="field-name">Hora:</span>
+            <span class="field-value ms-2">
+                {{ orden.horaInicio }} - {{ orden.horaFin }}
+            </span>
+        </div>
+
+        <div class="dialog-row">
+            <span class="field-name">Número de acta:</span>
+            <span class="field-value ms-2">{{ orden.numeroActa }}</span>
+        </div>
+
+        <div class="dialog-row">
+            <span class="field-name">Estado:</span>
+            <span class="field-value ms-2">{{ orden.estado }}</span>
+        </div>
+    </div>
+
+    <div class="button-groups">
+        <div class="export-buttons">
+            <app-simple-button-group-component label="Exportar Orden del Día" width="250px" height="35px"
+                color="#1E257B" imgUrl="buttons/export_orden.svg" (clicked)="exportarOrdenDelDia()">
+            </app-simple-button-group-component>
+
+            <app-simple-button-group-component label="Exportar con Respuestas" width="250px" height="35px"
+                color="#1E257B" imgUrl="buttons/reply.svg" (clicked)="exportarOrdenDelDiaConRespuestas()">
+            </app-simple-button-group-component>
+
+            <app-simple-button-group-component label="Exportar Desarrollo de la Reunión" width="250px" height="35px"
+                color="#1E257B" imgUrl="buttons/meeting.svg" (clicked)="exportarOrdenDelDiaMerge()">
+            </app-simple-button-group-component>
+        </div>
+
+        <div class="download-button">
+            <app-simple-button-group-component label="Descargar Anexos" width="160px" height="35px" color="#1E257B"
+                imgUrl="buttons/download.svg" (clicked)="descargarAnexos()">
+            </app-simple-button-group-component>
+        </div>
+    </div>
+
+
+    <app-input-select-component #inputSolicitudAgregar [(value)]="solicitudSeleccionadaParaAgregar"
+        [label]="'Agregar Solicitud existente'" [options]="solicitudesDisponiblesOpciones" [required]="false"
+        (valueChange)="onSolicitudSeleccionada($event)" (open)="cargarSolicitudesDisponibles()">
+    </app-input-select-component>
+
+    <app-simple-button-group-component label="Agregar Solicitud" width="160px" height="35px" color="#1E257B"
+        imgUrl="buttons/add.svg" (clicked)="agregarSolicitudSeleccionada()">
+    </app-simple-button-group-component>
+
+    <div class="accordion mt-4" id="accordionOrdenDia">
+        <div class="accordion-item" *ngFor="let seccion of seccionesOrdenDia">
+
+            <h2 class="accordion-header">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        [attr.data-bs-target]="'#collapse-' + seccion.id">
+                        {{ seccion.label}}
+                        <span class="badge-count">
+                            Solicitudes en esta sección: {{ solicitudesPorSeccion[seccion.label].length }}
+                        </span>
+                    </button>
+                </h2>
+
+            </h2>
+
+            <div class="accordion-collapse collapse" [id]="'collapse-' + seccion.id"
+                data-bs-parent="#accordionOrdenDia">
+
+                <div class="accordion-body">
+
+                    <div *ngIf="solicitudesPorSeccion[seccion.label]?.length; else sinSolicitudes">
+                        <div *ngFor="let solicitud of solicitudesPorSeccion[seccion.label]"
+                            class="mb-3 d-flex justify-content-between align-items-start">
+
+                            <span class="field-value ms-2">{{ solicitud.nombre }}</span>
+
+                            <div class="d-flex gap-2">
+                                <app-button-component imgUrl="buttons/eye.svg" width="18px" height="18px" color="white"
+                                    (clicked)="verSolicitud(solicitud)">
+                                </app-button-component>
+
+                                <app-button-component imgUrl="buttons/edit.svg" width="18px" height="18px" color="white"
+                                    (clicked)="abrirFormularioRespuesta(solicitud)">
+                                </app-button-component>
+
+                                <app-button-component imgUrl="buttons/remove_selection.svg" width="18px" height="18px"
+                                    color="white" (clicked)="removerSolicitud(solicitud)">
+                                </app-button-component>
+                            </div>
+                        </div>
+                    </div>
+
+                    <ng-template #sinSolicitudes>
+                        <small>No hay solicitudes en esta sección</small>
+                    </ng-template>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <app-simple-button-component label="OK" width="50px" height="30px" (clicked)="close()">
+        </app-simple-button-component>
+    </ng-template>
+
+</p-dialog>
+
+<app-generic-dialog-info-component [visible]="solicitudInfoVisible" (visibleChange)="solicitudInfoVisible = $event"
+    [title]="'Información de Solicitud'" [data]="selectedSolicitudInfo" [showCustomContent]="dialogUsaComponente">
+
+    <app-anexos-view-component *ngIf="dialogUsaComponente" [anexos]="solicitudAnexos">
+    </app-anexos-view-component>
+
+</app-generic-dialog-info-component>
+
+<app-generic-dialog-form-component [(visible)]="respuestaFormDialogVisible" [title]="'Asignar Respuesta'"
+    (save)="modificarSolicitud()">
+
+    <app-input-select-component #tipoRespuesta [(value)]="selectedRespuestaForm.tipoRespuesta"
+        [label]="'Tipo de Respuesta'" [options]="tiposRespuesta" [required]="true">
+    </app-input-select-component>
+
+    <app-input-text-component #consecutivoFiet [(value)]="selectedRespuestaForm.consecutivoFiet"
+        [label]="'Consecutivo FIET'" [required]="true">
+    </app-input-text-component>
+
+    <app-input-text-tarea-component #respuestaConsejo [(value)]="selectedRespuestaForm.respuestaConsejo"
+        [label]="'Respuesta del Consejo'" [required]="true">
+    </app-input-text-tarea-component>
+
+    <app-input-text-tarea-component #indicaciones [(value)]="selectedRespuestaForm.indicaciones"
+        [label]="'Indicaciones'" [required]="false">
+    </app-input-text-tarea-component>
+
+</app-generic-dialog-form-component>

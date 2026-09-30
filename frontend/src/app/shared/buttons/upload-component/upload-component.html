@@ -1,0 +1,14 @@
+<div class="file-upload-container">
+  <!-- Botón para cargar -->
+  <p-fileUpload mode="basic" name="file" [auto]="true" (onSelect)="onFileSelect($event)" [customUpload]="true"
+    [showUploadButton]="false" [showCancelButton]="false" [disabled]="!!uploadedFile" chooseLabel="Seleccionar Archivo">
+  </p-fileUpload>
+
+  <!-- Archivo cargado -->
+  <div *ngIf="uploadedFile" class="uploaded-file">
+    <span class="file-info">
+      {{ uploadedFile.name }} ({{ uploadedFile.size / 1024 | number:'1.0-0' }} KB)
+    </span>
+    <button class="remove-btn" (click)="removeFile()">Remover</button>
+  </div>
+</div>

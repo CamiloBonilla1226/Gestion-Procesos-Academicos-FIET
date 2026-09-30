@@ -1,0 +1,17 @@
+<p-dialog [(visible)]="visible" [modal]="true" [closable]="false" styleClass="custom-dialog">
+
+  <ng-template pTemplate="header">
+    <div class="custom-dialog-header">
+      {{ title }}
+      <button type="button" class="close-btn" (click)="close()">X</button>
+    </div>
+  </ng-template>
+
+  <div class="dialog-content" *ngIf="visible">
+    <ng-content></ng-content>
+  </div>
+  <ng-template pTemplate="footer">
+    <app-simple-button-component label="Guardar" width="70px" height="30px" (clicked)="onSave()">
+    </app-simple-button-component>
+  </ng-template>
+</p-dialog>
