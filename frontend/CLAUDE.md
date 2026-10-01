@@ -1,7 +1,8 @@
 # Frontend — Gestión de Procesos Académicos FIET
 
-Angular 20 (standalone components, sin NgModules), PrimeNG, PrimeFlex,
-Bootstrap 5, SweetAlert2, SSR con Express. Hereda la estructura de Julián
+Angular 20 (standalone components, sin NgModules), Bootstrap 5 como base
+visual, PrimeNG de forma puntual, SweetAlert2, SSR con Express (PrimeFlex
+está instalado pero no se carga; ver "Estilos"). Hereda la estructura de Julián
 Camacho en `src/app`. Todo lo nuevo sigue esa misma organización y
 reutiliza los componentes compartidos que ya existen, no se crean
 versiones propias de una tabla, un diálogo o un botón si ya hay uno en
@@ -64,9 +65,9 @@ opcionalmente `[breadcrumbInputs]`, si el breadcrumb necesita datos). El
 rol (p.ej. `FunSolicitudesComponent`), delgado, que solo referencia un
 componente de contenido en `shared/pages/content/` (p.ej.
 `FunSolicitudesContentComponent`) a través de una propiedad `content`, y
-cuyo HTML lo renderiza con `<app-content-component [component]="content">`
-(o el nombre que tenga ese wrapper genérico, revisa `ContentComponent` en
-`shared/pages/content/`). El componente de contenido es donde está la
+cuyo HTML lo renderiza con
+`<app-content-component [title]="'...'" [bodyComponent]="content">`
+(`ContentComponent`, en `shared/pages/content/content-component`). El componente de contenido es donde está la
 lógica real — llamadas a servicios, estado, manejo de diálogos. Un módulo
 nuevo de un proceso académico sigue ese mismo esquema de tres niveles, no
 mete la lógica directo en la página de `core/<rol>/pages`.
@@ -148,7 +149,9 @@ providers, en este orden exacto:
 
 El `authInterceptor` sí se registra ahí, con `withInterceptors([...])`
 dentro de `provideHttpClient`, y es el único interceptor. No hay
-`withFetch()`. Un servicio o interceptor nuevo no se registra en otro lado.
+`withFetch()`. Un interceptor HTTP nuevo se agregaría al arreglo de
+`withInterceptors([...])` en ese mismo lugar; los servicios son
+`providedIn: 'root'` y no se registran en ningún provider.
 
 SSR: `app.config.server.ts` mezcla `appConfig` con
 `provideServerRendering(withRoutes(serverRoutes))` mediante
@@ -195,11 +198,15 @@ se sigue en los formularios nuevos:
 
 - Cada campo es un componente compartido de `shared/inputs/`
   (`InputTextComponent`, `InputTextTareaComponent`, `InputSelectComponent`,
-  `InputDateComponent`, `InputPasswordComponent`, `InputAnexoUploadComponent`)
-  con `@Input() label`, `@Input() required`, `@Input() value` y
-  `@Output() valueChange`. Se enlaza con two-way binding de componente:
-  `[(value)]="modelo.campo"`. `ngModel` aparece solo dentro de esos
-  componentes de input, no en las páginas ni en los componentes de contenido.
+  `InputDateComponent`, `InputPasswordComponent`) con `@Input() label`,
+  `@Input() required`, `@Input() value` y `@Output() valueChange`
+  (`InputSelectComponent` además recibe `options`). Se enlaza con two-way
+  binding de componente: `[(value)]="modelo.campo"`. `forceValidation` solo
+  existe en los de texto, textarea y select. `InputAnexoUploadComponent` es
+  la excepción: no usa `value`, recibe `tipoAnexo` y `uploadedFile` y emite
+  `fileSelected` / `fileRemoved`. `ngModel` aparece solo dentro de los
+  componentes de `shared/inputs/` y de `BarraBusquedaComponent`, no en las
+  páginas ni en los componentes de contenido.
 - El estado del formulario es un objeto plano en el componente (por ejemplo
   `nuevaSolicitud: SolicitudDTOPeticion` en
   `EnviarSolicitudUsuarioFietComponent`, o `selectedRolForm` en
@@ -222,8 +229,12 @@ se sigue en los formularios nuevos:
 
 Referencias revisadas: `LoginFormComponent` (`shared/login-form-component`),
 `RolesContentComponent` y `EnviarSolicitudUsuarioFietComponent`. Los tres
-siguen el mismo patrón, así que sí hay base suficiente para afirmarlo. Lo
-que el código no resuelve y habría que decidir para los procesos nuevos son
+enlazan igual (`[(value)]` sobre variables u objetos planos, sin
+`FormGroup`), así que esa parte sí está confirmada. La validación varía:
+`RolesContentComponent` usa `@ViewChild` + `isInvalid()`,
+`EnviarSolicitudUsuarioFietComponent` usa `canContinue` por paso, y
+`LoginFormComponent` solo marca `[required]` en los inputs y no valida antes
+de llamar a `onSubmit()`. Lo que el código no resuelve y habría que decidir para los procesos nuevos son
 las validaciones que no sean "obligatorio" (rangos de fechas, plazos,
 formato de anexos), porque ningún formulario existente las implementa.
 

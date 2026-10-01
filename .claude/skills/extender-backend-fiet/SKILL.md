@@ -60,7 +60,11 @@ plano con el mensaje y la causa original, igual que hacen
 ## Paso 5 — Persistencia
 
 - `infraestructura/output/persistencia/entidades/<X>Entidad.java` — `@Entity`,
-  Lombok completo, `@Table(name = "...")` con el nombre real de la tabla.
+  Lombok completo, `@Table(name = "...")` con el nombre exacto de la tabla
+  del script (por ejemplo `ESTUDIANTE`). Los campos cuyo nombre Java no sea
+  idéntico a la columna (por ejemplo `Usuario_uuid`) llevan
+  `@Column(name = "...")` o `@JoinColumn(name = "...")`, porque Hibernate
+  no convierte nombres en este proyecto.
 - `infraestructura/output/persistencia/repositorios/<X>Repositorio.java` —
   `extends JpaRepository<XEntidad, String>` (o el tipo de ID que
   corresponda).
