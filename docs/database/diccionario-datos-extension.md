@@ -1,12 +1,15 @@
 # Diccionario de Datos
 
-Detalle campo por campo de las 16 tablas nuevas de la extensión. `USUARIO` y `TIPO_USUARIO` son de Julián Camacho y no se listan aquí.
+Detalle campo por campo de las 17 tablas nuevas de la extensión. `usuarios`,
+`usuariosLivianos` y `tiposUsuario` son de Julián Camacho (nombres reales,
+verificados contra el código de `back-fiet-sc`, no un supuesto) y no se
+listan aquí porque no se modifican.
 
 ## ESTUDIANTE
 
 | Campo | Tipo | Llave | Nulo | Descripción |
 | --- | --- | --- | --- | --- |
-| Usuario\_uuid | varchar | PK, FK -> USUARIO | No | Comparte identificador con Usuario |
+| Usuario\_uuid | varchar | PK, FK -> usuarios (uuidUsuario) | No | Comparte identificador con Usuario |
 | codigoEstudiantil | varchar |  | No | Código estudiantil |
 | programaAcademico | varchar |  | No | Programa académico que cursa |
 | semestre | varchar |  | No | Semestre actual |
@@ -14,9 +17,17 @@ Detalle campo por campo de las 16 tablas nuevas de la extensión. `USUARIO` y `T
 
 ## FUNCIONARIO\_ACADEMICO
 
+Extensión propia de este trabajo de grado, distinta del `Funcionario` /
+tabla `funcionarios` de Julián (ese es un rol de comité de facultad, sin
+relación con los tres procesos académicos). Cubre tanto al funcionario que
+verifica la información académica como al decano que aprueba o rechaza,
+diferenciados por `dependencia`, no por tablas separadas — el Decano no
+tiene tabla propia.
+
 | Campo | Tipo | Llave | Nulo | Descripción |
 | --- | --- | --- | --- | --- |
-| Usuario\_uuid | varchar | PK, FK -> USUARIO | No | Comparte identificador con Usuario |
+| Usuario\_uuid | varchar | PK, FK -> usuarios (uuidUsuario) | No | Comparte identificador con Usuario |
+| dependencia | varchar |  | No | Cargo/dependencia; distingue funcionario evaluador de decano |
 
 ## ASIGNATURA
 
@@ -34,7 +45,7 @@ Detalle campo por campo de las 16 tablas nuevas de la extensión. `USUARIO` y `T
 | Estudiante\_uuid | varchar | FK -> ESTUDIANTE | No | Estudiante que la tiene matriculada |
 | Asignatura\_uuid | varchar | FK -> ASIGNATURA | No | Materia matriculada |
 | grupo | varchar |  | No | Grupo en el que está matriculada |
-| estado | tinyint |  | No | 1 = activa, 0 = cancelada |
+| estado | varchar |  | No | activa, cancelada, aprobada o perdida |
 
 ## TIPO\_SOLICITUD\_ACADEMICA
 
@@ -92,7 +103,7 @@ Detalle campo por campo de las 16 tablas nuevas de la extensión. `USUARIO` y `T
 | SolicitudAcademica\_uuid | varchar | PK, FK -> SOLICITUD\_ACADEMICA | No | Comparte identificador con la cabecera |
 | AsignaturaMatriculada\_uuid | varchar | FK -> ASIGNATURA\_MATRICULADA | No | Asignatura del examen no presentado |
 | fechaExamenNoPresentado | datetime |  | No | Fecha del examen original |
-| fechaAcordadaExamen | datetime |  | No | Fecha propuesta para el supletorio |
+| fechaAcordadaExamen | datetime |  | Sí | Fecha propuesta para el supletorio, nula hasta acordarse |
 | tipoCausa | varchar |  | No | 'cruce' u 'otra' |
 
 ## SOLICITUD\_SUPLETORIO\_CRUCE\_ASIGNATURA
@@ -104,6 +115,18 @@ Detalle campo por campo de las 16 tablas nuevas de la extensión. `USUARIO` y `T
 | fechaExamenCruzada | datetime |  | No | Fecha del examen cruzado |
 | horaExamenCruzada | varchar |  | No | Hora del examen cruzado |
 
+## SITUACION\_ACADEMICA\_ASIGNATURA
+
+Catálogo fijo con los códigos R0-R3 del formato oficial PA-GA-4.2-FOR-9. Se
+siembra una sola vez y se reutiliza tanto para "situación en la matrícula"
+como "situación al cancelar" en `ASIGNATURA_SOLICITUD_ACADEMICA`.
+
+| Campo | Tipo | Llave | Nulo | Descripción |
+| --- | --- | --- | --- | --- |
+| uuidSituacionAcademica | varchar | PK | No | Identificador de la situación |
+| codigo | varchar |  | No | R0, R1, R2 o R3 |
+| nombre | varchar |  | No | Cursada por primera / segunda / tercera / cuarta vez |
+
 ## ASIGNATURA\_SOLICITUD\_ACADEMICA
 
 | Campo | Tipo | Llave | Nulo | Descripción |
@@ -113,8 +136,8 @@ Detalle campo por campo de las 16 tablas nuevas de la extensión. `USUARIO` y `T
 | AsignaturaMatriculada\_uuid | varchar | FK -> ASIGNATURA\_MATRICULADA | No | Asignatura incluida |
 | numeroFaltas | int |  | Sí | Nulo hasta que el funcionario evalúa |
 | nota | decimal |  | Sí | Nulo hasta evaluación |
-| situacionMatricula | varchar |  | Sí | Texto libre; nulo hasta evaluación |
-| situacionCancelar | varchar |  | Sí | Texto libre; nulo hasta resolución del Decano |
+| SituacionMatricula\_uuid | varchar | FK -> SITUACION\_ACADEMICA\_ASIGNATURA | Sí | Nulo hasta evaluación |
+| SituacionCancelar\_uuid | varchar | FK -> SITUACION\_ACADEMICA\_ASIGNATURA | Sí | Nulo hasta resolución del Decano |
 
 ## TIPO\_ANEXO\_ACADEMICO
 
@@ -142,7 +165,7 @@ Detalle campo por campo de las 16 tablas nuevas de la extensión. `USUARIO` y `T
 | --- | --- | --- | --- | --- |
 | uuidHistorial | varchar | PK | No | Identificador del evento |
 | SolicitudAcademica\_uuid | varchar | FK -> SOLICITUD\_ACADEMICA | No | Solicitud sobre la que ocurrió la acción |
-| Usuario\_uuid | varchar | FK -> USUARIO | No | Quién ejecutó la acción |
+| Usuario\_uuid | varchar | FK -> usuarios (uuidUsuario) | No | Quién ejecutó la acción |
 | accion | varchar |  | No | Rótulo corto de la acción |
 | observaciones | varchar |  | Sí | Detalle o razón, cuando aplica |
 | fecha | datetime |  | No | Fecha y hora del evento |

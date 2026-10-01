@@ -18,15 +18,20 @@ modifica en esta skill, en ningún paso.
 Por cada DTO nuevo del backend, crea su interfaz TypeScript en
 `core/models/<Recurso>/DTORequest/<X>DTOPeticion.ts` o
 `core/models/<Recurso>/DTOResponse/<X>DTORespuesta.ts`, con exactamente los
-mismos campos que el DTO Java correspondiente. Un archivo por interfaz.
+mismos campos que el DTO Java correspondiente. Un archivo por interfaz. No
+uses "Sesión" (con tilde) ni "DTPResponse" (sin la O) como referencia de
+nombre de carpeta — es un typo heredado de un módulo existente, un recurso
+nuevo usa siempre `DTOResponse` bien escrito.
 
 ## Paso 2 — Servicio
 
 `core/services/<recurso>-service.ts`, `@Injectable({ providedIn: 'root' })`,
-URL armada sobre `environment.apiUrl`, un método por endpoint del
-controlador del backend, devolviendo `Observable<...>` con los tipos del
-paso 1. Revisa `roles-service.ts` como referencia de estilo y de nombres de
-método (`getX`, `getXPaginados`, `actualizarX`, etc.).
+URL armada sobre `environment.apiUrl` (importado desde
+`../../../enviroments/environment` — esa carpeta se llama así, con ese
+typo, no "environments"), un método por endpoint del controlador del
+backend, devolviendo `Observable<...>` con los tipos del paso 1. Revisa
+`roles-service.ts` como referencia de estilo y de nombres de método
+(`getX`, `getXPaginados`, `actualizarX`, etc.).
 
 ## Paso 3 — Revisar qué componente compartido reusar
 
@@ -72,9 +77,15 @@ y se los pasa a `app-page-component` en el HTML (`[sidebarComponent]`,
 
 ## Paso 7 — Ruta
 
-Agrega la ruta en `app.routes.ts`, con `canActivate: [RoleGuard]` y
-`data: { roles: [...] }` listando los roles que pueden entrar, a menos que
-la vista sea pública.
+Agrega la ruta en `app.routes.ts`, con `canActivate: [AuthGuard, RoleGuard]`
+(los dos guards juntos, es el patrón real de todas las rutas protegidas
+existentes, no solo `RoleGuard`) y `data: { roles: [...] }` listando los
+roles que pueden entrar como strings exactos, a menos que la vista sea
+pública. Si la vista es de un proceso académico nuevo y el rol
+correspondiente ("Estudiante", el del funcionario académico, etc.) todavía
+no existe como fila en la tabla `roles` del backend, eso se resuelve primero
+en el backend — el string de `data.roles` tiene que coincidir carácter por
+carácter con el `nombre` real de esa fila.
 
 ## Paso 8 — Feedback y errores
 

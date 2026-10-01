@@ -23,9 +23,10 @@ la fuente de verdad, no al revés.
 
 ## Paso 2 — Modelo de dominio
 
-Crea el POJO plano en `dominio/modelos/` (sin anotaciones de ningún tipo,
-como `Rol.java` o `Usuario.java`). Solo campos, getters/setters (Lombok
-`@Getter @Setter` está bien, es lo que ya usa el dominio en varias clases).
+Crea el modelo en `dominio/modelos/` con Lombok (`@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor @Builder`, o `@SuperBuilder` si el
+modelo nuevo hereda de otro, como `Funcionario extends Usuario`). Sin
+anotaciones de JPA ni de Bean Validation — esas no pertenecen al dominio.
 
 ## Paso 3 — Puertos (interfaces)
 
@@ -38,12 +39,18 @@ como `Rol.java` o `Usuario.java`). Solo campos, getters/setters (Lombok
 
 `dominio/casosdeuso/<X>CUImplAdaptador.java`, implementa el puerto de
 entrada del paso 3. Constructor explícito (no es un `@Component`, se
-instancia como bean manual — revisa cómo lo hacen los casos de uso
-existentes en `infraestructura/configuracion/BeanConfiguracion.java` y
-replica ese registro para la clase nueva). Las validaciones de negocio van
-acá, usando `ExcepcionesFormateadorIntPuerto` y constantes nuevas en
-`MensajesError` si hace falta un mensaje que no existe todavía. Si la
-operación debe quedar en el historial, llama a `LogCUIntPuerto.crearLog`.
+instancia como bean manual en `infraestructura/configuracion/
+BeanConfiguracion.java` — agrega ahí un método `@Bean` nuevo que haga
+`new <X>CUImplAdaptador(...)` pasando exactamente los gateways que ese
+caso de uso necesita, ni más ni menos, como ya hace con los existentes).
+Las validaciones de negocio van acá, usando `ExcepcionesFormateadorIntPuerto`
+y constantes nuevas en `MensajesError` si hace falta un mensaje que no
+existe todavía. Si la operación debe quedar en el historial, llama a
+`LogCUIntPuerto.crearLog`. Un fallo técnico de IO (por ejemplo guardar o
+borrar un archivo adjunto) no se formatea con
+`ExcepcionesFormateadorIntPuerto` — se envuelve en un `RuntimeException`
+plano con el mensaje y la causa original, igual que hacen
+`SolicitudCUImplAdaptador` y `RespuestaCUImplAdaptador`.
 
 ## Paso 5 — Persistencia
 
@@ -52,9 +59,9 @@ operación debe quedar en el historial, llama a `LogCUIntPuerto.crearLog`.
 - `infraestructura/output/persistencia/repositorios/<X>Repositorio.java` —
   `extends JpaRepository<XEntidad, String>` (o el tipo de ID que
   corresponda).
-- `infraestructura/output/persistencia/mapeador/ownMapper/<X>OwnMapperImpl.java`
-  — mapeo manual Entidad <-> modelo de dominio, dos métodos (`toDominio`,
-  `toEntidad`), sin librería.
+- `infraestructura/output/persistencia/mapeador/ownMapper/<X>OwnMapper.java`
+  — `@Service`, implementa `OwnMapper<Dominio, Entidad>`, mapeo manual con
+  dos métodos (`toDominio`, `toEntidad`), sin librería.
 - `infraestructura/output/persistencia/gateway/<X>GatewayImplAdaptador.java`
   — `@Service`, `@RequiredArgsConstructor`, implementa el puerto de salida
   del paso 3 usando el repositorio y el own mapper.
@@ -84,11 +91,17 @@ Carpeta `infraestructura/input/controlador<X>/` con sus cuatro subcarpetas:
 
 ## Paso 8 — Seguridad
 
-Agrega la regla de acceso del endpoint nuevo en
-`ConfiguracionSeguridad.securityFilterChain` (en
-`infraestructura/configuracion/seguridad/configuracion`). Decide si es
-`permitAll()`, `authenticated()` o `hasAnyAuthority(...)` según quién debe
-poder llamarlo, y que coincida con el `@PreAuthorize` del controlador.
+`ApplicationConstantes` todavía no tiene constantes de rol para
+"Estudiante" ni para "Funcionario Académico" (solo tiene las de Julián:
+`SECRETARIO_GENERAL`, `DECANO`, `FUNCIONARIO_ROL`). Si el endpoint nuevo
+necesita restringirse a esos roles, agrega primero la constante del rol y,
+si hace falta, la constante compuesta de `hasAnyAuthority(...)`, siguiendo
+el mismo patrón que ya existe ahí. Luego agrega la regla de acceso del
+endpoint nuevo en `ConfiguracionSeguridad.securityFilterChain` (en
+`infraestructura/configuracion/seguridad/configuracion`, no en
+`infraestructura/output`). Decide si es `permitAll()`, `authenticated()` o
+`hasAnyAuthority(...)` según quién debe poder llamarlo, y que coincida con
+el `@PreAuthorize` del controlador.
 
 ## Paso 9 — Verificar
 
