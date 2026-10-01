@@ -131,6 +131,102 @@ específicos (por ejemplo los de visualización/descarga de anexos) llama a
 regla por defecto sigue siendo: servicio en `core/services` + `ToastService`
 + `ErrorHandlerService`, no `HttpClient` suelto en el componente.
 
+## app.config.ts
+
+`src/app/app.config.ts` exporta `appConfig: ApplicationConfig` con estos
+providers, en este orden exacto:
+
+1. `MessageService` (de `primeng/api`, lo usa `ToastService`)
+2. `provideBrowserGlobalErrorListeners()`
+3. `provideZoneChangeDetection({ eventCoalescing: true })`
+4. `provideRouter(routes)`
+5. `provideClientHydration(withEventReplay())`
+6. `provideAnimationsAsync()`
+7. `providePrimeNG({ theme: { preset: Aura } })`, con `Aura` importado de
+   `@primeuix/themes/aura`
+8. `provideHttpClient(withInterceptors([authInterceptor]))`
+
+El `authInterceptor` sí se registra ahí, con `withInterceptors([...])`
+dentro de `provideHttpClient`, y es el único interceptor. No hay
+`withFetch()`. Un servicio o interceptor nuevo no se registra en otro lado.
+
+SSR: `app.config.server.ts` mezcla `appConfig` con
+`provideServerRendering(withRoutes(serverRoutes))` mediante
+`mergeApplicationConfig`, y `app.routes.server.ts` declara una sola ruta
+`'**'` con `RenderMode.Prerender`. No hay rutas de servidor por página.
+
+## Estilos: PrimeNG, PrimeFlex y Bootstrap
+
+No hay un reparto limpio entre las tres librerías; el patrón real es:
+
+- **Bootstrap 5** es la base visual. Se carga como CSS y JS global en
+  `angular.json` (`bootstrap.min.css`, `bootstrap.min.js`, `popper`). Aporta
+  el layout y las utilidades (`d-flex`, `row`, `col-md-6`, `container`,
+  `gap-2`, `mt-3`, `align-items-center`, `text-center`) y también los
+  componentes de formulario y tabla: los inputs son `form-control` /
+  `form-floating` / `form-select` (por ejemplo `InputTextComponent`) y
+  `TableGenericComponent` es un `<table class="table table-bordered">`.
+- **PrimeNG** se usa solo para unas pocas piezas: `p-dialog`
+  (`DialogModule`, base de `GenericDialogFormComponent` y
+  `GenericDialogInfoComponent`), `ButtonModule`, `FileUpload`,
+  `FloatLabelModule` (solo en `InputPasswordComponent`) y `Avatar`. No se usa
+  `p-table`, `p-dropdown`, `p-inputtext` ni otros componentes de formulario
+  de PrimeNG. El tema es Aura, registrado en `app.config.ts`.
+- **PrimeFlex** está en `package.json`, pero no se importa en
+  `angular.json`, en `styles.css` ni en ningún componente. Las clases de
+  layout que se ven en los HTML (`d-flex`, `gap-2`, `align-items-center`)
+  son de Bootstrap, no de PrimeFlex. No se puede confirmar que PrimeFlex
+  tenga ningún efecto en la aplicación; no se usa para código nuevo.
+- Lo demás son estilos propios por componente en su `.css` (colores
+  de marca como `#1E257B` pasados incluso como `@Input` a
+  `SimpleButtonComponent`) y `src/styles.css`, que solo importa
+  `primeicons` y resetea `html, body`.
+
+Regla para código nuevo: layout, utilidades, tablas y campos con Bootstrap;
+diálogos y botones con los componentes compartidos que ya envuelven PrimeNG;
+no introducir PrimeFlex ni otros componentes de PrimeNG.
+
+## Formularios
+
+Julián no usa `ReactiveFormsModule` en ninguna parte: no hay `FormGroup`,
+`FormControl` ni `FormBuilder` en todo `src/app`. Tampoco hay formularios
+template-driven con `<form>` y `ngForm`. El patrón real es otro, y es el que
+se sigue en los formularios nuevos:
+
+- Cada campo es un componente compartido de `shared/inputs/`
+  (`InputTextComponent`, `InputTextTareaComponent`, `InputSelectComponent`,
+  `InputDateComponent`, `InputPasswordComponent`, `InputAnexoUploadComponent`)
+  con `@Input() label`, `@Input() required`, `@Input() value` y
+  `@Output() valueChange`. Se enlaza con two-way binding de componente:
+  `[(value)]="modelo.campo"`. `ngModel` aparece solo dentro de esos
+  componentes de input, no en las páginas ni en los componentes de contenido.
+- El estado del formulario es un objeto plano en el componente (por ejemplo
+  `nuevaSolicitud: SolicitudDTOPeticion` en
+  `EnviarSolicitudUsuarioFietComponent`, o `selectedRolForm` en
+  `RolesContentComponent`), no un `FormGroup`.
+- Validación: cada input expone `touched` e `isInvalid()` (obligatorio y
+  vacío). Antes de guardar, el componente de contenido obtiene los inputs con
+  `@ViewChild`, marca `touched = true` y consulta `isInvalid()`; si alguno es
+  inválido muestra `toastService.showError(...)` y retorna. Referencia:
+  `guardarRolActualizado()` en
+  `shared/pages/content/roles-content-component/roles-content-component.ts`.
+  No hay validadores personalizados ni mensajes de error por tipo de regla:
+  solo "obligatorio".
+- Formulario en diálogo: `GenericDialogFormComponent` (un paso, evento
+  `(save)`) o `GenericDialogStepsFormComponent` (varios pasos con
+  `steps[].contentTemplate` y `canContinue`). Referencia de varios pasos:
+  `core/usuario fiet/components/enviar-solicitud-usuario-fiet-component`,
+  que valida el paso 1 con un `canContinueStep1()` manual.
+- Envío: se arma el DTO de petición, se llama al servicio con
+  `.subscribe({ next, error })` y el error va a `ErrorHandlerService`.
+
+Referencias revisadas: `LoginFormComponent` (`shared/login-form-component`),
+`RolesContentComponent` y `EnviarSolicitudUsuarioFietComponent`. Los tres
+siguen el mismo patrón, así que sí hay base suficiente para afirmarlo. Lo
+que el código no resuelve y habría que decidir para los procesos nuevos son
+las validaciones que no sean "obligatorio" (rangos de fechas, plazos,
+formato de anexos), porque ningún formulario existente las implementa.
+
 ## Qué no se hace
 
 - No se agregan comentarios de ningún tipo (JSDoc, `//`, `/* */`) ni
