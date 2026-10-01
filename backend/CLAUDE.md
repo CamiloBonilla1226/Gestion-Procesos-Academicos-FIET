@@ -86,6 +86,47 @@ caso de uso, pasando en el constructor justo el subconjunto de gateways que
 ese caso de uso necesita (no siempre son los mismos). Un caso de uso nuevo
 necesita su propio método `@Bean` ahí, con el `new XCUImplAdaptador(...)`.
 
+Así se ve un `@Bean` real de `BeanConfiguracion` (clase `@Configuration`,
+sin más estado que los métodos):
+
+```java
+@Bean
+public RespuestaCUImplAdaptador crearRespuestaCU(RespuestaGatewayIntPuerto gateway,
+                                                 SolicitudGatewayIntPuerto solicitudGateway,
+                                                 ExcepcionesFormateadorIntPuerto formateadorExcepciones,
+                                                 LogCUIntPuerto log,
+                                                 AlmacenadorArchivos almacenadorArchivos){
+    return new RespuestaCUImplAdaptador(gateway, solicitudGateway, formateadorExcepciones, log, almacenadorArchivos);
+}
+```
+
+- Nombre del método: `crear<X>CU` (`crearSolicitudCU`, `crearRespuestaCU`),
+  aunque los tres primeros de Julián usan `create<X>CU` (`createRolCU`,
+  `createUsuarioCU`, `createSesionCU`). Para los nuevos se usa `crear`.
+- Tipo de retorno: la clase concreta `XCUImplAdaptador`, no el puerto
+  `XCUIntPuerto`.
+- Parámetros: los puertos de salida (`*GatewayIntPuerto`), más
+  `ExcepcionesFormateadorIntPuerto`, más `LogCUIntPuerto` cuando el caso de
+  uso registra historial, más lo que haga falta de infraestructura
+  (`IJwtServicio`, `OrdenDelDiaExportador`, `AlmacenadorArchivos`).
+- Orden de los argumentos del `new`: es el mismo orden de los parámetros del
+  método, que a su vez es el orden del constructor del caso de uso. No hay un
+  orden común entre casos de uso (`RolCUImplAdaptador` recibe gateway,
+  formateador, log; `SesionCUImplAdaptador` recibe gateway, log, formateador;
+  `LogCUImplAdaptador` recibe gateway, formateador, jwt). Se copia el orden
+  del constructor del caso de uso nuevo, no el de otro bean.
+- Dependencia entre beans de la misma clase: no hay ninguna inyección
+  explícita de un método `@Bean` a otro (ningún método llama a otro ni recibe
+  un `XCUImplAdaptador` como parámetro). La única dependencia implícita es
+  `LogCUIntPuerto`: la satisface el bean `crearLogCU`
+  (`LogCUImplAdaptador implements LogCUIntPuerto`) y la reciben `Rol`,
+  `Usuario`, `Sesion`, `TipoSolicitud`, `OrdenDelDia`, `Solicitud` y
+  `Respuesta`. Spring resuelve el orden de creación solo; un caso de uso
+  nuevo que registre historial pide `LogCUIntPuerto` como parámetro y listo.
+- Todo el resto de parámetros (gateways, `IJwtServicio`,
+  `OrdenDelDiaExportador`, `AlmacenadorArchivos`) son `@Service` definidos
+  fuera de esta clase.
+
 ## Convención de nombres
 
 | Elemento | Sufijo | Carpeta |
@@ -176,6 +217,81 @@ intencionalmente una tabla distinta de `Funcionario`/`funcionarios` (el rol
 de comité de facultad de Julián) — cubre tanto al funcionario que verifica
 la información académica como al decano que aprueba o rechaza,
 diferenciados por la columna `dependencia`.
+
+## Carga masiva por Excel (existe en Julián, para usuarios y tipos de solicitud)
+
+El `pom.xml` trae `org.apache.poi:poi-ooxml`; se usa `XSSFWorkbook`, o sea
+solo `.xlsx`. El flujo vive en `infraestructura/configuracion/lectorArchivos`
+y se dispara desde el controlador, no desde el caso de uso:
+
+1. `POST .../usuarios/cargar/archivo` y `POST .../tipos/solicitudes/cargar/archivo`,
+   con `@RequestParam("file") MultipartFile file`, `@RequestHeader("Authorization")`,
+   `@Transactional` y `@PreAuthorize(ApplicationConstantes.SECRETARIO_DECANO_ACCESO)`.
+2. Lectura: `ProcesadorArchivos<T>` (`List<T> procesarArchivo(MultipartFile)`),
+   con una implementación `@Service` con nombre por recurso
+   (`"archivos-usuarios"` en `ProcesarArchivoUsuariosImpl`,
+   `"archivos-tipos-solicitudes"` en `ProcesarArchivoTiposSolicitudesImpl`).
+   Lee solo la hoja 0, salta la fila 0 (encabezado), toma cada celda por
+   índice de columna y se detiene (`break`) en la primera fila vacía. Las
+   celdas numéricas se convierten a `long` y luego a `String` (documento,
+   teléfono). Devuelve `DTOPeticion` del recurso; los nombres de tipo de
+   usuario y de rol los resuelve contra la base con un caché `HashMap` y, si
+   no existe el nombre, queda `null`.
+3. Validación: `ValidadorPeticionesExcel<T>` (`Map<String,String> validar(T)`),
+   con implementación `@Service` nombrada (`"validador-usuarios"`,
+   `"validador-tipos-solicitud"`) que usa el `jakarta.validation.Validator`
+   sobre las anotaciones del DTO de petición y devuelve `null` si no hay
+   violaciones, o un mapa `propiedad -> mensaje` si las hay.
+4. En el controlador, los dos colaboradores entran por constructor explícito
+   con `@Qualifier("archivos-...")` y `@Qualifier("validador-...")`. Se
+   valida cada petición en un `for`; la primera que falle corta con `400` y
+   el mapa de errores. El mapa no trae número de fila. Como se valida todo
+   antes de llamar al caso de uso, nada se guarda si alguna fila es inválida.
+5. Si todas pasan, se mapea a modelos de dominio y se llama al caso de uso
+   (`crearUsuarios`, `crearTiposSolicitud`) con el token sin `Bearer `.
+   Un `DataAccessException` se captura en el controlador y responde `500`
+   con `mensaje` y `error`; `@Transactional` revierte el lote.
+
+Si falla la lectura del archivo en sí (archivo corrupto, no `.xlsx`), el
+`ProcesadorArchivos` captura `Exception`, hace `printStackTrace()` y devuelve
+la lista que alcanzó a leer, sin propagar el error. Es el comportamiento real
+de Julián; no hay ningún `ErrorMalFormatoExcepcion` ni respuesta `400` para
+ese caso.
+
+Si un proceso nuevo llegara a necesitar carga masiva, se sigue este mismo
+trío (`ProcesadorArchivos`, `ValidadorPeticionesExcel`, endpoint
+`cargar/archivo`) en vez de crear un patrón distinto.
+
+## Tests
+
+`solicitudes/src/test` tiene un único archivo:
+`com/unicauca/cfiet/solicitudes/SolicitudesApplicationTests.java`, el test
+que genera Spring Initializr:
+
+```java
+@SpringBootTest
+class SolicitudesApplicationTests {
+
+	@Test
+	void contextLoads() {
+	}
+
+}
+```
+
+- Framework: JUnit 5 (`org.junit.jupiter.api.Test`) con `@SpringBootTest`,
+  que llega por `spring-boot-starter-test`. No hay Mockito ni ningún otro
+  uso en el código existente.
+- Nombre de clase: `<Algo>Tests`, en plural, en el mismo paquete raíz.
+  Nombre de método: camelCase en inglés (`contextLoads`), generado por el
+  Initializr, no una convención propia de Julián.
+- No existe ningún test de caso de uso, de controlador ni de gateway, así
+  que no hay un test de referencia de estilo para los procesos académicos
+  nuevos. No se documenta una convención de testing de casos de uso porque
+  no existe en el código base.
+- `application.properties` usa `${SERVER_PORT}`, `${DB_URL}`,
+  `${DB_USER_NAME}` y `${DB_PASSWORD}` sin valor por defecto, y todos los
+  comandos de build del proyecto usan `-DskipTests`.
 
 ## Qué no se hace
 
