@@ -26,6 +26,8 @@ propio proyecto: nombres de variables y métodos claros, funciones cortas,
 sin explicaciones de más. Si algo necesita explicarse, se explica en el
 mensaje del commit o en la documentación de `docs/`, no en el código.
 
+Queda fuera de esta regla `docs/database/script_bd_extension.sql`: es documentación del esquema en formato ejecutable, no código de aplicación, y sus comentarios se conservan.
+
 Antes de tocar cualquiera de las dos aplicaciones, lee el `CLAUDE.md` de esa
 carpeta — ahí está la arquitectura real, extraída del código de Julián, no
 un resumen genérico.
