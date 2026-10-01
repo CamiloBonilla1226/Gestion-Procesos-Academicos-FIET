@@ -210,9 +210,16 @@ Las tablas nuevas de este trabajo de grado (`ESTUDIANTE`,
 `FUNCIONARIO_ACADEMICO`, `ASIGNATURA`, `SOLICITUD_ACADEMICA`,
 `RESOLUCION_ACADEMICA`, etc.) están documentadas en
 `docs/database/diccionario-datos-extension.md` y su DDL en
-`docs/database/script_bd_extension.sql` — son FK hacia las tablas reales de
-Julián (`usuarios`, `usuariosLivianos`, `tiposUsuario`, todas en camelCase,
-no en mayúsculas), que no se modifican. `FUNCIONARIO_ACADEMICO` es
+`docs/database/script_bd_extension.sql` (18 tablas). Las únicas FK hacia
+las tablas de Julián apuntan a `usuarios (uuidUsuario)`, desde `ESTUDIANTE`,
+`FUNCIONARIO_ACADEMICO` e `HISTORIAL_SOLICITUD_ACADEMICA`; `usuariosLivianos`
+y `tiposUsuario` existen en camelCase pero las tablas nuevas no apuntan a
+ellas. Ninguna tabla de Julián se modifica. Como la estrategia de nombres
+no convierte nada, un campo Java cuyo nombre difiera de la columna del
+script (`Usuario_uuid`, `Estudiante_uuid`, `TipoSolicitudAcademica_uuid`)
+lleva `@Column(name = "...")` o `@JoinColumn(name = "...")` con el nombre
+exacto de la columna, y `@Table(name = "...")` con el nombre exacto de la
+tabla en mayúsculas. `FUNCIONARIO_ACADEMICO` es
 intencionalmente una tabla distinta de `Funcionario`/`funcionarios` (el rol
 de comité de facultad de Julián) — cubre tanto al funcionario que verifica
 la información académica como al decano que aprueba o rechaza,

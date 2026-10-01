@@ -172,7 +172,18 @@ CREATE TABLE IF NOT EXISTS SOLICITUD_SUPLETORIO_CRUCE_ASIGNATURA (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ---------------------------------------------------------------------
--- 6. Vinculación con asignaturas matriculadas (cancelaciones)
+-- 6. Catálogo de situación académica (formato oficial PA-GA-4.2-FOR-9)
+-- ---------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS SITUACION_ACADEMICA_ASIGNATURA (
+    uuidSituacionAcademica  VARCHAR(100) NOT NULL,
+    codigo                  VARCHAR(10)  NOT NULL,
+    nombre                  VARCHAR(100) NOT NULL,
+    PRIMARY KEY (uuidSituacionAcademica)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ---------------------------------------------------------------------
+-- 7. Vinculación con asignaturas matriculadas (cancelaciones)
 -- ---------------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS ASIGNATURA_SOLICITUD_ACADEMICA (
@@ -192,17 +203,6 @@ CREATE TABLE IF NOT EXISTS ASIGNATURA_SOLICITUD_ACADEMICA (
         FOREIGN KEY (SituacionMatricula_uuid) REFERENCES SITUACION_ACADEMICA_ASIGNATURA (uuidSituacionAcademica),
     CONSTRAINT fk_asigsol_situcancelar
         FOREIGN KEY (SituacionCancelar_uuid) REFERENCES SITUACION_ACADEMICA_ASIGNATURA (uuidSituacionAcademica)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- ---------------------------------------------------------------------
--- 7. Catálogo de situación académica (formato oficial PA-GA-4.2-FOR-9)
--- ---------------------------------------------------------------------
-
-CREATE TABLE IF NOT EXISTS SITUACION_ACADEMICA_ASIGNATURA (
-    uuidSituacionAcademica  VARCHAR(100) NOT NULL,
-    codigo                  VARCHAR(10)  NOT NULL,
-    nombre                  VARCHAR(100) NOT NULL,
-    PRIMARY KEY (uuidSituacionAcademica)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ---------------------------------------------------------------------
@@ -271,7 +271,7 @@ CREATE TABLE IF NOT EXISTS HISTORIAL_SOLICITUD_ACADEMICA (
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- =====================================================================
--- Fin del script. Son 17 tablas nuevas en total. Orden de creación ya
+-- Fin del script. Son 18 tablas nuevas en total. Orden de creación ya
 -- resuelto para respetar FKs: Estudiante/FuncionarioAcademico ->
 -- Asignatura/AsignaturaMatriculada -> TipoSolicitud -> Etapa/EtapaEtiqueta
 -- -> SolicitudAcademica -> especializaciones -> SituacionAcademica ->

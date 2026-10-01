@@ -36,7 +36,10 @@ Ver `README.md` en la raíz (Opción A con Docker, Opción B sin Docker).
 
 ## Dónde está la info de los tres procesos
 
-`docs/database/diccionario-datos-extension.md` tiene las tablas, campos y
-reglas de negocio ya confirmadas (plazos, anexos obligatorios, flujo de
-rechazo, Resolución física). Esa documentación es la fuente de verdad del
-dominio — antes de modelar una entidad o endpoint nuevo, revisa ahí primero.
+`docs/database/diccionario-datos-extension.md` tiene las 18 tablas nuevas
+campo por campo (etapas de la solicitud, anexos obligatorios por tipo,
+situación académica, Resolución física escaneada), y
+`docs/database/script_bd_extension.sql` su DDL. Esa documentación es la
+fuente de verdad del modelo de datos — antes de modelar una entidad o
+endpoint nuevo, revisa ahí primero. No documenta plazos ni reglas de
+negocio en prosa; solo está lo que se deduce de las tablas y columnas.

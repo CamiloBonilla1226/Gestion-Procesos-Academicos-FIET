@@ -1,6 +1,6 @@
 # Diccionario de Datos
 
-Detalle campo por campo de las 17 tablas nuevas de la extensión. `usuarios`,
+Detalle campo por campo de las 18 tablas nuevas de la extensión. `usuarios`,
 `usuariosLivianos` y `tiposUsuario` son de Julián Camacho (nombres reales,
 verificados contra el código de `back-fiet-sc`, no un supuesto) y no se
 listan aquí porque no se modifican.
@@ -69,7 +69,7 @@ tiene tabla propia.
 | Campo | Tipo | Llave | Nulo | Descripción |
 | --- | --- | --- | --- | --- |
 | Etapa\_uuid | varchar | PK (compuesta), FK -> ETAPA\_SOLICITUD\_ACADEMICA | No | Etapa que se traduce |
-| rol | varchar | PK (compuesta) | No | ESTUDIANTE, FUNCIONARIO o DECANO |
+| rol | enum | PK (compuesta) | No | ESTUDIANTE, FUNCIONARIO o DECANO |
 | etiqueta | varchar |  | No | Texto que ve ese rol para esa etapa |
 
 ## SOLICITUD\_ACADEMICA
@@ -104,7 +104,7 @@ tiene tabla propia.
 | AsignaturaMatriculada\_uuid | varchar | FK -> ASIGNATURA\_MATRICULADA | No | Asignatura del examen no presentado |
 | fechaExamenNoPresentado | datetime |  | No | Fecha del examen original |
 | fechaAcordadaExamen | datetime |  | Sí | Fecha propuesta para el supletorio, nula hasta acordarse |
-| tipoCausa | varchar |  | No | 'cruce' u 'otra' |
+| tipoCausa | enum |  | No | 'cruce' u 'otra' |
 
 ## SOLICITUD\_SUPLETORIO\_CRUCE\_ASIGNATURA
 

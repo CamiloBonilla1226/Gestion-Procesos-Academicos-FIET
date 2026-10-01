@@ -59,7 +59,9 @@ PrimeNG que el proyecto no usa (`p-table`, `p-dropdown`, `p-inputtext`).
 
 Formularios: no hay `ReactiveFormsModule` en el proyecto. Los campos son los
 componentes de `shared/inputs/` con `[(value)]="modelo.campo"` sobre un
-objeto plano del componente de contenido. Para validar, obtén los inputs con
+objeto plano del componente de contenido (`InputAnexoUploadComponent` es la
+excepción: usa `tipoAnexo`, `uploadedFile`, `fileSelected` y
+`fileRemoved`). Para validar, obtén los inputs con
 `@ViewChild`, marca `touched = true`, consulta `isInvalid()` y si falla
 muestra `toastService.showError(...)`, como en `guardarRolActualizado()` de
 `roles-content-component.ts`. Para varios pasos usa
@@ -90,9 +92,10 @@ y se los pasa a `app-page-component` en el HTML (`[sidebarComponent]`,
 `[headerComponent]`, `[breadcrumbComponent]`, `[mainComponent]`), igual que
 `funcionario-solicitudes.ts`.
 
-Un servicio o interceptor nuevo no se registra en `app.config.ts` salvo que
-sea un interceptor HTTP: ahí el único registrado es `authInterceptor`, con
-`provideHttpClient(withInterceptors([authInterceptor]))`.
+Los servicios nuevos son `providedIn: 'root'` y no se registran en
+`app.config.ts`. Ahí el único interceptor registrado es `authInterceptor`,
+con `provideHttpClient(withInterceptors([authInterceptor]))`; uno nuevo se
+agregaría a ese arreglo.
 
 ## Paso 7 — Ruta
 
