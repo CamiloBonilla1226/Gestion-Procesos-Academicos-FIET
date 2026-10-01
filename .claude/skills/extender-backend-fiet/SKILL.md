@@ -43,6 +43,11 @@ instancia como bean manual en `infraestructura/configuracion/
 BeanConfiguracion.java` — agrega ahí un método `@Bean` nuevo que haga
 `new <X>CUImplAdaptador(...)` pasando exactamente los gateways que ese
 caso de uso necesita, ni más ni menos, como ya hace con los existentes).
+El método se llama `crear<X>CU`, devuelve la clase concreta
+`<X>CUImplAdaptador` (no el puerto) y sus parámetros van en el mismo orden
+que el constructor del caso de uso, que no es el mismo entre casos de uso.
+Si el caso de uso registra historial, recibe `LogCUIntPuerto`, que lo
+satisface el bean `crearLogCU`; no hace falta nada más entre beans.
 Las validaciones de negocio van acá, usando `ExcepcionesFormateadorIntPuerto`
 y constantes nuevas en `MensajesError` si hace falta un mensaje que no
 existe todavía. Si la operación debe quedar en el historial, llama a
@@ -89,6 +94,13 @@ Carpeta `infraestructura/input/controlador<X>/` con sus cuatro subcarpetas:
   `@Tag` de Swagger. Cada método con `@PreAuthorize` usando las constantes
   de `ApplicationConstantes` que correspondan al rol permitido.
 
+Solo si el recurso necesita carga masiva desde Excel, sigue el patrón que
+ya existe para usuarios y tipos de solicitud (detalle en la sección "Carga
+masiva por Excel" de `backend/CLAUDE.md`): un `ProcesadorArchivos<T>` y un
+`ValidadorPeticionesExcel<T>` como `@Service` con nombre, inyectados con
+`@Qualifier` por constructor explícito, y un endpoint `POST cargar/archivo`
+con `@Transactional`. Si el recurso no necesita carga masiva, no se agrega.
+
 ## Paso 8 — Seguridad
 
 `ApplicationConstantes` todavía no tiene constantes de rol para
@@ -114,3 +126,8 @@ docker compose up --build
 
 Prueba el endpoint nuevo con una petición real (curl, Postman o el
 frontend) antes de dar la tarea por terminada.
+
+El proyecto no tiene tests de casos de uso, de controladores ni de
+gateways: solo existe `SolicitudesApplicationTests` (`@SpringBootTest`,
+JUnit 5, `contextLoads`). No hay convención previa que seguir, así que la
+verificación de este paso es manual.
