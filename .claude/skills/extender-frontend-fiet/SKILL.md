@@ -51,6 +51,21 @@ Solo se crea un componente nuevo en `shared/` cuando ninguno de los
 existentes cubre el caso, y en ese caso va en la subcarpeta que le
 corresponda por tipo (no suelto en `shared/`).
 
+Estilos: layout, utilidades, tablas y campos con clases de Bootstrap 5
+(`d-flex`, `row`, `col-md-6`, `gap-2`, `mt-3`); diálogos y botones con los
+componentes compartidos que envuelven PrimeNG. No uses PrimeFlex (está en
+`package.json` pero no se carga en ningún lado) ni agregues componentes de
+PrimeNG que el proyecto no usa (`p-table`, `p-dropdown`, `p-inputtext`).
+
+Formularios: no hay `ReactiveFormsModule` en el proyecto. Los campos son los
+componentes de `shared/inputs/` con `[(value)]="modelo.campo"` sobre un
+objeto plano del componente de contenido. Para validar, obtén los inputs con
+`@ViewChild`, marca `touched = true`, consulta `isInvalid()` y si falla
+muestra `toastService.showError(...)`, como en `guardarRolActualizado()` de
+`roles-content-component.ts`. Para varios pasos usa
+`GenericDialogStepsFormComponent` con `canContinue`, como
+`EnviarSolicitudUsuarioFietComponent`.
+
 ## Paso 4 — Componente de contenido (la lógica real)
 
 Va en `shared/pages/content/<nombre>-content-component/`. Acá se inyectan
@@ -74,6 +89,10 @@ del rol correspondiente, el header, el breadcrumb y el wrapper del paso 5,
 y se los pasa a `app-page-component` en el HTML (`[sidebarComponent]`,
 `[headerComponent]`, `[breadcrumbComponent]`, `[mainComponent]`), igual que
 `funcionario-solicitudes.ts`.
+
+Un servicio o interceptor nuevo no se registra en `app.config.ts` salvo que
+sea un interceptor HTTP: ahí el único registrado es `authInterceptor`, con
+`provideHttpClient(withInterceptors([authInterceptor]))`.
 
 ## Paso 7 — Ruta
 
