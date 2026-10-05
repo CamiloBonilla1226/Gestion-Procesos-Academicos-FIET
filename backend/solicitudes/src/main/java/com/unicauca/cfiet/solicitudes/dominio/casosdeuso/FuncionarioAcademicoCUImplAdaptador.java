@@ -37,7 +37,7 @@ public class FuncionarioAcademicoCUImplAdaptador implements FuncionarioAcademico
     private static final String USERNAME = "username";
     private static final String NUMERO_DOCUMENTO = "numero de documento";
     private static final String CORREO_ELECTRONICO = "correo electronico";
-    private static final String TIPO_USUARIO_FUNCIONARIO_ACADEMICO = "Funcionario Académico";
+    private static final String TIPO_USUARIO_FUNCIONARIO_ACADEMICO = "Empleado FIET - Funcionario";
     private static final String INSTANCIA_FUNCIONARIO_ACADEMICO = "FUNCIONARIOACADEMICO";
 
     public FuncionarioAcademicoCUImplAdaptador(UsuarioCUIntPuerto usuarioCU,

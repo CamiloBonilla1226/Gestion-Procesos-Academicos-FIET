@@ -119,13 +119,19 @@ CREATE TABLE IF NOT EXISTS ETAPA_ETIQUETA_ROL (
 -- 5. Solicitud Académica y su especialización
 -- ---------------------------------------------------------------------
 
+-- radicado: identificador legible de la solicitud (AAAA-CM-0001,
+-- AAAA-CA-0001 o AAAA-ES-0001: año, tipo y consecutivo por año y tipo).
+-- Ver docs/database/etapas-por-proceso.md, sección 7. El uuid sigue siendo
+-- la llave primaria interna.
 CREATE TABLE IF NOT EXISTS SOLICITUD_ACADEMICA (
     uuidSolicitudAcademica       VARCHAR(100) NOT NULL,
+    radicado                     VARCHAR(20)  NOT NULL,
     Estudiante_uuid              VARCHAR(100) NOT NULL,
     TipoSolicitudAcademica_uuid  VARCHAR(100) NOT NULL,
     fechaCreacion                DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     Etapa_uuid                   VARCHAR(100) NOT NULL,
     PRIMARY KEY (uuidSolicitudAcademica),
+    UNIQUE KEY uk_solacad_radicado (radicado),
     CONSTRAINT fk_solacad_estudiante
         FOREIGN KEY (Estudiante_uuid) REFERENCES ESTUDIANTE (Usuario_uuid),
     CONSTRAINT fk_solacad_tiposolicitud

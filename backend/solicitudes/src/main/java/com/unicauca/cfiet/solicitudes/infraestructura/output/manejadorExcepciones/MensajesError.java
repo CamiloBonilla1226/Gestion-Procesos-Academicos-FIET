@@ -41,4 +41,5 @@ public class MensajesError {
     public static final String EXCEL_FILA_VALOR_REPETIDO = "Fila %d, columna %s (%s): el valor %s ya lo usa otro estudiante en la fila %d...";
     public static final String EXCEL_SIN_DATOS = "El archivo no tiene filas de datos despues del encabezado...";
     public static final String EXCEL_FILA_VALOR_DUPLICADO = "Fila %d, columna %s (%s): el valor %s ya aparece en la fila %d del archivo...";
+    public static final String ROL_ETIQUETA_NO_VALIDO = "El rol %s no es valido, los roles permitidos son %s...";
 }

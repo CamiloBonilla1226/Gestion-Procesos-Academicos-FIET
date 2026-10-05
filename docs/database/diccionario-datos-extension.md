@@ -82,6 +82,7 @@ historial apunta a `usuarios`.
 | Campo | Tipo | Llave | Nulo | Descripción |
 | --- | --- | --- | --- | --- |
 | uuidSolicitudAcademica | varchar | PK | No | Identificador de la solicitud |
+| radicado | varchar | UK (uk\_solacad\_radicado) | No | Identificador legible: AAAA-CM-0001, AAAA-CA-0001 o AAAA-ES-0001 (año, tipo y consecutivo por año y tipo) |
 | Estudiante\_uuid | varchar | FK -> ESTUDIANTE | No | Estudiante que radica |
 | TipoSolicitudAcademica\_uuid | varchar | FK -> TIPO\_SOLICITUD\_ACADEMICA | No | Tipo de trámite |
 | fechaCreacion | datetime |  | No | Fecha de radicación |

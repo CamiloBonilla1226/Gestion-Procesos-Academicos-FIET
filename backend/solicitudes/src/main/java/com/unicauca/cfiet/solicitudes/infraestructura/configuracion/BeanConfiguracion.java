@@ -106,4 +106,29 @@ public class BeanConfiguracion {
                                                                          LogCUIntPuerto log){
         return new FuncionarioAcademicoCUImplAdaptador(usuarioCU, gateway, rolGateway, usuarioGateway, formateadorExcepciones, log);
     }
+
+    @Bean
+    public TipoSolicitudAcademicaCUImplAdaptador crearTipoSolicitudAcademicaCU(TipoSolicitudAcademicaGatewayIntPuerto gateway){
+        return new TipoSolicitudAcademicaCUImplAdaptador(gateway);
+    }
+
+    @Bean
+    public EtapaSolicitudAcademicaCUImplAdaptador crearEtapaSolicitudAcademicaCU(EtapaSolicitudAcademicaGatewayIntPuerto gateway,
+                                                                               EtapaEtiquetaRolGatewayIntPuerto etiquetaGateway,
+                                                                               TipoSolicitudAcademicaGatewayIntPuerto tipoSolicitudGateway,
+                                                                               ExcepcionesFormateadorIntPuerto formateadorExcepciones){
+        return new EtapaSolicitudAcademicaCUImplAdaptador(gateway, etiquetaGateway, tipoSolicitudGateway, formateadorExcepciones);
+    }
+
+    @Bean
+    public TipoAnexoAcademicoCUImplAdaptador crearTipoAnexoAcademicoCU(TipoAnexoAcademicoGatewayIntPuerto gateway,
+                                                                     TipoSolicitudAcademicaGatewayIntPuerto tipoSolicitudGateway,
+                                                                     ExcepcionesFormateadorIntPuerto formateadorExcepciones){
+        return new TipoAnexoAcademicoCUImplAdaptador(gateway, tipoSolicitudGateway, formateadorExcepciones);
+    }
+
+    @Bean
+    public SituacionAcademicaAsignaturaCUImplAdaptador crearSituacionAcademicaAsignaturaCU(SituacionAcademicaAsignaturaGatewayIntPuerto gateway){
+        return new SituacionAcademicaAsignaturaCUImplAdaptador(gateway);
+    }
 }
