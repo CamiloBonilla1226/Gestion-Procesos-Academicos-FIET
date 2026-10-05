@@ -39,4 +39,6 @@ public class MensajesError {
     public static final String EXCEL_FILA_DATO_DISTINTO = "Fila %d, columna %s (%s): el estudiante con documento %s tiene un valor distinto al de la fila %d...";
     public static final String EXCEL_FILA_MATERIA_REPETIDA = "Fila %d, columna %s (%s): la asignatura %s en el grupo %s ya aparece en la fila %d para el mismo estudiante...";
     public static final String EXCEL_FILA_VALOR_REPETIDO = "Fila %d, columna %s (%s): el valor %s ya lo usa otro estudiante en la fila %d...";
+    public static final String EXCEL_SIN_DATOS = "El archivo no tiene filas de datos despues del encabezado...";
+    public static final String EXCEL_FILA_VALOR_DUPLICADO = "Fila %d, columna %s (%s): el valor %s ya aparece en la fila %d del archivo...";
 }

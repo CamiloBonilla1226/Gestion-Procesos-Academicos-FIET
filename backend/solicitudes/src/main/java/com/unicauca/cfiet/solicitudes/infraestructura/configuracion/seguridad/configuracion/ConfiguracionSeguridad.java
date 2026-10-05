@@ -87,6 +87,13 @@ public class ConfiguracionSeguridad {
                         .requestMatchers(HttpMethod.POST, baseUrl + "estudiantes/{uuidEstudiante}/asignaturas").hasAnyAuthority(ApplicationConstantes.SECRETARIO_GENERAL, ApplicationConstantes.DECANO)
                         .requestMatchers(HttpMethod.PATCH, baseUrl + "estudiantes/{uuidEstudiante}/asignaturas/{uuidMatricula}/estado").hasAnyAuthority(ApplicationConstantes.SECRETARIO_GENERAL, ApplicationConstantes.DECANO)
                         .requestMatchers(baseUrl + "estudiantes/**").denyAll()
+                        .requestMatchers(HttpMethod.POST, baseUrl + "funcionarios-academicos/cargar/archivo").hasAnyAuthority(ApplicationConstantes.SECRETARIO_GENERAL, ApplicationConstantes.DECANO)
+                        .requestMatchers(HttpMethod.GET, baseUrl + "funcionarios-academicos/paginado").hasAnyAuthority(ApplicationConstantes.SECRETARIO_GENERAL, ApplicationConstantes.DECANO, ApplicationConstantes.FUNCIONARIO_ACADEMICO_ROL)
+                        .requestMatchers(HttpMethod.GET, baseUrl + "funcionarios-academicos/filtro").hasAnyAuthority(ApplicationConstantes.SECRETARIO_GENERAL, ApplicationConstantes.DECANO, ApplicationConstantes.FUNCIONARIO_ACADEMICO_ROL)
+                        .requestMatchers(HttpMethod.GET, baseUrl + "funcionarios-academicos/{uuidFuncionario}").hasAnyAuthority(ApplicationConstantes.SECRETARIO_GENERAL, ApplicationConstantes.DECANO, ApplicationConstantes.FUNCIONARIO_ACADEMICO_ROL)
+                        .requestMatchers(HttpMethod.POST, baseUrl + "funcionarios-academicos").hasAnyAuthority(ApplicationConstantes.SECRETARIO_GENERAL, ApplicationConstantes.DECANO)
+                        .requestMatchers(HttpMethod.PUT, baseUrl + "funcionarios-academicos/{uuidFuncionario}").hasAnyAuthority(ApplicationConstantes.SECRETARIO_GENERAL, ApplicationConstantes.DECANO)
+                        .requestMatchers(baseUrl + "funcionarios-academicos/**").denyAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex
