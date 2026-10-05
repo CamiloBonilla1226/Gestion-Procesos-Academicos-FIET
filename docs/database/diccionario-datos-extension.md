@@ -39,7 +39,7 @@ historial apunta a `usuarios`.
 | Campo | Tipo | Llave | Nulo | Descripción |
 | --- | --- | --- | --- | --- |
 | uuidAsignatura | varchar | PK | No | Identificador de la materia |
-| codigoAsignatura | varchar |  | No | Código de la materia |
+| codigoAsignatura | varchar | UK (uk\_asignatura\_codigo) | No | Código de la materia, único en el catálogo |
 | nombreAsignatura | varchar |  | No | Nombre de la materia |
 
 ## ASIGNATURA\_MATRICULADA

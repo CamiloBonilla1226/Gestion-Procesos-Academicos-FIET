@@ -61,7 +61,8 @@ CREATE TABLE IF NOT EXISTS ASIGNATURA (
     uuidAsignatura      VARCHAR(100) NOT NULL,
     codigoAsignatura    VARCHAR(45)  NOT NULL,
     nombreAsignatura    VARCHAR(150) NOT NULL,
-    PRIMARY KEY (uuidAsignatura)
+    PRIMARY KEY (uuidAsignatura),
+    UNIQUE KEY uk_asignatura_codigo (codigoAsignatura)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS ASIGNATURA_MATRICULADA (

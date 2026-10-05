@@ -53,7 +53,7 @@ foreach ($ruta in $rutas) {
 if ($codigos -contains 200) {
     Write-Host "PREAUTHORIZE INERTE"
 } elseif (($codigos | Where-Object { $_ -ne 403 }).Count -eq 0) {
-    Write-Host "PREAUTHORIZE ACTIVO"
+    Write-Host "Listados cerrados por las reglas de ConfiguracionSeguridad"
 } else {
     Write-Host "RESULTADO NO CONCLUYENTE: $($codigos -join ', ')"
 }
