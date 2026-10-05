@@ -53,6 +53,8 @@ dominio/            no depende de nada de Spring ni de JPA
 │                     @SuperBuilder si hay herencia) pero SIN anotaciones de
 │                     persistencia ni de validación — nunca ven JPA
 ├── casosdeuso/       *CUImplAdaptador — implementa los puertos de entrada
+├── servicios/        reglas de dominio que no son un caso de uso (MaquinaEtapas
+│                     de los procesos académicos), sin Spring ni JPA
 └── helper/constantes/ constantes compartidas (roles, etc.)
 
 aplicacion/          interfaces únicamente — son los "puertos"

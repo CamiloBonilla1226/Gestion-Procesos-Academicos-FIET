@@ -42,4 +42,10 @@ public class MensajesError {
     public static final String EXCEL_SIN_DATOS = "El archivo no tiene filas de datos despues del encabezado...";
     public static final String EXCEL_FILA_VALOR_DUPLICADO = "Fila %d, columna %s (%s): el valor %s ya aparece en la fila %d del archivo...";
     public static final String ROL_ETIQUETA_NO_VALIDO = "El rol %s no es valido, los roles permitidos son %s...";
+    public static final String DATOS_TRANSICION_INCOMPLETOS = "Para mover la solicitud se requieren el tipo de proceso, la acción y el rol del actor...";
+    public static final String ETAPA_NO_VALIDA = "La etapa %s no es valida...";
+    public static final String ETAPA_FINAL_SIN_ACCIONES = "La solicitud está en la etapa final %s y no admite más acciones...";
+    public static final String TRANSICION_NO_PERMITIDA = "La acción %s no está permitida desde la etapa %s en %s...";
+    public static final String ROL_TRANSICION_NO_PERMITIDO = "El rol %s no puede ejecutar la acción %s desde la etapa %s, le corresponde a %s...";
+    public static final String REQUISITO_TRANSICION_FALTANTE = "La acción %s exige %s...";
 }
