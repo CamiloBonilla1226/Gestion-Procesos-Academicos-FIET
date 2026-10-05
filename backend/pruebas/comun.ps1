@@ -95,6 +95,17 @@ function Crear-UsuarioPrueba {
     }
 }
 
+function Leer-Json {
+    param($Respuesta)
+    $texto = [System.Text.Encoding]::UTF8.GetString([System.Text.Encoding]::GetEncoding(28591).GetBytes($Respuesta.Body))
+    return ($texto | ConvertFrom-Json)
+}
+
+function Texto {
+    param([string]$Escapado)
+    return [regex]::Unescape($Escapado)
+}
+
 function Obtener-CodigoError {
     param($Respuesta)
     try { return ($Respuesta.Body | ConvertFrom-Json).codigoError } catch { return $null }
