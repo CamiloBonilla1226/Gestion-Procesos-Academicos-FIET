@@ -12,9 +12,13 @@ import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorEstudiant
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorEstudiantes.DTORespuesta.AsignaturaMatriculadaDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorEstudiantes.DTORespuesta.EstudianteDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorEstudiantes.mapeador.MapperEstudianteInfraestructuraDominio;
+import com.unicauca.cfiet.solicitudes.infraestructura.configuracion.lectorArchivos.AgrupadorEstudiantesExcel;
+import com.unicauca.cfiet.solicitudes.infraestructura.configuracion.lectorArchivos.ProcesadorArchivos;
+import com.unicauca.cfiet.solicitudes.infraestructura.configuracion.lectorArchivos.validadoresArchivos.ValidadorPeticionesExcel;
+import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorEstudiantes.DTOPeticion.FilaEstudianteExcelDTOPeticion;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +26,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.List;
@@ -31,7 +36,6 @@ import java.util.Map;
 @RequestMapping("${url.application}estudiantes")
 @CrossOrigin(origins = "${url.frontend}")
 @Validated
-@RequiredArgsConstructor
 @Tag(name = "Estudiantes", description = "Operaciones relacionadas con los estudiantes y sus asignaturas matriculadas.")
 public class EstudianteRestController {
     private static final String UUID_ESTUDIANTE = "/{uuidEstudiante:[0-9a-fA-F\\-]{36}}";
@@ -39,6 +43,46 @@ public class EstudianteRestController {
 
     private final EstudianteCUIntPuerto casoDeUso;
     private final MapperEstudianteInfraestructuraDominio mapper;
+    private final ProcesadorArchivos<FilaEstudianteExcelDTOPeticion> procesadorArchivos;
+    private final ValidadorPeticionesExcel<FilaEstudianteExcelDTOPeticion> validadorPeticion;
+    private final AgrupadorEstudiantesExcel agrupador;
+
+    public EstudianteRestController(EstudianteCUIntPuerto casoDeUso,
+                                    MapperEstudianteInfraestructuraDominio mapper,
+                                    @Qualifier("archivos-estudiantes") ProcesadorArchivos<FilaEstudianteExcelDTOPeticion> procesadorArchivos,
+                                    @Qualifier("validador-estudiantes") ValidadorPeticionesExcel<FilaEstudianteExcelDTOPeticion> validadorPeticion,
+                                    AgrupadorEstudiantesExcel agrupador) {
+        this.casoDeUso = casoDeUso;
+        this.mapper = mapper;
+        this.procesadorArchivos = procesadorArchivos;
+        this.validadorPeticion = validadorPeticion;
+        this.agrupador = agrupador;
+    }
+
+    @PreAuthorize(ApplicationConstantes.SECRETARIO_DECANO_ACCESO)
+    @Transactional
+    @PostMapping("/cargar/archivo")
+    public ResponseEntity<?> crearEstudiantes(@RequestParam("file") MultipartFile file,
+                                              @RequestHeader("Authorization") String token) {
+        List<FilaEstudianteExcelDTOPeticion> filas = procesadorArchivos.procesarArchivo(file);
+        for (FilaEstudianteExcelDTOPeticion fila : filas) {
+            Map<String, String> errores = validadorPeticion.validar(fila);
+            if (errores != null)
+                return new ResponseEntity<Map<String, String>>(errores, HttpStatus.BAD_REQUEST);
+        }
+
+        List<Estudiante> estudiantes = agrupador.agrupar(filas).stream()
+                .map(mapper::mapearPeticionAModelo)
+                .toList();
+        List<Estudiante> creados;
+        try {
+            creados = casoDeUso.crearEstudiantes(estudiantes, token.substring(7));
+        } catch (DataAccessException ex) {
+            return errorBaseDeDatos(ex);
+        }
+        return new ResponseEntity<List<EstudianteDTORespuesta>>(
+                creados.stream().map(mapper::mapearModeloARespuesta).toList(), HttpStatus.OK);
+    }
 
     @PreAuthorize(ApplicationConstantes.SECRETARIO_DECANO_ACCESO)
     @Transactional

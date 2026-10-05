@@ -77,6 +77,7 @@ public class ConfiguracionSeguridad {
                         .requestMatchers(HttpMethod.POST, baseUrl + "asignaturas").hasAnyAuthority(ApplicationConstantes.SECRETARIO_GENERAL, ApplicationConstantes.DECANO)
                         .requestMatchers(HttpMethod.PUT, baseUrl + "asignaturas/**").hasAnyAuthority(ApplicationConstantes.SECRETARIO_GENERAL, ApplicationConstantes.DECANO)
                         .requestMatchers(baseUrl + "asignaturas/**").denyAll()
+                        .requestMatchers(HttpMethod.POST, baseUrl + "estudiantes/cargar/archivo").hasAnyAuthority(ApplicationConstantes.SECRETARIO_GENERAL, ApplicationConstantes.DECANO)
                         .requestMatchers(HttpMethod.GET, baseUrl + "estudiantes/mis-asignaturas").hasAnyAuthority(ApplicationConstantes.ESTUDIANTE_ROL)
                         .requestMatchers(HttpMethod.GET, baseUrl + "estudiantes/paginado").hasAnyAuthority(ApplicationConstantes.SECRETARIO_GENERAL, ApplicationConstantes.DECANO, ApplicationConstantes.FUNCIONARIO_ACADEMICO_ROL)
                         .requestMatchers(HttpMethod.GET, baseUrl + "estudiantes/filtro").hasAnyAuthority(ApplicationConstantes.SECRETARIO_GENERAL, ApplicationConstantes.DECANO, ApplicationConstantes.FUNCIONARIO_ACADEMICO_ROL)

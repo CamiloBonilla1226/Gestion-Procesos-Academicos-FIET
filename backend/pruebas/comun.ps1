@@ -100,6 +100,57 @@ function Obtener-CodigoError {
     try { return ($Respuesta.Body | ConvertFrom-Json).codigoError } catch { return $null }
 }
 
+function Nuevo-ArchivoXlsx {
+    param([string]$Ruta, $Filas)
+    Add-Type -AssemblyName System.IO.Compression
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $xmlFilas = New-Object System.Text.StringBuilder
+    for ($i = 0; $i -lt $Filas.Count; $i++) {
+        $n = $i + 1
+        [void]$xmlFilas.Append("<row r=`"$n`">")
+        $celdas = @($Filas[$i])
+        for ($j = 0; $j -lt $celdas.Count; $j++) {
+            $referencia = [string][char](65 + $j) + $n
+            $valor = [System.Security.SecurityElement]::Escape([string]$celdas[$j])
+            [void]$xmlFilas.Append("<c r=`"$referencia`" t=`"inlineStr`"><is><t xml:space=`"preserve`">$valor</t></is></c>")
+        }
+        [void]$xmlFilas.Append("</row>")
+    }
+    $cabecera = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    $partes = [ordered]@{
+        "[Content_Types].xml"        = $cabecera + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>'
+        "_rels/.rels"                = $cabecera + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'
+        "xl/workbook.xml"            = $cabecera + '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Estudiantes" sheetId="1" r:id="rId1"/></sheets></workbook>'
+        "xl/_rels/workbook.xml.rels" = $cabecera + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>'
+        "xl/worksheets/sheet1.xml"   = $cabecera + "<worksheet xmlns=`"http://schemas.openxmlformats.org/spreadsheetml/2006/main`"><sheetData>$xmlFilas</sheetData></worksheet>"
+    }
+    if (Test-Path $Ruta) { Remove-Item $Ruta -Force }
+    $utf8 = New-Object System.Text.UTF8Encoding($false)
+    $zip = [System.IO.Compression.ZipFile]::Open($Ruta, [System.IO.Compression.ZipArchiveMode]::Create)
+    try {
+        foreach ($nombre in $partes.Keys) {
+            $flujo = $zip.CreateEntry($nombre).Open()
+            $bytes = $utf8.GetBytes($partes[$nombre])
+            $flujo.Write($bytes, 0, $bytes.Length)
+            $flujo.Close()
+        }
+    } finally {
+        $zip.Dispose()
+    }
+}
+
+function Subir-Archivo {
+    param([string]$Ruta, [string]$Archivo, [string]$Token)
+    $salida = [System.IO.Path]::GetTempFileName()
+    $argumentos = @("-s", "-o", $salida, "-w", "%{http_code}", "-X", "POST", "-F", "file=@$Archivo")
+    if ($Token) { $argumentos += @("-H", "Authorization: Bearer $Token") }
+    $argumentos += ($Global:BaseUrl + $Ruta)
+    $codigo = & curl.exe @argumentos
+    $cuerpo = [System.IO.File]::ReadAllText($salida, [System.Text.Encoding]::UTF8)
+    Remove-Item $salida -Force
+    return [pscustomobject]@{ Status = [int]$codigo; Body = $cuerpo }
+}
+
 function Escribir-Resultado {
     param([string]$Descripcion, [bool]$Ok)
     if ($Ok) { Write-Host "PASS $Descripcion" } else { Write-Host "FAIL $Descripcion" }

@@ -32,4 +32,11 @@ public class MensajesError {
     public static final String ASIGNATURA_YA_MATRICULADA = "El estudiante ya tiene activa la asignatura %s en el grupo %s...";
     public static final String ESTADO_ASIGNATURA_NO_VALIDO = "El estado %s no es valido, los estados permitidos son %s...";
     public static final String CAMBIO_ESTADO_NO_PERMITIDO = "No se puede cambiar la asignatura matriculada de %s a %s...";
+    public static final String EXCEL_NO_VALIDO = "El archivo debe ser un Excel .xlsx valido con una hoja...";
+    public static final String EXCEL_SIN_FILAS = "El archivo no tiene filas de estudiantes despues del encabezado...";
+    public static final String EXCEL_ENCABEZADO_INVALIDO = "Fila 1, columna %s: se esperaba el encabezado %s y se encontró '%s'...";
+    public static final String EXCEL_FILA_ERROR = "Fila %d, columna %s (%s): %s";
+    public static final String EXCEL_FILA_DATO_DISTINTO = "Fila %d, columna %s (%s): el estudiante con documento %s tiene un valor distinto al de la fila %d...";
+    public static final String EXCEL_FILA_MATERIA_REPETIDA = "Fila %d, columna %s (%s): la asignatura %s en el grupo %s ya aparece en la fila %d para el mismo estudiante...";
+    public static final String EXCEL_FILA_VALOR_REPETIDO = "Fila %d, columna %s (%s): el valor %s ya lo usa otro estudiante en la fila %d...";
 }
