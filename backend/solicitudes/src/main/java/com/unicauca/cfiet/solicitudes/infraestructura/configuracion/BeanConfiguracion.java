@@ -75,4 +75,11 @@ public class BeanConfiguracion {
                                                      AlmacenadorArchivos almacenadorArchivos){
         return new RespuestaCUImplAdaptador(gateway, solicitudGateway, formateadorExcepciones, log, almacenadorArchivos);
     }
+
+    @Bean
+    public AsignaturaCUImplAdaptador crearAsignaturaCU(AsignaturaGatewayIntPuerto gateway,
+                                                       ExcepcionesFormateadorIntPuerto formateadorExcepciones,
+                                                       LogCUIntPuerto log){
+        return new AsignaturaCUImplAdaptador(gateway, formateadorExcepciones, log);
+    }
 }
