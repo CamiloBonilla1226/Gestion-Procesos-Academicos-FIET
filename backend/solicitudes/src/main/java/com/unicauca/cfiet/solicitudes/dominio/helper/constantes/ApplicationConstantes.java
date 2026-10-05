@@ -41,6 +41,7 @@ public final class ApplicationConstantes {
     public static final String SECRETARIO_DECANO_ACCESO =  "hasAnyAuthority('" + SECRETARIO_GENERAL + "', '" + DECANO + "')";
     public static final String AUTHENTICATED = "isAuthenticated()";
     public static final String SECRETARIO_DECANO_FUNCIONARIO_ACCESO = "hasAnyAuthority('" + SECRETARIO_GENERAL + "', '" + FUNCIONARIO_ROL + "', '" + DECANO + "')";
+    public static final String SECRETARIO_DECANO_FUNCIONARIO_ACADEMICO_ACCESO = "hasAnyAuthority('" + SECRETARIO_GENERAL + "', '" + DECANO + "', '" + FUNCIONARIO_ACADEMICO_ROL + "')";
     /*Tipos de Respuesta*/
     public static final String OFICIO = "Oficio";
     public static final String RESOLUCION = "Resolución";
