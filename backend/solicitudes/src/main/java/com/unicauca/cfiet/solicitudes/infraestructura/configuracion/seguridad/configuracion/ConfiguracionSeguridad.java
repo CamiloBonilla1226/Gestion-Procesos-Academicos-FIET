@@ -73,6 +73,10 @@ public class ConfiguracionSeguridad {
                                 ApplicationConstantes.DECANO,
                                 ApplicationConstantes.FUNCIONARIO_ROL
                         )
+                        .requestMatchers(HttpMethod.GET, baseUrl + "asignaturas/**").hasAnyAuthority(ApplicationConstantes.SECRETARIO_GENERAL, ApplicationConstantes.DECANO, ApplicationConstantes.FUNCIONARIO_ACADEMICO_ROL)
+                        .requestMatchers(HttpMethod.POST, baseUrl + "asignaturas").hasAnyAuthority(ApplicationConstantes.SECRETARIO_GENERAL, ApplicationConstantes.DECANO)
+                        .requestMatchers(HttpMethod.PUT, baseUrl + "asignaturas/**").hasAnyAuthority(ApplicationConstantes.SECRETARIO_GENERAL, ApplicationConstantes.DECANO)
+                        .requestMatchers(baseUrl + "asignaturas/**").denyAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex
