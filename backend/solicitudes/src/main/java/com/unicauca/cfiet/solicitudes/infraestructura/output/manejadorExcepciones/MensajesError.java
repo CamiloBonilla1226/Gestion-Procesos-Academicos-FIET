@@ -28,4 +28,5 @@ public class MensajesError {
     public static final String TIPO_DOCUMENTO_ERRONEO = "Tipo de documento invalido...";
     public static final String TIPO_RESPUESTA_NO_VALIDO = "Tipo de respuesta %s no es valido";
     public static final String FORMATO_RESPUESTA_NO_VALIDO = "Tipo de archivo de respuesta no es valido";
+    public static final String VALOR_REPETIDO_PETICION = "La petición trae %s %s más de una vez...";
 }

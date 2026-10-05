@@ -1,6 +1,7 @@
 package com.unicauca.cfiet.solicitudes.infraestructura.configuracion;
 
 import com.unicauca.cfiet.solicitudes.aplicacion.input.LogCUIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.input.UsuarioCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.*;
 import com.unicauca.cfiet.solicitudes.dominio.casosdeuso.*;
 import com.unicauca.cfiet.solicitudes.infraestructura.configuracion.lectorArchivos.almacenador.AlmacenadorArchivos;
@@ -81,5 +82,16 @@ public class BeanConfiguracion {
                                                        ExcepcionesFormateadorIntPuerto formateadorExcepciones,
                                                        LogCUIntPuerto log){
         return new AsignaturaCUImplAdaptador(gateway, formateadorExcepciones, log);
+    }
+
+    @Bean
+    public EstudianteCUImplAdaptador crearEstudianteCU(UsuarioCUIntPuerto usuarioCU,
+                                                       EstudianteGatewayIntPuerto gateway,
+                                                       AsignaturaGatewayIntPuerto asignaturaGateway,
+                                                       RolGatewayIntPuerto rolGateway,
+                                                       UsuarioGatewayIntPuerto usuarioGateway,
+                                                       ExcepcionesFormateadorIntPuerto formateadorExcepciones,
+                                                       LogCUIntPuerto log){
+        return new EstudianteCUImplAdaptador(usuarioCU, gateway, asignaturaGateway, rolGateway, usuarioGateway, formateadorExcepciones, log);
     }
 }
