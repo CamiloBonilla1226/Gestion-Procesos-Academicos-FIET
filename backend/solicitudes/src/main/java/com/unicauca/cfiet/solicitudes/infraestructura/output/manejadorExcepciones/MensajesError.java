@@ -48,4 +48,9 @@ public class MensajesError {
     public static final String TRANSICION_NO_PERMITIDA = "La acción %s no está permitida desde la etapa %s en %s...";
     public static final String ROL_TRANSICION_NO_PERMITIDO = "El rol %s no puede ejecutar la acción %s desde la etapa %s, le corresponde a %s...";
     public static final String REQUISITO_TRANSICION_FALTANTE = "La acción %s exige %s...";
+    public static final String TIPO_SOLICITUD_SIN_PROCESO = "El tipo de solicitud %s no corresponde a ningún proceso académico...";
+    public static final String ACTOR_SIN_ROL = "El usuario %s no tiene el rol %s...";
+    public static final String SOLICITUD_AJENA = "La solicitud %s no pertenece al estudiante %s...";
+    public static final String TIPO_NO_ASIGNADO_FUNCIONARIO = "El tipo de solicitud %s no está asignado al funcionario académico %s...";
+    public static final String OBSERVACION_MUY_LARGA = "La observación supera los %d caracteres permitidos...";
 }

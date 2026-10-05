@@ -4,9 +4,13 @@ import com.unicauca.cfiet.solicitudes.aplicacion.input.LogCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.UsuarioCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.*;
 import com.unicauca.cfiet.solicitudes.dominio.casosdeuso.*;
+import com.unicauca.cfiet.solicitudes.dominio.servicios.MaquinaEtapas;
 import com.unicauca.cfiet.solicitudes.infraestructura.configuracion.lectorArchivos.almacenador.AlmacenadorArchivos;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.time.Clock;
+import java.time.ZoneId;
 
 /**
  * Gestiona las implementaciones de los casos de uso.
@@ -138,5 +142,22 @@ public class BeanConfiguracion {
                                                                                              ExcepcionesFormateadorIntPuerto formateadorExcepciones,
                                                                                              LogCUIntPuerto log){
         return new AsignacionFuncionarioAcademicoCUImplAdaptador(tipoSolicitudGateway, funcionarioGateway, formateadorExcepciones, log);
+    }
+
+    @Bean
+    public MaquinaEtapas crearMaquinaEtapas(ExcepcionesFormateadorIntPuerto formateadorExcepciones){
+        return new MaquinaEtapas(formateadorExcepciones);
+    }
+
+    @Bean
+    public SolicitudAcademicaCUImplAdaptador crearSolicitudAcademicaCU(SolicitudAcademicaGatewayIntPuerto gateway,
+                                                                     EstudianteGatewayIntPuerto estudianteGateway,
+                                                                     TipoSolicitudAcademicaGatewayIntPuerto tipoSolicitudGateway,
+                                                                     EtapaSolicitudAcademicaGatewayIntPuerto etapaGateway,
+                                                                     UsuarioGatewayIntPuerto usuarioGateway,
+                                                                     MaquinaEtapas maquinaEtapas,
+                                                                     ExcepcionesFormateadorIntPuerto formateadorExcepciones){
+        return new SolicitudAcademicaCUImplAdaptador(gateway, estudianteGateway, tipoSolicitudGateway, etapaGateway,
+                usuarioGateway, maquinaEtapas, formateadorExcepciones, Clock.system(ZoneId.of("America/Bogota")));
     }
 }
