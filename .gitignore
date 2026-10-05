@@ -14,5 +14,6 @@ frontend/*.log
 .idea/
 *.iml
 .vscode/
+.claude/settings.local.json
 .DS_Store
 Thumbs.db
