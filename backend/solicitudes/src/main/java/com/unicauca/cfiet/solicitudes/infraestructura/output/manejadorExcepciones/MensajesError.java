@@ -29,4 +29,7 @@ public class MensajesError {
     public static final String TIPO_RESPUESTA_NO_VALIDO = "Tipo de respuesta %s no es valido";
     public static final String FORMATO_RESPUESTA_NO_VALIDO = "Tipo de archivo de respuesta no es valido";
     public static final String VALOR_REPETIDO_PETICION = "La petición trae %s %s más de una vez...";
+    public static final String ASIGNATURA_YA_MATRICULADA = "El estudiante ya tiene activa la asignatura %s en el grupo %s...";
+    public static final String ESTADO_ASIGNATURA_NO_VALIDO = "El estado %s no es valido, los estados permitidos son %s...";
+    public static final String CAMBIO_ESTADO_NO_PERMITIDO = "No se puede cambiar la asignatura matriculada de %s a %s...";
 }

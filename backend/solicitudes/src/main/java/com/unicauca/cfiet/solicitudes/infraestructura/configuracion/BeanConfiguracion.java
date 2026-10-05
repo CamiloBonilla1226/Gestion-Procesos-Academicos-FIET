@@ -90,8 +90,10 @@ public class BeanConfiguracion {
                                                        AsignaturaGatewayIntPuerto asignaturaGateway,
                                                        RolGatewayIntPuerto rolGateway,
                                                        UsuarioGatewayIntPuerto usuarioGateway,
+                                                       SesionGatewayIntPuerto sesionGateway,
+                                                       IJwtServicio jwtServicio,
                                                        ExcepcionesFormateadorIntPuerto formateadorExcepciones,
                                                        LogCUIntPuerto log){
-        return new EstudianteCUImplAdaptador(usuarioCU, gateway, asignaturaGateway, rolGateway, usuarioGateway, formateadorExcepciones, log);
+        return new EstudianteCUImplAdaptador(usuarioCU, gateway, asignaturaGateway, rolGateway, usuarioGateway, sesionGateway, jwtServicio, formateadorExcepciones, log);
     }
 }
