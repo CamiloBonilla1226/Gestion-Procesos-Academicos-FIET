@@ -42,9 +42,9 @@ Escribir-Resultado "el funcionario academico creado inicia sesion" ([bool]$token
 
 $r = Invoke-Api -Metodo GET -Ruta "usuarios/$uuid" -Token $tokenRoot
 $usuarioFa = $r.Body | ConvertFrom-Json
-$nombresRoles = @($usuarioFa.roles | ForEach-Object { $_.nombre })
+$uuidsRoles = @($usuarioFa.roles | ForEach-Object { $_.uuidRol })
 Escribir-Resultado "tipo de usuario Empleado FIET - Funcionario (obtuvo $($usuarioFa.objTipoUsuario.nombre))" ($usuarioFa.objTipoUsuario.uuidTipoUsuario -eq "79105584-1091-4a4e-ba8e-9cbdd1c85b91")
-Escribir-Resultado "rol unico Funcionario Academico (obtuvo $($nombresRoles -join ', '))" (($nombresRoles.Count -eq 1) -and ($nombresRoles[0] -eq $Global:FuncionarioAcademico))
+Escribir-Resultado "rol unico Funcionario Academico (obtuvo $($uuidsRoles -join ', '))" (($uuidsRoles.Count -eq 1) -and ($uuidsRoles[0] -eq $Global:Perfiles.FuncionarioAcademico.Rol.uuidRol))
 
 $campos = @(
     @{ Campo = "numeroDocumento"; Descripcion = "documento" },
