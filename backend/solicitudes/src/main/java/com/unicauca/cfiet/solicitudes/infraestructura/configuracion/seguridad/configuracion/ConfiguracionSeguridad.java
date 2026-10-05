@@ -94,6 +94,7 @@ public class ConfiguracionSeguridad {
                         .requestMatchers(HttpMethod.POST, baseUrl + "funcionarios-academicos").hasAnyAuthority(ApplicationConstantes.SECRETARIO_GENERAL, ApplicationConstantes.DECANO)
                         .requestMatchers(HttpMethod.PUT, baseUrl + "funcionarios-academicos/{uuidFuncionario}").hasAnyAuthority(ApplicationConstantes.SECRETARIO_GENERAL, ApplicationConstantes.DECANO)
                         .requestMatchers(baseUrl + "funcionarios-academicos/**").denyAll()
+                        .requestMatchers(HttpMethod.PUT, baseUrl + "catalogos-academicos/tipos-solicitud/{uuidTipo}/funcionario").hasAnyAuthority(ApplicationConstantes.SECRETARIO_GENERAL, ApplicationConstantes.DECANO)
                         .requestMatchers(HttpMethod.GET, baseUrl + "catalogos-academicos/**").authenticated()
                         .requestMatchers(baseUrl + "catalogos-academicos/**").denyAll()
                         .anyRequest().authenticated()

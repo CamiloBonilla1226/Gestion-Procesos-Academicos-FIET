@@ -65,7 +65,7 @@ public class MapperCatalogoAcademicoInfraestructuraDominio {
                 .toList();
     }
 
-    private TipoSolicitudAcademicaDTORespuesta mapearTipoSolicitud(TipoSolicitudAcademica tipo) {
+    public TipoSolicitudAcademicaDTORespuesta mapearTipoSolicitud(TipoSolicitudAcademica tipo) {
         FuncionarioAcademico funcionario = tipo.getFuncionarioAcademico();
         String nombreFuncionario = funcionario == null || funcionario.getUsuario() == null ? null
                 : funcionario.getUsuario().getNombres() + " " + funcionario.getUsuario().getApellidos();

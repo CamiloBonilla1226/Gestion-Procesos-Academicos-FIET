@@ -9,4 +9,8 @@ public interface TipoSolicitudAcademicaGatewayIntPuerto {
     List<TipoSolicitudAcademica> getTodos();
 
     boolean existePorUuid(String uuidTipoSolicitudAcademica);
+
+    TipoSolicitudAcademica getPorUuid(String uuidTipoSolicitudAcademica);
+
+    TipoSolicitudAcademica asignarFuncionarioAcademico(String uuidTipoSolicitudAcademica, String uuidFuncionarioAcademico);
 }

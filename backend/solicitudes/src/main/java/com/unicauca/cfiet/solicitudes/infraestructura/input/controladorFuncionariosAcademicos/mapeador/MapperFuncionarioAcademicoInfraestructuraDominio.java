@@ -2,10 +2,12 @@ package com.unicauca.cfiet.solicitudes.infraestructura.input.controladorFunciona
 
 import com.unicauca.cfiet.solicitudes.dominio.helper.PaginacionRespuestaDTO;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.FuncionarioAcademico;
+import com.unicauca.cfiet.solicitudes.dominio.modelos.TipoSolicitudAcademica;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.Usuario;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorFuncionariosAcademicos.DTOPeticion.FuncionarioAcademicoActualizarDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorFuncionariosAcademicos.DTOPeticion.FuncionarioAcademicoDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorFuncionariosAcademicos.DTORespuesta.FuncionarioAcademicoDTORespuesta;
+import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorFuncionariosAcademicos.DTORespuesta.TipoSolicitudAtendidaDTORespuesta;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -40,6 +42,7 @@ public class MapperFuncionarioAcademicoInfraestructuraDominio {
         FuncionarioAcademicoDTORespuesta respuesta = FuncionarioAcademicoDTORespuesta.builder()
                 .uuidUsuario(modelo.getUuidUsuario())
                 .dependencia(modelo.getDependencia())
+                .tiposSolicitud(mapearTiposSolicitud(modelo.getTiposSolicitud()))
                 .build();
         Usuario usuario = modelo.getUsuario();
         if (usuario != null) {
@@ -61,5 +64,15 @@ public class MapperFuncionarioAcademicoInfraestructuraDominio {
 
     public PaginacionRespuestaDTO<FuncionarioAcademicoDTORespuesta> mapearPaginaARespuesta(PaginacionRespuestaDTO<FuncionarioAcademico> pagina) {
         return new PaginacionRespuestaDTO<>(mapearModelosARespuesta(pagina.getContent()), pagina.getTotalElements());
+    }
+
+    private List<TipoSolicitudAtendidaDTORespuesta> mapearTiposSolicitud(List<TipoSolicitudAcademica> tipos) {
+        if (tipos == null) return List.of();
+        return tipos.stream()
+                .map(tipo -> TipoSolicitudAtendidaDTORespuesta.builder()
+                        .uuidTipoSolicitudAcademica(tipo.getUuidTipoSolicitudAcademica())
+                        .nombre(tipo.getNombre())
+                        .build())
+                .toList();
     }
 }

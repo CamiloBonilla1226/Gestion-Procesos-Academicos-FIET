@@ -3,9 +3,12 @@ package com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.gatew
 import com.unicauca.cfiet.solicitudes.aplicacion.output.FuncionarioAcademicoGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.dominio.helper.PaginacionRespuestaDTO;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.FuncionarioAcademico;
+import com.unicauca.cfiet.solicitudes.dominio.modelos.TipoSolicitudAcademica;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.entidades.FuncionarioAcademicoEntidad;
+import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.entidades.TipoSolicitudAcademicaEntidad;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.mapeador.ownMapper.FuncionarioAcademicoOwnMapper;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.repositorios.FuncionarioAcademicoRepositorio;
+import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.repositorios.TipoSolicitudAcademicaRepositorio;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.repositorios.UsuarioRepositorio;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -14,18 +17,22 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class FuncionarioAcademicoGatewayImplAdaptador implements FuncionarioAcademicoGatewayIntPuerto {
     private final FuncionarioAcademicoRepositorio repositorio;
     private final UsuarioRepositorio usuarioRepositorio;
+    private final TipoSolicitudAcademicaRepositorio tipoSolicitudRepositorio;
     private final FuncionarioAcademicoOwnMapper mapper;
 
     @Override
     public FuncionarioAcademico guardar(FuncionarioAcademico funcionarioAcademico) {
-        return mapper.toDominio(repositorio.save(aEntidad(funcionarioAcademico)));
+        return conTiposSolicitud(List.of(mapper.toDominio(repositorio.save(aEntidad(funcionarioAcademico))))).get(0);
     }
 
     @Override
@@ -33,9 +40,9 @@ public class FuncionarioAcademicoGatewayImplAdaptador implements FuncionarioAcad
         List<FuncionarioAcademicoEntidad> entidades = funcionariosAcademicos.stream()
                 .map(this::aEntidad)
                 .toList();
-        return repositorio.saveAll(entidades).stream()
+        return conTiposSolicitud(repositorio.saveAll(entidades).stream()
                 .map(mapper::toDominio)
-                .toList();
+                .toList());
     }
 
     @Override
@@ -51,7 +58,7 @@ public class FuncionarioAcademicoGatewayImplAdaptador implements FuncionarioAcad
     @Override
     public FuncionarioAcademico getPorUuid(String uuidUsuario) {
         return repositorio.findById(uuidUsuario)
-                .map(mapper::toDominio)
+                .map(entidad -> conTiposSolicitud(List.of(mapper.toDominio(entidad))).get(0))
                 .orElse(null);
     }
 
@@ -60,6 +67,27 @@ public class FuncionarioAcademicoGatewayImplAdaptador implements FuncionarioAcad
         entidad.setNuevo(!repositorio.existsById(funcionarioAcademico.getUuidUsuario()));
         entidad.setUsuario(usuarioRepositorio.getReferenceById(funcionarioAcademico.getUuidUsuario()));
         return entidad;
+    }
+
+    private List<FuncionarioAcademico> conTiposSolicitud(List<FuncionarioAcademico> funcionarios) {
+        if (funcionarios.isEmpty()) return funcionarios;
+        List<String> uuids = funcionarios.stream().map(FuncionarioAcademico::getUuidUsuario).toList();
+        Map<String, List<TipoSolicitudAcademica>> tiposPorFuncionario = tipoSolicitudRepositorio
+                .findByFuncionarioAcademicoUuidUsuarioInOrderByNombreAsc(uuids).stream()
+                .collect(Collectors.groupingBy(
+                        tipo -> tipo.getFuncionarioAcademico().getUuidUsuario(),
+                        Collectors.mapping(this::tipoSolicitudResumido, Collectors.toList())));
+        for (FuncionarioAcademico funcionario : funcionarios)
+            funcionario.setTiposSolicitud(new ArrayList<>(tiposPorFuncionario.getOrDefault(funcionario.getUuidUsuario(), List.of())));
+        return funcionarios;
+    }
+
+    private TipoSolicitudAcademica tipoSolicitudResumido(TipoSolicitudAcademicaEntidad entidad) {
+        return TipoSolicitudAcademica.builder()
+                .uuidTipoSolicitudAcademica(entidad.getUuidTipoSolicitudAcademica())
+                .nombre(entidad.getNombre())
+                .descripcion(entidad.getDescripcion())
+                .build();
     }
 
     private String limpiar(String texto) {
@@ -74,6 +102,6 @@ public class FuncionarioAcademicoGatewayImplAdaptador implements FuncionarioAcad
         List<FuncionarioAcademico> funcionarios = page.getContent().stream()
                 .map(mapper::toDominio)
                 .toList();
-        return new PaginacionRespuestaDTO<>(funcionarios, page.getTotalElements());
+        return new PaginacionRespuestaDTO<>(conTiposSolicitud(funcionarios), page.getTotalElements());
     }
 }

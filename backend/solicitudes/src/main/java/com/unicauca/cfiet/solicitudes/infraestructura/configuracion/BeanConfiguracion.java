@@ -131,4 +131,12 @@ public class BeanConfiguracion {
     public SituacionAcademicaAsignaturaCUImplAdaptador crearSituacionAcademicaAsignaturaCU(SituacionAcademicaAsignaturaGatewayIntPuerto gateway){
         return new SituacionAcademicaAsignaturaCUImplAdaptador(gateway);
     }
+
+    @Bean
+    public AsignacionFuncionarioAcademicoCUImplAdaptador crearAsignacionFuncionarioAcademicoCU(TipoSolicitudAcademicaGatewayIntPuerto tipoSolicitudGateway,
+                                                                                             FuncionarioAcademicoGatewayIntPuerto funcionarioGateway,
+                                                                                             ExcepcionesFormateadorIntPuerto formateadorExcepciones,
+                                                                                             LogCUIntPuerto log){
+        return new AsignacionFuncionarioAcademicoCUImplAdaptador(tipoSolicitudGateway, funcionarioGateway, formateadorExcepciones, log);
+    }
 }

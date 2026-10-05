@@ -1,10 +1,13 @@
 package com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCatalogosAcademicos.controlador;
 
+import com.unicauca.cfiet.solicitudes.aplicacion.input.AsignacionFuncionarioAcademicoCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.EtapaSolicitudAcademicaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.SituacionAcademicaAsignaturaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.TipoAnexoAcademicoCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.TipoSolicitudAcademicaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.dominio.helper.constantes.ApplicationConstantes;
+import com.unicauca.cfiet.solicitudes.dominio.modelos.TipoSolicitudAcademica;
+import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCatalogosAcademicos.DTOPeticion.AsignacionFuncionarioAcademicoDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCatalogosAcademicos.DTORespuesta.EtapaEtiquetaRolDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCatalogosAcademicos.DTORespuesta.EtapaSolicitudAcademicaDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCatalogosAcademicos.DTORespuesta.SituacionAcademicaAsignaturaDTORespuesta;
@@ -12,13 +15,18 @@ import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCatalogos
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCatalogosAcademicos.DTORespuesta.TipoSolicitudAcademicaDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCatalogosAcademicos.mapeador.MapperCatalogoAcademicoInfraestructuraDominio;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("${url.application}catalogos-academicos")
@@ -32,6 +40,7 @@ public class CatalogoAcademicoRestController {
     private final EtapaSolicitudAcademicaCUIntPuerto etapaCU;
     private final TipoAnexoAcademicoCUIntPuerto tipoAnexoCU;
     private final SituacionAcademicaAsignaturaCUIntPuerto situacionCU;
+    private final AsignacionFuncionarioAcademicoCUIntPuerto asignacionCU;
     private final MapperCatalogoAcademicoInfraestructuraDominio mapper;
 
     @PreAuthorize(ApplicationConstantes.AUTHENTICATED)
@@ -62,5 +71,23 @@ public class CatalogoAcademicoRestController {
     @GetMapping("/situaciones")
     public ResponseEntity<List<SituacionAcademicaAsignaturaDTORespuesta>> getSituaciones() {
         return new ResponseEntity<>(mapper.mapearSituaciones(situacionCU.getSituaciones()), HttpStatus.OK);
+    }
+
+    @PreAuthorize(ApplicationConstantes.SECRETARIO_DECANO_ACCESO)
+    @Transactional
+    @PutMapping("/tipos-solicitud" + UUID_TIPO + "/funcionario")
+    public ResponseEntity<?> asignarFuncionarioAcademico(@PathVariable String uuidTipo,
+                                                         @Valid @RequestBody AsignacionFuncionarioAcademicoDTOPeticion peticion,
+                                                         @RequestHeader("Authorization") String token) {
+        TipoSolicitudAcademica tipo;
+        try {
+            tipo = asignacionCU.asignarFuncionarioAcademico(uuidTipo, peticion.getFuncionarioUuid().trim(), token.substring(7));
+        } catch (DataAccessException ex) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("mensaje", "Error actualizando en la base de datos....");
+            response.put("error", ex.getMessage() + " " + ex.getMostSpecificCause().getMessage());
+            return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        return new ResponseEntity<TipoSolicitudAcademicaDTORespuesta>(mapper.mapearTipoSolicitud(tipo), HttpStatus.OK);
     }
 }

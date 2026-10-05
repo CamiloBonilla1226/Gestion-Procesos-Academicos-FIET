@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @Builder
 @AllArgsConstructor
@@ -20,4 +22,5 @@ public class FuncionarioAcademicoDTORespuesta {
     private String correoElectronico;
     private String username;
     private String dependencia;
+    private List<TipoSolicitudAtendidaDTORespuesta> tiposSolicitud;
 }

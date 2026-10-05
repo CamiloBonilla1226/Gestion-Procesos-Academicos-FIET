@@ -18,6 +18,11 @@ $Global:Perfiles = @{
         Rol         = @{ uuidRol = "996f4a2d-e051-4367-a702-a3e6a0a91873"; nombre = $Global:FuncionarioAcademico; descripcion = "Tecnico Administrativo de Procesos Academicos de la FIET"; estado = $true }
         Tipo        = @{ uuidTipoUsuario = "79105584-1091-4a4e-ba8e-9cbdd1c85b91"; nombre = "Empleado FIET - Funcionario" }
     }
+    Decano               = @{
+        TipoUsuario = "DECANO"
+        Rol         = @{ uuidRol = "1b08e82e-4617-4cf5-96b6-7ace7ed1bfbd"; nombre = "Decano"; descripcion = "Autoridad maxima de la decanatura de la FIET"; estado = $true }
+        Tipo        = @{ uuidTipoUsuario = "9d4ddd15-925e-444e-a60e-4b0f0bdba16a"; nombre = "Maxima autoridad FIET - Decano" }
+    }
 }
 
 function Nuevo-Sufijo {
