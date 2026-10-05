@@ -10,7 +10,7 @@ skill da el orden concreto de pasos para agregar una funcionalidad nueva
 siguiendo la arquitectura hexagonal de Julián Camacho sin saltarse capas.
 
 No se agrega ningún comentario ni emoji en el código que se escribe o
-modifica en esta skill, en ningún paso.
+modifica en esta skill, en ningún paso, salvo los comentarios de `docs/database/script_bd_extension.sql`, que se conservan.
 
 ## Paso 1 — Confirmar el modelo de datos
 
@@ -19,7 +19,10 @@ Revisa `docs/database/diccionario-datos-extension.md` y
 existe ahí, úsala tal cual (mismos nombres de columna). Si hace falta una
 tabla o columna nueva, agrégala primero a esos dos archivos de
 documentación antes de tocar código Java — la base de datos documentada es
-la fuente de verdad, no al revés.
+la fuente de verdad, no al revés. Las tablas las crea Hibernate
+desde las entidades (`ddl-auto=update`), como en la base de Julián; el script
+de `docs/database` es referencia y no se ejecuta. Cada entidad del paso 5
+calca el DDL documentado (nombre de tabla, columnas, tipos y FK).
 
 ## Paso 2 — Modelo de dominio
 
@@ -27,6 +30,8 @@ Crea el modelo en `dominio/modelos/` con Lombok (`@Getter @Setter
 @NoArgsConstructor @AllArgsConstructor @Builder`, o `@SuperBuilder` si el
 modelo nuevo hereda de otro, como `Funcionario extends Usuario`). Sin
 anotaciones de JPA ni de Bean Validation — esas no pertenecen al dominio.
+El actor Funcionario Académico se llama `FuncionarioAcademico`: `Funcionario`
+es del comité de Julián y no se reutiliza ni se extiende.
 
 ## Paso 3 — Puertos (interfaces)
 
@@ -107,17 +112,48 @@ con `@Transactional`. Si el recurso no necesita carga masiva, no se agrega.
 
 ## Paso 8 — Seguridad
 
-`ApplicationConstantes` todavía no tiene constantes de rol para
-"Estudiante" ni para "Funcionario Académico" (solo tiene las de Julián:
-`SECRETARIO_GENERAL`, `DECANO`, `FUNCIONARIO_ROL`). Si el endpoint nuevo
-necesita restringirse a esos roles, agrega primero la constante del rol y,
-si hace falta, la constante compuesta de `hasAnyAuthority(...)`, siguiendo
-el mismo patrón que ya existe ahí. Luego agrega la regla de acceso del
-endpoint nuevo en `ConfiguracionSeguridad.securityFilterChain` (en
-`infraestructura/configuracion/seguridad/configuracion`, no en
-`infraestructura/output`). Decide si es `permitAll()`, `authenticated()` o
-`hasAnyAuthority(...)` según quién debe poder llamarlo, y que coincida con
-el `@PreAuthorize` del controlador.
+`ApplicationConstantes` todavía no tiene constantes de rol para "Estudiante"
+ni para "Funcionario Académico" (solo tiene las de Julián:
+`SECRETARIO_GENERAL`, `DECANO`, `FUNCIONARIO_ROL`). El Decano de los procesos
+nuevos usa el rol `Decano` existente: se usa `DECANO`, no se crea otro rol. El Decano es un `Usuario` normal con ese
+rol, sin fila en `FUNCIONARIO_ACADEMICO`.
+
+Si el endpoint nuevo necesita restringirse a Estudiante o a Funcionario
+Académico:
+
+1. Agrega la constante del rol y, si hace falta, la constante compuesta de
+   `hasAnyAuthority(...)`, siguiendo el mismo patrón que ya existe ahí.
+2. Agrega el rol y su tipo de usuario como filas nuevas en `data.sql`
+   (`roles` y `tiposUsuario`; `crearUsuario` busca el tipo por nombre y falla
+   si no existe). Cierra con `;` la última sentencia actual del archivo, que
+   no la tiene.
+3. Agrega la regla de acceso en `ConfiguracionSeguridad.securityFilterChain`
+   (en `infraestructura/configuracion/seguridad/configuracion`, no en
+   `infraestructura/output`). Los matchers se evalúan en orden y gana el
+   primero que coincide: la regla nueva va antes de `usuarios/**`,
+   `solicitudes/**` y `anyRequest()`. Decide si es `permitAll()`,
+   `authenticated()` o `hasAnyAuthority(...)` según quién debe poder llamarlo,
+   y que coincida con el `@PreAuthorize` del controlador.
+
+Solo se agregan líneas; las reglas y constantes existentes no se editan.
+
+## Caso especial — crear Estudiante o Funcionario Académico
+
+El `crearUsuario` de Julián no crea las filas de `ESTUDIANTE` ni de
+`FUNCIONARIO_ACADEMICO`: `Usuario.crearInstancia` solo reconoce `FUNCIONARIO`
+y cualquier otro rol produce un `Usuario` plano. Estos dos actores se crean
+con casos de uso propios:
+
+- El caso de uso valida y guarda el usuario con `UsuarioGatewayIntPuerto`
+  (el de Julián, sin modificarlo) y guarda la extensión (y las materias del
+  estudiante) con un gateway nuevo.
+- La atomicidad va en un método del adaptador de persistencia con
+  `@Transactional`, no en el caso de uso: el dominio no depende de Spring.
+- Se crean por formulario y por carga masiva desde Excel (patrón de la
+  sección "Carga masiva por Excel" de `backend/CLAUDE.md`); el estudiante se
+  crea con sus asignaturas matriculadas.
+- Los endpoints se restringen a `SECRETARIO_GENERAL` y `DECANO`, igual que
+  `usuarios/**`.
 
 ## Paso 9 — Verificar
 
@@ -127,6 +163,9 @@ cd backend/solicitudes
 cd ..
 docker compose up --build
 ```
+
+En una base nueva: levanta el backend (Hibernate crea las tablas), ejecuta
+`data.sql` a mano (`spring.sql.init.mode=never`) y recién entonces prueba.
 
 Prueba el endpoint nuevo con una petición real (curl, Postman o el
 frontend) antes de dar la tarea por terminada.

@@ -42,8 +42,8 @@ Antes de crear cualquier componente visual nuevo, revisa si ya existe en
 - tarjeta con botones de acción -> `CardMainComponent`
 - formulario en diálogo -> `GenericDialogFormComponent`
 - ver información de solo lectura en diálogo -> `GenericDialogInfoComponent`
-- campo de texto, select o textarea -> `InputTextComponent`,
-  `InputSelectComponent`, `InputTextTareaComponent`
+- campo de texto, select, textarea o fecha -> `InputTextComponent`,
+  `InputSelectComponent`, `InputTextTareaComponent`, `InputDateComponent`
 - búsqueda -> `BarraBusquedaComponent`
 - descarga/visualización de anexos -> `AnexosViewComponent`
 
@@ -86,7 +86,9 @@ que `fun-solicitudes-component.ts`.
 
 ## Paso 6 — Página de la ruta
 
-Va en `core/<rol>/pages/<nombre>/`. Referencia como propiedades el sidebar
+Va en `core/<rol>/pages/<nombre>/` (Estudiante y Funcionario Académico llevan
+carpeta de rol propia; `core/funcionario` es del comité de Julián y no se
+reutiliza). Referencia como propiedades el sidebar
 del rol correspondiente, el header, el breadcrumb y el wrapper del paso 5,
 y se los pasa a `app-page-component` en el HTML (`[sidebarComponent]`,
 `[headerComponent]`, `[breadcrumbComponent]`, `[mainComponent]`), igual que
@@ -103,11 +105,10 @@ Agrega la ruta en `app.routes.ts`, con `canActivate: [AuthGuard, RoleGuard]`
 (los dos guards juntos, es el patrón real de todas las rutas protegidas
 existentes, no solo `RoleGuard`) y `data: { roles: [...] }` listando los
 roles que pueden entrar como strings exactos, a menos que la vista sea
-pública. Si la vista es de un proceso académico nuevo y el rol
-correspondiente ("Estudiante", el del funcionario académico, etc.) todavía
-no existe como fila en la tabla `roles` del backend, eso se resuelve primero
-en el backend — el string de `data.roles` tiene que coincidir carácter por
-carácter con el `nombre` real de esa fila.
+pública. El Decano usa el rol existente "Decano". Los roles
+"Estudiante" y "Funcionario Académico" se crean primero en el backend (filas
+nuevas en `data.sql`) — el string de `data.roles` tiene que coincidir
+carácter por carácter con el `nombre` de esa fila.
 
 ## Paso 8 — Feedback y errores
 
@@ -117,10 +118,11 @@ directo al usuario.
 
 ## Paso 9 — SSR
 
-Si el componente nuevo toca `localStorage`, `window` o `document` fuera de
-un guard o interceptor ya existente, protégelo con
+Si el componente nuevo toca `localStorage`, `window` o `document`, protégelo
+con
 `typeof window !== 'undefined'` antes de usarlo, para no romper el render
-del servidor (SSR con Express).
+del servidor (SSR con Express). `RoleGuard` ya lo hace; `authInterceptor` y
+partes de `AuthService` no, y no son patrón a imitar.
 
 ## Paso 10 — Verificar
 

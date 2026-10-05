@@ -4,8 +4,10 @@ Spring Boot 3, Java 17, MySQL 8. Hereda la arquitectura hexagonal (puertos y
 adaptadores) de Julián Camacho tal cual está en `solicitudes/src/main/java/
 com/unicauca/cfiet/solicitudes`. Todo lo que se agrega acá sigue exactamente
 esa misma estructura de paquetes — no se introduce una variante ni un
-patrón distinto para los módulos nuevos. Nada de Julián se modifica para
-lograr esto.
+patrón distinto para los módulos nuevos. Del código de Julián solo se
+agregan líneas (constantes, métodos `@Bean`, reglas de seguridad,
+excepciones, mensajes de error, filas de `data.sql`); no se editan ni se
+borran las existentes, salvo que la tarea lo pida de forma explícita.
 
 ## Comandos
 
@@ -22,13 +24,25 @@ Sin Docker: JDK 17 + MySQL 8 local, ajustando `DB_URL`, `DB_USER_NAME`,
 `spring.sql.init.mode=never` — el `data.sql` (roles, tipos de usuario,
 usuario root) no se ejecuta solo, hay que correrlo a mano contra la base
 la primera vez (`docker compose exec cfiet_database mysql -u root -pmysql
-cfiet` y pegar el contenido de `data.sql`).
+cfiet` y pegar el contenido de `data.sql`). Hay que correrlo después del
+primer arranque, porque necesita las tablas que crea Hibernate. Los roles
+`Estudiante` y `Funcionario Académico` y sus tipos de usuario se agregan en
+ese mismo `data.sql`. Su última sentencia (`INSERT INTO Usuario_has_Roles`)
+no termina en `;`: hay que cerrarla antes de agregar sentencias nuevas.
 
 La base usa `spring.jpa.hibernate.naming.physical-strategy=
 PhysicalNamingStrategyStandardImpl`: Hibernate NO convierte a snake_case,
 las tablas reales quedan en camelCase exacto al nombre del campo Java
 (`usuarios`, `usuariosLivianos`, `tiposUsuario`), nunca en mayúsculas ni
 con guiones bajos. Esto importa al escribir SQL a mano contra esas tablas.
+
+`spring.jpa.hibernate.ddl-auto=update`: Hibernate crea y altera tablas desde
+las entidades en cada arranque. Las tablas nuevas las crea Hibernate desde las
+entidades, igual que las de Julián (su repo no trae scripts DDL, solo
+`data.sql`). `script_bd_extension.sql` es documentación de referencia y no se
+ejecuta: cada entidad calca su DDL (nombre de tabla, columnas, tipos y FK) y
+cualquier cambio de tabla o columna se hace en la entidad y en esa
+documentación a la vez.
 
 ## Las tres capas, en orden de dependencia
 
@@ -196,6 +210,19 @@ constante de `hasAnyAuthority(...)` armada con ellas) antes de poder
 proteger un endpoint de los procesos académicos nuevos con
 `@PreAuthorize`.
 
+El Decano de los procesos académicos nuevos entra con el rol `Decano` que ya
+existe: se usa `ApplicationConstantes.DECANO`, no se crea otro rol. Los roles
+nuevos son `Estudiante` y `Funcionario Académico`; su constante y sus filas
+en `data.sql` (`roles` y `tiposUsuario`) se crean juntas, porque
+`crearUsuario` busca el tipo de usuario por nombre y falla si no existe.
+
+Los `requestMatchers` se evalúan en orden y gana el primero que coincide: una
+regla nueva va antes de las genéricas (`usuarios/**`, `solicitudes/**`,
+`anyRequest()`). Hoy `GET usuarios/**` está abierto a cualquier usuario
+autenticado, y `POST`/`PUT` sobre `usuarios/**` está restringido a Secretario
+General y Decano, que son quienes crean estudiantes y funcionarios
+académicos.
+
 ## Persistencia
 
 Las entidades JPA son `@Entity` con Lombok (`@Getter @Setter
@@ -210,7 +237,7 @@ Las tablas nuevas de este trabajo de grado (`ESTUDIANTE`,
 `FUNCIONARIO_ACADEMICO`, `ASIGNATURA`, `SOLICITUD_ACADEMICA`,
 `RESOLUCION_ACADEMICA`, etc.) están documentadas en
 `docs/database/diccionario-datos-extension.md` y su DDL en
-`docs/database/script_bd_extension.sql` (18 tablas). Las únicas FK hacia
+`docs/database/script_bd_extension.sql` (18 tablas; referencia, no se ejecuta). Las únicas FK hacia
 las tablas de Julián apuntan a `usuarios (uuidUsuario)`, desde `ESTUDIANTE`,
 `FUNCIONARIO_ACADEMICO` e `HISTORIAL_SOLICITUD_ACADEMICA`; `usuariosLivianos`
 y `tiposUsuario` existen en camelCase pero las tablas nuevas no apuntan a
@@ -221,9 +248,34 @@ lleva `@Column(name = "...")` o `@JoinColumn(name = "...")` con el nombre
 exacto de la columna, y `@Table(name = "...")` con el nombre exacto de la
 tabla en mayúsculas. `FUNCIONARIO_ACADEMICO` es
 intencionalmente una tabla distinta de `Funcionario`/`funcionarios` (el rol
-de comité de facultad de Julián) — cubre tanto al funcionario que verifica
-la información académica como al decano que aprueba o rechaza,
-diferenciados por la columna `dependencia`.
+de comité de facultad de Julián) — cubre solo al funcionario que verifica
+la información académica. El Decano, como en Julián, es un `Usuario` con rol
+`Decano` y tipo `Maxima autoridad FIET - Decano`, sin fila en esta tabla;
+ninguna FK de la extensión apunta al Decano (el historial apunta a
+`usuarios`).
+
+## Crear Estudiante y Funcionario Académico
+
+`UsuarioCUImplAdaptador.crearUsuario` y `crearUsuarios` no insertan nada en
+`ESTUDIANTE` ni en `FUNCIONARIO_ACADEMICO`. `Usuario.crearInstancia` solo
+reconoce `FUNCIONARIO` (la carga masiva deriva el tipo del primer rol, sin
+espacios y en mayúscula), y cualquier otro valor cae en un `Usuario` plano.
+Julián modela su subtipo con herencia `JOINED` (`usuariosLivianos` ->
+`usuarios` -> `funcionarios`); las tablas nuevas apuntan por FK a
+`usuarios`, sin herencia JPA.
+
+Por eso Estudiante y Funcionario Académico tienen su propio caso de uso y su
+propio gateway: el caso de uso valida y guarda el usuario con el gateway de
+usuarios de Julián y la fila de extensión (y las materias del estudiante) con
+el gateway nuevo. La atomicidad la da un método del adaptador de persistencia
+con `@Transactional`; el dominio no depende de Spring. Los crea el Secretario
+General o el Decano, por formulario y por carga masiva desde Excel; el
+estudiante se crea con su información de asignaturas matriculadas
+(`ASIGNATURA_MATRICULADA`).
+
+En Java el modelo del actor se llama `FuncionarioAcademico`. `Funcionario`
+(modelo, entidad y rol `Funcionario`) es del comité de Julián y no se
+reutiliza.
 
 ## Carga masiva por Excel (existe en Julián, para usuarios y tipos de solicitud)
 
@@ -303,11 +355,13 @@ class SolicitudesApplicationTests {
 ## Qué no se hace
 
 - No se agrega Javadoc, ni comentarios de una línea, ni emojis en ningún
-  archivo nuevo o modificado.
+  archivo nuevo o modificado, salvo los comentarios de
+  `docs/database/script_bd_extension.sql`, que se conservan.
 - No se cambia la arquitectura de capas ni se salta una capa (por ejemplo,
   un controlador llamando directo a un repositorio).
-- No se tocan las tablas ni las clases ya existentes de Julián salvo que la
-  tarea lo pida explícitamente.
+- No se editan ni se borran tablas, clases o líneas existentes de Julián;
+  solo se agregan líneas nuevas, salvo que la tarea lo pida
+  explícitamente.
 - No se usan anotaciones `@Autowired` en campos — la inyección es siempre
   por constructor (`@RequiredArgsConstructor` de Lombok en los `@Service`/
   `@Component`, o constructor explícito en los casos de uso, que no son

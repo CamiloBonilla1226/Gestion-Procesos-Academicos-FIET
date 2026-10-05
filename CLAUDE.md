@@ -41,7 +41,67 @@ Ver `README.md` en la raíz (Opción A con Docker, Opción B sin Docker).
 `docs/database/diccionario-datos-extension.md` tiene las 18 tablas nuevas
 campo por campo (etapas de la solicitud, anexos obligatorios por tipo,
 situación académica, Resolución física escaneada), y
-`docs/database/script_bd_extension.sql` su DDL. Esa documentación es la
-fuente de verdad del modelo de datos — antes de modelar una entidad o
+`docs/database/script_bd_extension.sql` su DDL de referencia: no se ejecuta,
+las tablas las crea Hibernate desde las entidades (`ddl-auto=update`), igual
+que en Julián. Esa documentación es la fuente de verdad del modelo de datos — antes de modelar una entidad o
 endpoint nuevo, revisa ahí primero. No documenta plazos ni reglas de
-negocio en prosa; solo está lo que se deduce de las tablas y columnas.
+negocio en prosa; esas reglas están en la sección siguiente.
+
+## Reglas de negocio confirmadas (no revertir)
+
+- Actores: Estudiante, Funcionario Académico (título formal: Técnico
+  Administrativo de Procesos Académicos) y Decano. El Decano usa el rol
+  `Decano` que ya existe en el sistema de Julián; no se crea otro. Como en
+  Julián, el Decano es un `Usuario` con ese rol y el tipo de usuario
+  `Maxima autoridad FIET - Decano`, sin fila en `FUNCIONARIO_ACADEMICO`.
+- Terminología: siempre semiautomatización o semi-automatizar, nunca
+  automatización.
+- El original legal de la Resolución es físico y firmado a mano. No hay firma
+  digital ni documento nativo digital. Se distribuyen tres copias físicas.
+- Una copia escaneada de la Resolución firmada la sube el Funcionario Académico
+  y la descarga el Estudiante. Aplica solo a Cancelación de Matrícula y
+  Cancelación de Asignatura, y se sube en el punto donde termina el proceso:
+  rechazo en el Funcionario o decisión final después del Decano. Vive en
+  `RESOLUCION_ACADEMICA` (1 a 0..1 con `SOLICITUD_ACADEMICA`), separada de
+  `ANEXO_ACADEMICO`.
+- Un rechazo en la etapa del Funcionario siempre produce una Resolución formal
+  firmada físicamente por el Decano.
+- Examen Supletorio no produce Resolución y tiene un plazo de tres días
+  hábiles.
+- Cancelación de Matrícula tiene seis anexos obligatorios. Cancelación de
+  Asignatura tiene cuatro condiciones académicas.
+- Secretario General o Decano crean los usuarios Estudiante y Funcionario
+  Académico, por formulario y por carga masiva desde Excel. Para crear un
+  Estudiante se registra también su información de materias.
+
+## Cambios sobre el código de Julián
+
+Del código y de los datos de Julián solo se agregan líneas nuevas
+(constantes, métodos `@Bean`, reglas de seguridad, excepciones, mensajes de
+error, filas de `data.sql`). No se editan ni se borran las existentes, salvo
+que la tarea lo pida de forma explícita. Las tablas de Julián no cambian de
+estructura.
+
+## Registro de cambios (`change.md`)
+
+Toda implementación o cambio que se haga en el repositorio se registra en
+`change.md`, en la raíz, dentro de la misma tarea y antes de darla por
+terminada. Si el archivo no existe, se crea. Cada entrada nueva va al
+principio del archivo (la más reciente primero) con este formato:
+
+```
+## AAAA-MM-DD - Título corto
+- Qué se hizo: resumen en una o dos líneas
+- Archivos: `ruta` (creado | modificado | eliminado)
+- Notas: decisiones tomadas o pendientes, si los hay
+```
+
+Se registran cambios de código, de documentación y de datos iniciales
+(`data.sql`). No se registran lecturas ni consultas que no modifiquen nada.
+
+## Git
+
+No se hacen commits ni push, bajo ninguna forma (`git commit`, `git commit
+--amend`, `git push`, `git push --force`). Esos comandos los ejecuta solo el
+usuario. Sí se pueden consultar `git status`, `git diff` y `git log`. Al
+terminar una tarea, los cambios quedan en el árbol de trabajo sin confirmar.

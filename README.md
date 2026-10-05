@@ -40,14 +40,17 @@ Julián (ver `docs/database/`).
 ├── frontend/   Angular 20 + PrimeNG — SPA
 └── docs/
     └── database/
-        ├── script_bd_extension.sql          Script de creación de las tablas nuevas
+        ├── script_bd_extension.sql          DDL de referencia de las tablas nuevas (no se ejecuta)
         └── diccionario-datos-extension.md   Diccionario de datos de la extensión
 ```
 
-> `docs/database/script_bd_extension.sql` asume que la base de datos de
-> Julián (tablas `USUARIO`, `USUARIO_LIVIANO`, `TIPO_USUARIO`) ya existe y no
-> la recrea ni la modifica; solo agrega las tablas nuevas de esta extensión
-> con sus llaves foráneas hacia ella.
+> `docs/database/script_bd_extension.sql` es el DDL de referencia de las
+> tablas nuevas y no se ejecuta: igual que en la base de Julián, las tablas
+> las crea Hibernate al arrancar el backend (`ddl-auto=update`) a partir de
+> las entidades JPA, que deben calcar ese DDL. Asume las tablas de Julián
+> (`usuarios`, `usuariosLivianos`, `tiposUsuario`, `roles`, en camelCase) y no
+> las modifica; solo agrega las tablas nuevas con sus llaves foráneas hacia
+> `usuarios (uuidUsuario)`.
 
 ## Requisitos para ejecutar en local
 
@@ -73,6 +76,13 @@ npm start
 # Frontend disponible en http://localhost:4200
 ```
 
+Primer arranque: Hibernate crea las tablas al levantar el backend, pero los
+roles, los tipos de usuario y el usuario `root` no se cargan solos
+(`spring.sql.init.mode=never`). Después del primer arranque hay que correr
+`backend/solicitudes/src/main/resources/data.sql` una sola vez contra la base
+(`docker compose exec cfiet_database mysql -u root -pmysql cfiet` y pegar su
+contenido). Sin ese paso no existen roles ni login.
+
 El frontend también tiene su propio `dockerfile` si se prefiere
 contenerizarlo en vez de correrlo con `npm start`.
 
@@ -81,7 +91,7 @@ contenerizarlo en vez de correrlo con `npm start`.
 - **JDK 17**
 - **MySQL 8** corriendo en local, con una base de datos creada para el
   proyecto
-- **Node.js 20+** (para Angular 20)
+- **Node.js 20.19+** (o 22.12+; requisito de Angular 20)
 
 Ajustar en ese caso `backend/solicitudes/src/main/resources/application.properties`
 (o las variables `DB_URL`, `DB_USER_NAME`, `DB_PASSWORD` que use el proyecto)

@@ -49,6 +49,9 @@ todos los imports existentes), pero un IDE o una terminal pueden tratarlas
 distinto a una ruta sin espacio — tenlo presente al crear archivos ahí
 dentro o al referenciarlas desde una tarea de build.
 
+Estudiante y Funcionario Académico llevan carpeta de rol propia en `core/`;
+`core/funcionario` es del comité de Julián y no se reutiliza.
+
 También hay un typo heredado en `core/models/Sesión/DTPResponse/` (debería
 decir `DTOResponse`, falta la "O", y el nombre de carpeta lleva tilde). No
 se corrige porque ya hay imports reales apuntando ahí — un modelo nuevo que
@@ -80,7 +83,8 @@ nuevos:
 - `GenericDialogFormComponent` / `GenericDialogInfoComponent` — diálogos de
   formulario y de solo lectura
 - `Paginator`, `BarraBusquedaComponent`
-- `InputTextComponent`, `InputSelectComponent`, `InputTextTareaComponent`
+- `InputTextComponent`, `InputSelectComponent`, `InputTextTareaComponent`,
+  `InputDateComponent`
 - `AnexosViewComponent` — visor/descarga de anexos adjuntos
 
 ## Servicios y modelos
@@ -109,11 +113,11 @@ toda petición saliente. Las rutas protegidas usan **los dos guards juntos**,
 `canActivate: [AuthGuard, RoleGuard]`, con `data: { roles: [...] }` listando
 los roles permitidos como strings exactos (`'Secretario General'`,
 `'Funcionario'`, `'Secretaria Decanatura FIET'`, etc., igual a como están
-en la tabla `roles` de la base). No existen todavía los roles `'Estudiante'`
-ni un rol para el funcionario/decano de los procesos académicos nuevos —
-hay que confirmar con el backend qué nombre exacto de rol se usa ahí antes
-de proteger una ruta nueva con `RoleGuard`, para que el string coincida
-carácter por carácter.
+en la tabla `roles` de la base). El Decano de los procesos académicos nuevos usa
+el rol existente `'Decano'`. Los roles nuevos son `'Estudiante'` y
+`'Funcionario Académico'` (se crean en el `data.sql` del backend): el string
+de `data.roles` debe coincidir carácter por carácter con la columna `nombre`
+de la tabla `roles`.
 
 Como la app usa SSR (Express + hidratación), cualquier acceso nuevo a
 `localStorage` o `window` debe comprobar `typeof window !== 'undefined'`
