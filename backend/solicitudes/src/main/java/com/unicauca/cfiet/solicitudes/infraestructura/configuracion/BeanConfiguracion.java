@@ -96,4 +96,14 @@ public class BeanConfiguracion {
                                                        LogCUIntPuerto log){
         return new EstudianteCUImplAdaptador(usuarioCU, gateway, asignaturaGateway, rolGateway, usuarioGateway, sesionGateway, jwtServicio, formateadorExcepciones, log);
     }
+
+    @Bean
+    public FuncionarioAcademicoCUImplAdaptador crearFuncionarioAcademicoCU(UsuarioCUIntPuerto usuarioCU,
+                                                                         FuncionarioAcademicoGatewayIntPuerto gateway,
+                                                                         RolGatewayIntPuerto rolGateway,
+                                                                         UsuarioGatewayIntPuerto usuarioGateway,
+                                                                         ExcepcionesFormateadorIntPuerto formateadorExcepciones,
+                                                                         LogCUIntPuerto log){
+        return new FuncionarioAcademicoCUImplAdaptador(usuarioCU, gateway, rolGateway, usuarioGateway, formateadorExcepciones, log);
+    }
 }
