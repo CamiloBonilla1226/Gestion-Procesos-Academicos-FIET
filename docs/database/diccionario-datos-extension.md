@@ -10,7 +10,7 @@ listan aquí porque no se modifican.
 | Campo | Tipo | Llave | Nulo | Descripción |
 | --- | --- | --- | --- | --- |
 | Usuario\_uuid | varchar | PK, FK -> usuarios (uuidUsuario) | No | Comparte identificador con Usuario |
-| codigoEstudiantil | varchar |  | No | Código estudiantil |
+| codigoEstudiantil | varchar | UK (uk\_estudiante\_codigo) | No | Código estudiantil, único entre estudiantes |
 | programaAcademico | varchar |  | No | Programa académico que cursa |
 | semestre | varchar |  | No | Semestre actual |
 | facultad | varchar |  | No | Facultad a la que pertenece |

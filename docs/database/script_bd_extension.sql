@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS ESTUDIANTE (
     semestre            VARCHAR(10)  NOT NULL,
     facultad            VARCHAR(100) NOT NULL,
     PRIMARY KEY (Usuario_uuid),
+    UNIQUE KEY uk_estudiante_codigo (codigoEstudiantil),
     CONSTRAINT fk_estudiante_usuario
         FOREIGN KEY (Usuario_uuid) REFERENCES usuarios (uuidUsuario)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
