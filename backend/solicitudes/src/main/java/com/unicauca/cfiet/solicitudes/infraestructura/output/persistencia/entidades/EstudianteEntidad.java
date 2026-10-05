@@ -2,6 +2,7 @@ package com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.entid
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.domain.Persistable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +17,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class EstudianteEntidad {
+public class EstudianteEntidad implements Persistable<String> {
     @Id
     @Column(name = "Usuario_uuid", length = 100)
     private String uuidUsuario;
@@ -39,4 +40,16 @@ public class EstudianteEntidad {
     @OneToMany(mappedBy = "estudiante", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @Builder.Default
     private List<AsignaturaMatriculadaEntidad> asignaturasMatriculadas = new ArrayList<>();
+    @Transient
+    private boolean nuevo;
+
+    @Override
+    public String getId() {
+        return uuidUsuario;
+    }
+
+    @Override
+    public boolean isNew() {
+        return nuevo;
+    }
 }

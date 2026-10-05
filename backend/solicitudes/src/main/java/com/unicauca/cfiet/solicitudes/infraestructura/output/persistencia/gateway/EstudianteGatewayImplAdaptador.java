@@ -97,6 +97,7 @@ public class EstudianteGatewayImplAdaptador implements EstudianteGatewayIntPuert
 
     private EstudianteEntidad aEntidad(Estudiante estudiante) {
         EstudianteEntidad entidad = mapper.toEntidad(estudiante);
+        entidad.setNuevo(!repositorio.existsById(estudiante.getUuidUsuario()));
         entidad.setUsuario(usuarioRepositorio.getReferenceById(estudiante.getUuidUsuario()));
         for (AsignaturaMatriculadaEntidad asignatura : entidad.getAsignaturasMatriculadas())
             asignatura.setAsignatura(asignaturaRepositorio.getReferenceById(asignatura.getAsignatura().getUuidAsignatura()));
