@@ -2,6 +2,11 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-05 - Cerrar el acceso a los listados de usuarios (Tarea 4)
+- Qué se hizo: cinco reglas GET en ConfiguracionSeguridad (usuarios, usuarios/paginado, usuarios/filtro, usuarios/funcionarios, usuarios/tipos) restringidas a Secretario General y Decano, antes de GET usuarios/**; script de humo con la matriz de permisos.
+- Archivos: `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/configuracion/seguridad/configuracion/ConfiguracionSeguridad.java` (modificado), `backend/pruebas/t1_lectura_usuarios.ps1` (creado)
+- Notas: GET usuarios/{uuid} sigue en authenticated(), así que cualquier usuario autenticado puede consultar el detalle de cualquier otro, no solo el suyo. GET usuarios/filtro sin nombreCompleto responde 500 "No existen registrados usuarios" (comportamiento de Julián), por eso la prueba usa nombreCompleto=root. En el frontend, usuarios/funcionarios y usuarios/tipos solo se llaman desde pantallas del Secretario General. Desde ahora t1_preauthorize.ps1 imprime PREAUTHORIZE ACTIVO, pero el 403 lo da el requestMatchers, no @PreAuthorize.
+
 ## 2026-10-05 - Roles Estudiante y Funcionario Académico (Tarea 3)
 - Qué se hizo: constantes ESTUDIANTE_ROL y FUNCIONARIO_ACADEMICO_ROL; roles y tipos de usuario "Estudiante" y "Funcionario Académico" en data.sql y en un seed idempotente con INSERT IGNORE, aplicado en la base local (11 roles, 9 tipos de usuario); .claude/settings.local.json ignorado por git.
 - Archivos: `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/helper/constantes/ApplicationConstantes.java` (modificado), `backend/solicitudes/src/main/resources/data.sql` (modificado), `docs/database/seed-roles-extension.sql` (creado), `.gitignore` (modificado)
