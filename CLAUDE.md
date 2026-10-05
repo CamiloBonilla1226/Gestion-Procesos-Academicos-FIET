@@ -54,6 +54,10 @@ negocio en prosa; esas reglas están en la sección siguiente.
   `Decano` que ya existe en el sistema de Julián; no se crea otro. Como en
   Julián, el Decano es un `Usuario` con ese rol y el tipo de usuario
   `Maxima autoridad FIET - Decano`, sin fila en `FUNCIONARIO_ACADEMICO`.
+- El Funcionario Académico es un `Usuario` con el rol nuevo `Funcionario
+  Académico` y el tipo de usuario `Empleado FIET - Funcionario` que ya existe
+  en Julián, más su fila en `FUNCIONARIO_ACADEMICO`. No se reutiliza el rol
+  `Funcionario` de Julián ni se crea un tipo de usuario propio.
 - Terminología: siempre semiautomatización o semi-automatizar, nunca
   automatización.
 - El original legal de la Resolución es físico y firmado a mano. No hay firma

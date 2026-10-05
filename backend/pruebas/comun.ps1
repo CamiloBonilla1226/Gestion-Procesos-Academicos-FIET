@@ -16,7 +16,7 @@ $Global:Perfiles = @{
     FuncionarioAcademico = @{
         TipoUsuario = "FUNCIONARIOACADEMICO"
         Rol         = @{ uuidRol = "996f4a2d-e051-4367-a702-a3e6a0a91873"; nombre = $Global:FuncionarioAcademico; descripcion = "Tecnico Administrativo de Procesos Academicos de la FIET"; estado = $true }
-        Tipo        = @{ uuidTipoUsuario = "cf25e8ad-8c17-494e-8f3b-70ac00801d3e"; nombre = $Global:FuncionarioAcademico }
+        Tipo        = @{ uuidTipoUsuario = "79105584-1091-4a4e-ba8e-9cbdd1c85b91"; nombre = "Empleado FIET - Funcionario" }
     }
 }
 

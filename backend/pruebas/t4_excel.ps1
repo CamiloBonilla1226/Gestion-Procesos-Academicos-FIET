@@ -47,6 +47,10 @@ foreach ($s in @($s1, $s2)) {
     $login = Invoke-Api -Metodo POST -Ruta "sesiones" -Cuerpo @{ username = "xf$s"; password = "Clave12345" }
     Escribir-Resultado "xf$s creado por Excel inicia sesion (200, obtuvo $($login.Status))" ($login.Status -eq 200)
 }
+foreach ($c in $creados) {
+    $u = (Invoke-Api -Metodo GET -Ruta "usuarios/$($c.uuidUsuario)" -Token $tokenRoot).Body | ConvertFrom-Json
+    Escribir-Resultado "$($c.username) creado por Excel tiene tipo Empleado FIET - Funcionario (obtuvo $($u.objTipoUsuario.nombre))" ($u.objTipoUsuario.uuidTipoUsuario -eq "79105584-1091-4a4e-ba8e-9cbdd1c85b91")
+}
 
 $depInvalida = "DepXL inv $lote"
 $malo = Fila-Funcionario (Nuevo-Sufijo) $depInvalida

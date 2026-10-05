@@ -135,9 +135,11 @@ Para todo endpoint nuevo:
 1. Si se restringe a Estudiante o a Funcionario Académico, agrega la
    constante del rol y, si hace falta, la constante compuesta de
    `hasAnyAuthority(...)`, siguiendo el mismo patrón que ya existe ahí.
-2. En ese mismo caso, agrega el rol y su tipo de usuario como filas nuevas en `data.sql`
-   (`roles` y `tiposUsuario`; `crearUsuario` busca el tipo por nombre y falla
-   si no existe). Cierra con `;` la última sentencia actual del archivo, que
+2. En ese mismo caso, el rol va como fila nueva en `roles` de `data.sql`.
+   `crearUsuario` busca el tipo de usuario por nombre y falla si no existe:
+   el Estudiante usa el tipo `Estudiante` (fila nueva en `tiposUsuario`) y el
+   Funcionario Académico usa el tipo `Empleado FIET - Funcionario` de Julián,
+   con el rol `Funcionario Académico` (no el rol `Funcionario`). Cierra con `;` la última sentencia actual del archivo, que
    no la tiene.
 3. Siempre, agrega su regla explícita en
    `ConfiguracionSeguridad.securityFilterChain` (en

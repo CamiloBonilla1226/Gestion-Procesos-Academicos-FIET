@@ -26,8 +26,9 @@ usuario root) no se ejecuta solo, hay que correrlo a mano contra la base
 la primera vez (`docker compose exec cfiet_database mysql -u root -pmysql
 cfiet` y pegar el contenido de `data.sql`). Hay que correrlo después del
 primer arranque, porque necesita las tablas que crea Hibernate. Los roles
-`Estudiante` y `Funcionario Académico` y sus tipos de usuario se agregan en
-ese mismo `data.sql`. Su última sentencia (`INSERT INTO Usuario_has_Roles`)
+`Estudiante` y `Funcionario Académico` y el tipo de usuario `Estudiante` se
+agregan en ese mismo `data.sql`; el Funcionario Académico usa el tipo
+`Empleado FIET - Funcionario` de Julián, que ya existe. Su última sentencia (`INSERT INTO Usuario_has_Roles`)
 no termina en `;`: hay que cerrarla antes de agregar sentencias nuevas.
 
 La base usa `spring.jpa.hibernate.naming.physical-strategy=
@@ -236,9 +237,14 @@ que documenta el endpoint.
 
 El Decano de los procesos académicos nuevos entra con el rol `Decano` que ya
 existe: se usa `ApplicationConstantes.DECANO`, no se crea otro rol. Los roles
-nuevos son `Estudiante` y `Funcionario Académico`; su constante y sus filas
-en `data.sql` (`roles` y `tiposUsuario`) se crean juntas, porque
-`crearUsuario` busca el tipo de usuario por nombre y falla si no existe.
+nuevos son `Estudiante` y `Funcionario Académico`; su constante y su fila en
+`roles` de `data.sql` se crean juntas. `crearUsuario` busca el tipo de
+usuario por nombre y falla si no existe: el Estudiante usa el tipo nuevo
+`Estudiante` (fila en `tiposUsuario` de `data.sql`) y el Funcionario
+Académico usa el tipo `Empleado FIET - Funcionario` de Julián
+(`79105584-1091-4a4e-ba8e-9cbdd1c85b91`), con el rol `Funcionario Académico`.
+No se reutiliza el rol `Funcionario` de Julián ni existe un tipo de usuario
+`Funcionario Académico`.
 
 Los `requestMatchers` se evalúan en orden y gana el primero que coincide: una
 regla nueva va antes de las genéricas (`usuarios/**`, `solicitudes/**`,

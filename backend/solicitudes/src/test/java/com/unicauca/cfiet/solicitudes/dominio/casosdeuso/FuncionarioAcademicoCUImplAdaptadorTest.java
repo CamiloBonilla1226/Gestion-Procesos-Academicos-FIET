@@ -42,6 +42,7 @@ class FuncionarioAcademicoCUImplAdaptadorTest {
     private static final String UUID_CREADO = "uuid-usuario-creado";
     private static final String UUID_FUNCIONARIO = "uuid-funcionario";
     private static final String NOMBRE_FUNCIONARIO_ACADEMICO = "Funcionario Académico";
+    private static final String TIPO_EMPLEADO_FUNCIONARIO = "Empleado FIET - Funcionario";
 
     @Mock
     private UsuarioCUIntPuerto usuarioCU;
@@ -62,7 +63,7 @@ class FuncionarioAcademicoCUImplAdaptadorTest {
 
     private final Rol rolFuncionarioAcademico = Rol.builder().uuidRol("rol-fa").nombre(NOMBRE_FUNCIONARIO_ACADEMICO).estado(true).build();
     private final Rol rolDecano = Rol.builder().uuidRol("rol-dec").nombre("Decano").estado(true).build();
-    private final TipoUsuario tipoFuncionarioAcademico = TipoUsuario.builder().uuidTipoUsuario("tipo-fa").nombre(NOMBRE_FUNCIONARIO_ACADEMICO).build();
+    private final TipoUsuario tipoFuncionarioAcademico = TipoUsuario.builder().uuidTipoUsuario("tipo-fa").nombre(TIPO_EMPLEADO_FUNCIONARIO).build();
 
     @BeforeEach
     void setUp() {
@@ -93,7 +94,7 @@ class FuncionarioAcademicoCUImplAdaptadorTest {
 
     private void prepararCreacion() {
         when(rolGateway.getRoles()).thenReturn(List.of(rolDecano, rolFuncionarioAcademico));
-        when(usuarioGateway.getTipoUsuarioPorNombre(NOMBRE_FUNCIONARIO_ACADEMICO)).thenReturn(tipoFuncionarioAcademico);
+        when(usuarioGateway.getTipoUsuarioPorNombre(TIPO_EMPLEADO_FUNCIONARIO)).thenReturn(tipoFuncionarioAcademico);
         when(usuarioCU.crearUsuario(any(Usuario.class), eq("FUNCIONARIOACADEMICO"), eq(TOKEN))).thenAnswer(invocacion -> {
             Usuario usuario = invocacion.getArgument(0);
             usuario.setUuidUsuario(UUID_CREADO);
@@ -180,7 +181,7 @@ class FuncionarioAcademicoCUImplAdaptadorTest {
     @Test
     void crearFuncionarioAcademicoSinTipoUsuarioLanzaEntidadNoExisteYNoCreaNada() {
         when(rolGateway.getRoles()).thenReturn(List.of(rolFuncionarioAcademico));
-        when(usuarioGateway.getTipoUsuarioPorNombre(NOMBRE_FUNCIONARIO_ACADEMICO)).thenReturn(null);
+        when(usuarioGateway.getTipoUsuarioPorNombre(TIPO_EMPLEADO_FUNCIONARIO)).thenReturn(null);
 
         assertThrows(ErrorEntidadNoExisteExcepcion.class,
                 () -> casoDeUso.crearFuncionarioAcademico(funcionario("1", "Admisiones"), TOKEN));

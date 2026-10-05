@@ -40,6 +40,12 @@ Write-Host "Funcionario Academico de prueba: $($cuerpo.username) / $($cuerpo.pas
 $tokenFa = Iniciar-Sesion -Usuario $cuerpo.username -Clave $cuerpo.password
 Escribir-Resultado "el funcionario academico creado inicia sesion" ([bool]$tokenFa)
 
+$r = Invoke-Api -Metodo GET -Ruta "usuarios/$uuid" -Token $tokenRoot
+$usuarioFa = $r.Body | ConvertFrom-Json
+$nombresRoles = @($usuarioFa.roles | ForEach-Object { $_.nombre })
+Escribir-Resultado "tipo de usuario Empleado FIET - Funcionario (obtuvo $($usuarioFa.objTipoUsuario.nombre))" ($usuarioFa.objTipoUsuario.uuidTipoUsuario -eq "79105584-1091-4a4e-ba8e-9cbdd1c85b91")
+Escribir-Resultado "rol unico Funcionario Academico (obtuvo $($nombresRoles -join ', '))" (($nombresRoles.Count -eq 1) -and ($nombresRoles[0] -eq $Global:FuncionarioAcademico))
+
 $campos = @(
     @{ Campo = "numeroDocumento"; Descripcion = "documento" },
     @{ Campo = "correoElectronico"; Descripcion = "correo" },
