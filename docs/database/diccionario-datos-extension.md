@@ -19,15 +19,20 @@ listan aquí porque no se modifican.
 
 Extensión propia de este trabajo de grado, distinta del `Funcionario` /
 tabla `funcionarios` de Julián (ese es un rol de comité de facultad, sin
-relación con los tres procesos académicos). Cubre tanto al funcionario que
-verifica la información académica como al decano que aprueba o rechaza,
-diferenciados por `dependencia`, no por tablas separadas — el Decano no
-tiene tabla propia.
+relación con los tres procesos académicos). Cubre solo al Funcionario
+Académico, es decir, al Técnico Administrativo de Procesos Académicos que
+verifica la información académica.
+
+El Decano no tiene fila en esta tabla ni en ninguna otra de la extensión.
+Como en Julián, es un `Usuario` con el rol `Decano` y el tipo de usuario
+`Maxima autoridad FIET - Decano`, que ya existen en su `data.sql`, y se
+identifica por ese rol. Ninguna FK de la extensión apunta al Decano: el
+historial apunta a `usuarios`.
 
 | Campo | Tipo | Llave | Nulo | Descripción |
 | --- | --- | --- | --- | --- |
 | Usuario\_uuid | varchar | PK, FK -> usuarios (uuidUsuario) | No | Comparte identificador con Usuario |
-| dependencia | varchar |  | No | Cargo/dependencia; distingue funcionario evaluador de decano |
+| dependencia | varchar |  | No | Dependencia u oficina a la que pertenece el Técnico Administrativo de Procesos Académicos; no distingue roles |
 
 ## ASIGNATURA
 

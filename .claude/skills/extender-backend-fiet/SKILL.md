@@ -100,8 +100,11 @@ Carpeta `infraestructura/input/controlador<X>/` con sus cuatro subcarpetas:
 - `controlador/<X>RestController.java` — `@RestController`,
   `@RequestMapping("${url.application}<recurso>")`,
   `@CrossOrigin(origins = "${url.frontend}")`, `@RequiredArgsConstructor`,
-  `@Tag` de Swagger. Cada método con `@PreAuthorize` usando las constantes
-  de `ApplicationConstantes` que correspondan al rol permitido.
+  `@Tag` de Swagger. Cada método lleva `@PreAuthorize` con las constantes
+  de `ApplicationConstantes` del rol permitido, pero solo para documentar la
+  intención: en este proyecto no existe `@EnableMethodSecurity` y
+  `@PreAuthorize` no protege nada. La protección real es el
+  `requestMatchers` del paso 8, que todo endpoint necesita.
 
 Solo si el recurso necesita carga masiva desde Excel, sigue el patrón que
 ya existe para usuarios y tipos de solicitud (detalle en la sección "Carga
@@ -118,22 +121,35 @@ ni para "Funcionario Académico" (solo tiene las de Julián:
 nuevos usa el rol `Decano` existente: se usa `DECANO`, no se crea otro rol. El Decano es un `Usuario` normal con ese
 rol, sin fila en `FUNCIONARIO_ACADEMICO`.
 
-Si el endpoint nuevo necesita restringirse a Estudiante o a Funcionario
-Académico:
+La única protección real de acceso son los `requestMatchers` de
+`ConfiguracionSeguridad.securityFilterChain`. `@PreAuthorize` no protege
+nada, porque no existe `@EnableMethodSecurity`; lo confirmó
+`backend/pruebas/t1_preauthorize.ps1`, donde un `Funcionario` recibe 200 en
+endpoints anotados para Secretario General y Decano. Una ruta sin regla
+propia cae en una regla genérica (`usuarios/**`, `solicitudes/**`) o en
+`anyRequest().authenticated()`, y la puede llamar cualquier usuario
+autenticado. No se habilita `@EnableMethodSecurity`.
 
-1. Agrega la constante del rol y, si hace falta, la constante compuesta de
+Para todo endpoint nuevo:
+
+1. Si se restringe a Estudiante o a Funcionario Académico, agrega la
+   constante del rol y, si hace falta, la constante compuesta de
    `hasAnyAuthority(...)`, siguiendo el mismo patrón que ya existe ahí.
-2. Agrega el rol y su tipo de usuario como filas nuevas en `data.sql`
+2. En ese mismo caso, agrega el rol y su tipo de usuario como filas nuevas en `data.sql`
    (`roles` y `tiposUsuario`; `crearUsuario` busca el tipo por nombre y falla
    si no existe). Cierra con `;` la última sentencia actual del archivo, que
    no la tiene.
-3. Agrega la regla de acceso en `ConfiguracionSeguridad.securityFilterChain`
-   (en `infraestructura/configuracion/seguridad/configuracion`, no en
-   `infraestructura/output`). Los matchers se evalúan en orden y gana el
-   primero que coincide: la regla nueva va antes de `usuarios/**`,
-   `solicitudes/**` y `anyRequest()`. Decide si es `permitAll()`,
-   `authenticated()` o `hasAnyAuthority(...)` según quién debe poder llamarlo,
-   y que coincida con el `@PreAuthorize` del controlador.
+3. Siempre, agrega su regla explícita en
+   `ConfiguracionSeguridad.securityFilterChain` (en
+   `infraestructura/configuracion/seguridad/configuracion`, no en
+   `infraestructura/output`), con método HTTP y ruta. Los matchers se
+   evalúan en orden y gana el primero que coincide: la regla nueva va antes
+   de `usuarios/**`, `solicitudes/**` y `anyRequest()`. Decide si es
+   `permitAll()`, `authenticated()` o `hasAnyAuthority(...)` según quién
+   debe poder llamarlo. El `@PreAuthorize` del controlador repite la misma
+   expresión como documentación.
+4. Comprueba la matriz de permisos en el script de humo de la tarea: rol
+   permitido 200, rol no permitido 403, sin token 401.
 
 Solo se agregan líneas; las reglas y constantes existentes no se editan.
 
@@ -144,16 +160,26 @@ El `crearUsuario` de Julián no crea las filas de `ESTUDIANTE` ni de
 y cualquier otro rol produce un `Usuario` plano. Estos dos actores se crean
 con casos de uso propios:
 
-- El caso de uso valida y guarda el usuario con `UsuarioGatewayIntPuerto`
-  (el de Julián, sin modificarlo) y guarda la extensión (y las materias del
-  estudiante) con un gateway nuevo.
-- La atomicidad va en un método del adaptador de persistencia con
-  `@Transactional`, no en el caso de uso: el dominio no depende de Spring.
+- Composición, no herencia: tablas propias `ESTUDIANTE` y
+  `FUNCIONARIO_ACADEMICO` con PK `Usuario_uuid` hacia `usuarios`. No se
+  modifica `Usuario.java` ni `UsuarioGatewayImplAdapter`.
+- El caso de uso nuevo recibe `UsuarioCUIntPuerto` por constructor y crea el
+  usuario de acceso con `crearUsuario(usuario, tipoUsuario, token)`, que ya
+  valida, encripta y registra el log. Un `tipoUsuario` distinto de
+  `FUNCIONARIO` produce un `Usuario` plano. Con el `uuidUsuario` devuelto,
+  guarda la extensión (y las materias del estudiante) con un gateway nuevo.
+- El DTO de petición no recibe roles ni tipo de usuario: el caso de uso los
+  asigna por nombre.
+- La transacción va en el método del controlador que crea el estudiante o el
+  funcionario académico (`@Transactional`, como en
+  `UsuarioRestController.crearUsuario`), para que si falla la fila
+  especializada también se revierta el usuario. El caso de uso y el gateway
+  no llevan `@Transactional`: el dominio no depende de Spring.
 - Se crean por formulario y por carga masiva desde Excel (patrón de la
   sección "Carga masiva por Excel" de `backend/CLAUDE.md`); el estudiante se
   crea con sus asignaturas matriculadas.
-- Los endpoints se restringen a `SECRETARIO_GENERAL` y `DECANO`, igual que
-  `usuarios/**`.
+- Los endpoints se restringen a `SECRETARIO_GENERAL` y `DECANO` con su
+  propio `requestMatchers`, como `POST`/`PUT` de `usuarios/**`.
 
 ## Paso 9 — Verificar
 
@@ -167,10 +193,10 @@ docker compose up --build
 En una base nueva: levanta el backend (Hibernate crea las tablas), ejecuta
 `data.sql` a mano (`spring.sql.init.mode=never`) y recién entonces prueba.
 
-Prueba el endpoint nuevo con una petición real (curl, Postman o el
-frontend) antes de dar la tarea por terminada.
-
-El proyecto no tiene tests de casos de uso, de controladores ni de
-gateways: solo existe `SolicitudesApplicationTests` (`@SpringBootTest`,
-JUnit 5, `contextLoads`). No hay convención previa que seguir, así que la
-verificación de este paso es manual.
+Sigue la sección "Pruebas" de `backend/CLAUDE.md`: prueba unitaria del caso
+de uso con JUnit 5 y Mockito (nivel A), script de humo en `backend/pruebas/`
+en ASCII puro con `PASS`/`FAIL` y la matriz de permisos (nivel B), y la
+comprobación de tablas contra el script (nivel C). La tarea no termina hasta
+que pasa la compuerta de aceptación de esa sección. Para `.\mvnw.cmd test`
+hay que definir antes `SERVER_PORT`, `DB_URL`, `DB_USER_NAME` y
+`DB_PASSWORD`, con la base corriendo.

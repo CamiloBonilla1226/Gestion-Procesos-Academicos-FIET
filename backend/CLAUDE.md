@@ -137,6 +137,9 @@ public RespuestaCUImplAdaptador crearRespuestaCU(RespuestaGatewayIntPuerto gatew
   `Usuario`, `Sesion`, `TipoSolicitud`, `OrdenDelDia`, `Solicitud` y
   `Respuesta`. Spring resuelve el orden de creación solo; un caso de uso
   nuevo que registre historial pide `LogCUIntPuerto` como parámetro y listo.
+  Lo mismo pasa con los casos de uso que crean Estudiante y Funcionario
+  Académico: piden `UsuarioCUIntPuerto` como parámetro, y lo satisface el
+  bean `createUsuarioCU` (ver "Crear Estudiante y Funcionario Académico").
 - Todo el resto de parámetros (gateways, `IJwtServicio`,
   `OrdenDelDiaExportador`, `AlmacenadorArchivos`) son `@Service` definidos
   fuera de esta clase.
@@ -191,24 +194,45 @@ técnico de IO -> `RuntimeException` con el mensaje y la causa original.
 
 ## Seguridad
 
-JWT sin estado (`SessionCreationPolicy.STATELESS`). Las reglas de acceso
-por URL están centralizadas en `ConfiguracionSeguridad.securityFilterChain`
-(`infraestructura/configuracion/seguridad/configuracion`) — cualquier
-endpoint nuevo bajo `${url.application}` (que resuelve a
-`/api/unicauca/fiet/consejo/`) tiene que agregar ahí su regla
-(`permitAll()`, `authenticated()` o `hasAnyAuthority(...)` con las
-constantes de `ApplicationConstantes`). Dentro del controlador, además, se
-usa `@PreAuthorize(...)` sobre cada método cuando aplica. Las dos cosas van
-juntas, no una sola.
+JWT sin estado (`SessionCreationPolicy.STATELESS`). La única protección
+real de acceso son los `requestMatchers` de
+`ConfiguracionSeguridad.securityFilterChain`
+(`infraestructura/configuracion/seguridad/configuracion`).
+
+`@PreAuthorize` no protege nada en este proyecto: la clase solo tiene
+`@EnableWebSecurity` y no existe `@EnableMethodSecurity` en ninguna parte,
+así que Spring no evalúa las anotaciones de método. Lo confirmó la prueba
+`backend/pruebas/t1_preauthorize.ps1`: un usuario con rol `Funcionario`
+recibe 200 en `GET usuarios`, `usuarios/paginado` y `usuarios/funcionarios`,
+aunque los tres llevan `@PreAuthorize(SECRETARIO_DECANO_ACCESO)`, porque
+la regla `GET usuarios/**` es `authenticated()`.
+
+En consecuencia:
+
+- Todo endpoint nuevo bajo `${url.application}` (que resuelve a
+  `/api/unicauca/fiet/consejo/`) necesita su `requestMatchers` explícito,
+  con método HTTP y ruta, y `permitAll()`, `authenticated()` o
+  `hasAnyAuthority(...)` con las constantes de `ApplicationConstantes`.
+- Una ruta sin regla propia no queda cerrada: cae en una regla genérica
+  (`usuarios/**`, `solicitudes/**`) o en `anyRequest().authenticated()`, y la
+  puede llamar cualquier usuario autenticado, sea cual sea su rol.
+- `@PreAuthorize(...)` se sigue poniendo sobre cada método del controlador,
+  con la misma expresión que su `requestMatchers`, pero solo para documentar
+  la intención. No reemplaza la regla. No se habilita
+  `@EnableMethodSecurity`, porque cambiaría el comportamiento de los
+  endpoints de Julián.
+- La matriz de permisos de cada endpoint nuevo (rol permitido 200, rol no
+  permitido 403, sin token 401) se comprueba con el script de humo de la
+  tarea (ver "Pruebas").
 
 `ApplicationConstantes` solo tiene roles de Julián (`SECRETARIO_GENERAL`,
 `DECANO`, `FUNCIONARIO_ROL`) y los perfiles compuestos
 `SECRETARIO_DECANO_ACCESO` / `SECRETARIO_DECANO_FUNCIONARIO_ACCESO`. No
 existen constantes para "Estudiante" ni para "Funcionario Académico" — hay
 que agregarlas ahí (siguiendo el mismo patrón de constante de rol +
-constante de `hasAnyAuthority(...)` armada con ellas) antes de poder
-proteger un endpoint de los procesos académicos nuevos con
-`@PreAuthorize`.
+constante de `hasAnyAuthority(...)` armada con ellas) para usarlas en el
+`requestMatchers` de `ConfiguracionSeguridad` y en el `@PreAuthorize`
+que documenta el endpoint.
 
 El Decano de los procesos académicos nuevos entra con el rol `Decano` que ya
 existe: se usa `ApplicationConstantes.DECANO`, no se crea otro rol. Los roles
@@ -264,14 +288,31 @@ Julián modela su subtipo con herencia `JOINED` (`usuariosLivianos` ->
 `usuarios` -> `funcionarios`); las tablas nuevas apuntan por FK a
 `usuarios`, sin herencia JPA.
 
-Por eso Estudiante y Funcionario Académico tienen su propio caso de uso y su
-propio gateway: el caso de uso valida y guarda el usuario con el gateway de
-usuarios de Julián y la fila de extensión (y las materias del estudiante) con
-el gateway nuevo. La atomicidad la da un método del adaptador de persistencia
-con `@Transactional`; el dominio no depende de Spring. Los crea el Secretario
-General o el Decano, por formulario y por carga masiva desde Excel; el
-estudiante se crea con su información de asignaturas matriculadas
-(`ASIGNATURA_MATRICULADA`).
+Por eso Estudiante y Funcionario Académico se modelan por composición, no
+por herencia, y tienen su propio caso de uso y su propio gateway:
+
+- El usuario de acceso se crea con el caso de uso de Julián,
+  `UsuarioCUIntPuerto.crearUsuario(usuario, tipoUsuario, token)`, que el
+  caso de uso nuevo recibe por constructor. Ese método ya valida tipo de
+  documento, unicidad de documento, correo y username, tipo de usuario y
+  roles, encripta la contraseña y registra el log. Con un `tipoUsuario`
+  distinto de `FUNCIONARIO`, `crearInstancia` devuelve un `Usuario` plano,
+  que es lo que se quiere. No se modifica `Usuario.java` ni
+  `UsuarioGatewayImplAdapter`.
+- Con el `uuidUsuario` que devuelve, el gateway nuevo guarda la fila de
+  `ESTUDIANTE` o `FUNCIONARIO_ACADEMICO` (PK `Usuario_uuid`) y, para el
+  estudiante, sus asignaturas matriculadas (`ASIGNATURA_MATRICULADA`).
+- El DTO de petición no recibe roles ni tipo de usuario: el caso de uso los
+  asigna por nombre. El cliente no decide sus permisos.
+- La transacción va en el método del controlador que crea el estudiante o el
+  funcionario académico (`@Transactional`), igual que en
+  `UsuarioRestController.crearUsuario` y `crearUsuarios`. Así, si falla la
+  fila especializada, también se revierte el usuario. El caso de uso y el
+  gateway no llevan `@Transactional`, y el dominio no depende de Spring.
+
+Los crea el Secretario General o el Decano, por formulario y por carga
+masiva desde Excel; el estudiante se crea con su información de asignaturas
+matriculadas.
 
 En Java el modelo del actor se llama `FuncionarioAcademico`. `Funcionario`
 (modelo, entidad y rol `Funcionario`) es del comité de Julián y no se
@@ -339,18 +380,85 @@ class SolicitudesApplicationTests {
 ```
 
 - Framework: JUnit 5 (`org.junit.jupiter.api.Test`) con `@SpringBootTest`,
-  que llega por `spring-boot-starter-test`. No hay Mockito ni ningún otro
-  uso en el código existente.
+  que llega por `spring-boot-starter-test` (ese starter trae también
+  Mockito). El código de Julián no usa Mockito.
 - Nombre de clase: `<Algo>Tests`, en plural, en el mismo paquete raíz.
   Nombre de método: camelCase en inglés (`contextLoads`), generado por el
   Initializr, no una convención propia de Julián.
-- No existe ningún test de caso de uso, de controlador ni de gateway, así
-  que no hay un test de referencia de estilo para los procesos académicos
-  nuevos. No se documenta una convención de testing de casos de uso porque
-  no existe en el código base.
+- Julián no tiene ningún test de caso de uso, de controlador ni de gateway.
+  La convención para el código nuevo es la de la sección "Pruebas".
 - `application.properties` usa `${SERVER_PORT}`, `${DB_URL}`,
-  `${DB_USER_NAME}` y `${DB_PASSWORD}` sin valor por defecto, y todos los
-  comandos de build del proyecto usan `-DskipTests`.
+  `${DB_USER_NAME}` y `${DB_PASSWORD}` sin valor por defecto, así que
+  `contextLoads` falla si esas variables no están definidas o la base no
+  está arriba (ver "Pruebas").
+
+## Pruebas
+
+El código nuevo se prueba en tres niveles. Las pruebas tampoco llevan
+comentarios ni emojis.
+
+### Nivel A: unitarias
+
+JUnit 5 y Mockito. Una clase de prueba por caso de uso en
+`solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/<X>CUImplAdaptadorTest.java`,
+con los gateways y demás puertos simulados con Mockito. Cubren el camino
+feliz y cada fallo de cada regla de negocio. Se ejecutan desde
+`backend\solicitudes` con `.\mvnw.cmd test`.
+
+`.\mvnw.cmd test` también ejecuta `SolicitudesApplicationTests`
+(`@SpringBootTest`), que levanta el contexto completo y necesita la base de
+datos. Antes de correrlo hay que tener arriba la base (`docker compose up`
+desde `backend`, MySQL en el puerto 3307 del host) y definir en la misma
+sesión de PowerShell:
+
+```
+$env:SERVER_PORT = "8081"
+$env:DB_URL = "jdbc:mysql://localhost:3307/cfiet?createDatabaseIfNotExist=true&serverTimezone=UTC"
+$env:DB_USER_NAME = "root"
+$env:DB_PASSWORD = "mysql"
+.\mvnw.cmd test
+```
+
+### Nivel B: humo contra el backend corriendo
+
+Scripts de PowerShell en `backend/pruebas/`, uno por tarea, que cargan
+`backend/pruebas/comun.ps1` (`Invoke-Api`, `Iniciar-Sesion`,
+`Escribir-Resultado`) y escriben `PASS` o `FAIL` por cada verificación.
+Cubren el camino feliz, los datos inválidos (400 o 409) y la matriz de
+permisos de cada endpoint: rol permitido 200, rol no permitido 403, sin
+token 401. Los datos se generan únicos en cada ejecución para que el
+script se pueda repetir. Se ejecutan desde `backend`:
+
+```
+powershell -File .\pruebas\<script>.ps1
+```
+
+Los `.ps1` se escriben en ASCII puro, sin tildes ni eñes, ni siquiera en
+los textos que se envían. Windows PowerShell 5.1 lee un `.ps1` sin BOM como
+ANSI, así que un literal como `Cédula` llega al backend como `CÃ©dula`.
+Cuando un valor necesita tildes, se arma con `[char]` (por ejemplo
+`$Global:CedulaCiudadania` en `comun.ps1`).
+
+### Nivel C: base de datos
+
+Después de `docker compose up --build`, se comprueba que las tablas que
+creó Hibernate coinciden con `docs/database/script_bd_extension.sql`:
+
+```
+docker compose exec cfiet_database mysql -u root -pmysql --default-character-set=utf8mb4 cfiet -e "SHOW TABLES; DESCRIBE ESTUDIANTE;"
+```
+
+Para eso cada entidad lleva `@Table(name = "...")` y `@Column` /
+`@JoinColumn` con el nombre exacto del script (ver "Persistencia").
+
+### Compuerta de aceptación de cada subtarea
+
+1. `.\mvnw.cmd clean install -DskipTests` termina en `BUILD SUCCESS`.
+2. `.\mvnw.cmd test` en verde, con las variables de entorno de arriba.
+3. `docker compose up --build` arranca y el log muestra
+   `Started SolicitudesApplication`. Nunca se usa `docker compose down`.
+4. El script de humo de la tarea imprime solo `PASS`.
+5. La verificación de base de datos coincide con el script.
 
 ## Qué no se hace
 

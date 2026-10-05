@@ -34,10 +34,11 @@ CREATE TABLE IF NOT EXISTS ESTUDIANTE (
 
 -- FUNCIONARIO_ACADEMICO es una extensión propia de este trabajo de grado,
 -- distinta del Funcionario/tabla "funcionarios" de Julián (ese es un rol
--- de comité de facultad). Esta tabla cubre tanto al funcionario que
--- verifica la información académica como al decano que aprueba o
--- rechaza, diferenciados por la columna "dependencia", no por tablas
--- separadas (ver docs/database/diccionario-datos-extension.md).
+-- de comité de facultad). Esta tabla cubre solo al Funcionario Académico
+-- (Técnico Administrativo de Procesos Académicos) que verifica la
+-- información académica. La columna "dependencia" es la dependencia u
+-- oficina a la que pertenece; no distingue roles
+-- (ver docs/database/diccionario-datos-extension.md).
 CREATE TABLE IF NOT EXISTS FUNCIONARIO_ACADEMICO (
     Usuario_uuid        VARCHAR(100) NOT NULL,
     dependencia         VARCHAR(100) NOT NULL,
@@ -46,10 +47,11 @@ CREATE TABLE IF NOT EXISTS FUNCIONARIO_ACADEMICO (
         FOREIGN KEY (Usuario_uuid) REFERENCES usuarios (uuidUsuario)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Nota: el Decano no tiene tabla propia aparte de FUNCIONARIO_ACADEMICO.
--- Es un usuario cuyo uuidTipoUsuario apunta a una fila de tiposUsuario
--- con nombre = 'Maxima autoridad FIET - Decano' (esa fila ya existe en
--- el data.sql de Julián, no hace falta insertarla).
+-- Nota: el Decano no tiene fila en FUNCIONARIO_ACADEMICO ni tabla propia.
+-- Es un usuario con el rol 'Decano' y cuyo uuidTipoUsuario apunta a la
+-- fila de tiposUsuario con nombre = 'Maxima autoridad FIET - Decano'
+-- (rol y tipo ya existen en el data.sql de Julián, no hace falta
+-- insertarlos). Se identifica por ese rol.
 
 -- ---------------------------------------------------------------------
 -- 2. Asignaturas y matrícula
