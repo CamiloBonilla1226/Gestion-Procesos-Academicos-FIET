@@ -21,4 +21,11 @@ public class TipoAnexoAcademicoGatewayImplAdaptador implements TipoAnexoAcademic
                 .map(mapper::toDominio)
                 .toList();
     }
+
+    @Override
+    public TipoAnexoAcademico getPorUuid(String uuidTipoAnexoAcademico) {
+        return repositorio.findById(uuidTipoAnexoAcademico)
+                .map(mapper::toDominio)
+                .orElse(null);
+    }
 }

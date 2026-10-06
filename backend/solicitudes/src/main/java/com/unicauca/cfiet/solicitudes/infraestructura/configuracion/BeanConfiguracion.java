@@ -160,4 +160,16 @@ public class BeanConfiguracion {
         return new SolicitudAcademicaCUImplAdaptador(gateway, estudianteGateway, tipoSolicitudGateway, etapaGateway,
                 usuarioGateway, maquinaEtapas, formateadorExcepciones, Clock.system(ZoneId.of("America/Bogota")));
     }
+
+    @Bean
+    public AnexoAcademicoCUImplAdaptador crearAnexoAcademicoCU(AnexoAcademicoGatewayIntPuerto anexoGateway,
+                                                             SolicitudAcademicaGatewayIntPuerto solicitudGateway,
+                                                             TipoSolicitudAcademicaGatewayIntPuerto tipoSolicitudGateway,
+                                                             TipoAnexoAcademicoGatewayIntPuerto tipoAnexoGateway,
+                                                             UsuarioGatewayIntPuerto usuarioGateway,
+                                                             AlmacenamientoAnexosIntPuerto almacenamiento,
+                                                             ExcepcionesFormateadorIntPuerto formateadorExcepciones){
+        return new AnexoAcademicoCUImplAdaptador(anexoGateway, solicitudGateway, tipoSolicitudGateway, tipoAnexoGateway,
+                usuarioGateway, almacenamiento, formateadorExcepciones, Clock.system(ZoneId.of("America/Bogota")));
+    }
 }

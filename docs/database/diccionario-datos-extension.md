@@ -162,8 +162,12 @@ como "situación al cancelar" en `ASIGNATURA_SOLICITUD_ACADEMICA`.
 | uuidAnexoAcademico | varchar | PK | No | Identificador del archivo adjunto |
 | SolicitudAcademica\_uuid | varchar | FK -> SOLICITUD\_ACADEMICA | No | Solicitud a la que se adjunta |
 | TipoAnexoAcademico\_uuid | varchar | FK -> TIPO\_ANEXO\_ACADEMICO | Sí | Nulo = soporte libre, sin requisito fijo |
-| nombreArchivo | varchar |  | No | Nombre del archivo subido |
-| urlArchivo | varchar |  | No | Ubicación del archivo |
+| nombreArchivo | varchar |  | No | Nombre original del archivo subido (solo para mostrar; en disco se guarda con un nombre generado) |
+| urlArchivo | varchar |  | No | Ubicación del archivo, con el nombre generado por el sistema |
+| tipoArchivo | varchar |  | No | Tipo de contenido deducido de la extensión validada (application/pdf, image/jpeg, image/png) |
+| tamanioBytes | bigint |  | No | Tamaño del archivo en bytes (máximo 5 MB) |
+| Usuario\_uuid | varchar | FK -> usuarios (uuidUsuario) | No | Quién subió el archivo |
+| fechaSubida | datetime |  | No | Fecha y hora de la subida |
 
 ## HISTORIAL\_SOLICITUD\_ACADEMICA
 

@@ -230,17 +230,28 @@ CREATE TABLE IF NOT EXISTS TIPO_ANEXO_ACADEMICO (
         FOREIGN KEY (TipoSolicitudAcademica_uuid) REFERENCES TIPO_SOLICITUD_ACADEMICA (uuidTipoSolicitudAcademica)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- nombreArchivo es el nombre original que subió el usuario (solo para
+-- mostrar y descargar); en disco el archivo se guarda con un nombre
+-- generado por el sistema, que queda en urlArchivo. tipoArchivo es el
+-- tipo de contenido deducido de la extensión validada, tamanioBytes el
+-- tamaño real, Usuario_uuid quién lo subió y fechaSubida cuándo.
 CREATE TABLE IF NOT EXISTS ANEXO_ACADEMICO (
     uuidAnexoAcademico       VARCHAR(100) NOT NULL,
     SolicitudAcademica_uuid  VARCHAR(100) NOT NULL,
     TipoAnexoAcademico_uuid  VARCHAR(100) NULL,
     nombreArchivo            VARCHAR(255) NOT NULL,
     urlArchivo               VARCHAR(400) NOT NULL,
+    tipoArchivo              VARCHAR(100) NOT NULL,
+    tamanioBytes             BIGINT       NOT NULL,
+    Usuario_uuid             VARCHAR(100) NOT NULL,
+    fechaSubida              DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (uuidAnexoAcademico),
     CONSTRAINT fk_anexo_solacad
         FOREIGN KEY (SolicitudAcademica_uuid) REFERENCES SOLICITUD_ACADEMICA (uuidSolicitudAcademica),
     CONSTRAINT fk_anexo_tipoanexo
-        FOREIGN KEY (TipoAnexoAcademico_uuid) REFERENCES TIPO_ANEXO_ACADEMICO (uuidTipoAnexoAcademico)
+        FOREIGN KEY (TipoAnexoAcademico_uuid) REFERENCES TIPO_ANEXO_ACADEMICO (uuidTipoAnexoAcademico),
+    CONSTRAINT fk_anexo_usuario
+        FOREIGN KEY (Usuario_uuid) REFERENCES usuarios (uuidUsuario)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ---------------------------------------------------------------------

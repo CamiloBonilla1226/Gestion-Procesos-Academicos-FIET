@@ -7,4 +7,6 @@ import java.util.List;
 public interface TipoAnexoAcademicoGatewayIntPuerto {
 
     List<TipoAnexoAcademico> getPorTipo(String uuidTipoSolicitudAcademica);
+
+    TipoAnexoAcademico getPorUuid(String uuidTipoAnexoAcademico);
 }

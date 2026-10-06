@@ -7,34 +7,28 @@ import com.unicauca.cfiet.solicitudes.aplicacion.output.ExcepcionesFormateadorIn
 import com.unicauca.cfiet.solicitudes.aplicacion.output.SolicitudAcademicaGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.TipoSolicitudAcademicaGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.UsuarioGatewayIntPuerto;
-import com.unicauca.cfiet.solicitudes.dominio.helper.constantes.ApplicationConstantes;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
 import com.unicauca.cfiet.solicitudes.dominio.servicios.MaquinaEtapas;
+import com.unicauca.cfiet.solicitudes.dominio.servicios.ValidadorActorSolicitud;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.MensajesError;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.util.Map;
 import java.util.UUID;
 
 public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIntPuerto {
     private static final String SOLICITUD_ACADEMICA = "Solicitud académica";
     private static final String TIPO_SOLICITUD_ACADEMICA = "Tipo de solicitud académica";
     private static final String ESTUDIANTE = "Estudiante";
-    private static final String USUARIO = "Usuario";
     private static final String ETAPA = "Etapa de solicitud académica";
     private static final String CODIGO = "codigo";
     private static final int MAXIMO_OBSERVACION = 500;
-    private static final Map<RolEtiquetaEtapa, String> ROLES = Map.of(
-            RolEtiquetaEtapa.ESTUDIANTE, ApplicationConstantes.ESTUDIANTE_ROL,
-            RolEtiquetaEtapa.FUNCIONARIO, ApplicationConstantes.FUNCIONARIO_ACADEMICO_ROL,
-            RolEtiquetaEtapa.DECANO, ApplicationConstantes.DECANO);
 
     private final SolicitudAcademicaGatewayIntPuerto gateway;
     private final EstudianteGatewayIntPuerto estudianteGateway;
     private final TipoSolicitudAcademicaGatewayIntPuerto tipoSolicitudGateway;
     private final EtapaSolicitudAcademicaGatewayIntPuerto etapaGateway;
-    private final UsuarioGatewayIntPuerto usuarioGateway;
+    private final ValidadorActorSolicitud validadorActor;
     private final MaquinaEtapas maquinaEtapas;
     private final ExcepcionesFormateadorIntPuerto formateadorExcepciones;
     private final Clock reloj;
@@ -51,7 +45,7 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
         this.estudianteGateway = estudianteGateway;
         this.tipoSolicitudGateway = tipoSolicitudGateway;
         this.etapaGateway = etapaGateway;
-        this.usuarioGateway = usuarioGateway;
+        this.validadorActor = new ValidadorActorSolicitud(usuarioGateway, formateadorExcepciones);
         this.maquinaEtapas = maquinaEtapas;
         this.formateadorExcepciones = formateadorExcepciones;
         this.reloj = reloj;
@@ -89,11 +83,10 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
         if (solicitud == null)
             formateadorExcepciones.lanzarEntidadNoExiste(String.format(
                     MensajesError.ENTIDAD_NO_ENCONTRADA, SOLICITUD_ACADEMICA, uuidSolicitudAcademica));
-        if (actor == null || !tieneTexto(actor.getUuidUsuario()) || actor.getRol() == null || accion == null)
+        if (accion == null)
             formateadorExcepciones.lanzarReglaNegocioViolada(MensajesError.DATOS_TRANSICION_INCOMPLETOS);
 
-        validarRolDelActor(actor);
-        validarAlcanceDelActor(solicitud, actor);
+        validadorActor.validar(solicitud, actor);
         String observacion = observacionDe(entrega);
 
         TipoProcesoAcademico proceso = procesoDe(solicitud.getTipoSolicitudAcademica());
@@ -103,33 +96,6 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
 
         LocalDateTime ahora = LocalDateTime.now(reloj);
         return gateway.actualizarEtapa(solicitud, historial(solicitud, actor.getUuidUsuario(), accion, observacion, ahora));
-    }
-
-    private void validarRolDelActor(ActorSolicitud actor) {
-        Usuario usuario = usuarioGateway.getUsuario(actor.getUuidUsuario());
-        if (usuario == null)
-            formateadorExcepciones.lanzarEntidadNoExiste(String.format(MensajesError.ENTIDAD_NO_ENCONTRADA, USUARIO, actor.getUuidUsuario()));
-        String rolRequerido = ROLES.get(actor.getRol());
-        boolean tieneRol = usuario.getRoles() != null && usuario.getRoles().stream()
-                .anyMatch(rol -> rolRequerido.equals(rol.getNombre()));
-        if (!tieneRol)
-            formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.ACTOR_SIN_ROL, actor.getUuidUsuario(), rolRequerido));
-    }
-
-    private void validarAlcanceDelActor(SolicitudAcademica solicitud, ActorSolicitud actor) {
-        if (actor.getRol() == RolEtiquetaEtapa.ESTUDIANTE) {
-            String duenio = solicitud.getEstudiante() == null ? null : solicitud.getEstudiante().getUuidUsuario();
-            if (!actor.getUuidUsuario().equals(duenio))
-                formateadorExcepciones.lanzarReglaNegocioViolada(String.format(
-                        MensajesError.SOLICITUD_AJENA, solicitud.getRadicado(), actor.getUuidUsuario()));
-        }
-        if (actor.getRol() == RolEtiquetaEtapa.FUNCIONARIO) {
-            TipoSolicitudAcademica tipo = solicitud.getTipoSolicitudAcademica();
-            String asignado = tipo.getFuncionarioAcademico() == null ? null : tipo.getFuncionarioAcademico().getUuidUsuario();
-            if (!actor.getUuidUsuario().equals(asignado))
-                formateadorExcepciones.lanzarReglaNegocioViolada(String.format(
-                        MensajesError.TIPO_NO_ASIGNADO_FUNCIONARIO, tipo.getNombre(), actor.getUuidUsuario()));
-        }
     }
 
     private String observacionDe(EntregaTransicion entrega) {

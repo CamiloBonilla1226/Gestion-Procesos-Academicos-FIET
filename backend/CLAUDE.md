@@ -78,6 +78,8 @@ infraestructura/
     │   ├── mapeador/ownMapper/ *OwnMapper, implementan la interfaz OwnMapper<D,E>
     │   │                        (toDominio/toEntidad), son @Service
     │   └── gateway/        *GatewayImplAdaptador — implementa los *GatewayIntPuerto
+    ├── almacenamiento/  AlmacenamientoAnexosImplAdaptador (archivos de anexos
+    │                     académicos en disco, reutiliza AlmacenadorArchivos)
     └── manejadorExcepciones/
         ├── RestApiExcepcion    @ControllerAdvice, un @ExceptionHandler por excepción propia
         ├── MensajesError       constantes de texto con %s, se usan con String.format
@@ -271,7 +273,7 @@ Las tablas nuevas de este trabajo de grado (`ESTUDIANTE`,
 `docs/database/diccionario-datos-extension.md` y su DDL en
 `docs/database/script_bd_extension.sql` (18 tablas; referencia, no se ejecuta). Las únicas FK hacia
 las tablas de Julián apuntan a `usuarios (uuidUsuario)`, desde `ESTUDIANTE`,
-`FUNCIONARIO_ACADEMICO` e `HISTORIAL_SOLICITUD_ACADEMICA`; `usuariosLivianos`
+`FUNCIONARIO_ACADEMICO`, `HISTORIAL_SOLICITUD_ACADEMICA` y `ANEXO_ACADEMICO`; `usuariosLivianos`
 y `tiposUsuario` existen en camelCase pero las tablas nuevas no apuntan a
 ellas. Ninguna tabla de Julián se modifica. Como la estrategia de nombres
 no convierte nada, un campo Java cuyo nombre difiera de la columna del
@@ -285,6 +287,27 @@ la información académica. El Decano, como en Julián, es un `Usuario` con rol
 `Decano` y tipo `Maxima autoridad FIET - Decano`, sin fila en esta tabla;
 ninguna FK de la extensión apunta al Decano (el historial apunta a
 `usuarios`).
+
+## Solicitudes académicas, historial y anexos
+
+- `SolicitudAcademicaCUImplAdaptador` crea la solicitud y cambia su etapa con
+  `MaquinaEtapas`. `AnexoAcademicoCUImplAdaptador` adjunta, descarga y
+  revisa anexos obligatorios. Los dos validan el actor con
+  `ValidadorActorSolicitud` (`dominio/servicios`): rol real del usuario,
+  Estudiante dueño de la solicitud, Funcionario asignado al tipo.
+- `ValidadorActorSolicitud` usa `UsuarioGatewayIntPuerto.getUsuario` de
+  Julián, cuyo mapper recorre `UsuarioEntidad.logs` (perezosa). Por eso estos
+  casos de uso deben correr dentro de una transacción: el método del
+  controlador lleva `@Transactional` (D6), como el resto de escrituras. Fuera
+  de una transacción lanzan `LazyInitializationException`.
+- La solicitud o el cambio de etapa y su fila de historial se guardan en un
+  solo método `@Transactional` del gateway, después de todas las
+  validaciones.
+- Los archivos de anexos se escriben con `AlmacenadorArchivos` en
+  `${app.uploads.base-path}/anexos/<uuidSolicitud>/<uuidAnexo>_<fecha>.<ext>`;
+  el nombre del usuario nunca llega al disco y solo queda en
+  `ANEXO_ACADEMICO.nombreArchivo`. Si falla el guardado en base, el caso de
+  uso borra el archivo; si falla el disco, no se crea la ficha.
 
 ## Crear Estudiante y Funcionario Académico
 

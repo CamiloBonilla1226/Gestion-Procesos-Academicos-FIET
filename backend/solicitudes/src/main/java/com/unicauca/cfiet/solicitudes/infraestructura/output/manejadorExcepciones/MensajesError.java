@@ -53,4 +53,14 @@ public class MensajesError {
     public static final String SOLICITUD_AJENA = "La solicitud %s no pertenece al estudiante %s...";
     public static final String TIPO_NO_ASIGNADO_FUNCIONARIO = "El tipo de solicitud %s no está asignado al funcionario académico %s...";
     public static final String OBSERVACION_MUY_LARGA = "La observación supera los %d caracteres permitidos...";
+    public static final String ARCHIVO_VACIO = "El archivo adjunto está vacío...";
+    public static final String ARCHIVO_MUY_GRANDE = "El archivo pesa %d bytes y el máximo permitido es %d bytes (5 MB)...";
+    public static final String FORMATO_ANEXO_NO_PERMITIDO = "El formato %s no está permitido para %s, se aceptan %s...";
+    public static final String CONTENIDO_ANEXO_NO_COINCIDE = "El contenido del archivo no corresponde a un archivo %s...";
+    public static final String ANEXO_DE_OTRO_TIPO = "El tipo de anexo %s no pertenece al tipo de solicitud %s...";
+    public static final String SOPORTE_LIBRE_NO_PERMITIDO = "El tipo de solicitud %s no admite soportes libres...";
+    public static final String ANEXO_ACTOR_NO_PERMITIDO = "El anexo %s solo lo puede subir el rol %s...";
+    public static final String ANEXO_ETAPA_NO_PERMITIDA = "El anexo %s solo se puede subir en la etapa %s y la solicitud está en %s...";
+    public static final String CAUSA_SUPLETORIO_REQUERIDA = "Para saber qué anexos exige el examen supletorio se requiere la causa (CRUCE u OTRA)...";
+    public static final String ERROR_GUARDANDO_ARCHIVO = "No se pudo guardar el archivo del anexo...";
 }
