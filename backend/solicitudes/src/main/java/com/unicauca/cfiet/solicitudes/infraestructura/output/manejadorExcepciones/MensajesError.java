@@ -80,4 +80,8 @@ public class MensajesError {
     public static final String DATO_ASIGNATURA_FALTANTE = "Falta %s de la asignatura %s...";
     public static final String NUMERO_FALTAS_NO_VALIDO = "El número de faltas de la asignatura %s debe ser un entero mayor o igual a 0...";
     public static final String NOTA_NO_VALIDA = "La nota de la asignatura %s debe estar entre 0.0 y 5.0 con un decimal...";
+    public static final String SIN_ASIGNATURAS_ELEGIDAS = "Debe elegir al menos una asignatura para cancelar...";
+    public static final String ASIGNATURA_NO_MATRICULADA = "La asignatura %s no es una asignatura matriculada del estudiante %s...";
+    public static final String ASIGNATURA_NO_ACTIVA = "La asignatura %s está %s y solo se pueden cancelar asignaturas activas...";
+    public static final String SOLO_SOPORTES_LIBRES = "La cancelación de asignatura solo admite soportes libres, sin tipo de anexo, y llegó uno de tipo %s...";
 }

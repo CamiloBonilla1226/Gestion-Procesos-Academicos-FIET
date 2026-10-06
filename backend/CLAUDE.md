@@ -499,6 +499,30 @@ El resto de `cancelaciones-matricula/**` es `denyAll()`.
   responsable del tipo como estaba. Los logs que escribe root al crear los
   usuarios se conservan, como en `t5_solicitudes.ps1`.
 
+### Radicación de Cancelación de Asignatura
+
+- `CancelacionAsignaturaCUImplAdaptador.radicarCancelacionAsignatura(uuidEstudiante,
+  motivo, uuidsAsignaturaMatriculada, anexos, token)` (bean
+  `crearCancelacionAsignaturaCU`, sin endpoint hasta T7.3).
+  `SOLICITUD_CANCELACION_ASIGNATURA` comparte PK con la solicitud (`@MapsId`,
+  `fk_solca_solacad`), como la de matrícula.
+- Antes de escribir nada valida, en este orden: usuario con rol Estudiante y
+  fila en `ESTUDIANTE`; motivo obligatorio de hasta 255 caracteres; al menos
+  una asignatura, sin repetidas, cada una `ASIGNATURA_MATRICULADA` del propio
+  estudiante y `activa` (una ajena y una inexistente dan el mismo mensaje con
+  el uuid recibido; una repetida o no activa se nombra con código y nombre);
+  que los anexos sean solo soportes libres (sin tipo; no hay obligatorios) y
+  cada archivo con `ValidadorArchivoAdjunto`.
+- Después llama a `crearSolicitud`, guarda la especialización con
+  `SolicitudCancelacionAsignaturaGatewayIntPuerto.guardar`, una fila de
+  `ASIGNATURA_SOLICITUD_ACADEMICA` por asignatura elegida (evaluación en nulo)
+  con `SolicitudCancelacionMatriculaGatewayIntPuerto.guardarAsignaturas`
+  (el gateway de esa tabla, compartido con matrícula), sube cada soporte con
+  `adjuntarAnexo` y escribe el log "Radicar cancelación de asignatura".
+- Todo corre en la transacción del controlador (D6); si algo falla no quedan
+  solicitud, historial, especialización, asignaturas vinculadas, anexos ni
+  archivos.
+
 ## Crear Estudiante y Funcionario Académico
 
 `UsuarioCUImplAdaptador.crearUsuario` y `crearUsuarios` no insertan nada en

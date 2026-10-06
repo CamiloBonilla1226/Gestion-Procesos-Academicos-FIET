@@ -11,6 +11,8 @@ public interface SolicitudCancelacionMatriculaGatewayIntPuerto {
 
     SolicitudCancelacionMatricula getPorSolicitud(String uuidSolicitudAcademica);
 
+    List<AsignaturaSolicitudAcademica> guardarAsignaturas(String uuidSolicitudAcademica, List<AsignaturaSolicitudAcademica> asignaturas);
+
     List<AsignaturaSolicitudAcademica> actualizarAsignaturas(List<AsignaturaSolicitudAcademica> asignaturas);
 
     void cambiarEstadoAsignaturasMatriculadas(List<String> uuidsAsignaturaMatriculada, String estado);

@@ -43,17 +43,27 @@ public class SolicitudCancelacionMatriculaGatewayImplAdaptador implements Solici
         entidad.setSolicitudAcademica(solicitud);
         entidad.setNuevo(true);
         SolicitudCancelacionMatriculaEntidad guardada = repositorio.saveAndFlush(entidad);
+        return conAsignaturas(guardada, guardarFilas(solicitud, cancelacion.getAsignaturas()));
+    }
 
+    @Override
+    @Transactional
+    public List<AsignaturaSolicitudAcademica> guardarAsignaturas(String uuidSolicitudAcademica, List<AsignaturaSolicitudAcademica> asignaturas) {
+        return guardarFilas(solicitudRepositorio.getReferenceById(uuidSolicitudAcademica), asignaturas).stream()
+                .map(asignaturaMapper::toDominio)
+                .toList();
+    }
+
+    private List<AsignaturaSolicitudAcademicaEntidad> guardarFilas(SolicitudAcademicaEntidad solicitud, List<AsignaturaSolicitudAcademica> asignaturas) {
         List<AsignaturaSolicitudAcademicaEntidad> filas = new ArrayList<>();
-        for (AsignaturaSolicitudAcademica asignatura : cancelacion.getAsignaturas()) {
+        for (AsignaturaSolicitudAcademica asignatura : asignaturas) {
             AsignaturaSolicitudAcademicaEntidad fila = asignaturaMapper.toEntidad(asignatura);
             fila.setSolicitudAcademica(solicitud);
             fila.setAsignaturaMatriculada(asignaturaMatriculadaRepositorio.getReferenceById(
                     asignatura.getAsignaturaMatriculada().getUuidAsignaturaMatriculada()));
             filas.add(fila);
         }
-        List<AsignaturaSolicitudAcademicaEntidad> guardadas = asignaturaSolicitudRepositorio.saveAllAndFlush(filas);
-        return conAsignaturas(guardada, guardadas);
+        return asignaturaSolicitudRepositorio.saveAllAndFlush(filas);
     }
 
     @Override
