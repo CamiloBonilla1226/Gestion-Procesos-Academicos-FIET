@@ -555,6 +555,44 @@ class TramiteCancelacionMatriculaCUImplAdaptadorTest {
     }
 
     @Test
+    void enviarRespuestaAprobadaSoloCancelaLasQueSiguenActivas() {
+        AsignaturaSolicitudAcademica aprobada = fila("as-2", "am-2", "Física I");
+        aprobada.getAsignaturaMatriculada().setEstado("aprobada");
+        AsignaturaSolicitudAcademica perdida = fila("as-3", "am-3", "Química I");
+        perdida.getAsignaturaMatriculada().setEstado("perdida");
+        when(gateway.getPorSolicitud(SOLICITUD)).thenReturn(SolicitudCancelacionMatricula.builder()
+                .solicitudAcademica(SolicitudAcademica.builder().uuidSolicitudAcademica(SOLICITUD).build())
+                .asignaturas(new ArrayList<>(List.of(fila("as-1", "am-1", "Cálculo I"), aprobada, perdida)))
+                .build());
+        enEtapa(APROBADA_POR_DECANO);
+        conEscaneo();
+
+        SolicitudCancelacionMatricula resultado = casoDeUso.enviarRespuesta(SOLICITUD, TOKEN_FUNCIONARIO);
+
+        verify(gateway).cambiarEstadoAsignaturasMatriculadas(List.of("am-1"), "cancelada");
+        assertEquals(List.of("cancelada", "aprobada", "perdida"), resultado.getAsignaturas().stream()
+                .map(a -> a.getAsignaturaMatriculada().getEstado()).toList());
+        verify(log).crearLog(eq("Cancelar asignaturas matriculadas"), contains("1 asignaturas"), eq(TOKEN_FUNCIONARIO));
+    }
+
+    @Test
+    void enviarRespuestaAprobadaSinAsignaturasActivasNoCancelaNinguna() {
+        AsignaturaSolicitudAcademica aprobada = fila("as-1", "am-1", "Cálculo I");
+        aprobada.getAsignaturaMatriculada().setEstado("aprobada");
+        when(gateway.getPorSolicitud(SOLICITUD)).thenReturn(SolicitudCancelacionMatricula.builder()
+                .solicitudAcademica(SolicitudAcademica.builder().uuidSolicitudAcademica(SOLICITUD).build())
+                .asignaturas(new ArrayList<>(List.of(aprobada)))
+                .build());
+        enEtapa(APROBADA_POR_DECANO);
+        conEscaneo();
+
+        casoDeUso.enviarRespuesta(SOLICITUD, TOKEN_FUNCIONARIO);
+
+        assertEquals(APROBADA, etapaGuardada());
+        verify(gateway, never()).cambiarEstadoAsignaturasMatriculadas(any(), any());
+    }
+
+    @Test
     void enviarRespuestaRechazadaDejaLasAsignaturasActivas() {
         enEtapa(RECHAZADA_POR_DECANO);
         conEscaneo();

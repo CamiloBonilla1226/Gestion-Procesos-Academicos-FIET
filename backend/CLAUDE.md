@@ -444,8 +444,9 @@ El resto de `solicitudes-academicas/**` es `denyAll()`.
     RECHAZADA_POR_DECANO, sin tocar las situaciones.
   - `enviarRespuesta(uuid, token)`: APROBADA_POR_DECANO a APROBADA o
     RECHAZADA_POR_DECANO a RECHAZADA, con escaneo. Solo en APROBADA las
-    `ASIGNATURA_MATRICULADA` de la solicitud pasan a `cancelada`, en la misma
-    transacción.
+    `ASIGNATURA_MATRICULADA` de la solicitud que sigan `activa` pasan a
+    `cancelada`, en la misma transacción; las que ya tengan otro estado no se
+    tocan.
 - Evaluaciones y situaciones al cancelar deben cubrir todas las asignaturas
   de la solicitud, sin faltar, repetir ni incluir ajenas; las situaciones solo
   se validan contra `SITUACION_ACADEMICA_ASIGNATURA`, el sistema no las
@@ -454,6 +455,49 @@ El resto de `solicitudes-academicas/**` es `denyAll()`.
   `SolicitudCancelacionMatriculaGatewayIntPuerto.actualizarAsignaturas`.
 - Todo corre en la transacción del controlador (D6): si algo falla no queda
   etapa cambiada, evaluación guardada ni asignatura cancelada.
+
+### Endpoints `cancelaciones-matricula`
+
+`CancelacionMatriculaRestController` (`infraestructura/input/controladorCancelacionesMatricula`).
+Todos sus métodos llevan `@Transactional` (los GET `readOnly`): de eso depende
+que la radicación y cada acción no dejen nada a medias. Los DTO no llevan rol
+ni tipo de usuario.
+
+| Método y ruta | Roles en `ConfiguracionSeguridad` | Qué hace |
+|---|---|---|
+| `GET /formulario` | Estudiante | Anexos de Cancelación de Matrícula (uuid del tipo, nombre, formatos, obligatorio) y asignaturas activas del estudiante autenticado (código y nombre) |
+| `POST /` | Estudiante | Multipart: `motivo`, una parte por archivo con el uuid de su tipo de anexo como nombre y partes `soporte` para los soportes libres. Usa `radicarCancelacionMatricula` con el uuid del usuario autenticado; responde uuid y radicado |
+| `GET /{uuid}` | los tres | Detalle de `solicitudes-academicas` más motivo y asignaturas (uuid de la fila de `ASIGNATURA_SOLICITUD_ACADEMICA`, código, nombre, faltas, nota y las dos situaciones) |
+| `POST /{uuid}/funcionario/rechazar` | Funcionario Académico | Cuerpo `observacion` |
+| `POST /{uuid}/funcionario/remitir` | Funcionario Académico | Cuerpo `observacion` opcional y `evaluaciones` (`asignaturaSolicitudUuid`, `numeroFaltas`, `nota`, `situacionMatriculaUuid`) |
+| `POST /{uuid}/funcionario/responder` | Funcionario Académico | Sin cuerpo |
+| `POST /{uuid}/decano/aprobar` | Decano | Cuerpo `situaciones` (`asignaturaSolicitudUuid`, `situacionCancelarUuid`) |
+| `POST /{uuid}/decano/rechazar` | Decano | Cuerpo `observacion` |
+
+El resto de `cancelaciones-matricula/**` es `denyAll()`.
+
+- `ConsultaCancelacionMatriculaCUImplAdaptador` (bean
+  `crearConsultaCancelacionMatriculaCU`) saca el estudiante del token para
+  el formulario y la radicación, y arma el detalle sobre
+  `ConsultaSolicitudAcademicaCUIntPuerto.getDetalle`, así reutiliza la
+  visibilidad por `ETAPA_ETIQUETA_ROL` y la respuesta de inexistente. Una
+  solicitud sin fila en `SOLICITUD_CANCELACION_MATRICULA` responde con el
+  mismo error que una inexistente.
+- La situación al cancelar solo la ven el Funcionario y el Decano; el
+  Estudiante la ve cuando la solicitud está en etapa final.
+- Las acciones responden el detalle de la cancelación ya actualizado. El
+  escaneo de la Resolución se sigue subiendo con
+  `POST solicitudes-academicas/{uuid}/resolucion` antes de rechazar o
+  responder.
+- El catálogo para los desplegables es `GET catalogos-academicos/situaciones`
+  de T5.1 (cualquier usuario autenticado); este controlador no tiene
+  `/situaciones`.
+- `backend/pruebas/t6_cancelacion_matricula.ps1` recorre el proceso con
+  usuarios reales (permisos, formulario, radicación, recorrido de aprobación,
+  rechazo del Funcionario y rechazo del Decano) y al final borra solicitudes,
+  usuarios, asignaturas, sus logs y carpetas de `uploads/anexos`, y deja el
+  responsable del tipo como estaba. Los logs que escribe root al crear los
+  usuarios se conservan, como en `t5_solicitudes.ps1`.
 
 ## Crear Estudiante y Funcionario Académico
 

@@ -1,6 +1,7 @@
 package com.unicauca.cfiet.solicitudes.infraestructura.configuracion;
 
 import com.unicauca.cfiet.solicitudes.aplicacion.input.AnexoAcademicoCUIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.input.ConsultaSolicitudAcademicaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.LogCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.SolicitudAcademicaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.UsuarioCUIntPuerto;
@@ -234,5 +235,19 @@ public class BeanConfiguracion {
                                                                                        LogCUIntPuerto log){
         return new TramiteCancelacionMatriculaCUImplAdaptador(gateway, solicitudGateway, situacionGateway, usuarioGateway,
                 sesionGateway, jwtServicio, solicitudCU, maquinaEtapas, formateadorExcepciones, log);
+    }
+
+    @Bean
+    public ConsultaCancelacionMatriculaCUImplAdaptador crearConsultaCancelacionMatriculaCU(SolicitudCancelacionMatriculaGatewayIntPuerto gateway,
+                                                                                         EstudianteGatewayIntPuerto estudianteGateway,
+                                                                                         TipoSolicitudAcademicaGatewayIntPuerto tipoSolicitudGateway,
+                                                                                         TipoAnexoAcademicoGatewayIntPuerto tipoAnexoGateway,
+                                                                                         SesionGatewayIntPuerto sesionGateway,
+                                                                                         IJwtServicio jwtServicio,
+                                                                                         ConsultaSolicitudAcademicaCUIntPuerto consultaCU,
+                                                                                         MaquinaEtapas maquinaEtapas,
+                                                                                         ExcepcionesFormateadorIntPuerto formateadorExcepciones){
+        return new ConsultaCancelacionMatriculaCUImplAdaptador(gateway, estudianteGateway, tipoSolicitudGateway, tipoAnexoGateway,
+                sesionGateway, jwtServicio, consultaCU, maquinaEtapas, formateadorExcepciones);
     }
 }

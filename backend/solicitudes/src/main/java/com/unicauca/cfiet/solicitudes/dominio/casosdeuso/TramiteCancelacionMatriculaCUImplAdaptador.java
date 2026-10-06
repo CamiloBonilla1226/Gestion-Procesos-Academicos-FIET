@@ -141,11 +141,14 @@ public class TramiteCancelacionMatriculaCUImplAdaptador implements TramiteCancel
         SolicitudCancelacionMatricula cancelacion = cancelacionDe(uuidSolicitudAcademica);
         SolicitudAcademica actualizada = solicitudCU.cambiarEtapa(uuidSolicitudAcademica, AccionEtapa.ENVIAR_RESPUESTA, actor, null, token);
         if (APROBADA.equals(actualizada.getEtapa().getCodigo())) {
-            List<String> matriculadas = cancelacion.getAsignaturas().stream()
-                    .map(asignatura -> asignatura.getAsignaturaMatriculada().getUuidAsignaturaMatriculada())
+            List<AsignaturaMatriculada> activas = cancelacion.getAsignaturas().stream()
+                    .map(AsignaturaSolicitudAcademica::getAsignaturaMatriculada)
+                    .filter(matriculada -> EstadoAsignaturaMatriculadaConstantes.ACTIVA.equals(matriculada.getEstado()))
                     .toList();
-            gateway.cambiarEstadoAsignaturasMatriculadas(matriculadas, EstadoAsignaturaMatriculadaConstantes.CANCELADA);
-            cancelacion.getAsignaturas().forEach(asignatura -> asignatura.getAsignaturaMatriculada().setEstado(EstadoAsignaturaMatriculadaConstantes.CANCELADA));
+            List<String> matriculadas = activas.stream().map(AsignaturaMatriculada::getUuidAsignaturaMatriculada).toList();
+            if (!matriculadas.isEmpty())
+                gateway.cambiarEstadoAsignaturasMatriculadas(matriculadas, EstadoAsignaturaMatriculadaConstantes.CANCELADA);
+            activas.forEach(matriculada -> matriculada.setEstado(EstadoAsignaturaMatriculadaConstantes.CANCELADA));
             log.crearLog("Cancelar asignaturas matriculadas",
                     String.format("Solicitud académica %s aprobada: %d asignaturas matriculadas pasan a %s", actualizada.getRadicado(),
                             matriculadas.size(), EstadoAsignaturaMatriculadaConstantes.CANCELADA),

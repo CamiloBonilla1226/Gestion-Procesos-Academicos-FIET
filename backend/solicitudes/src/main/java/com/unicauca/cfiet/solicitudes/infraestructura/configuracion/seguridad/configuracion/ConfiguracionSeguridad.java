@@ -107,6 +107,12 @@ public class ConfiguracionSeguridad {
                         .requestMatchers(HttpMethod.POST, baseUrl + "solicitudes-academicas/{uuidSolicitud}/anexos").hasAnyAuthority(ApplicationConstantes.ESTUDIANTE_ROL, ApplicationConstantes.FUNCIONARIO_ACADEMICO_ROL)
                         .requestMatchers(HttpMethod.POST, baseUrl + "solicitudes-academicas/{uuidSolicitud}/resolucion").hasAnyAuthority(ApplicationConstantes.FUNCIONARIO_ACADEMICO_ROL)
                         .requestMatchers(baseUrl + "solicitudes-academicas/**").denyAll()
+                        .requestMatchers(HttpMethod.GET, baseUrl + "cancelaciones-matricula/formulario").hasAnyAuthority(ApplicationConstantes.ESTUDIANTE_ROL)
+                        .requestMatchers(HttpMethod.POST, baseUrl + "cancelaciones-matricula").hasAnyAuthority(ApplicationConstantes.ESTUDIANTE_ROL)
+                        .requestMatchers(HttpMethod.POST, baseUrl + "cancelaciones-matricula/{uuidSolicitud}/funcionario/**").hasAnyAuthority(ApplicationConstantes.FUNCIONARIO_ACADEMICO_ROL)
+                        .requestMatchers(HttpMethod.POST, baseUrl + "cancelaciones-matricula/{uuidSolicitud}/decano/**").hasAnyAuthority(ApplicationConstantes.DECANO)
+                        .requestMatchers(HttpMethod.GET, baseUrl + "cancelaciones-matricula/{uuidSolicitud}").hasAnyAuthority(ApplicationConstantes.ESTUDIANTE_ROL, ApplicationConstantes.FUNCIONARIO_ACADEMICO_ROL, ApplicationConstantes.DECANO)
+                        .requestMatchers(baseUrl + "cancelaciones-matricula/**").denyAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex
