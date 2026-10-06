@@ -70,4 +70,8 @@ public class MensajesError {
     public static final String RESOLUCION_NO_DISPONIBLE = "La Resolución de la solicitud %s estará disponible cuando la solicitud termine...";
     public static final String SOLICITUD_EN_CURSO = "Ya tienes una solicitud de %s en curso (%s), debe terminar antes de radicar otra...";
     public static final String RADICADO_NO_GENERADO = "No se pudo generar el radicado, intente de nuevo...";
+    public static final String MOTIVO_CANCELACION_REQUERIDO = "El motivo de la cancelación es obligatorio...";
+    public static final String MOTIVO_CANCELACION_MUY_LARGO = "El motivo de la cancelación supera los %d caracteres permitidos...";
+    public static final String SIN_ASIGNATURAS_ACTIVAS = "El estudiante %s no tiene asignaturas activas para cancelar...";
+    public static final String ANEXOS_OBLIGATORIOS_FALTANTES = "Falta el anexo obligatorio: %s...";
 }

@@ -2,6 +2,7 @@ package com.unicauca.cfiet.solicitudes.infraestructura.configuracion;
 
 import com.unicauca.cfiet.solicitudes.aplicacion.input.AnexoAcademicoCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.LogCUIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.input.SolicitudAcademicaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.UsuarioCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.*;
 import com.unicauca.cfiet.solicitudes.dominio.casosdeuso.*;
@@ -204,5 +205,19 @@ public class BeanConfiguracion {
                                                                                      ExcepcionesFormateadorIntPuerto formateadorExcepciones){
         return new ConsultaSolicitudAcademicaCUImplAdaptador(gateway, etiquetaGateway, anexoGateway, historialGateway,
                 resolucionGateway, sesionGateway, jwtServicio, anexoCU, maquinaEtapas, formateadorExcepciones);
+    }
+
+    @Bean
+    public CancelacionMatriculaCUImplAdaptador crearCancelacionMatriculaCU(SolicitudCancelacionMatriculaGatewayIntPuerto gateway,
+                                                                         EstudianteGatewayIntPuerto estudianteGateway,
+                                                                         UsuarioGatewayIntPuerto usuarioGateway,
+                                                                         TipoSolicitudAcademicaGatewayIntPuerto tipoSolicitudGateway,
+                                                                         TipoAnexoAcademicoGatewayIntPuerto tipoAnexoGateway,
+                                                                         SolicitudAcademicaCUIntPuerto solicitudCU,
+                                                                         AnexoAcademicoCUIntPuerto anexoCU,
+                                                                         ExcepcionesFormateadorIntPuerto formateadorExcepciones,
+                                                                         LogCUIntPuerto log){
+        return new CancelacionMatriculaCUImplAdaptador(gateway, estudianteGateway, usuarioGateway, tipoSolicitudGateway,
+                tipoAnexoGateway, solicitudCU, anexoCU, formateadorExcepciones, log);
     }
 }

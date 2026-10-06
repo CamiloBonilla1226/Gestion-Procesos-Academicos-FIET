@@ -396,6 +396,28 @@ El resto de `solicitudes-academicas/**` es `denyAll()`.
   todavía no hay endpoint para radicar, y al final borra solicitudes,
   usuarios, logs de esos usuarios y carpetas de `uploads/anexos`.
 
+### Radicación de Cancelación de Matrícula
+
+- `CancelacionMatriculaCUImplAdaptador.radicarCancelacionMatricula(uuidEstudiante,
+  motivo, anexos, token)` (bean `crearCancelacionMatriculaCU`, sin endpoint
+  hasta T6.3). `anexos` es una lista de `AnexoRadicacion` (uuid del tipo de
+  anexo y `ArchivoAdjunto`); el soporte libre va con tipo nulo.
+- Antes de escribir nada valida, en este orden: usuario con rol Estudiante y
+  fila en `ESTUDIANTE`; al menos una asignatura matriculada `activa`; motivo
+  obligatorio de hasta 255 caracteres (la columna); que cada tipo de anexo sea
+  de Cancelación de Matrícula; que estén los obligatorios de
+  `TIPO_ANEXO_ACADEMICO` (el error nombra los que faltan); y cada archivo con
+  `ValidadorArchivoAdjunto`.
+- Después llama a `crearSolicitud` (radicado, una en curso por tipo, primer
+  historial y su log), guarda `SOLICITUD_CANCELACION_MATRICULA` y una fila de
+  `ASIGNATURA_SOLICITUD_ACADEMICA` por cada asignatura activa (evaluación en
+  nulo), sube cada anexo con `adjuntarAnexo` y escribe el log "Radicar
+  cancelación de matrícula".
+- Todo corre en la transacción del controlador (D6). Si algo falla, se revierte
+  todo y `AlmacenamientoAnexosImplAdaptador` borra los archivos ya escritos al
+  revertir; no quedan solicitud, historial, especialización, anexos ni
+  archivos.
+
 ## Crear Estudiante y Funcionario Académico
 
 `UsuarioCUImplAdaptador.crearUsuario` y `crearUsuarios` no insertan nada en
