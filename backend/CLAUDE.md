@@ -601,6 +601,43 @@ El resto de `cancelaciones-asignatura/**` es `denyAll()`.
   `ANEXO_ACADEMICO`, que se borra al final. Deja la base, el responsable del
   tipo y `uploads/anexos` como estaban, salvo los logs de root.
 
+### Radicación de Examen Supletorio
+
+- `ExamenSupletorioCUImplAdaptador.radicarExamenSupletorio(uuidEstudiante,
+  uuidAsignaturaMatriculada, fechaExamenNoPresentado, tipoCausa,
+  uuidAsignaturaCruzada, fechaExamenCruzada, horaExamenCruzada, anexos, token)`
+  (bean `crearExamenSupletorioCU`, sin endpoint hasta T8.3). Las fechas son
+  `LocalDate` y se guardan a las 00:00 en las columnas DATETIME; `anexos` es
+  una lista de `AnexoRadicacion` con el uuid de su tipo.
+  `SOLICITUD_EXAMEN_SUPLETORIO` comparte PK con la solicitud
+  (`fk_solsup_solacad`) y `SOLICITUD_SUPLETORIO_CRUCE_ASIGNATURA` con la del
+  supletorio (`fk_solcruce_solsup`); el gateway guarda ambas.
+- Antes de escribir nada valida, en este orden: usuario con rol Estudiante y
+  fila en `ESTUDIANTE`; solicitud en curso con
+  `SolicitudAcademicaCUIntPuerto.verificarSinSolicitudEnCurso` (la misma
+  regla que aplica `crearSolicitud`); asignatura obligatoria, propia y
+  `activa` (ajena e inexistente dan el mismo mensaje); causa `cruce` u
+  `otra`, sin distinguir mayúsculas; fecha del examen obligatoria, no futura y
+  dentro del plazo; datos de cruce; anexos y cada archivo con
+  `ValidadorArchivoAdjunto`.
+- Plazo (P8): con el `Clock` inyectado (America/Bogota en el bean) se cuentan
+  los días lunes a viernes posteriores al examen hasta hoy inclusive, sin
+  festivos; más de 3 se rechaza nombrando la fecha del examen y el último día
+  permitido. El mismo día cuenta 0; un examen en fin de semana empieza a
+  contar el lunes.
+- Con causa `cruce` la asignatura cruzada es obligatoria, distinta, propia y
+  `activa`, y la fecha y la hora (`HH:mm`, máximo 10 caracteres) son
+  obligatorias. Con causa `otra` no se acepta ningún dato de cruce.
+- Anexos, por nombre sembrado (`AnexoAcademicoConstantes`): el FOR-23 siempre;
+  con `otra` el soporte de la justificación, con `cruce` el formato del
+  docente de la asignatura cruzada, y el de la otra causa se rechaza. No se
+  aceptan recibo ni comprobante, soportes libres, tipos de otro proceso ni
+  tipos repetidos. `fechaAcordadaExamen` queda en null.
+- Después llama a `crearSolicitud`, guarda la especialización (y el cruce),
+  sube cada anexo con `adjuntarAnexo` y escribe el log "Radicar examen
+  supletorio". Todo corre en la transacción del controlador (D6): si algo
+  falla no quedan filas ni archivos.
+
 ## Crear Estudiante y Funcionario Académico
 
 `UsuarioCUImplAdaptador.crearUsuario` y `crearUsuarios` no insertan nada en

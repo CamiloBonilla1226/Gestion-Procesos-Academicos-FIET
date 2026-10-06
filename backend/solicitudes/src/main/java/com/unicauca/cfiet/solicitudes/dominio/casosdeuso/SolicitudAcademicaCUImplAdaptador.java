@@ -87,9 +87,7 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
                     MensajesError.ENTIDAD_NO_ENCONTRADA, TIPO_SOLICITUD_ACADEMICA, uuidTipoSolicitudAcademica));
 
         TipoProcesoAcademico proceso = procesoDe(tipo);
-        String enCurso = gateway.getRadicadoEnCurso(estudiante.getUuidUsuario(), tipo.getUuidTipoSolicitudAcademica(), ETAPAS_FINALES);
-        if (enCurso != null)
-            formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.SOLICITUD_EN_CURSO, tipo.getNombre(), enCurso));
+        verificarSinSolicitudEnCurso(estudiante.getUuidUsuario(), tipo);
         ResultadoTransicion resultado = maquinaEtapas.siguienteEtapa(proceso, null, AccionEtapa.RADICAR, RolEtiquetaEtapa.ESTUDIANTE);
         EtapaSolicitudAcademica etapa = etapaDe(tipo, resultado.getEtapaSiguiente());
         LocalDateTime ahora = LocalDateTime.now(reloj);
@@ -107,6 +105,13 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
                 String.format("Solicitud académica %s radicada (%s), acción %s", creada.getRadicado(), tipo.getNombre(), AccionEtapa.RADICAR),
                 token);
         return creada;
+    }
+
+    @Override
+    public void verificarSinSolicitudEnCurso(String uuidEstudiante, TipoSolicitudAcademica tipo) {
+        String enCurso = gateway.getRadicadoEnCurso(uuidEstudiante, tipo.getUuidTipoSolicitudAcademica(), ETAPAS_FINALES);
+        if (enCurso != null)
+            formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.SOLICITUD_EN_CURSO, tipo.getNombre(), enCurso));
     }
 
     @Override

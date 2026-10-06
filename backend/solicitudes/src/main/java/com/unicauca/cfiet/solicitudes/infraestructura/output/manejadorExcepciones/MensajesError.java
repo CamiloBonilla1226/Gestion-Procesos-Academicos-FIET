@@ -91,4 +91,19 @@ public class MensajesError {
     public static final String OBSERVACION_DECISION_REQUERIDA = "Rechazar la cancelación de la asignatura %s exige una observación de la decisión...";
     public static final String NINGUNA_ASIGNATURA_APROBADA = "No se aprobó ninguna asignatura: para negar la solicitud completa use el rechazo del Decano...";
     public static final String OBSERVACION_ASIGNATURA_MUY_LARGA = "%s de la asignatura %s supera los %d caracteres permitidos...";
+    public static final String ASIGNATURA_SUPLETORIO_REQUERIDA = "Debe elegir la asignatura del examen no presentado...";
+    public static final String ASIGNATURA_SUPLETORIO_NO_ACTIVA = "La asignatura %s está %s y solo se aceptan asignaturas activas...";
+    public static final String CAUSA_SUPLETORIO_INVALIDA = "La causa %s no es válida, debe ser cruce u otra...";
+    public static final String FECHA_EXAMEN_REQUERIDA = "La fecha del examen no presentado es obligatoria...";
+    public static final String FECHA_EXAMEN_FUTURA = "La fecha del examen no presentado (%s) no puede ser posterior a hoy (%s)...";
+    public static final String PLAZO_SUPLETORIO_VENCIDO = "El plazo para pedir el supletorio del examen del %s venció: el último día permitido era el %s (3 días hábiles)...";
+    public static final String ASIGNATURA_CRUZADA_REQUERIDA = "Con causa cruce debe elegir la asignatura con la que se cruza el examen...";
+    public static final String ASIGNATURA_CRUZADA_IGUAL = "La asignatura con la que se cruza debe ser distinta de la asignatura del examen no presentado...";
+    public static final String DATOS_CRUCE_REQUERIDOS = "Con causa cruce se requieren la fecha y la hora del examen de la asignatura con la que se cruza...";
+    public static final String HORA_CRUCE_MUY_LARGA = "La hora del examen cruzado admite máximo %d caracteres...";
+    public static final String HORA_CRUCE_MAL_FORMADA = "La hora del examen cruzado %s no tiene el formato HH:mm...";
+    public static final String DATOS_CRUCE_NO_PERMITIDOS = "Con causa otra no se aceptan la asignatura, la fecha ni la hora de un examen cruzado...";
+    public static final String ANEXO_NO_PERMITIDO_AL_RADICAR = "El anexo %s no se entrega al radicar el examen supletorio...";
+    public static final String ANEXO_NO_CORRESPONDE_CAUSA = "El anexo %s no corresponde a la causa %s...";
+    public static final String ANEXO_REPETIDO = "El anexo %s viene más de una vez...";
 }
