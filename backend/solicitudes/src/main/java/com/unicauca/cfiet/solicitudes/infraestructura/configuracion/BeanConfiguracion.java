@@ -1,5 +1,6 @@
 package com.unicauca.cfiet.solicitudes.infraestructura.configuracion;
 
+import com.unicauca.cfiet.solicitudes.aplicacion.input.AnexoAcademicoCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.LogCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.UsuarioCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.*;
@@ -188,5 +189,20 @@ public class BeanConfiguracion {
                                                                        LogCUIntPuerto log){
         return new ResolucionAcademicaCUImplAdaptador(gateway, solicitudGateway, usuarioGateway, almacenamiento,
                 formateadorExcepciones, log, Clock.system(ZoneId.of("America/Bogota")));
+    }
+
+    @Bean
+    public ConsultaSolicitudAcademicaCUImplAdaptador crearConsultaSolicitudAcademicaCU(SolicitudAcademicaGatewayIntPuerto gateway,
+                                                                                     EtapaEtiquetaRolGatewayIntPuerto etiquetaGateway,
+                                                                                     AnexoAcademicoGatewayIntPuerto anexoGateway,
+                                                                                     HistorialSolicitudAcademicaGatewayIntPuerto historialGateway,
+                                                                                     ResolucionAcademicaGatewayIntPuerto resolucionGateway,
+                                                                                     SesionGatewayIntPuerto sesionGateway,
+                                                                                     IJwtServicio jwtServicio,
+                                                                                     AnexoAcademicoCUIntPuerto anexoCU,
+                                                                                     MaquinaEtapas maquinaEtapas,
+                                                                                     ExcepcionesFormateadorIntPuerto formateadorExcepciones){
+        return new ConsultaSolicitudAcademicaCUImplAdaptador(gateway, etiquetaGateway, anexoGateway, historialGateway,
+                resolucionGateway, sesionGateway, jwtServicio, anexoCU, maquinaEtapas, formateadorExcepciones);
     }
 }

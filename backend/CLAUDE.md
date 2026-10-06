@@ -353,6 +353,49 @@ ninguna FK de la extensión apunta al Decano (el historial apunta a
   el archivo nuevo si la transacción se revierte, y `eliminarTrasConfirmar`
   borra el archivo reemplazado solo después del commit.
 
+### Endpoints `solicitudes-academicas`
+
+`SolicitudAcademicaRestController` (`infraestructura/input/controladorSolicitudesAcademicas`)
+expone consulta y archivos; el cambio de etapa no tiene endpoint todavía (T6 a
+T8). Todos sus métodos llevan `@Transactional` (los GET `readOnly`), porque
+leer el usuario recorre colecciones perezosas.
+
+| Método y ruta | Roles en `ConfiguracionSeguridad` | Qué hace |
+|---|---|---|
+| `GET /estudiante` | Estudiante | Solicitudes del estudiante autenticado |
+| `GET /funcionario` | Funcionario Académico | Solicitudes de los tipos asignados a él |
+| `GET /decano` | Decano | Todas las que tienen etiqueta para el Decano |
+| `GET /{uuid}` | los tres | Detalle: radicado, tipo, fecha, etiqueta, estudiante, anexos, Resolución, acciones |
+| `GET /{uuid}/historial` | los tres | Historial en orden de fecha |
+| `POST /{uuid}/anexos` | Estudiante, Funcionario Académico | Multipart `archivo` y `tipoAnexo` opcional; usa `adjuntarAnexo` |
+| `GET /{uuid}/anexos/{uuidAnexo}` | los tres | Descarga del anexo de esa solicitud |
+| `POST /{uuid}/resolucion` | Funcionario Académico | Multipart `archivo`; usa `adjuntarResolucion` |
+| `GET /{uuid}/resolucion` | los tres | Descarga con las reglas de `obtenerResolucion` |
+
+El resto de `solicitudes-academicas/**` es `denyAll()`.
+
+- `ConsultaSolicitudAcademicaCUImplAdaptador` saca el usuario del token
+  (`IJwtServicio` y `SesionGatewayIntPuerto`, como `getMisAsignaturas`) y
+  decide el rol: dueño de la solicitud con rol Estudiante actúa como
+  Estudiante; si no, el Funcionario Académico asignado al tipo actúa como
+  Funcionario; si no, quien tenga rol Decano actúa como Decano. El cliente
+  nunca envía el rol y los DTO no lo llevan.
+- Un rol solo ve las solicitudes cuya etapa tiene fila en
+  `ETAPA_ETIQUETA_ROL` para él (el Decano no ve `RADICADA`), en bandejas y en
+  detalle, historial y descargas. Sin rol resuelto o sin etiqueta se lanza la
+  misma `lanzarEntidadNoExiste` que para un uuid inexistente, así una
+  solicitud ajena no revela que existe.
+- Las bandejas devuelven listas sin paginar, de la más reciente a la más
+  antigua (`fechaCreacion` y luego `radicado`), con la etiqueta del rol y no
+  el código de la etapa.
+- Los POST resuelven el actor con `resolverActor` y llaman a
+  `adjuntarAnexo` o `adjuntarResolucion` con el token sin `Bearer ` para el
+  log de Julián. Las respuestas nunca traen `urlArchivo` ni rutas de disco.
+- `backend/pruebas/t5_solicitudes.ps1` inserta las solicitudes de prueba
+  directo en MySQL (`docker compose exec -T cfiet_database mysql ...`), porque
+  todavía no hay endpoint para radicar, y al final borra solicitudes,
+  usuarios, logs de esos usuarios y carpetas de `uploads/anexos`.
+
 ## Crear Estudiante y Funcionario Académico
 
 `UsuarioCUImplAdaptador.crearUsuario` y `crearUsuarios` no insertan nada en

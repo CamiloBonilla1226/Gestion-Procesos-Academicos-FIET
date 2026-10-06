@@ -63,6 +63,31 @@ public class SolicitudAcademicaGatewayImplAdaptador implements SolicitudAcademic
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<SolicitudAcademica> getPorEstudiante(String uuidEstudiante) {
+        return repositorio.findByEstudiante_UuidUsuarioOrderByFechaCreacionDescRadicadoDesc(uuidEstudiante).stream()
+                .map(mapper::toDominio)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SolicitudAcademica> getPorFuncionarioAcademico(String uuidFuncionarioAcademico) {
+        return repositorio.findByTipoSolicitudAcademica_FuncionarioAcademico_UuidUsuarioOrderByFechaCreacionDescRadicadoDesc(uuidFuncionarioAcademico)
+                .stream()
+                .map(mapper::toDominio)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SolicitudAcademica> getTodas() {
+        return repositorio.findAllByOrderByFechaCreacionDescRadicadoDesc().stream()
+                .map(mapper::toDominio)
+                .toList();
+    }
+
+    @Override
     @Transactional
     public SolicitudAcademica crear(SolicitudAcademica solicitud, HistorialSolicitudAcademica historial) {
         SolicitudAcademicaEntidad entidad = mapper.toEntidad(solicitud);

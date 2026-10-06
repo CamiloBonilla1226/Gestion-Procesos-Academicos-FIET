@@ -13,6 +13,12 @@ public interface SolicitudAcademicaGatewayIntPuerto {
 
     String getRadicadoEnCurso(String uuidEstudiante, String uuidTipoSolicitudAcademica, List<String> etapasFinales);
 
+    List<SolicitudAcademica> getPorEstudiante(String uuidEstudiante);
+
+    List<SolicitudAcademica> getPorFuncionarioAcademico(String uuidFuncionarioAcademico);
+
+    List<SolicitudAcademica> getTodas();
+
     SolicitudAcademica crear(SolicitudAcademica solicitud, HistorialSolicitudAcademica historial);
 
     SolicitudAcademica actualizarEtapa(SolicitudAcademica solicitud, HistorialSolicitudAcademica historial);
