@@ -63,4 +63,9 @@ public class MensajesError {
     public static final String ANEXO_ETAPA_NO_PERMITIDA = "El anexo %s solo se puede subir en la etapa %s y la solicitud está en %s...";
     public static final String CAUSA_SUPLETORIO_REQUERIDA = "Para saber qué anexos exige el examen supletorio se requiere la causa (CRUCE u OTRA)...";
     public static final String ERROR_GUARDANDO_ARCHIVO = "No se pudo guardar el archivo del anexo...";
+    public static final String RESOLUCION_SOLO_CANCELACIONES = "El tipo de solicitud %s no produce Resolución, solo la producen las cancelaciones de matrícula y de asignatura...";
+    public static final String RESOLUCION_SOLO_FUNCIONARIO = "El escaneo de la Resolución solo lo puede subir el funcionario académico asignado...";
+    public static final String RESOLUCION_ETAPA_FINAL = "La solicitud %s está en la etapa final %s y su Resolución ya no se puede subir ni reemplazar...";
+    public static final String RESOLUCION_ETAPA_NO_PERMITIDA = "El escaneo de la Resolución solo se sube en las etapas %s y la solicitud está en %s...";
+    public static final String RESOLUCION_NO_DISPONIBLE = "La Resolución de la solicitud %s estará disponible cuando la solicitud termine...";
 }

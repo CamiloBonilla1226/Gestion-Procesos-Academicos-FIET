@@ -154,11 +154,14 @@ public class BeanConfiguracion {
                                                                      EstudianteGatewayIntPuerto estudianteGateway,
                                                                      TipoSolicitudAcademicaGatewayIntPuerto tipoSolicitudGateway,
                                                                      EtapaSolicitudAcademicaGatewayIntPuerto etapaGateway,
+                                                                     ResolucionAcademicaGatewayIntPuerto resolucionGateway,
+                                                                     AnexoAcademicoGatewayIntPuerto anexoGateway,
                                                                      UsuarioGatewayIntPuerto usuarioGateway,
                                                                      MaquinaEtapas maquinaEtapas,
                                                                      ExcepcionesFormateadorIntPuerto formateadorExcepciones){
         return new SolicitudAcademicaCUImplAdaptador(gateway, estudianteGateway, tipoSolicitudGateway, etapaGateway,
-                usuarioGateway, maquinaEtapas, formateadorExcepciones, Clock.system(ZoneId.of("America/Bogota")));
+                resolucionGateway, anexoGateway, usuarioGateway, maquinaEtapas, formateadorExcepciones,
+                Clock.system(ZoneId.of("America/Bogota")));
     }
 
     @Bean
@@ -171,5 +174,15 @@ public class BeanConfiguracion {
                                                              ExcepcionesFormateadorIntPuerto formateadorExcepciones){
         return new AnexoAcademicoCUImplAdaptador(anexoGateway, solicitudGateway, tipoSolicitudGateway, tipoAnexoGateway,
                 usuarioGateway, almacenamiento, formateadorExcepciones, Clock.system(ZoneId.of("America/Bogota")));
+    }
+
+    @Bean
+    public ResolucionAcademicaCUImplAdaptador crearResolucionAcademicaCU(ResolucionAcademicaGatewayIntPuerto gateway,
+                                                                       SolicitudAcademicaGatewayIntPuerto solicitudGateway,
+                                                                       UsuarioGatewayIntPuerto usuarioGateway,
+                                                                       AlmacenamientoAnexosIntPuerto almacenamiento,
+                                                                       ExcepcionesFormateadorIntPuerto formateadorExcepciones){
+        return new ResolucionAcademicaCUImplAdaptador(gateway, solicitudGateway, usuarioGateway, almacenamiento,
+                formateadorExcepciones, Clock.system(ZoneId.of("America/Bogota")));
     }
 }

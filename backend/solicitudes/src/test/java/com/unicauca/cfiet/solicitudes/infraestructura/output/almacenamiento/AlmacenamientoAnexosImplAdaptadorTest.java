@@ -5,6 +5,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -93,6 +95,62 @@ class AlmacenamientoAnexosImplAdaptadorTest {
 
         assertEquals(0, archivosEn(base));
         assertFalse(Files.exists(base.resolve("anexos").resolve(solicitud)));
+    }
+
+    private void terminarTransaccion(boolean confirmada) {
+        try {
+            for (TransactionSynchronization sincronizacion : TransactionSynchronizationManager.getSynchronizations()) {
+                if (confirmada) sincronizacion.afterCommit();
+                sincronizacion.afterCompletion(confirmada ? TransactionSynchronization.STATUS_COMMITTED : TransactionSynchronization.STATUS_ROLLED_BACK);
+            }
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+    }
+
+    @Test
+    void sinTransaccionEliminarTrasConfirmarBorraEnSeguida() throws IOException {
+        String url = almacenamiento.guardar(solicitud, anexo + ".pdf", contenido);
+
+        almacenamiento.eliminarTrasConfirmar(url);
+
+        assertEquals(0, archivosEn(base));
+    }
+
+    @Test
+    void dentroDeUnaTransaccionElArchivoViejoSeBorraSoloAlConfirmar() throws IOException {
+        String url = almacenamiento.guardar(solicitud, anexo + ".pdf", contenido);
+        TransactionSynchronizationManager.initSynchronization();
+        almacenamiento.eliminarTrasConfirmar(url);
+        assertEquals(1, archivosEn(base));
+
+        terminarTransaccion(true);
+
+        assertEquals(0, archivosEn(base));
+    }
+
+    @Test
+    void siLaTransaccionSeRevierteElArchivoViejoSeConservaYElNuevoSeBorra() throws IOException {
+        String viejo = almacenamiento.guardar(solicitud, anexo + ".pdf", contenido);
+        TransactionSynchronizationManager.initSynchronization();
+        String nuevo = almacenamiento.guardar(solicitud, UUID.randomUUID() + ".pdf", contenido);
+        almacenamiento.eliminarTrasConfirmar(viejo);
+
+        terminarTransaccion(false);
+
+        assertNotNull(almacenamiento.leer(viejo));
+        assertNull(almacenamiento.leer(nuevo));
+        assertEquals(1, archivosEn(base));
+    }
+
+    @Test
+    void siLaTransaccionSeConfirmaElArchivoNuevoSeQueda() throws IOException {
+        TransactionSynchronizationManager.initSynchronization();
+        String nuevo = almacenamiento.guardar(solicitud, anexo + ".pdf", contenido);
+
+        terminarTransaccion(true);
+
+        assertArrayEquals(contenido, almacenamiento.leer(nuevo));
     }
 
     @Test

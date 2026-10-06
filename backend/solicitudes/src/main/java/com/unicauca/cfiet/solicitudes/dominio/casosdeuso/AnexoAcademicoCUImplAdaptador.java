@@ -4,13 +4,12 @@ import com.unicauca.cfiet.solicitudes.aplicacion.input.AnexoAcademicoCUIntPuerto
 import com.unicauca.cfiet.solicitudes.aplicacion.output.*;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
 import com.unicauca.cfiet.solicitudes.dominio.servicios.ValidadorActorSolicitud;
+import com.unicauca.cfiet.solicitudes.dominio.servicios.ValidadorArchivoAdjunto;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.MensajesError;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -25,10 +24,6 @@ public class AnexoAcademicoCUImplAdaptador implements AnexoAcademicoCUIntPuerto 
     private static final String ANEXO_ACADEMICO = "Anexo académico";
     private static final String ARCHIVO = "Archivo del anexo";
     private static final String SOPORTE_LIBRE = "Soporte libre";
-    private static final int MAXIMO_NOMBRE = 255;
-    private static final byte[] FIRMA_PDF = {'%', 'P', 'D', 'F', '-'};
-    private static final byte[] FIRMA_PNG = {(byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A};
-    private static final byte[] FIRMA_JPG = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF};
 
     private final AnexoAcademicoGatewayIntPuerto anexoGateway;
     private final SolicitudAcademicaGatewayIntPuerto solicitudGateway;
@@ -36,6 +31,7 @@ public class AnexoAcademicoCUImplAdaptador implements AnexoAcademicoCUIntPuerto 
     private final TipoAnexoAcademicoGatewayIntPuerto tipoAnexoGateway;
     private final AlmacenamientoAnexosIntPuerto almacenamiento;
     private final ValidadorActorSolicitud validadorActor;
+    private final ValidadorArchivoAdjunto validadorArchivo;
     private final ExcepcionesFormateadorIntPuerto formateadorExcepciones;
     private final Clock reloj;
 
@@ -53,6 +49,7 @@ public class AnexoAcademicoCUImplAdaptador implements AnexoAcademicoCUIntPuerto 
         this.tipoAnexoGateway = tipoAnexoGateway;
         this.almacenamiento = almacenamiento;
         this.validadorActor = new ValidadorActorSolicitud(usuarioGateway, formateadorExcepciones);
+        this.validadorArchivo = new ValidadorArchivoAdjunto(formateadorExcepciones);
         this.formateadorExcepciones = formateadorExcepciones;
         this.reloj = reloj;
     }
@@ -64,7 +61,8 @@ public class AnexoAcademicoCUImplAdaptador implements AnexoAcademicoCUIntPuerto 
         TipoProcesoAcademico proceso = procesoDe(solicitud.getTipoSolicitudAcademica());
         TipoAnexoAcademico tipoAnexo = tipoAnexoDe(solicitud, uuidTipoAnexoAcademico, proceso);
         validarQuienYCuando(solicitud, tipoAnexo, actor);
-        String extension = validarArchivo(archivo, tipoAnexo);
+        String extension = validadorArchivo.validar(archivo, tipoAnexo == null ? SOPORTE_LIBRE : tipoAnexo.getNombre(),
+                tipoAnexo == null ? FORMATOS_SOPORTE_LIBRE : tipoAnexo.getFormatosPermitidos());
 
         String uuidAnexo = UUID.randomUUID().toString();
         String ruta = null;
@@ -78,7 +76,7 @@ public class AnexoAcademicoCUImplAdaptador implements AnexoAcademicoCUIntPuerto 
                 .uuidAnexoAcademico(uuidAnexo)
                 .solicitudAcademica(solicitud)
                 .tipoAnexoAcademico(tipoAnexo)
-                .nombreArchivo(nombreOriginalSeguro(archivo.getNombreOriginal(), extension))
+                .nombreArchivo(validadorArchivo.nombreOriginalSeguro(archivo.getNombreOriginal(), extension))
                 .urlArchivo(ruta)
                 .tipoArchivo(TIPOS_CONTENIDO.get(extension))
                 .tamanioBytes((long) archivo.getContenido().length)
@@ -192,64 +190,6 @@ public class AnexoAcademicoCUImplAdaptador implements AnexoAcademicoCUIntPuerto 
         if (!etapaPermitida.equals(etapaActual))
             formateadorExcepciones.lanzarReglaNegocioViolada(String.format(
                     MensajesError.ANEXO_ETAPA_NO_PERMITIDA, nombre, etapaPermitida, etapaActual));
-    }
-
-    private String validarArchivo(ArchivoAdjunto archivo, TipoAnexoAcademico tipoAnexo) {
-        if (archivo == null || archivo.getContenido() == null || archivo.getContenido().length == 0)
-            formateadorExcepciones.lanzarMalFormato(MensajesError.ARCHIVO_VACIO);
-        long tamanio = archivo.getContenido().length;
-        if (tamanio > TAMANIO_MAXIMO_BYTES)
-            formateadorExcepciones.lanzarMalFormato(String.format(MensajesError.ARCHIVO_MUY_GRANDE, tamanio, TAMANIO_MAXIMO_BYTES));
-
-        String nombre = tipoAnexo == null ? SOPORTE_LIBRE : tipoAnexo.getNombre();
-        String formatos = tipoAnexo == null ? FORMATOS_SOPORTE_LIBRE : tipoAnexo.getFormatosPermitidos();
-        Set<String> permitidos = Arrays.stream(formatos == null ? new String[0] : formatos.split(","))
-                .map(this::normalizarExtension)
-                .collect(Collectors.toSet());
-        String extension = normalizarExtension(extensionDe(archivo.getNombreOriginal()));
-        if (extension.isEmpty() || !permitidos.contains(extension))
-            formateadorExcepciones.lanzarMalFormato(String.format(MensajesError.FORMATO_ANEXO_NO_PERMITIDO,
-                    extension.isEmpty() ? "sin extension" : extension, nombre, formatos));
-        if (!firmaCoincide(extension, archivo.getContenido()))
-            formateadorExcepciones.lanzarMalFormato(String.format(MensajesError.CONTENIDO_ANEXO_NO_COINCIDE, extension));
-        return extension;
-    }
-
-    private String extensionDe(String nombreOriginal) {
-        String nombre = nombreBase(nombreOriginal);
-        int punto = nombre.lastIndexOf('.');
-        return punto < 0 ? "" : nombre.substring(punto + 1);
-    }
-
-    private String normalizarExtension(String extension) {
-        String limpia = extension == null ? "" : extension.trim().toLowerCase(Locale.ROOT);
-        return "jpeg".equals(limpia) ? "jpg" : limpia;
-    }
-
-    private boolean firmaCoincide(String extension, byte[] contenido) {
-        byte[] firma = switch (extension) {
-            case "pdf" -> FIRMA_PDF;
-            case "png" -> FIRMA_PNG;
-            case "jpg" -> FIRMA_JPG;
-            default -> null;
-        };
-        if (firma == null || contenido.length < firma.length) return false;
-        for (int i = 0; i < firma.length; i++)
-            if (contenido[i] != firma[i]) return false;
-        return true;
-    }
-
-    private String nombreBase(String nombreOriginal) {
-        if (nombreOriginal == null) return "";
-        String nombre = nombreOriginal.replace('\\', '/');
-        return nombre.substring(nombre.lastIndexOf('/') + 1).trim();
-    }
-
-    private String nombreOriginalSeguro(String nombreOriginal, String extension) {
-        String nombre = nombreBase(nombreOriginal).replaceAll("\\p{Cntrl}", "");
-        if (nombre.isBlank() || nombre.equals(".") || nombre.equals(".."))
-            nombre = "anexo." + extension;
-        return nombre.length() > MAXIMO_NOMBRE ? nombre.substring(nombre.length() - MAXIMO_NOMBRE) : nombre;
     }
 
     private TipoProcesoAcademico procesoDe(TipoSolicitudAcademica tipo) {

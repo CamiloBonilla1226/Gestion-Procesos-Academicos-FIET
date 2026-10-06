@@ -4,6 +4,8 @@ import com.unicauca.cfiet.solicitudes.aplicacion.output.AlmacenamientoAnexosIntP
 import com.unicauca.cfiet.solicitudes.infraestructura.configuracion.lectorArchivos.almacenador.AlmacenadorArchivos;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -33,11 +35,43 @@ public class AlmacenamientoAnexosImplAdaptador implements AlmacenamientoAnexosIn
         if (!UUID.matcher(uuidSolicitudAcademica).matches() || !NOMBRE_GENERADO.matcher(nombreArchivo).matches())
             throw new IllegalArgumentException("Nombre de archivo o carpeta no permitido");
         String prefijo = nombreArchivo.substring(0, nombreArchivo.lastIndexOf('.'));
+        String url;
         try {
-            return almacenador.guardarArchivo(uuidSolicitudAcademica, new ArchivoEnMemoria(nombreArchivo, contenido), prefijo);
+            url = almacenador.guardarArchivo(uuidSolicitudAcademica, new ArchivoEnMemoria(nombreArchivo, contenido), prefijo);
         } catch (IOException | RuntimeException error) {
             borrarRestos(uuidSolicitudAcademica, prefijo);
             throw error instanceof IOException io ? new UncheckedIOException(io) : (RuntimeException) error;
+        }
+        if (TransactionSynchronizationManager.isSynchronizationActive())
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCompletion(int estado) {
+                    if (estado == STATUS_ROLLED_BACK) eliminarSinFallar(url);
+                }
+            });
+        return url;
+    }
+
+    @Override
+    public void eliminarTrasConfirmar(String urlArchivo) {
+        if (urlArchivo == null) return;
+        rutaEnDisco(urlArchivo);
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            eliminar(urlArchivo);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                eliminarSinFallar(urlArchivo);
+            }
+        });
+    }
+
+    private void eliminarSinFallar(String urlArchivo) {
+        try {
+            eliminar(urlArchivo);
+        } catch (RuntimeException ignorado) {
         }
     }
 

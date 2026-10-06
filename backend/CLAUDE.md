@@ -53,8 +53,8 @@ dominio/            no depende de nada de Spring ni de JPA
 │                     @SuperBuilder si hay herencia) pero SIN anotaciones de
 │                     persistencia ni de validación — nunca ven JPA
 ├── casosdeuso/       *CUImplAdaptador — implementa los puertos de entrada
-├── servicios/        reglas de dominio que no son un caso de uso (MaquinaEtapas
-│                     de los procesos académicos), sin Spring ni JPA
+├── servicios/        reglas de dominio que no son un caso de uso (MaquinaEtapas,
+│                     ValidadorActorSolicitud, ValidadorArchivoAdjunto), sin Spring ni JPA
 └── helper/constantes/ constantes compartidas (roles, etc.)
 
 aplicacion/          interfaces únicamente — son los "puertos"
@@ -79,7 +79,8 @@ infraestructura/
     │   │                        (toDominio/toEntidad), son @Service
     │   └── gateway/        *GatewayImplAdaptador — implementa los *GatewayIntPuerto
     ├── almacenamiento/  AlmacenamientoAnexosImplAdaptador (archivos de anexos
-    │                     académicos en disco, reutiliza AlmacenadorArchivos)
+    │                     académicos y de la Resolución escaneada en disco,
+    │                     reutiliza AlmacenadorArchivos)
     └── manejadorExcepciones/
         ├── RestApiExcepcion    @ControllerAdvice, un @ExceptionHandler por excepción propia
         ├── MensajesError       constantes de texto con %s, se usan con String.format
@@ -288,13 +289,28 @@ la información académica. El Decano, como en Julián, es un `Usuario` con rol
 ninguna FK de la extensión apunta al Decano (el historial apunta a
 `usuarios`).
 
-## Solicitudes académicas, historial y anexos
+## Solicitudes académicas, historial, anexos y Resolución
 
 - `SolicitudAcademicaCUImplAdaptador` crea la solicitud y cambia su etapa con
   `MaquinaEtapas`. `AnexoAcademicoCUImplAdaptador` adjunta, descarga y
-  revisa anexos obligatorios. Los dos validan el actor con
+  revisa anexos obligatorios. `ResolucionAcademicaCUImplAdaptador` adjunta y
+  descarga el escaneo de la Resolución. Los tres validan el actor con
   `ValidadorActorSolicitud` (`dominio/servicios`): rol real del usuario,
-  Estudiante dueño de la solicitud, Funcionario asignado al tipo.
+  Estudiante dueño de la solicitud, Funcionario asignado al tipo. Anexos y
+  Resolución validan el archivo con `ValidadorArchivoAdjunto` (vacío, 5 MB,
+  extensión permitida y firma del contenido).
+- `cambiarEtapa(uuid, accion, actor, observacion)` no recibe del llamador si
+  hay escaneo, recibo o comprobante: lo consulta en la base
+  (`RESOLUCION_ACADEMICA` y los anexos `Recibo de pago` y `Comprobante de
+  pago` de `ANEXO_ACADEMICO`) y se lo pasa a `MaquinaEtapas`. Por eso el
+  archivo se sube antes de pedir la transición.
+- La Resolución (solo cancelaciones de matrícula y de asignatura) la sube el
+  Funcionario asignado, en PDF, en `RADICADA`, `APROBADA_POR_DECANO` o
+  `RECHAZADA_POR_DECANO`. Hay una por solicitud (PK `SolicitudAcademica_uuid`):
+  subirla otra vez reemplaza la fila y el archivo viejo se borra al confirmar
+  la transacción. En `APROBADA` o `RECHAZADA` ya no se sube ni se reemplaza.
+  La descargan el Estudiante dueño solo en etapa final, y el Funcionario
+  asignado y el Decano en cualquier etapa.
 - `ValidadorActorSolicitud` usa `UsuarioGatewayIntPuerto.getUsuario` de
   Julián, cuyo mapper recorre `UsuarioEntidad.logs` (perezosa). Por eso estos
   casos de uso deben correr dentro de una transacción: el método del
@@ -306,8 +322,12 @@ ninguna FK de la extensión apunta al Decano (el historial apunta a
 - Los archivos de anexos se escriben con `AlmacenadorArchivos` en
   `${app.uploads.base-path}/anexos/<uuidSolicitud>/<uuidAnexo>_<fecha>.<ext>`;
   el nombre del usuario nunca llega al disco y solo queda en
-  `ANEXO_ACADEMICO.nombreArchivo`. Si falla el guardado en base, el caso de
-  uso borra el archivo; si falla el disco, no se crea la ficha.
+  `ANEXO_ACADEMICO.nombreArchivo`. La Resolución usa la misma carpeta, con
+  nombre `<uuid>_<fecha>.pdf` generado por el sistema. Si falla el guardado
+  en base, el caso de uso borra el archivo; si falla el disco, no se crea la
+  ficha. Dentro de una transacción, `AlmacenamientoAnexosImplAdaptador` borra
+  el archivo nuevo si la transacción se revierte, y `eliminarTrasConfirmar`
+  borra el archivo reemplazado solo después del commit.
 
 ## Crear Estudiante y Funcionario Académico
 

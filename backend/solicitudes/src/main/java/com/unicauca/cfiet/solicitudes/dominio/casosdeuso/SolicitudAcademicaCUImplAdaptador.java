@@ -1,9 +1,11 @@
 package com.unicauca.cfiet.solicitudes.dominio.casosdeuso;
 
 import com.unicauca.cfiet.solicitudes.aplicacion.input.SolicitudAcademicaCUIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.output.AnexoAcademicoGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.EstudianteGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.EtapaSolicitudAcademicaGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.ExcepcionesFormateadorIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.output.ResolucionAcademicaGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.SolicitudAcademicaGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.TipoSolicitudAcademicaGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.UsuarioGatewayIntPuerto;
@@ -14,7 +16,12 @@ import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepcione
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+
+import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.COMPROBANTE_PAGO;
+import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.RECIBO_PAGO;
 
 public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIntPuerto {
     private static final String SOLICITUD_ACADEMICA = "Solicitud académica";
@@ -28,6 +35,8 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
     private final EstudianteGatewayIntPuerto estudianteGateway;
     private final TipoSolicitudAcademicaGatewayIntPuerto tipoSolicitudGateway;
     private final EtapaSolicitudAcademicaGatewayIntPuerto etapaGateway;
+    private final ResolucionAcademicaGatewayIntPuerto resolucionGateway;
+    private final AnexoAcademicoGatewayIntPuerto anexoGateway;
     private final ValidadorActorSolicitud validadorActor;
     private final MaquinaEtapas maquinaEtapas;
     private final ExcepcionesFormateadorIntPuerto formateadorExcepciones;
@@ -37,6 +46,8 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
                                              EstudianteGatewayIntPuerto estudianteGateway,
                                              TipoSolicitudAcademicaGatewayIntPuerto tipoSolicitudGateway,
                                              EtapaSolicitudAcademicaGatewayIntPuerto etapaGateway,
+                                             ResolucionAcademicaGatewayIntPuerto resolucionGateway,
+                                             AnexoAcademicoGatewayIntPuerto anexoGateway,
                                              UsuarioGatewayIntPuerto usuarioGateway,
                                              MaquinaEtapas maquinaEtapas,
                                              ExcepcionesFormateadorIntPuerto formateadorExcepciones,
@@ -45,6 +56,8 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
         this.estudianteGateway = estudianteGateway;
         this.tipoSolicitudGateway = tipoSolicitudGateway;
         this.etapaGateway = etapaGateway;
+        this.resolucionGateway = resolucionGateway;
+        this.anexoGateway = anexoGateway;
         this.validadorActor = new ValidadorActorSolicitud(usuarioGateway, formateadorExcepciones);
         this.maquinaEtapas = maquinaEtapas;
         this.formateadorExcepciones = formateadorExcepciones;
@@ -78,7 +91,7 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
     }
 
     @Override
-    public SolicitudAcademica cambiarEtapa(String uuidSolicitudAcademica, AccionEtapa accion, ActorSolicitud actor, EntregaTransicion entrega) {
+    public SolicitudAcademica cambiarEtapa(String uuidSolicitudAcademica, AccionEtapa accion, ActorSolicitud actor, String observacionRecibida) {
         SolicitudAcademica solicitud = tieneTexto(uuidSolicitudAcademica) ? gateway.getPorUuid(uuidSolicitudAcademica) : null;
         if (solicitud == null)
             formateadorExcepciones.lanzarEntidadNoExiste(String.format(
@@ -87,20 +100,34 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
             formateadorExcepciones.lanzarReglaNegocioViolada(MensajesError.DATOS_TRANSICION_INCOMPLETOS);
 
         validadorActor.validar(solicitud, actor);
-        String observacion = observacionDe(entrega);
+        String observacion = observacionDe(observacionRecibida);
 
         TipoProcesoAcademico proceso = procesoDe(solicitud.getTipoSolicitudAcademica());
         ResultadoTransicion resultado = maquinaEtapas.transicionar(
-                proceso, solicitud.getEtapa().getCodigo(), accion, actor.getRol(), entrega);
+                proceso, solicitud.getEtapa().getCodigo(), accion, actor.getRol(), evidencias(solicitud, observacion));
         solicitud.setEtapa(etapaDe(solicitud.getTipoSolicitudAcademica(), resultado.getEtapaSiguiente()));
 
         LocalDateTime ahora = LocalDateTime.now(reloj);
         return gateway.actualizarEtapa(solicitud, historial(solicitud, actor.getUuidUsuario(), accion, observacion, ahora));
     }
 
-    private String observacionDe(EntregaTransicion entrega) {
-        if (entrega == null || !tieneTexto(entrega.getObservacion())) return null;
-        String observacion = entrega.getObservacion().trim();
+    private EntregaTransicion evidencias(SolicitudAcademica solicitud, String observacion) {
+        String uuidSolicitud = solicitud.getUuidSolicitudAcademica();
+        Set<String> anexos = anexoGateway.getPorSolicitud(uuidSolicitud).stream()
+                .filter(anexo -> anexo.getTipoAnexoAcademico() != null)
+                .map(anexo -> anexo.getTipoAnexoAcademico().getNombre())
+                .collect(Collectors.toSet());
+        return EntregaTransicion.builder()
+                .observacion(observacion)
+                .resolucion(resolucionGateway.existePorSolicitud(uuidSolicitud))
+                .recibo(anexos.contains(RECIBO_PAGO))
+                .comprobante(anexos.contains(COMPROBANTE_PAGO))
+                .build();
+    }
+
+    private String observacionDe(String observacionRecibida) {
+        if (!tieneTexto(observacionRecibida)) return null;
+        String observacion = observacionRecibida.trim();
         if (observacion.length() > MAXIMO_OBSERVACION)
             formateadorExcepciones.lanzarMalFormato(String.format(MensajesError.OBSERVACION_MUY_LARGA, MAXIMO_OBSERVACION));
         return observacion;

@@ -7,4 +7,6 @@ public interface AlmacenamientoAnexosIntPuerto {
     byte[] leer(String urlArchivo);
 
     void eliminar(String urlArchivo);
+
+    void eliminarTrasConfirmar(String urlArchivo);
 }

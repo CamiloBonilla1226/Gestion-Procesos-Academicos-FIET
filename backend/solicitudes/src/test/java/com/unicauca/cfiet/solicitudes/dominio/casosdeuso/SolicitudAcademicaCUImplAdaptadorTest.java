@@ -1,7 +1,9 @@
 package com.unicauca.cfiet.solicitudes.dominio.casosdeuso;
 
+import com.unicauca.cfiet.solicitudes.aplicacion.output.AnexoAcademicoGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.EstudianteGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.EtapaSolicitudAcademicaGatewayIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.output.ResolucionAcademicaGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.SolicitudAcademicaGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.TipoSolicitudAcademicaGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.UsuarioGatewayIntPuerto;
@@ -25,6 +27,8 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.COMPROBANTE_PAGO;
+import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.RECIBO_PAGO;
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -59,12 +63,25 @@ class SolicitudAcademicaCUImplAdaptadorTest {
     @Mock
     private UsuarioGatewayIntPuerto usuarioGateway;
 
+    @Mock
+    private ResolucionAcademicaGatewayIntPuerto resolucionGateway;
+
+    @Mock
+    private AnexoAcademicoGatewayIntPuerto anexoGateway;
+
     private List<EtapaSolicitudAcademica> etapas;
 
     private SolicitudAcademicaCUImplAdaptador casoDeUso(Clock reloj) {
         ExcepcionesFormateadorImplAdaptador formateador = new ExcepcionesFormateadorImplAdaptador();
         return new SolicitudAcademicaCUImplAdaptador(gateway, estudianteGateway, tipoSolicitudGateway, etapaGateway,
-                usuarioGateway, new MaquinaEtapas(formateador), formateador, reloj);
+                resolucionGateway, anexoGateway, usuarioGateway, new MaquinaEtapas(formateador), formateador, reloj);
+    }
+
+    private AnexoAcademico anexo(String nombreTipo) {
+        return AnexoAcademico.builder()
+                .uuidAnexoAcademico("anexo-" + nombreTipo)
+                .tipoAnexoAcademico(nombreTipo == null ? null : TipoAnexoAcademico.builder().uuidTipoAnexoAcademico("tipo-" + nombreTipo).nombre(nombreTipo).build())
+                .build();
     }
 
     private SolicitudAcademicaCUImplAdaptador casoDeUso() {
@@ -281,7 +298,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoMatricula(), EN_REVISION_DECANO));
 
         SolicitudAcademica resultado = casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.RECHAZAR_DECANO,
-                actor(DECANO, RolEtiquetaEtapa.DECANO), EntregaTransicion.builder().observacion("  No procede  ").build());
+                actor(DECANO, RolEtiquetaEtapa.DECANO), "  No procede  ");
 
         ArgumentCaptor<HistorialSolicitudAcademica> historial = ArgumentCaptor.forClass(HistorialSolicitudAcademica.class);
         verify(gateway).actualizarEtapa(any(), historial.capture());
@@ -293,9 +310,10 @@ class SolicitudAcademicaCUImplAdaptadorTest {
     @Test
     void elEstudianteDuenioSubeElComprobanteDelSupletorio() {
         when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoSupletorio(), PENDIENTE_PAGO));
+        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(anexo(COMPROBANTE_PAGO)));
 
         SolicitudAcademica resultado = casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.SUBIR_COMPROBANTE,
-                actor(ESTUDIANTE, RolEtiquetaEtapa.ESTUDIANTE), EntregaTransicion.builder().comprobante(true).build());
+                actor(ESTUDIANTE, RolEtiquetaEtapa.ESTUDIANTE), null);
 
         assertEquals(EN_VERIFICACION_PAGO, resultado.getEtapa().getCodigo());
         verify(gateway).actualizarEtapa(any(), any());
@@ -329,7 +347,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
 
         ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
                 () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.SUBIR_COMPROBANTE, actor(OTRO_ESTUDIANTE, RolEtiquetaEtapa.ESTUDIANTE),
-                        EntregaTransicion.builder().comprobante(true).build()));
+                        null));
 
         assertTrue(error.getMessage().contains("no pertenece"));
         verificarQueNoSeGuardoNada();
@@ -352,7 +370,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
 
         ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
                 () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.ENVIAR_RECIBO, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO),
-                        EntregaTransicion.builder().recibo(true).build()));
+                        null));
 
         assertTrue(error.getMessage().contains("no está permitida"));
         verificarQueNoSeGuardoNada();
@@ -364,7 +382,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
 
         assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
                 () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.RECHAZAR_COMPROBANTE, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO),
-                        EntregaTransicion.builder().observacion("x").build()));
+                        "x"));
         verificarQueNoSeGuardoNada();
     }
 
@@ -374,7 +392,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
 
         ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
                 () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.RECHAZAR_FUNCIONARIO, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO),
-                        EntregaTransicion.builder().observacion("No cumple").build()));
+                        "No cumple"));
 
         assertTrue(error.getMessage().contains("Resolución"));
         verificarQueNoSeGuardoNada();
@@ -386,7 +404,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
 
         assertThrows(ErrorMalFormatoExcepcion.class,
                 () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.RECHAZAR_DECANO, actor(DECANO, RolEtiquetaEtapa.DECANO),
-                        EntregaTransicion.builder().observacion("x".repeat(501)).build()));
+                        "x".repeat(501)));
         verificarQueNoSeGuardoNada();
     }
 
@@ -428,6 +446,77 @@ class SolicitudAcademicaCUImplAdaptadorTest {
 
         assertThrows(ErrorEntidadNoExisteExcepcion.class,
                 () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.REMITIR_DECANO, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null));
+        verificarQueNoSeGuardoNada();
+    }
+
+    @Test
+    void conLaResolucionEnLaBaseElFuncionarioRechaza() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoMatricula(), RADICADA));
+        when(resolucionGateway.existePorSolicitud(SOLICITUD)).thenReturn(true);
+
+        SolicitudAcademica resultado = casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.RECHAZAR_FUNCIONARIO,
+                actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), "No cumple");
+
+        assertEquals(RECHAZADA, resultado.getEtapa().getCodigo());
+        verify(resolucionGateway).existePorSolicitud(SOLICITUD);
+    }
+
+    @Test
+    void enviarLaRespuestaSinResolucionEnLaBaseNoGuardaNada() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoMatricula(), APROBADA_POR_DECANO));
+        when(resolucionGateway.existePorSolicitud(SOLICITUD)).thenReturn(false);
+
+        ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
+                () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.ENVIAR_RESPUESTA, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null));
+
+        assertTrue(error.getMessage().contains("Resolución"));
+        verificarQueNoSeGuardoNada();
+    }
+
+    @Test
+    void conElReciboEnLaBaseElFuncionarioEnviaElRecibo() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoSupletorio(), APROBADA_POR_DECANO));
+        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(anexo(RECIBO_PAGO)));
+
+        SolicitudAcademica resultado = casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.ENVIAR_RECIBO,
+                actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null);
+
+        assertEquals(PENDIENTE_PAGO, resultado.getEtapa().getCodigo());
+    }
+
+    @Test
+    void unAnexoDeOtroTipoNoCuentaComoRecibo() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoSupletorio(), APROBADA_POR_DECANO));
+        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(anexo(COMPROBANTE_PAGO), anexo(null)));
+
+        ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
+                () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.ENVIAR_RECIBO, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null));
+
+        assertTrue(error.getMessage().contains("recibo"));
+        verificarQueNoSeGuardoNada();
+    }
+
+    @Test
+    void subirElComprobanteSinComprobanteEnLaBaseNoGuardaNada() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoSupletorio(), PENDIENTE_PAGO));
+        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of());
+
+        ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
+                () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.SUBIR_COMPROBANTE, actor(ESTUDIANTE, RolEtiquetaEtapa.ESTUDIANTE), null));
+
+        assertTrue(error.getMessage().contains("comprobante"));
+        verificarQueNoSeGuardoNada();
+    }
+
+    @Test
+    void laResolucionEnLaBaseNoEximeDeLaObservacion() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoMatricula(), RADICADA));
+        when(resolucionGateway.existePorSolicitud(SOLICITUD)).thenReturn(true);
+
+        ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
+                () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.RECHAZAR_FUNCIONARIO, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), "   "));
+
+        assertTrue(error.getMessage().contains("observación"));
         verificarQueNoSeGuardoNada();
     }
 }
