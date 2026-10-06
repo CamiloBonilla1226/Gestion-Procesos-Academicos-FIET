@@ -1,5 +1,7 @@
 package com.unicauca.cfiet.solicitudes.dominio.casosdeuso;
 
+import com.unicauca.cfiet.solicitudes.aplicacion.input.LogCUIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.output.AlmacenamientoAnexosIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.AnexoAcademicoGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.EstudianteGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.EtapaSolicitudAcademicaGatewayIntPuerto;
@@ -17,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -47,6 +50,8 @@ class SolicitudAcademicaCUImplAdaptadorTest {
     private static final String OTRO_FUNCIONARIO = "fa-2";
     private static final String DECANO = "dec-1";
     private static final String SOLICITUD = "sol-1";
+    private static final String TOKEN = "token-jwt";
+    private static final String RUTA_ESCANEO = "/api/anexos/sol-1/escaneo.pdf";
 
     @Mock
     private SolicitudAcademicaGatewayIntPuerto gateway;
@@ -69,12 +74,26 @@ class SolicitudAcademicaCUImplAdaptadorTest {
     @Mock
     private AnexoAcademicoGatewayIntPuerto anexoGateway;
 
+    @Mock
+    private AlmacenamientoAnexosIntPuerto almacenamiento;
+
+    @Mock
+    private LogCUIntPuerto log;
+
     private List<EtapaSolicitudAcademica> etapas;
 
     private SolicitudAcademicaCUImplAdaptador casoDeUso(Clock reloj) {
         ExcepcionesFormateadorImplAdaptador formateador = new ExcepcionesFormateadorImplAdaptador();
         return new SolicitudAcademicaCUImplAdaptador(gateway, estudianteGateway, tipoSolicitudGateway, etapaGateway,
-                resolucionGateway, anexoGateway, usuarioGateway, new MaquinaEtapas(formateador), formateador, reloj);
+                resolucionGateway, anexoGateway, usuarioGateway, almacenamiento, new MaquinaEtapas(formateador), formateador, log, reloj);
+    }
+
+    private ResolucionAcademica escaneo() {
+        return ResolucionAcademica.builder()
+                .solicitudAcademica(SolicitudAcademica.builder().uuidSolicitudAcademica(SOLICITUD).build())
+                .urlArchivo(RUTA_ESCANEO)
+                .nombreArchivo("resolucion.pdf")
+                .build();
     }
 
     private AnexoAcademico anexo(String nombreTipo) {
@@ -156,6 +175,9 @@ class SolicitudAcademicaCUImplAdaptadorTest {
     private void verificarQueNoSeGuardoNada() {
         verify(gateway, never()).crear(any(), any());
         verify(gateway, never()).actualizarEtapa(any(), any());
+        verify(resolucionGateway, never()).eliminarPorSolicitud(any());
+        verify(almacenamiento, never()).eliminarTrasConfirmar(any());
+        verify(log, never()).crearLog(any(), any(), any());
     }
 
     private void prepararCreacion(TipoSolicitudAcademica tipo) {
@@ -168,7 +190,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         prepararCreacion(tipoMatricula());
         when(gateway.getUltimoRadicado("2026-CM-")).thenReturn(null);
 
-        SolicitudAcademica creada = casoDeUso().crearSolicitud(ESTUDIANTE, TIPO_CM);
+        SolicitudAcademica creada = casoDeUso().crearSolicitud(ESTUDIANTE, TIPO_CM, TOKEN);
 
         ArgumentCaptor<SolicitudAcademica> solicitud = ArgumentCaptor.forClass(SolicitudAcademica.class);
         ArgumentCaptor<HistorialSolicitudAcademica> historial = ArgumentCaptor.forClass(HistorialSolicitudAcademica.class);
@@ -195,7 +217,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         prepararCreacion(tipoMatricula());
         when(gateway.getUltimoRadicado("2026-CM-")).thenReturn("2026-CM-0041");
 
-        assertEquals("2026-CM-0042", casoDeUso().crearSolicitud(ESTUDIANTE, TIPO_CM).getRadicado());
+        assertEquals("2026-CM-0042", casoDeUso().crearSolicitud(ESTUDIANTE, TIPO_CM, TOKEN).getRadicado());
     }
 
     @Test
@@ -204,7 +226,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         prepararCreacion(asignatura);
         when(gateway.getUltimoRadicado("2026-CA-")).thenReturn("2026-CA-0999");
 
-        assertEquals("2026-CA-1000", casoDeUso().crearSolicitud(ESTUDIANTE, TIPO_CA).getRadicado());
+        assertEquals("2026-CA-1000", casoDeUso().crearSolicitud(ESTUDIANTE, TIPO_CA, TOKEN).getRadicado());
     }
 
     @Test
@@ -212,7 +234,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         prepararCreacion(tipoMatricula());
         when(gateway.getUltimoRadicado("2027-CM-")).thenReturn(null);
 
-        SolicitudAcademica creada = casoDeUso(reloj("2027-01-01T06:00:00Z")).crearSolicitud(ESTUDIANTE, TIPO_CM);
+        SolicitudAcademica creada = casoDeUso(reloj("2027-01-01T06:00:00Z")).crearSolicitud(ESTUDIANTE, TIPO_CM, TOKEN);
 
         assertEquals("2027-CM-0001", creada.getRadicado());
         verify(gateway, never()).getUltimoRadicado("2026-CM-");
@@ -223,7 +245,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         prepararCreacion(tipoMatricula());
         when(gateway.getUltimoRadicado("2026-CM-")).thenReturn("2026-CM-0310");
 
-        SolicitudAcademica creada = casoDeUso(reloj("2027-01-01T03:00:00Z")).crearSolicitud(ESTUDIANTE, TIPO_CM);
+        SolicitudAcademica creada = casoDeUso(reloj("2027-01-01T03:00:00Z")).crearSolicitud(ESTUDIANTE, TIPO_CM, TOKEN);
 
         assertEquals("2026-CM-0311", creada.getRadicado());
     }
@@ -233,7 +255,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         prepararCreacion(tipoSupletorio());
         when(gateway.getUltimoRadicado("2026-ES-")).thenReturn(null);
 
-        assertEquals("2026-ES-0001", casoDeUso().crearSolicitud(ESTUDIANTE, TIPO_ES).getRadicado());
+        assertEquals("2026-ES-0001", casoDeUso().crearSolicitud(ESTUDIANTE, TIPO_ES, TOKEN).getRadicado());
         verify(gateway).getUltimoRadicado("2026-ES-");
         verify(gateway, never()).getUltimoRadicado("2026-CM-");
         verify(gateway, never()).getUltimoRadicado("2026-CA-");
@@ -243,7 +265,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
     void crearConEstudianteInexistenteNoGuardaNada() {
         when(estudianteGateway.getPorUuid("no-existe")).thenReturn(null);
 
-        assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso().crearSolicitud("no-existe", TIPO_CM));
+        assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso().crearSolicitud("no-existe", TIPO_CM, TOKEN));
         verificarQueNoSeGuardoNada();
     }
 
@@ -252,7 +274,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         when(estudianteGateway.getPorUuid(ESTUDIANTE)).thenReturn(estudiante(ESTUDIANTE));
         when(tipoSolicitudGateway.getPorUuid("no-existe")).thenReturn(null);
 
-        assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso().crearSolicitud(ESTUDIANTE, "no-existe"));
+        assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso().crearSolicitud(ESTUDIANTE, "no-existe", TOKEN));
         verificarQueNoSeGuardoNada();
     }
 
@@ -260,7 +282,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
     void crearConTipoQueNoEsUnProcesoAcademicoNoGuardaNada() {
         prepararCreacion(tipo("tipo-otro", "Homologación"));
 
-        assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> casoDeUso().crearSolicitud(ESTUDIANTE, "tipo-otro"));
+        assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> casoDeUso().crearSolicitud(ESTUDIANTE, "tipo-otro", TOKEN));
         verificarQueNoSeGuardoNada();
     }
 
@@ -269,7 +291,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         prepararCreacion(tipoMatricula());
         etapas.removeIf(e -> e.getCodigo().equals(RADICADA));
 
-        assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso().crearSolicitud(ESTUDIANTE, TIPO_CM));
+        assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso().crearSolicitud(ESTUDIANTE, TIPO_CM, TOKEN));
         verificarQueNoSeGuardoNada();
     }
 
@@ -279,7 +301,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         when(gateway.getPorUuid(SOLICITUD)).thenReturn(actual);
 
         SolicitudAcademica resultado = casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.REMITIR_DECANO,
-                actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null);
+                actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null, TOKEN);
 
         ArgumentCaptor<SolicitudAcademica> solicitud = ArgumentCaptor.forClass(SolicitudAcademica.class);
         ArgumentCaptor<HistorialSolicitudAcademica> historial = ArgumentCaptor.forClass(HistorialSolicitudAcademica.class);
@@ -298,7 +320,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoMatricula(), EN_REVISION_DECANO));
 
         SolicitudAcademica resultado = casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.RECHAZAR_DECANO,
-                actor(DECANO, RolEtiquetaEtapa.DECANO), "  No procede  ");
+                actor(DECANO, RolEtiquetaEtapa.DECANO), "  No procede  ", TOKEN);
 
         ArgumentCaptor<HistorialSolicitudAcademica> historial = ArgumentCaptor.forClass(HistorialSolicitudAcademica.class);
         verify(gateway).actualizarEtapa(any(), historial.capture());
@@ -313,7 +335,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(anexo(COMPROBANTE_PAGO)));
 
         SolicitudAcademica resultado = casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.SUBIR_COMPROBANTE,
-                actor(ESTUDIANTE, RolEtiquetaEtapa.ESTUDIANTE), null);
+                actor(ESTUDIANTE, RolEtiquetaEtapa.ESTUDIANTE), null, TOKEN);
 
         assertEquals(EN_VERIFICACION_PAGO, resultado.getEtapa().getCodigo());
         verify(gateway).actualizarEtapa(any(), any());
@@ -324,7 +346,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoMatricula(), RADICADA));
 
         ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
-                () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.REMITIR_DECANO, actor(ESTUDIANTE, RolEtiquetaEtapa.ESTUDIANTE), null));
+                () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.REMITIR_DECANO, actor(ESTUDIANTE, RolEtiquetaEtapa.ESTUDIANTE), null, TOKEN));
 
         assertTrue(error.getMessage().contains("no puede ejecutar"));
         verificarQueNoSeGuardoNada();
@@ -335,7 +357,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoMatricula(), EN_REVISION_DECANO));
 
         ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
-                () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.APROBAR_DECANO, actor(FUNCIONARIO, RolEtiquetaEtapa.DECANO), null));
+                () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.APROBAR_DECANO, actor(FUNCIONARIO, RolEtiquetaEtapa.DECANO), null, TOKEN));
 
         assertTrue(error.getMessage().contains("no tiene el rol Decano"));
         verificarQueNoSeGuardoNada();
@@ -347,7 +369,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
 
         ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
                 () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.SUBIR_COMPROBANTE, actor(OTRO_ESTUDIANTE, RolEtiquetaEtapa.ESTUDIANTE),
-                        null));
+                        null, TOKEN));
 
         assertTrue(error.getMessage().contains("no pertenece"));
         verificarQueNoSeGuardoNada();
@@ -358,7 +380,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoMatricula(), RADICADA));
 
         ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
-                () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.REMITIR_DECANO, actor(OTRO_FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null));
+                () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.REMITIR_DECANO, actor(OTRO_FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null, TOKEN));
 
         assertTrue(error.getMessage().contains("no está asignado"));
         verificarQueNoSeGuardoNada();
@@ -370,7 +392,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
 
         ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
                 () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.ENVIAR_RECIBO, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO),
-                        null));
+                        null, TOKEN));
 
         assertTrue(error.getMessage().contains("no está permitida"));
         verificarQueNoSeGuardoNada();
@@ -382,7 +404,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
 
         assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
                 () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.RECHAZAR_COMPROBANTE, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO),
-                        "x"));
+                        "x", TOKEN));
         verificarQueNoSeGuardoNada();
     }
 
@@ -392,7 +414,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
 
         ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
                 () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.RECHAZAR_FUNCIONARIO, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO),
-                        "No cumple"));
+                        "No cumple", TOKEN));
 
         assertTrue(error.getMessage().contains("Resolución"));
         verificarQueNoSeGuardoNada();
@@ -404,7 +426,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
 
         assertThrows(ErrorMalFormatoExcepcion.class,
                 () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.RECHAZAR_DECANO, actor(DECANO, RolEtiquetaEtapa.DECANO),
-                        "x".repeat(501)));
+                        "x".repeat(501), TOKEN));
         verificarQueNoSeGuardoNada();
     }
 
@@ -413,7 +435,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         when(gateway.getPorUuid("no-existe")).thenReturn(null);
 
         assertThrows(ErrorEntidadNoExisteExcepcion.class,
-                () -> casoDeUso().cambiarEtapa("no-existe", AccionEtapa.APROBAR_DECANO, actor(DECANO, RolEtiquetaEtapa.DECANO), null));
+                () -> casoDeUso().cambiarEtapa("no-existe", AccionEtapa.APROBAR_DECANO, actor(DECANO, RolEtiquetaEtapa.DECANO), null, TOKEN));
         verificarQueNoSeGuardoNada();
     }
 
@@ -423,7 +445,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         when(usuarioGateway.getUsuario("no-existe")).thenReturn(null);
 
         assertThrows(ErrorEntidadNoExisteExcepcion.class,
-                () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.APROBAR_DECANO, actor("no-existe", RolEtiquetaEtapa.DECANO), null));
+                () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.APROBAR_DECANO, actor("no-existe", RolEtiquetaEtapa.DECANO), null, TOKEN));
         verificarQueNoSeGuardoNada();
     }
 
@@ -433,9 +455,9 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         SolicitudAcademicaCUImplAdaptador casoDeUso = casoDeUso();
 
         assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
-                () -> casoDeUso.cambiarEtapa(SOLICITUD, AccionEtapa.APROBAR_DECANO, null, null));
+                () -> casoDeUso.cambiarEtapa(SOLICITUD, AccionEtapa.APROBAR_DECANO, null, null, TOKEN));
         assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
-                () -> casoDeUso.cambiarEtapa(SOLICITUD, null, actor(DECANO, RolEtiquetaEtapa.DECANO), null));
+                () -> casoDeUso.cambiarEtapa(SOLICITUD, null, actor(DECANO, RolEtiquetaEtapa.DECANO), null, TOKEN));
         verificarQueNoSeGuardoNada();
     }
 
@@ -445,7 +467,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         etapas.removeIf(e -> e.getCodigo().equals(EN_REVISION_DECANO));
 
         assertThrows(ErrorEntidadNoExisteExcepcion.class,
-                () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.REMITIR_DECANO, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null));
+                () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.REMITIR_DECANO, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null, TOKEN));
         verificarQueNoSeGuardoNada();
     }
 
@@ -455,7 +477,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         when(resolucionGateway.existePorSolicitud(SOLICITUD)).thenReturn(true);
 
         SolicitudAcademica resultado = casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.RECHAZAR_FUNCIONARIO,
-                actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), "No cumple");
+                actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), "No cumple", TOKEN);
 
         assertEquals(RECHAZADA, resultado.getEtapa().getCodigo());
         verify(resolucionGateway).existePorSolicitud(SOLICITUD);
@@ -467,7 +489,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         when(resolucionGateway.existePorSolicitud(SOLICITUD)).thenReturn(false);
 
         ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
-                () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.ENVIAR_RESPUESTA, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null));
+                () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.ENVIAR_RESPUESTA, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null, TOKEN));
 
         assertTrue(error.getMessage().contains("Resolución"));
         verificarQueNoSeGuardoNada();
@@ -479,7 +501,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(anexo(RECIBO_PAGO)));
 
         SolicitudAcademica resultado = casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.ENVIAR_RECIBO,
-                actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null);
+                actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null, TOKEN);
 
         assertEquals(PENDIENTE_PAGO, resultado.getEtapa().getCodigo());
     }
@@ -490,7 +512,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(anexo(COMPROBANTE_PAGO), anexo(null)));
 
         ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
-                () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.ENVIAR_RECIBO, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null));
+                () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.ENVIAR_RECIBO, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null, TOKEN));
 
         assertTrue(error.getMessage().contains("recibo"));
         verificarQueNoSeGuardoNada();
@@ -502,7 +524,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of());
 
         ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
-                () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.SUBIR_COMPROBANTE, actor(ESTUDIANTE, RolEtiquetaEtapa.ESTUDIANTE), null));
+                () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.SUBIR_COMPROBANTE, actor(ESTUDIANTE, RolEtiquetaEtapa.ESTUDIANTE), null, TOKEN));
 
         assertTrue(error.getMessage().contains("comprobante"));
         verificarQueNoSeGuardoNada();
@@ -514,9 +536,164 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         when(resolucionGateway.existePorSolicitud(SOLICITUD)).thenReturn(true);
 
         ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
-                () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.RECHAZAR_FUNCIONARIO, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), "   "));
+                () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.RECHAZAR_FUNCIONARIO, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), "   ", TOKEN));
 
         assertTrue(error.getMessage().contains("observación"));
         verificarQueNoSeGuardoNada();
+    }
+
+    @Test
+    void remitirAlDecanoConEscaneoBorraLaFichaYElArchivoTrasConfirmar() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoMatricula(), RADICADA));
+        when(resolucionGateway.getPorSolicitud(SOLICITUD)).thenReturn(escaneo());
+
+        SolicitudAcademica resultado = casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.REMITIR_DECANO,
+                actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null, TOKEN);
+
+        assertEquals(EN_REVISION_DECANO, resultado.getEtapa().getCodigo());
+        InOrder orden = inOrder(gateway, resolucionGateway, almacenamiento, log);
+        orden.verify(gateway).actualizarEtapa(any(), any());
+        orden.verify(resolucionGateway).eliminarPorSolicitud(SOLICITUD);
+        orden.verify(almacenamiento).eliminarTrasConfirmar(RUTA_ESCANEO);
+        orden.verify(log).crearLog(eq("Cambiar etapa de solicitud académica"), contains("se retiró el escaneo"), eq(TOKEN));
+        verify(almacenamiento, never()).eliminar(any());
+    }
+
+    @Test
+    void remitirAlDecanoSinEscaneoNoBorraNada() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoMatricula(), RADICADA));
+        when(resolucionGateway.getPorSolicitud(SOLICITUD)).thenReturn(null);
+
+        casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.REMITIR_DECANO, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null, TOKEN);
+
+        verify(gateway).actualizarEtapa(any(), any());
+        verify(resolucionGateway, never()).eliminarPorSolicitud(any());
+        verify(almacenamiento, never()).eliminarTrasConfirmar(any());
+    }
+
+    @Test
+    void siElCambioDeEtapaFallaNoSeBorraElEscaneo() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoMatricula(), RADICADA));
+        when(resolucionGateway.getPorSolicitud(SOLICITUD)).thenReturn(escaneo());
+        when(gateway.actualizarEtapa(any(), any())).thenThrow(new IllegalStateException("base caida"));
+
+        assertThrows(IllegalStateException.class, () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.REMITIR_DECANO,
+                actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null, TOKEN));
+
+        verify(resolucionGateway, never()).eliminarPorSolicitud(any());
+        verify(almacenamiento, never()).eliminarTrasConfirmar(any());
+        verify(almacenamiento, never()).eliminar(any());
+        verify(log, never()).crearLog(any(), any(), any());
+    }
+
+    @Test
+    void elFuncionarioQueRechazaConservaElEscaneo() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoMatricula(), RADICADA));
+        when(resolucionGateway.existePorSolicitud(SOLICITUD)).thenReturn(true);
+
+        casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.RECHAZAR_FUNCIONARIO, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), "No cumple", TOKEN);
+
+        verify(resolucionGateway, never()).getPorSolicitud(any());
+        verify(resolucionGateway, never()).eliminarPorSolicitud(any());
+        verify(almacenamiento, never()).eliminarTrasConfirmar(any());
+    }
+
+    @Test
+    void aprobarORechazarEnElDecanoYEnviarLaRespuestaConservanElEscaneo() {
+        when(resolucionGateway.existePorSolicitud(SOLICITUD)).thenReturn(true);
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoMatricula(), EN_REVISION_DECANO));
+        casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.APROBAR_DECANO, actor(DECANO, RolEtiquetaEtapa.DECANO), null, TOKEN);
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoMatricula(), EN_REVISION_DECANO));
+        casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.RECHAZAR_DECANO, actor(DECANO, RolEtiquetaEtapa.DECANO), "No procede", TOKEN);
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoMatricula(), APROBADA_POR_DECANO));
+        casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.ENVIAR_RESPUESTA, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null, TOKEN);
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoMatricula(), RECHAZADA_POR_DECANO));
+        casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.ENVIAR_RESPUESTA, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null, TOKEN);
+
+        verify(gateway, times(4)).actualizarEtapa(any(), any());
+        verify(resolucionGateway, never()).eliminarPorSolicitud(any());
+        verify(almacenamiento, never()).eliminarTrasConfirmar(any());
+    }
+
+    @Test
+    void unaSolicitudEnCursoDelMismoTipoImpideRadicarOtra() {
+        prepararCreacion(tipoMatricula());
+        when(gateway.getRadicadoEnCurso(ESTUDIANTE, TIPO_CM, List.of(APROBADA, RECHAZADA))).thenReturn("2026-CM-0007");
+
+        ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
+                () -> casoDeUso().crearSolicitud(ESTUDIANTE, TIPO_CM, TOKEN));
+
+        assertTrue(error.getMessage().contains("en curso"));
+        assertTrue(error.getMessage().contains("2026-CM-0007"));
+        assertTrue(error.getMessage().contains("Cancelación de Matrícula"));
+        verify(gateway, never()).getUltimoRadicado(any());
+        verificarQueNoSeGuardoNada();
+    }
+
+    @Test
+    void unaSolicitudEnCursoDeOtroTipoNoImpideRadicar() {
+        TipoSolicitudAcademica asignatura = tipo(TIPO_CA, "Cancelación de Asignatura");
+        prepararCreacion(asignatura);
+        lenient().when(gateway.getRadicadoEnCurso(ESTUDIANTE, TIPO_CM, List.of(APROBADA, RECHAZADA))).thenReturn("2026-CM-0007");
+        when(gateway.getRadicadoEnCurso(ESTUDIANTE, TIPO_CA, List.of(APROBADA, RECHAZADA))).thenReturn(null);
+
+        SolicitudAcademica creada = casoDeUso().crearSolicitud(ESTUDIANTE, TIPO_CA, TOKEN);
+
+        assertEquals("2026-CA-0001", creada.getRadicado());
+        verify(gateway).crear(any(), any());
+    }
+
+    @Test
+    void unaSolicitudTerminadaDelMismoTipoPermiteRadicarOtra() {
+        prepararCreacion(tipoMatricula());
+        when(gateway.getUltimoRadicado("2026-CM-")).thenReturn("2026-CM-0007");
+
+        SolicitudAcademica creada = casoDeUso().crearSolicitud(ESTUDIANTE, TIPO_CM, TOKEN);
+
+        ArgumentCaptor<List<String>> excluidas = ArgumentCaptor.forClass(List.class);
+        verify(gateway).getRadicadoEnCurso(eq(ESTUDIANTE), eq(TIPO_CM), excluidas.capture());
+        assertEquals(List.of(APROBADA, RECHAZADA), excluidas.getValue());
+        assertEquals("2026-CM-0008", creada.getRadicado());
+    }
+
+    @Test
+    void unChoqueDeRadicadoNoSeReintentaYNoDejaLog() {
+        prepararCreacion(tipoMatricula());
+        when(gateway.crear(any(), any())).thenThrow(new ErrorReglaNegocioVioladaExcepcion("No se pudo generar el radicado, intente de nuevo..."));
+
+        ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
+                () -> casoDeUso().crearSolicitud(ESTUDIANTE, TIPO_CM, TOKEN));
+
+        assertTrue(error.getMessage().contains("No se pudo generar el radicado"));
+        verify(gateway, times(1)).crear(any(), any());
+        verify(gateway, times(1)).getUltimoRadicado(any());
+        verify(log, never()).crearLog(any(), any(), any());
+    }
+
+    @Test
+    void radicarEscribeElLogConElRadicadoYLaAccion() {
+        prepararCreacion(tipoMatricula());
+
+        casoDeUso().crearSolicitud(ESTUDIANTE, TIPO_CM, TOKEN);
+
+        ArgumentCaptor<String> resultado = ArgumentCaptor.forClass(String.class);
+        verify(log).crearLog(eq("Radicar solicitud académica"), resultado.capture(), eq(TOKEN));
+        assertTrue(resultado.getValue().contains("2026-CM-0001"));
+        assertTrue(resultado.getValue().contains("RADICAR"));
+    }
+
+    @Test
+    void cambiarEtapaEscribeElLogConElRadicadoLaAccionYLasEtapas() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoMatricula(), EN_REVISION_DECANO));
+
+        casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.APROBAR_DECANO, actor(DECANO, RolEtiquetaEtapa.DECANO), null, TOKEN);
+
+        ArgumentCaptor<String> resultado = ArgumentCaptor.forClass(String.class);
+        verify(log).crearLog(eq("Cambiar etapa de solicitud académica"), resultado.capture(), eq(TOKEN));
+        assertTrue(resultado.getValue().contains("2026-XX-0001"));
+        assertTrue(resultado.getValue().contains("APROBAR_DECANO"));
+        assertTrue(resultado.getValue().contains(EN_REVISION_DECANO));
+        assertTrue(resultado.getValue().contains(APROBADA_POR_DECANO));
+        assertFalse(resultado.getValue().contains("escaneo"));
     }
 }

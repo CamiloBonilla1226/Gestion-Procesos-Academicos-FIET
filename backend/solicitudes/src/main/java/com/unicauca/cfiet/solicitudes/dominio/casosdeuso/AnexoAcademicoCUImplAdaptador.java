@@ -1,6 +1,7 @@
 package com.unicauca.cfiet.solicitudes.dominio.casosdeuso;
 
 import com.unicauca.cfiet.solicitudes.aplicacion.input.AnexoAcademicoCUIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.input.LogCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.*;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
 import com.unicauca.cfiet.solicitudes.dominio.servicios.ValidadorActorSolicitud;
@@ -33,6 +34,7 @@ public class AnexoAcademicoCUImplAdaptador implements AnexoAcademicoCUIntPuerto 
     private final ValidadorActorSolicitud validadorActor;
     private final ValidadorArchivoAdjunto validadorArchivo;
     private final ExcepcionesFormateadorIntPuerto formateadorExcepciones;
+    private final LogCUIntPuerto log;
     private final Clock reloj;
 
     public AnexoAcademicoCUImplAdaptador(AnexoAcademicoGatewayIntPuerto anexoGateway,
@@ -42,6 +44,7 @@ public class AnexoAcademicoCUImplAdaptador implements AnexoAcademicoCUIntPuerto 
                                          UsuarioGatewayIntPuerto usuarioGateway,
                                          AlmacenamientoAnexosIntPuerto almacenamiento,
                                          ExcepcionesFormateadorIntPuerto formateadorExcepciones,
+                                         LogCUIntPuerto log,
                                          Clock reloj) {
         this.anexoGateway = anexoGateway;
         this.solicitudGateway = solicitudGateway;
@@ -51,11 +54,13 @@ public class AnexoAcademicoCUImplAdaptador implements AnexoAcademicoCUIntPuerto 
         this.validadorActor = new ValidadorActorSolicitud(usuarioGateway, formateadorExcepciones);
         this.validadorArchivo = new ValidadorArchivoAdjunto(formateadorExcepciones);
         this.formateadorExcepciones = formateadorExcepciones;
+        this.log = log;
         this.reloj = reloj;
     }
 
     @Override
-    public AnexoAcademico adjuntarAnexo(String uuidSolicitudAcademica, String uuidTipoAnexoAcademico, ArchivoAdjunto archivo, ActorSolicitud actor) {
+    public AnexoAcademico adjuntarAnexo(String uuidSolicitudAcademica, String uuidTipoAnexoAcademico, ArchivoAdjunto archivo, ActorSolicitud actor,
+                                        String token) {
         SolicitudAcademica solicitud = obtenerSolicitud(uuidSolicitudAcademica);
         validadorActor.validar(solicitud, actor);
         TipoProcesoAcademico proceso = procesoDe(solicitud.getTipoSolicitudAcademica());
@@ -83,8 +88,9 @@ public class AnexoAcademicoCUImplAdaptador implements AnexoAcademicoCUIntPuerto 
                 .usuario(Usuario.builder().uuidUsuario(actor.getUuidUsuario()).build())
                 .fechaSubida(LocalDateTime.now(reloj))
                 .build();
+        AnexoAcademico guardado;
         try {
-            return anexoGateway.guardar(anexo);
+            guardado = anexoGateway.guardar(anexo);
         } catch (RuntimeException error) {
             try {
                 almacenamiento.eliminar(ruta);
@@ -93,6 +99,11 @@ public class AnexoAcademicoCUImplAdaptador implements AnexoAcademicoCUIntPuerto 
             }
             throw error;
         }
+        log.crearLog("Adjuntar anexo académico",
+                String.format("Solicitud académica %s, acción ADJUNTAR_ANEXO: %s (%s)", solicitud.getRadicado(),
+                        tipoAnexo == null ? SOPORTE_LIBRE : tipoAnexo.getNombre(), uuidAnexo),
+                token);
+        return guardado;
     }
 
     @Override

@@ -1,8 +1,10 @@
 package com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.gateway;
 
+import com.unicauca.cfiet.solicitudes.aplicacion.output.ExcepcionesFormateadorIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.SolicitudAcademicaGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.HistorialSolicitudAcademica;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.SolicitudAcademica;
+import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.MensajesError;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.entidades.HistorialSolicitudAcademicaEntidad;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.entidades.SolicitudAcademicaEntidad;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.mapeador.ownMapper.HistorialSolicitudAcademicaOwnMapper;
@@ -14,12 +16,18 @@ import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.reposi
 import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.repositorios.TipoSolicitudAcademicaRepositorio;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.repositorios.UsuarioRepositorio;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class SolicitudAcademicaGatewayImplAdaptador implements SolicitudAcademicaGatewayIntPuerto {
+    private static final String RESTRICCION_RADICADO = "uk_solacad_radicado";
+
     private final SolicitudAcademicaRepositorio repositorio;
     private final HistorialSolicitudAcademicaRepositorio historialRepositorio;
     private final EstudianteRepositorio estudianteRepositorio;
@@ -28,6 +36,7 @@ public class SolicitudAcademicaGatewayImplAdaptador implements SolicitudAcademic
     private final UsuarioRepositorio usuarioRepositorio;
     private final SolicitudAcademicaOwnMapper mapper;
     private final HistorialSolicitudAcademicaOwnMapper historialMapper;
+    private final ExcepcionesFormateadorIntPuerto formateadorExcepciones;
 
     @Override
     @Transactional(readOnly = true)
@@ -45,6 +54,15 @@ public class SolicitudAcademicaGatewayImplAdaptador implements SolicitudAcademic
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public String getRadicadoEnCurso(String uuidEstudiante, String uuidTipoSolicitudAcademica, List<String> etapasFinales) {
+        return repositorio.findFirstByEstudiante_UuidUsuarioAndTipoSolicitudAcademica_UuidTipoSolicitudAcademicaAndEtapa_CodigoNotInOrderByFechaCreacionDesc(
+                        uuidEstudiante, uuidTipoSolicitudAcademica, etapasFinales)
+                .map(SolicitudAcademicaEntidad::getRadicado)
+                .orElse(null);
+    }
+
+    @Override
     @Transactional
     public SolicitudAcademica crear(SolicitudAcademica solicitud, HistorialSolicitudAcademica historial) {
         SolicitudAcademicaEntidad entidad = mapper.toEntidad(solicitud);
@@ -52,9 +70,30 @@ public class SolicitudAcademicaGatewayImplAdaptador implements SolicitudAcademic
         entidad.setTipoSolicitudAcademica(tipoSolicitudRepositorio.getReferenceById(
                 solicitud.getTipoSolicitudAcademica().getUuidTipoSolicitudAcademica()));
         entidad.setEtapa(etapaRepositorio.getReferenceById(solicitud.getEtapa().getUuidEtapa()));
-        SolicitudAcademicaEntidad guardada = repositorio.saveAndFlush(entidad);
+        SolicitudAcademicaEntidad guardada = null;
+        try {
+            guardada = repositorio.saveAndFlush(entidad);
+        } catch (DataIntegrityViolationException error) {
+            if (!esRadicadoDuplicado(error))
+                throw error;
+            formateadorExcepciones.lanzarReglaNegocioViolada(MensajesError.RADICADO_NO_GENERADO);
+        }
         guardarHistorial(guardada, historial);
         return mapper.toDominio(guardada);
+    }
+
+    private boolean esRadicadoDuplicado(Throwable error) {
+        for (Throwable causa = error; causa != null; causa = causa.getCause()) {
+            if (causa instanceof ConstraintViolationException violacion && mencionaRadicado(violacion.getConstraintName()))
+                return true;
+            if (mencionaRadicado(causa.getMessage()))
+                return true;
+        }
+        return false;
+    }
+
+    private boolean mencionaRadicado(String texto) {
+        return texto != null && texto.contains(RESTRICCION_RADICADO);
     }
 
     @Override

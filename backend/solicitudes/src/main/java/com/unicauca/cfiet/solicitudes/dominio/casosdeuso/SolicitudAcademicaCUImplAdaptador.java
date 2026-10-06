@@ -1,6 +1,8 @@
 package com.unicauca.cfiet.solicitudes.dominio.casosdeuso;
 
+import com.unicauca.cfiet.solicitudes.aplicacion.input.LogCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.SolicitudAcademicaCUIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.output.AlmacenamientoAnexosIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.AnexoAcademicoGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.EstudianteGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.EtapaSolicitudAcademicaGatewayIntPuerto;
@@ -16,12 +18,15 @@ import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepcione
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.COMPROBANTE_PAGO;
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.RECIBO_PAGO;
+import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.APROBADA;
+import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.RECHAZADA;
 
 public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIntPuerto {
     private static final String SOLICITUD_ACADEMICA = "Solicitud académica";
@@ -30,6 +35,7 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
     private static final String ETAPA = "Etapa de solicitud académica";
     private static final String CODIGO = "codigo";
     private static final int MAXIMO_OBSERVACION = 500;
+    private static final List<String> ETAPAS_FINALES = List.of(APROBADA, RECHAZADA);
 
     private final SolicitudAcademicaGatewayIntPuerto gateway;
     private final EstudianteGatewayIntPuerto estudianteGateway;
@@ -37,9 +43,11 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
     private final EtapaSolicitudAcademicaGatewayIntPuerto etapaGateway;
     private final ResolucionAcademicaGatewayIntPuerto resolucionGateway;
     private final AnexoAcademicoGatewayIntPuerto anexoGateway;
+    private final AlmacenamientoAnexosIntPuerto almacenamiento;
     private final ValidadorActorSolicitud validadorActor;
     private final MaquinaEtapas maquinaEtapas;
     private final ExcepcionesFormateadorIntPuerto formateadorExcepciones;
+    private final LogCUIntPuerto log;
     private final Clock reloj;
 
     public SolicitudAcademicaCUImplAdaptador(SolicitudAcademicaGatewayIntPuerto gateway,
@@ -49,8 +57,10 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
                                              ResolucionAcademicaGatewayIntPuerto resolucionGateway,
                                              AnexoAcademicoGatewayIntPuerto anexoGateway,
                                              UsuarioGatewayIntPuerto usuarioGateway,
+                                             AlmacenamientoAnexosIntPuerto almacenamiento,
                                              MaquinaEtapas maquinaEtapas,
                                              ExcepcionesFormateadorIntPuerto formateadorExcepciones,
+                                             LogCUIntPuerto log,
                                              Clock reloj) {
         this.gateway = gateway;
         this.estudianteGateway = estudianteGateway;
@@ -58,14 +68,16 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
         this.etapaGateway = etapaGateway;
         this.resolucionGateway = resolucionGateway;
         this.anexoGateway = anexoGateway;
+        this.almacenamiento = almacenamiento;
         this.validadorActor = new ValidadorActorSolicitud(usuarioGateway, formateadorExcepciones);
         this.maquinaEtapas = maquinaEtapas;
         this.formateadorExcepciones = formateadorExcepciones;
+        this.log = log;
         this.reloj = reloj;
     }
 
     @Override
-    public SolicitudAcademica crearSolicitud(String uuidEstudiante, String uuidTipoSolicitudAcademica) {
+    public SolicitudAcademica crearSolicitud(String uuidEstudiante, String uuidTipoSolicitudAcademica, String token) {
         Estudiante estudiante = tieneTexto(uuidEstudiante) ? estudianteGateway.getPorUuid(uuidEstudiante) : null;
         if (estudiante == null)
             formateadorExcepciones.lanzarEntidadNoExiste(String.format(MensajesError.ENTIDAD_NO_ENCONTRADA, ESTUDIANTE, uuidEstudiante));
@@ -75,6 +87,9 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
                     MensajesError.ENTIDAD_NO_ENCONTRADA, TIPO_SOLICITUD_ACADEMICA, uuidTipoSolicitudAcademica));
 
         TipoProcesoAcademico proceso = procesoDe(tipo);
+        String enCurso = gateway.getRadicadoEnCurso(estudiante.getUuidUsuario(), tipo.getUuidTipoSolicitudAcademica(), ETAPAS_FINALES);
+        if (enCurso != null)
+            formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.SOLICITUD_EN_CURSO, tipo.getNombre(), enCurso));
         ResultadoTransicion resultado = maquinaEtapas.siguienteEtapa(proceso, null, AccionEtapa.RADICAR, RolEtiquetaEtapa.ESTUDIANTE);
         EtapaSolicitudAcademica etapa = etapaDe(tipo, resultado.getEtapaSiguiente());
         LocalDateTime ahora = LocalDateTime.now(reloj);
@@ -87,11 +102,16 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
                 .etapa(etapa)
                 .fechaCreacion(ahora)
                 .build();
-        return gateway.crear(solicitud, historial(solicitud, estudiante.getUuidUsuario(), AccionEtapa.RADICAR, null, ahora));
+        SolicitudAcademica creada = gateway.crear(solicitud, historial(solicitud, estudiante.getUuidUsuario(), AccionEtapa.RADICAR, null, ahora));
+        log.crearLog("Radicar solicitud académica",
+                String.format("Solicitud académica %s radicada (%s), acción %s", creada.getRadicado(), tipo.getNombre(), AccionEtapa.RADICAR),
+                token);
+        return creada;
     }
 
     @Override
-    public SolicitudAcademica cambiarEtapa(String uuidSolicitudAcademica, AccionEtapa accion, ActorSolicitud actor, String observacionRecibida) {
+    public SolicitudAcademica cambiarEtapa(String uuidSolicitudAcademica, AccionEtapa accion, ActorSolicitud actor, String observacionRecibida,
+                                           String token) {
         SolicitudAcademica solicitud = tieneTexto(uuidSolicitudAcademica) ? gateway.getPorUuid(uuidSolicitudAcademica) : null;
         if (solicitud == null)
             formateadorExcepciones.lanzarEntidadNoExiste(String.format(
@@ -103,12 +123,24 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
         String observacion = observacionDe(observacionRecibida);
 
         TipoProcesoAcademico proceso = procesoDe(solicitud.getTipoSolicitudAcademica());
+        String etapaAnterior = solicitud.getEtapa().getCodigo();
         ResultadoTransicion resultado = maquinaEtapas.transicionar(
-                proceso, solicitud.getEtapa().getCodigo(), accion, actor.getRol(), evidencias(solicitud, observacion));
+                proceso, etapaAnterior, accion, actor.getRol(), evidencias(solicitud, observacion));
         solicitud.setEtapa(etapaDe(solicitud.getTipoSolicitudAcademica(), resultado.getEtapaSiguiente()));
+        ResolucionAcademica escaneo = accion == AccionEtapa.REMITIR_DECANO
+                ? resolucionGateway.getPorSolicitud(solicitud.getUuidSolicitudAcademica()) : null;
 
         LocalDateTime ahora = LocalDateTime.now(reloj);
-        return gateway.actualizarEtapa(solicitud, historial(solicitud, actor.getUuidUsuario(), accion, observacion, ahora));
+        SolicitudAcademica actualizada = gateway.actualizarEtapa(solicitud, historial(solicitud, actor.getUuidUsuario(), accion, observacion, ahora));
+        if (escaneo != null) {
+            resolucionGateway.eliminarPorSolicitud(solicitud.getUuidSolicitudAcademica());
+            almacenamiento.eliminarTrasConfirmar(escaneo.getUrlArchivo());
+        }
+        log.crearLog("Cambiar etapa de solicitud académica",
+                String.format("Solicitud académica %s, acción %s: de %s a %s%s", solicitud.getRadicado(), accion, etapaAnterior,
+                        resultado.getEtapaSiguiente(), escaneo == null ? "" : ", se retiró el escaneo de la Resolución"),
+                token);
+        return actualizada;
     }
 
     private EntregaTransicion evidencias(SolicitudAcademica solicitud, String observacion) {

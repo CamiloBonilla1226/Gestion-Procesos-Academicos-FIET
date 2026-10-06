@@ -1,5 +1,6 @@
 package com.unicauca.cfiet.solicitudes.dominio.casosdeuso;
 
+import com.unicauca.cfiet.solicitudes.aplicacion.input.LogCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.*;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.formateador.ExcepcionesFormateadorImplAdaptador;
@@ -39,7 +40,8 @@ class ResolucionAcademicaCUImplAdaptadorTest {
     private static final String OTRO_FUNCIONARIO = "fa-2";
     private static final String DECANO = "dec-1";
     private static final String SOLICITUD = "sol-1";
-    private static final String RUTA = "/api/anexos/sol-1/nuevo_20260310100000.pdf";
+    private static final String TOKEN = "token-jwt";
+    private static final String RUTA ="/api/anexos/sol-1/nuevo_20260310100000.pdf";
     private static final String RUTA_ANTERIOR = "/api/anexos/sol-1/viejo_20260301100000.pdf";
     private static final int CINCO_MB = 5 * 1024 * 1024;
 
@@ -54,6 +56,9 @@ class ResolucionAcademicaCUImplAdaptadorTest {
 
     @Mock
     private AlmacenamientoAnexosIntPuerto almacenamiento;
+
+    @Mock
+    private LogCUIntPuerto log;
 
     private ResolucionAcademicaCUImplAdaptador casoDeUso;
 
@@ -118,7 +123,7 @@ class ResolucionAcademicaCUImplAdaptadorTest {
     @BeforeEach
     void setUp() {
         casoDeUso = new ResolucionAcademicaCUImplAdaptador(gateway, solicitudGateway, usuarioGateway, almacenamiento,
-                new ExcepcionesFormateadorImplAdaptador(), Clock.fixed(Instant.parse("2026-03-10T15:00:00Z"), ZoneId.of("America/Bogota")));
+                new ExcepcionesFormateadorImplAdaptador(), log, Clock.fixed(Instant.parse("2026-03-10T15:00:00Z"), ZoneId.of("America/Bogota")));
         lenient().when(usuarioGateway.getUsuario(ESTUDIANTE)).thenReturn(usuario(ESTUDIANTE, "Estudiante"));
         lenient().when(usuarioGateway.getUsuario(OTRO_ESTUDIANTE)).thenReturn(usuario(OTRO_ESTUDIANTE, "Estudiante"));
         lenient().when(usuarioGateway.getUsuario(FUNCIONARIO)).thenReturn(usuario(FUNCIONARIO, "Funcionario Académico"));
@@ -132,6 +137,31 @@ class ResolucionAcademicaCUImplAdaptadorTest {
         verify(almacenamiento, never()).guardar(anyString(), anyString(), any());
         verify(gateway, never()).guardar(any());
         verify(almacenamiento, never()).eliminarTrasConfirmar(any());
+        verify(log, never()).crearLog(any(), any(), any());
+    }
+
+    @Test
+    void adjuntarYReemplazarLaResolucionEscribenElLogConElRadicadoYLaAccion() {
+        solicitud(matricula, RADICADA);
+        casoDeUso.adjuntarResolucion(SOLICITUD, archivo("resolucion.pdf", pdf(100)), funcionario(), TOKEN);
+        when(gateway.getPorSolicitud(SOLICITUD)).thenReturn(anterior());
+        casoDeUso.adjuntarResolucion(SOLICITUD, archivo("resolucion.pdf", pdf(100)), funcionario(), TOKEN);
+
+        ArgumentCaptor<String> resultado = ArgumentCaptor.forClass(String.class);
+        verify(log, times(2)).crearLog(eq("Adjuntar Resolución académica"), resultado.capture(), eq(TOKEN));
+        assertTrue(resultado.getAllValues().get(0).contains("2026-XX-0001"));
+        assertTrue(resultado.getAllValues().get(0).contains("ADJUNTAR_RESOLUCION"));
+        assertTrue(resultado.getAllValues().get(1).contains("REEMPLAZAR_RESOLUCION"));
+    }
+
+    @Test
+    void siFallaLaBaseNoSeEscribeElLog() {
+        solicitud(matricula, RADICADA);
+        when(gateway.guardar(any())).thenThrow(new IllegalStateException("base caida"));
+
+        assertThrows(IllegalStateException.class,
+                () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo("resolucion.pdf", pdf(100)), funcionario(), TOKEN));
+        verify(log, never()).crearLog(any(), any(), any());
     }
 
     @Test
@@ -139,7 +169,7 @@ class ResolucionAcademicaCUImplAdaptadorTest {
         solicitud(matricula, RADICADA);
         byte[] contenido = pdf(2048);
 
-        ResolucionAcademica resolucion = casoDeUso.adjuntarResolucion(SOLICITUD, archivo("C:\\escaneos\\Resolucion 015.pdf", contenido), funcionario());
+        ResolucionAcademica resolucion = casoDeUso.adjuntarResolucion(SOLICITUD, archivo("C:\\escaneos\\Resolucion 015.pdf", contenido), funcionario(), TOKEN);
 
         ArgumentCaptor<String> nombreEnDisco = ArgumentCaptor.forClass(String.class);
         verify(almacenamiento).guardar(eq(SOLICITUD), nombreEnDisco.capture(), same(contenido));
@@ -156,7 +186,7 @@ class ResolucionAcademicaCUImplAdaptadorTest {
     void tambienSeSubeEnCancelacionDeAsignaturaTrasLaDecisionDelDecano() {
         for (String etapa : List.of(APROBADA_POR_DECANO, RECHAZADA_POR_DECANO)) {
             solicitud(asignatura, etapa);
-            assertNotNull(casoDeUso.adjuntarResolucion(SOLICITUD, archivo("resolucion.pdf", pdf(100)), funcionario()), etapa);
+            assertNotNull(casoDeUso.adjuntarResolucion(SOLICITUD, archivo("resolucion.pdf", pdf(100)), funcionario(), TOKEN), etapa);
         }
         verify(gateway, times(2)).guardar(any());
     }
@@ -166,7 +196,7 @@ class ResolucionAcademicaCUImplAdaptadorTest {
         solicitud(supletorio, RADICADA);
 
         ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
-                () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo("resolucion.pdf", pdf(100)), funcionario()));
+                () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo("resolucion.pdf", pdf(100)), funcionario(), TOKEN));
 
         assertTrue(error.getMessage().contains("no produce Resolución"));
         verificarQueNoSeGuardoNada();
@@ -177,7 +207,7 @@ class ResolucionAcademicaCUImplAdaptadorTest {
         solicitud(tipo("tipo-otro", "Homologación"), RADICADA);
 
         assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
-                () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo("resolucion.pdf", pdf(100)), funcionario()));
+                () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo("resolucion.pdf", pdf(100)), funcionario(), TOKEN));
         verificarQueNoSeGuardoNada();
     }
 
@@ -187,9 +217,9 @@ class ResolucionAcademicaCUImplAdaptadorTest {
         byte[] png = {(byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A, 1, 2};
 
         assertThrows(ErrorMalFormatoExcepcion.class,
-                () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo("resolucion.png", png), funcionario()));
+                () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo("resolucion.png", png), funcionario(), TOKEN));
         assertThrows(ErrorMalFormatoExcepcion.class,
-                () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo("resolucion", pdf(100)), funcionario()));
+                () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo("resolucion", pdf(100)), funcionario(), TOKEN));
         verificarQueNoSeGuardoNada();
     }
 
@@ -198,7 +228,7 @@ class ResolucionAcademicaCUImplAdaptadorTest {
         solicitud(matricula, RADICADA);
 
         ErrorMalFormatoExcepcion error = assertThrows(ErrorMalFormatoExcepcion.class,
-                () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo("resolucion.pdf", "MZ ejecutable".getBytes(StandardCharsets.US_ASCII)), funcionario()));
+                () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo("resolucion.pdf", "MZ ejecutable".getBytes(StandardCharsets.US_ASCII)), funcionario(), TOKEN));
 
         assertTrue(error.getMessage().contains("no corresponde"));
         verificarQueNoSeGuardoNada();
@@ -208,11 +238,11 @@ class ResolucionAcademicaCUImplAdaptadorTest {
     void elTamanioMaximoEsCincoMegas() {
         solicitud(matricula, RADICADA);
 
-        assertNotNull(casoDeUso.adjuntarResolucion(SOLICITUD, archivo("justo.pdf", pdf(CINCO_MB)), funcionario()));
+        assertNotNull(casoDeUso.adjuntarResolucion(SOLICITUD, archivo("justo.pdf", pdf(CINCO_MB)), funcionario(), TOKEN));
         assertThrows(ErrorMalFormatoExcepcion.class,
-                () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo("grande.pdf", pdf(CINCO_MB + 1)), funcionario()));
+                () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo("grande.pdf", pdf(CINCO_MB + 1)), funcionario(), TOKEN));
         assertThrows(ErrorMalFormatoExcepcion.class,
-                () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo("vacio.pdf", new byte[0]), funcionario()));
+                () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo("vacio.pdf", new byte[0]), funcionario(), TOKEN));
         verify(gateway, times(1)).guardar(any());
     }
 
@@ -222,13 +252,13 @@ class ResolucionAcademicaCUImplAdaptadorTest {
         ArchivoAdjunto archivo = archivo("resolucion.pdf", pdf(100));
 
         ErrorReglaNegocioVioladaExcepcion delEstudiante = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
-                () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo, actor(ESTUDIANTE, RolEtiquetaEtapa.ESTUDIANTE)));
+                () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo, actor(ESTUDIANTE, RolEtiquetaEtapa.ESTUDIANTE), TOKEN));
         ErrorReglaNegocioVioladaExcepcion delDecano = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
-                () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo, actor(DECANO, RolEtiquetaEtapa.DECANO)));
+                () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo, actor(DECANO, RolEtiquetaEtapa.DECANO), TOKEN));
         ErrorReglaNegocioVioladaExcepcion deOtroFuncionario = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
-                () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo, actor(OTRO_FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO)));
+                () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo, actor(OTRO_FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), TOKEN));
         ErrorReglaNegocioVioladaExcepcion rolFalso = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
-                () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo, actor(ESTUDIANTE, RolEtiquetaEtapa.FUNCIONARIO)));
+                () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo, actor(ESTUDIANTE, RolEtiquetaEtapa.FUNCIONARIO), TOKEN));
 
         assertTrue(delEstudiante.getMessage().contains("funcionario académico asignado"));
         assertTrue(delDecano.getMessage().contains("funcionario académico asignado"));
@@ -242,7 +272,7 @@ class ResolucionAcademicaCUImplAdaptadorTest {
         for (String etapa : List.of(EN_REVISION_DECANO, PENDIENTE_PAGO, EN_VERIFICACION_PAGO)) {
             solicitud(matricula, etapa);
             ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
-                    () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo("resolucion.pdf", pdf(100)), funcionario()), etapa);
+                    () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo("resolucion.pdf", pdf(100)), funcionario(), TOKEN), etapa);
             assertTrue(error.getMessage().contains("solo se sube en las etapas"), etapa);
         }
         verificarQueNoSeGuardoNada();
@@ -254,7 +284,7 @@ class ResolucionAcademicaCUImplAdaptadorTest {
         for (String etapa : List.of(APROBADA, RECHAZADA)) {
             solicitud(matricula, etapa);
             ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
-                    () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo("resolucion.pdf", pdf(100)), funcionario()), etapa);
+                    () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo("resolucion.pdf", pdf(100)), funcionario(), TOKEN), etapa);
             assertTrue(error.getMessage().contains("etapa final"), etapa);
         }
         verificarQueNoSeGuardoNada();
@@ -266,7 +296,7 @@ class ResolucionAcademicaCUImplAdaptadorTest {
         solicitud(matricula, APROBADA_POR_DECANO);
         when(gateway.getPorSolicitud(SOLICITUD)).thenReturn(anterior());
 
-        ResolucionAcademica resolucion = casoDeUso.adjuntarResolucion(SOLICITUD, archivo("firmada.pdf", pdf(100)), funcionario());
+        ResolucionAcademica resolucion = casoDeUso.adjuntarResolucion(SOLICITUD, archivo("firmada.pdf", pdf(100)), funcionario(), TOKEN);
 
         assertEquals(RUTA, resolucion.getUrlArchivo());
         assertEquals("firmada.pdf", resolucion.getNombreArchivo());
@@ -282,7 +312,7 @@ class ResolucionAcademicaCUImplAdaptadorTest {
         when(gateway.guardar(any())).thenThrow(new IllegalStateException("base caida"));
 
         assertThrows(IllegalStateException.class,
-                () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo("resolucion.pdf", pdf(100)), funcionario()));
+                () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo("resolucion.pdf", pdf(100)), funcionario(), TOKEN));
 
         verify(almacenamiento).eliminar(RUTA);
         verify(almacenamiento, never()).eliminar(RUTA_ANTERIOR);
@@ -295,7 +325,7 @@ class ResolucionAcademicaCUImplAdaptadorTest {
         when(almacenamiento.guardar(anyString(), anyString(), any())).thenThrow(new UncheckedIOException(new IOException("disco lleno")));
 
         assertThrows(ErrorGenericoExcepcion.class,
-                () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo("resolucion.pdf", pdf(100)), funcionario()));
+                () -> casoDeUso.adjuntarResolucion(SOLICITUD, archivo("resolucion.pdf", pdf(100)), funcionario(), TOKEN));
 
         verify(gateway, never()).guardar(any());
         verify(almacenamiento, never()).eliminarTrasConfirmar(any());
@@ -306,7 +336,7 @@ class ResolucionAcademicaCUImplAdaptadorTest {
         when(solicitudGateway.getPorUuid("no-existe")).thenReturn(null);
 
         assertThrows(ErrorEntidadNoExisteExcepcion.class,
-                () -> casoDeUso.adjuntarResolucion("no-existe", archivo("resolucion.pdf", pdf(100)), funcionario()));
+                () -> casoDeUso.adjuntarResolucion("no-existe", archivo("resolucion.pdf", pdf(100)), funcionario(), TOKEN));
         assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso.obtenerResolucion("no-existe", funcionario()));
         verificarQueNoSeGuardoNada();
     }

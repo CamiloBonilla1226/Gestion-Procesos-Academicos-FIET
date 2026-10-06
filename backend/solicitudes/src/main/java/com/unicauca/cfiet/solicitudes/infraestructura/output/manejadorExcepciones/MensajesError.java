@@ -68,4 +68,6 @@ public class MensajesError {
     public static final String RESOLUCION_ETAPA_FINAL = "La solicitud %s está en la etapa final %s y su Resolución ya no se puede subir ni reemplazar...";
     public static final String RESOLUCION_ETAPA_NO_PERMITIDA = "El escaneo de la Resolución solo se sube en las etapas %s y la solicitud está en %s...";
     public static final String RESOLUCION_NO_DISPONIBLE = "La Resolución de la solicitud %s estará disponible cuando la solicitud termine...";
+    public static final String SOLICITUD_EN_CURSO = "Ya tienes una solicitud de %s en curso (%s), debe terminar antes de radicar otra...";
+    public static final String RADICADO_NO_GENERADO = "No se pudo generar el radicado, intente de nuevo...";
 }

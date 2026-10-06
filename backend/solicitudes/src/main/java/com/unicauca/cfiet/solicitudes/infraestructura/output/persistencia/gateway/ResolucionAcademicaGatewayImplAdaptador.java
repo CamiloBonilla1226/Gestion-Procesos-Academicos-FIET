@@ -50,4 +50,13 @@ public class ResolucionAcademicaGatewayImplAdaptador implements ResolucionAcadem
         entidad.setFuncionarioAcademico(funcionarioRepositorio.getReferenceById(resolucion.getFuncionarioAcademico().getUuidUsuario()));
         return mapper.toDominio(repositorio.saveAndFlush(entidad));
     }
+
+    @Override
+    @Transactional
+    public void eliminarPorSolicitud(String uuidSolicitudAcademica) {
+        repositorio.findById(uuidSolicitudAcademica).ifPresent(entidad -> {
+            repositorio.delete(entidad);
+            repositorio.flush();
+        });
+    }
 }

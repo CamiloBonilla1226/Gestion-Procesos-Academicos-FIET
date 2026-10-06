@@ -364,6 +364,68 @@ class MaquinaEtapasTest {
     }
 
     @Test
+    void accionesDisponiblesCoincideConElBarridoDeTodasLasCombinaciones() {
+        List<String> origenes = new ArrayList<>();
+        origenes.add(null);
+        origenes.addAll(ETAPAS);
+        List<Fila> tabla = tablaCompleta();
+        int ofrecidas = 0;
+        for (TipoProcesoAcademico tipo : TipoProcesoAcademico.values())
+            for (String origen : origenes)
+                for (RolEtiquetaEtapa rol : RolEtiquetaEtapa.values()) {
+                    List<AccionEtapa> disponibles = maquina.accionesDisponibles(tipo, origen, rol);
+                    List<AccionEtapa> esperadas = tabla.stream()
+                            .filter(f -> f.tipo() == tipo && Objects.equals(f.origen(), origen) && f.rol() == rol)
+                            .map(Fila::accion)
+                            .toList();
+                    assertEquals(esperadas.size(), disponibles.size(), () -> tipo + " " + origen + " " + rol);
+                    assertTrue(disponibles.containsAll(esperadas), () -> tipo + " " + origen + " " + rol + ": " + disponibles);
+                    for (AccionEtapa accion : AccionEtapa.values()) {
+                        boolean aceptada;
+                        try {
+                            maquina.siguienteEtapa(tipo, origen, accion, rol);
+                            aceptada = true;
+                        } catch (ErrorReglaNegocioVioladaExcepcion error) {
+                            aceptada = false;
+                        }
+                        assertEquals(aceptada, disponibles.contains(accion), () -> tipo + " " + origen + " " + accion + " " + rol);
+                    }
+                    ofrecidas += disponibles.size();
+                }
+        assertEquals(24, ofrecidas);
+    }
+
+    @ParameterizedTest(name = "{0} en {1} no ofrece acciones")
+    @MethodSource("etapasFinalesPorTipo")
+    void unaEtapaFinalNoOfreceAcciones(TipoProcesoAcademico tipo, String etapa) {
+        for (RolEtiquetaEtapa rol : RolEtiquetaEtapa.values())
+            assertTrue(maquina.accionesDisponibles(tipo, etapa, rol).isEmpty());
+    }
+
+    static Stream<Arguments> etapasFinalesPorTipo() {
+        return Stream.of(TipoProcesoAcademico.values())
+                .flatMap(tipo -> Stream.of(Arguments.of(tipo, APROBADA), Arguments.of(tipo, RECHAZADA)));
+    }
+
+    @Test
+    void accionesDisponiblesDeEjemplo() {
+        assertEquals(List.of(RECHAZAR_FUNCIONARIO, REMITIR_DECANO), maquina.accionesDisponibles(CANCELACION_MATRICULA, RADICADA, FUNCIONARIO));
+        assertEquals(List.of(APROBAR_DECANO, RECHAZAR_DECANO), maquina.accionesDisponibles(EXAMEN_SUPLETORIO, EN_REVISION_DECANO, DECANO));
+        assertEquals(List.of(ENVIAR_RECIBO), maquina.accionesDisponibles(EXAMEN_SUPLETORIO, APROBADA_POR_DECANO, FUNCIONARIO));
+        assertEquals(List.of(ENVIAR_RESPUESTA), maquina.accionesDisponibles(CANCELACION_ASIGNATURA, APROBADA_POR_DECANO, FUNCIONARIO));
+        assertEquals(List.of(RADICAR), maquina.accionesDisponibles(CANCELACION_ASIGNATURA, "  ", ESTUDIANTE));
+        assertTrue(maquina.accionesDisponibles(CANCELACION_MATRICULA, RADICADA, ESTUDIANTE).isEmpty());
+        assertTrue(maquina.accionesDisponibles(CANCELACION_MATRICULA, PENDIENTE_PAGO, ESTUDIANTE).isEmpty());
+    }
+
+    @Test
+    void accionesDisponiblesSinTipoORolOConEtapaDesconocidaSeRechaza() {
+        assertRechazo("se requieren", () -> maquina.accionesDisponibles(null, RADICADA, FUNCIONARIO));
+        assertRechazo("se requieren", () -> maquina.accionesDisponibles(CANCELACION_MATRICULA, RADICADA, null));
+        assertRechazo("no es valida", () -> maquina.accionesDisponibles(CANCELACION_MATRICULA, "ARCHIVADA", FUNCIONARIO));
+    }
+
+    @Test
     void elActorDeCadaTransicionEsElResponsableDeSuEtapaDeOrigen() {
         for (Fila fila : tablaCompleta())
             if (fila.origen() != null)

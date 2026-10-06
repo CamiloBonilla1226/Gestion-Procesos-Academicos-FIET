@@ -6,7 +6,7 @@ import com.unicauca.cfiet.solicitudes.dominio.modelos.SolicitudAcademica;
 
 public interface SolicitudAcademicaCUIntPuerto {
 
-    SolicitudAcademica crearSolicitud(String uuidEstudiante, String uuidTipoSolicitudAcademica);
+    SolicitudAcademica crearSolicitud(String uuidEstudiante, String uuidTipoSolicitudAcademica, String token);
 
-    SolicitudAcademica cambiarEtapa(String uuidSolicitudAcademica, AccionEtapa accion, ActorSolicitud actor, String observacion);
+    SolicitudAcademica cambiarEtapa(String uuidSolicitudAcademica, AccionEtapa accion, ActorSolicitud actor, String observacion, String token);
 }

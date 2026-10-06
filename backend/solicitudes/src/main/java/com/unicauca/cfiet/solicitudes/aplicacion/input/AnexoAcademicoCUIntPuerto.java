@@ -10,7 +10,7 @@ import java.util.List;
 
 public interface AnexoAcademicoCUIntPuerto {
 
-    AnexoAcademico adjuntarAnexo(String uuidSolicitudAcademica, String uuidTipoAnexoAcademico, ArchivoAdjunto archivo, ActorSolicitud actor);
+    AnexoAcademico adjuntarAnexo(String uuidSolicitudAcademica, String uuidTipoAnexoAcademico, ArchivoAdjunto archivo, ActorSolicitud actor, String token);
 
     ArchivoAdjunto obtenerAnexo(String uuidAnexoAcademico, ActorSolicitud actor);
 

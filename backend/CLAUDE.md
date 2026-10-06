@@ -304,6 +304,30 @@ ninguna FK de la extensión apunta al Decano (el historial apunta a
   (`RESOLUCION_ACADEMICA` y los anexos `Recibo de pago` y `Comprobante de
   pago` de `ANEXO_ACADEMICO`) y se lo pasa a `MaquinaEtapas`. Por eso el
   archivo se sube antes de pedir la transición.
+- `REMITIR_DECANO` retira el escaneo de la Resolución si había uno: borra su
+  fila de `RESOLUCION_ACADEMICA` en la misma transacción del cambio de etapa y
+  el archivo con `eliminarTrasConfirmar` (solo después del commit; si la
+  transacción se revierte no se borra nada). Rechazar, aprobar o enviar la
+  respuesta no lo tocan.
+- `crearSolicitud` rechaza si el estudiante ya tiene una solicitud del mismo
+  tipo fuera de `APROBADA` y `RECHAZADA` (`SOLICITUD_EN_CURSO`, con el radicado
+  de la que está en curso). Puede tener una en curso de cada tipo.
+- El radicado se calcula como el último del año y tipo más uno, sin bloqueo.
+  Si al guardar choca con `uk_solacad_radicado`,
+  `SolicitudAcademicaGatewayImplAdaptador.crear` lo convierte en regla de
+  negocio violada (`RADICADO_NO_GENERADO`, "No se pudo generar el radicado,
+  intente de nuevo") antes de escribir el historial. No se reintenta solo,
+  para que la operación siga siendo atómica cuando T6 junte solicitud y anexos.
+- `crearSolicitud`, `cambiarEtapa`, `adjuntarAnexo` y `adjuntarResolucion`
+  reciben el `token` y escriben en el log de Julián con
+  `LogCUIntPuerto.crearLog(accion, resultado, token)` después de guardar, igual
+  que los casos de uso de Julián. El resultado lleva el radicado y la acción.
+  Si la base falla no se escribe el log; si el log falla, la transacción del
+  controlador revierte todo.
+- `MaquinaEtapas.accionesDisponibles(tipo, etapa, rol)` devuelve las acciones
+  que ese rol puede ejecutar en esa etapa, filtrando la misma tabla de
+  transiciones. Una etapa final devuelve lista vacía y una etapa nula o en
+  blanco se trata como solicitud nueva (`RADICAR`).
 - La Resolución (solo cancelaciones de matrícula y de asignatura) la sube el
   Funcionario asignado, en PDF, en `RADICADA`, `APROBADA_POR_DECANO` o
   `RECHAZADA_POR_DECANO`. Hay una por solicitud (PK `SolicitudAcademica_uuid`):

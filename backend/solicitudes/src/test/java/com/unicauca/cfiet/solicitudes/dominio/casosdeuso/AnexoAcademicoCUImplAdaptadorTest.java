@@ -1,5 +1,6 @@
 package com.unicauca.cfiet.solicitudes.dominio.casosdeuso;
 
+import com.unicauca.cfiet.solicitudes.aplicacion.input.LogCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.*;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.formateador.ExcepcionesFormateadorImplAdaptador;
@@ -42,6 +43,7 @@ class AnexoAcademicoCUImplAdaptadorTest {
     private static final String OTRO_FUNCIONARIO = "fa-2";
     private static final String DECANO = "dec-1";
     private static final String SOLICITUD = "sol-1";
+    private static final String TOKEN = "token-jwt";
     private static final String RUTA = "/api/anexos/sol-1/archivo_20260310.pdf";
     private static final int CINCO_MB = 5 * 1024 * 1024;
     private static final String PAZ_BIBLIOTECAS = "Paz y salvo - División de Bibliotecas";
@@ -69,6 +71,9 @@ class AnexoAcademicoCUImplAdaptadorTest {
 
     @Mock
     private AlmacenamientoAnexosIntPuerto almacenamiento;
+
+    @Mock
+    private LogCUIntPuerto log;
 
     private AnexoAcademicoCUImplAdaptador casoDeUso;
     private final List<TipoAnexoAcademico> catalogo = new ArrayList<>();
@@ -157,7 +162,7 @@ class AnexoAcademicoCUImplAdaptadorTest {
     @BeforeEach
     void setUp() {
         casoDeUso = new AnexoAcademicoCUImplAdaptador(anexoGateway, solicitudGateway, tipoSolicitudGateway, tipoAnexoGateway,
-                usuarioGateway, almacenamiento, new ExcepcionesFormateadorImplAdaptador(),
+                usuarioGateway, almacenamiento, new ExcepcionesFormateadorImplAdaptador(), log,
                 Clock.fixed(Instant.parse("2026-03-10T15:00:00Z"), ZoneId.of("America/Bogota")));
 
         tipoAnexo(matricula, PAZ_BIBLIOTECAS, "pdf", true);
@@ -188,10 +193,11 @@ class AnexoAcademicoCUImplAdaptadorTest {
     private void verificarQueNoSeGuardoNada() {
         verify(almacenamiento, never()).guardar(anyString(), anyString(), any());
         verify(anexoGateway, never()).guardar(any());
+        verify(log, never()).crearLog(any(), any(), any());
     }
 
     private AnexoAcademico adjuntar(TipoAnexoAcademico tipoAnexo, ArchivoAdjunto archivo, ActorSolicitud actor) {
-        return casoDeUso.adjuntarAnexo(SOLICITUD, tipoAnexo == null ? null : tipoAnexo.getUuidTipoAnexoAcademico(), archivo, actor);
+        return casoDeUso.adjuntarAnexo(SOLICITUD, tipoAnexo == null ? null : tipoAnexo.getUuidTipoAnexoAcademico(), archivo, actor, TOKEN);
     }
 
     @Test
@@ -214,6 +220,30 @@ class AnexoAcademicoCUImplAdaptadorTest {
         assertEquals(PAZ_BIBLIOTECAS, anexo.getTipoAnexoAcademico().getNombre());
         assertEquals(SOLICITUD, anexo.getSolicitudAcademica().getUuidSolicitudAcademica());
         verify(anexoGateway).guardar(anexo);
+    }
+
+    @Test
+    void adjuntarUnAnexoEscribeElLogConElRadicadoYLaAccion() {
+        solicitud(matricula, RADICADA);
+
+        AnexoAcademico anexo = adjuntar(porNombre(PAZ_BIBLIOTECAS), archivo("paz.pdf", pdf(100)), estudiante());
+
+        ArgumentCaptor<String> resultado = ArgumentCaptor.forClass(String.class);
+        verify(log).crearLog(eq("Adjuntar anexo académico"), resultado.capture(), eq(TOKEN));
+        assertTrue(resultado.getValue().contains("2026-XX-0001"));
+        assertTrue(resultado.getValue().contains("ADJUNTAR_ANEXO"));
+        assertTrue(resultado.getValue().contains(PAZ_BIBLIOTECAS));
+        assertTrue(resultado.getValue().contains(anexo.getUuidAnexoAcademico()));
+    }
+
+    @Test
+    void siFallaLaBaseNoSeEscribeElLog() {
+        solicitud(matricula, RADICADA);
+        when(anexoGateway.guardar(any())).thenThrow(new IllegalStateException("base caida"));
+
+        assertThrows(IllegalStateException.class,
+                () -> adjuntar(porNombre(PAZ_BIBLIOTECAS), archivo("paz.pdf", pdf(100)), estudiante()));
+        verify(log, never()).crearLog(any(), any(), any());
     }
 
     @Test
@@ -333,9 +363,9 @@ class AnexoAcademicoCUImplAdaptadorTest {
         when(solicitudGateway.getPorUuid("no-existe")).thenReturn(null);
 
         assertThrows(ErrorEntidadNoExisteExcepcion.class,
-                () -> casoDeUso.adjuntarAnexo(SOLICITUD, "no-existe", archivo("paz.pdf", pdf(100)), estudiante()));
+                () -> casoDeUso.adjuntarAnexo(SOLICITUD, "no-existe", archivo("paz.pdf", pdf(100)), estudiante(), TOKEN));
         assertThrows(ErrorEntidadNoExisteExcepcion.class,
-                () -> casoDeUso.adjuntarAnexo("no-existe", porNombre(PAZ_BIBLIOTECAS).getUuidTipoAnexoAcademico(), archivo("paz.pdf", pdf(100)), estudiante()));
+                () -> casoDeUso.adjuntarAnexo("no-existe", porNombre(PAZ_BIBLIOTECAS).getUuidTipoAnexoAcademico(), archivo("paz.pdf", pdf(100)), estudiante(), TOKEN));
         verificarQueNoSeGuardoNada();
     }
 

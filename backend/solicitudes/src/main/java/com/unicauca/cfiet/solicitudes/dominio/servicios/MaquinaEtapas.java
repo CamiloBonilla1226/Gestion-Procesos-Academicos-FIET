@@ -108,6 +108,19 @@ public class MaquinaEtapas {
         return resultado;
     }
 
+    public List<AccionEtapa> accionesDisponibles(TipoProcesoAcademico tipo, String etapaActual, RolEtiquetaEtapa rol) {
+        if (tipo == null || rol == null)
+            formateadorExcepciones.lanzarReglaNegocioViolada(MensajesError.DATOS_TRANSICION_INCOMPLETOS);
+        String origen = etapaActual == null || etapaActual.isBlank() ? null : etapaActual.trim();
+        if (origen != null && esFinal(origen))
+            return List.of();
+        return TRANSICIONES.stream()
+                .filter(t -> t.procesos().contains(tipo) && Objects.equals(t.origen(), origen) && t.rol() == rol)
+                .map(Transicion::accion)
+                .distinct()
+                .toList();
+    }
+
     public ResponsableEtapa responsableActual(String codigoEtapa) {
         ResponsableEtapa responsable = codigoEtapa == null ? null : RESPONSABLES.get(codigoEtapa.trim());
         if (responsable == null)

@@ -1,5 +1,6 @@
 package com.unicauca.cfiet.solicitudes.dominio.casosdeuso;
 
+import com.unicauca.cfiet.solicitudes.aplicacion.input.LogCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.ResolucionAcademicaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.AlmacenamientoAnexosIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.ExcepcionesFormateadorIntPuerto;
@@ -34,6 +35,7 @@ public class ResolucionAcademicaCUImplAdaptador implements ResolucionAcademicaCU
     private final ValidadorActorSolicitud validadorActor;
     private final ValidadorArchivoAdjunto validadorArchivo;
     private final ExcepcionesFormateadorIntPuerto formateadorExcepciones;
+    private final LogCUIntPuerto log;
     private final Clock reloj;
 
     public ResolucionAcademicaCUImplAdaptador(ResolucionAcademicaGatewayIntPuerto gateway,
@@ -41,6 +43,7 @@ public class ResolucionAcademicaCUImplAdaptador implements ResolucionAcademicaCU
                                               UsuarioGatewayIntPuerto usuarioGateway,
                                               AlmacenamientoAnexosIntPuerto almacenamiento,
                                               ExcepcionesFormateadorIntPuerto formateadorExcepciones,
+                                              LogCUIntPuerto log,
                                               Clock reloj) {
         this.gateway = gateway;
         this.solicitudGateway = solicitudGateway;
@@ -48,11 +51,12 @@ public class ResolucionAcademicaCUImplAdaptador implements ResolucionAcademicaCU
         this.validadorActor = new ValidadorActorSolicitud(usuarioGateway, formateadorExcepciones);
         this.validadorArchivo = new ValidadorArchivoAdjunto(formateadorExcepciones);
         this.formateadorExcepciones = formateadorExcepciones;
+        this.log = log;
         this.reloj = reloj;
     }
 
     @Override
-    public ResolucionAcademica adjuntarResolucion(String uuidSolicitudAcademica, ArchivoAdjunto archivo, ActorSolicitud actor) {
+    public ResolucionAcademica adjuntarResolucion(String uuidSolicitudAcademica, ArchivoAdjunto archivo, ActorSolicitud actor, String token) {
         SolicitudAcademica solicitud = obtenerSolicitud(uuidSolicitudAcademica);
         validadorActor.validar(solicitud, actor);
         validarProceso(solicitud.getTipoSolicitudAcademica());
@@ -90,6 +94,10 @@ public class ResolucionAcademicaCUImplAdaptador implements ResolucionAcademicaCU
         }
         if (anterior != null)
             almacenamiento.eliminarTrasConfirmar(anterior.getUrlArchivo());
+        log.crearLog("Adjuntar Resolución académica",
+                String.format("Solicitud académica %s, acción %s: escaneo de la Resolución en la etapa %s",
+                        solicitud.getRadicado(), anterior == null ? "ADJUNTAR_RESOLUCION" : "REEMPLAZAR_RESOLUCION", codigoEtapa(solicitud)),
+                token);
         return guardada;
     }
 

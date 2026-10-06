@@ -9,4 +9,6 @@ public interface ResolucionAcademicaGatewayIntPuerto {
     boolean existePorSolicitud(String uuidSolicitudAcademica);
 
     ResolucionAcademica guardar(ResolucionAcademica resolucion);
+
+    void eliminarPorSolicitud(String uuidSolicitudAcademica);
 }
