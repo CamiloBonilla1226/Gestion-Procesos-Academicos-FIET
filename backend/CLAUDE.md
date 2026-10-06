@@ -418,6 +418,43 @@ El resto de `solicitudes-academicas/**` es `denyAll()`.
   revertir; no quedan solicitud, historial, especialización, anexos ni
   archivos.
 
+### Trámite de Cancelación de Matrícula (Funcionario y Decano)
+
+- `TramiteCancelacionMatriculaCUImplAdaptador` (bean
+  `crearTramiteCancelacionMatriculaCU`, sin endpoints hasta T6.3), con el
+  token al final de cada método. El actor sale del token
+  (`IJwtServicio.getUsername` y `SesionGatewayIntPuerto.getUsuario`) y el rol
+  lo fija la acción: Funcionario Académico o Decano. Una solicitud sin fila en
+  `SOLICITUD_CANCELACION_MATRICULA` responde como inexistente.
+- Todas las acciones pasan por `SolicitudAcademicaCUIntPuerto.cambiarEtapa`,
+  que con `MaquinaEtapas` valida rol, etapa, funcionario asignado,
+  observación y escaneo, y escribe historial y log:
+  - `rechazarPorFuncionario(uuid, observacion, token)`: RADICADA a
+    RECHAZADA, con observación y escaneo de la Resolución.
+  - `remitirADecano(uuid, evaluaciones, observacion, token)`: RADICADA a
+    EN_REVISION_DECANO. Cada `EvaluacionAsignatura` trae
+    `uuidAsignaturaSolicitud` (fila de `ASIGNATURA_SOLICITUD_ACADEMICA`),
+    `numeroFaltas` (>= 0), `nota` (0.0 a 5.0 con un decimal) y
+    `uuidSituacionMatricula`. `cambiarEtapa` borra el escaneo viejo (T5.7a).
+  - `aprobarPorDecano(uuid, situacionesAlCancelar, token)`:
+    EN_REVISION_DECANO a APROBADA_POR_DECANO. Cada
+    `SituacionCancelarAsignatura` trae `uuidAsignaturaSolicitud` y
+    `uuidSituacionCancelar` (P9: la registra el Decano).
+  - `rechazarPorDecano(uuid, observacion, token)`: EN_REVISION_DECANO a
+    RECHAZADA_POR_DECANO, sin tocar las situaciones.
+  - `enviarRespuesta(uuid, token)`: APROBADA_POR_DECANO a APROBADA o
+    RECHAZADA_POR_DECANO a RECHAZADA, con escaneo. Solo en APROBADA las
+    `ASIGNATURA_MATRICULADA` de la solicitud pasan a `cancelada`, en la misma
+    transacción.
+- Evaluaciones y situaciones al cancelar deben cubrir todas las asignaturas
+  de la solicitud, sin faltar, repetir ni incluir ajenas; las situaciones solo
+  se validan contra `SITUACION_ACADEMICA_ASIGNATURA`, el sistema no las
+  calcula. Remitir y aprobar validan actor, etapa y datos antes de escribir;
+  después cambian la etapa y guardan las filas con
+  `SolicitudCancelacionMatriculaGatewayIntPuerto.actualizarAsignaturas`.
+- Todo corre en la transacción del controlador (D6): si algo falla no queda
+  etapa cambiada, evaluación guardada ni asignatura cancelada.
+
 ## Crear Estudiante y Funcionario Académico
 
 `UsuarioCUImplAdaptador.crearUsuario` y `crearUsuarios` no insertan nada en

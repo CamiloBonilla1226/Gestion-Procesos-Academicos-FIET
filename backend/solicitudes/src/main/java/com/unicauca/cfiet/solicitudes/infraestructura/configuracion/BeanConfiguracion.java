@@ -220,4 +220,19 @@ public class BeanConfiguracion {
         return new CancelacionMatriculaCUImplAdaptador(gateway, estudianteGateway, usuarioGateway, tipoSolicitudGateway,
                 tipoAnexoGateway, solicitudCU, anexoCU, formateadorExcepciones, log);
     }
+
+    @Bean
+    public TramiteCancelacionMatriculaCUImplAdaptador crearTramiteCancelacionMatriculaCU(SolicitudCancelacionMatriculaGatewayIntPuerto gateway,
+                                                                                       SolicitudAcademicaGatewayIntPuerto solicitudGateway,
+                                                                                       SituacionAcademicaAsignaturaGatewayIntPuerto situacionGateway,
+                                                                                       UsuarioGatewayIntPuerto usuarioGateway,
+                                                                                       SesionGatewayIntPuerto sesionGateway,
+                                                                                       IJwtServicio jwtServicio,
+                                                                                       SolicitudAcademicaCUIntPuerto solicitudCU,
+                                                                                       MaquinaEtapas maquinaEtapas,
+                                                                                       ExcepcionesFormateadorIntPuerto formateadorExcepciones,
+                                                                                       LogCUIntPuerto log){
+        return new TramiteCancelacionMatriculaCUImplAdaptador(gateway, solicitudGateway, situacionGateway, usuarioGateway,
+                sesionGateway, jwtServicio, solicitudCU, maquinaEtapas, formateadorExcepciones, log);
+    }
 }

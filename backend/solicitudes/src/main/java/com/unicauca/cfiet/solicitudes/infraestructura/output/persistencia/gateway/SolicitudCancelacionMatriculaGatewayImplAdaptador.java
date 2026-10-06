@@ -2,14 +2,18 @@ package com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.gatew
 
 import com.unicauca.cfiet.solicitudes.aplicacion.output.SolicitudCancelacionMatriculaGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.AsignaturaSolicitudAcademica;
+import com.unicauca.cfiet.solicitudes.dominio.modelos.SituacionAcademicaAsignatura;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.SolicitudCancelacionMatricula;
+import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.entidades.AsignaturaMatriculadaEntidad;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.entidades.AsignaturaSolicitudAcademicaEntidad;
+import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.entidades.SituacionAcademicaAsignaturaEntidad;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.entidades.SolicitudAcademicaEntidad;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.entidades.SolicitudCancelacionMatriculaEntidad;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.mapeador.ownMapper.AsignaturaSolicitudAcademicaOwnMapper;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.mapeador.ownMapper.SolicitudCancelacionMatriculaOwnMapper;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.repositorios.AsignaturaMatriculadaRepositorio;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.repositorios.AsignaturaSolicitudAcademicaRepositorio;
+import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.repositorios.SituacionAcademicaAsignaturaRepositorio;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.repositorios.SolicitudAcademicaRepositorio;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.repositorios.SolicitudCancelacionMatriculaRepositorio;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +30,7 @@ public class SolicitudCancelacionMatriculaGatewayImplAdaptador implements Solici
     private final AsignaturaSolicitudAcademicaRepositorio asignaturaSolicitudRepositorio;
     private final SolicitudAcademicaRepositorio solicitudRepositorio;
     private final AsignaturaMatriculadaRepositorio asignaturaMatriculadaRepositorio;
+    private final SituacionAcademicaAsignaturaRepositorio situacionRepositorio;
     private final SolicitudCancelacionMatriculaOwnMapper mapper;
     private final AsignaturaSolicitudAcademicaOwnMapper asignaturaMapper;
 
@@ -58,6 +63,33 @@ public class SolicitudCancelacionMatriculaGatewayImplAdaptador implements Solici
                 .map(entidad -> conAsignaturas(entidad,
                         asignaturaSolicitudRepositorio.findBySolicitudAcademica_UuidSolicitudAcademica(uuidSolicitudAcademica)))
                 .orElse(null);
+    }
+
+    @Override
+    @Transactional
+    public List<AsignaturaSolicitudAcademica> actualizarAsignaturas(List<AsignaturaSolicitudAcademica> asignaturas) {
+        List<AsignaturaSolicitudAcademicaEntidad> filas = new ArrayList<>();
+        for (AsignaturaSolicitudAcademica asignatura : asignaturas) {
+            AsignaturaSolicitudAcademicaEntidad fila = asignaturaSolicitudRepositorio.findById(asignatura.getUuidAsignaturaSolicitud()).orElseThrow();
+            fila.setNumeroFaltas(asignatura.getNumeroFaltas());
+            fila.setNota(asignatura.getNota());
+            fila.setSituacionMatricula(situacion(asignatura.getSituacionMatricula()));
+            fila.setSituacionCancelar(situacion(asignatura.getSituacionCancelar()));
+            filas.add(fila);
+        }
+        return asignaturaSolicitudRepositorio.saveAllAndFlush(filas).stream().map(asignaturaMapper::toDominio).toList();
+    }
+
+    @Override
+    @Transactional
+    public void cambiarEstadoAsignaturasMatriculadas(List<String> uuidsAsignaturaMatriculada, String estado) {
+        List<AsignaturaMatriculadaEntidad> asignaturas = asignaturaMatriculadaRepositorio.findAllById(uuidsAsignaturaMatriculada);
+        asignaturas.forEach(asignatura -> asignatura.setEstado(estado));
+        asignaturaMatriculadaRepositorio.saveAllAndFlush(asignaturas);
+    }
+
+    private SituacionAcademicaAsignaturaEntidad situacion(SituacionAcademicaAsignatura situacion) {
+        return situacion == null ? null : situacionRepositorio.getReferenceById(situacion.getUuidSituacionAcademica());
     }
 
     private SolicitudCancelacionMatricula conAsignaturas(SolicitudCancelacionMatriculaEntidad entidad,

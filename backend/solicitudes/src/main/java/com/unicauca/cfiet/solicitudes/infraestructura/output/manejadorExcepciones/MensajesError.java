@@ -74,4 +74,10 @@ public class MensajesError {
     public static final String MOTIVO_CANCELACION_MUY_LARGO = "El motivo de la cancelación supera los %d caracteres permitidos...";
     public static final String SIN_ASIGNATURAS_ACTIVAS = "El estudiante %s no tiene asignaturas activas para cancelar...";
     public static final String ANEXOS_OBLIGATORIOS_FALTANTES = "Falta el anexo obligatorio: %s...";
+    public static final String ASIGNATURAS_SIN_EVALUAR = "Faltan datos de las asignaturas de la solicitud: %s...";
+    public static final String ASIGNATURA_REPETIDA = "La asignatura %s viene más de una vez...";
+    public static final String ASIGNATURA_AJENA = "La asignatura %s no pertenece a la solicitud %s...";
+    public static final String DATO_ASIGNATURA_FALTANTE = "Falta %s de la asignatura %s...";
+    public static final String NUMERO_FALTAS_NO_VALIDO = "El número de faltas de la asignatura %s debe ser un entero mayor o igual a 0...";
+    public static final String NOTA_NO_VALIDA = "La nota de la asignatura %s debe estar entre 0.0 y 5.0 con un decimal...";
 }
