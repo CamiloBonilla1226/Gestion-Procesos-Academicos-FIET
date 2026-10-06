@@ -280,4 +280,16 @@ public class BeanConfiguracion {
         return new TramiteCancelacionAsignaturaCUImplAdaptador(gateway, asignaturaSolicitudGateway, solicitudGateway, situacionGateway,
                 usuarioGateway, sesionGateway, jwtServicio, solicitudCU, maquinaEtapas, formateadorExcepciones, log);
     }
+
+    @Bean
+    public ConsultaCancelacionAsignaturaCUImplAdaptador crearConsultaCancelacionAsignaturaCU(SolicitudCancelacionAsignaturaGatewayIntPuerto gateway,
+                                                                                           EstudianteGatewayIntPuerto estudianteGateway,
+                                                                                           SesionGatewayIntPuerto sesionGateway,
+                                                                                           IJwtServicio jwtServicio,
+                                                                                           ConsultaSolicitudAcademicaCUIntPuerto consultaCU,
+                                                                                           MaquinaEtapas maquinaEtapas,
+                                                                                           ExcepcionesFormateadorIntPuerto formateadorExcepciones){
+        return new ConsultaCancelacionAsignaturaCUImplAdaptador(gateway, estudianteGateway, sesionGateway, jwtServicio,
+                consultaCU, maquinaEtapas, formateadorExcepciones);
+    }
 }

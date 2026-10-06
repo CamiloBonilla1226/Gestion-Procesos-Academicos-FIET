@@ -553,6 +553,54 @@ El resto de `cancelaciones-matricula/**` es `denyAll()`.
   `aprobadaPorDecano` verdadero que sigan `activa`; con rechazo no se toca
   ninguna.
 
+### Endpoints `cancelaciones-asignatura`
+
+`CancelacionAsignaturaRestController` (`infraestructura/input/controladorCancelacionesAsignatura`),
+con el mismo patrón que `cancelaciones-matricula`: todos sus métodos llevan
+`@Transactional` (los GET `readOnly`) y los DTO no llevan rol ni tipo de
+usuario.
+
+| Método y ruta | Roles en `ConfiguracionSeguridad` | Qué hace |
+|---|---|---|
+| `GET /formulario` | Estudiante | Asignaturas activas del estudiante autenticado (`uuidAsignaturaMatriculada`, código, nombre, grupo) y `soportes`: el soporte libre opcional (tipo nulo, formatos y `tamanioMaximoBytes`) |
+| `POST /` | Estudiante | Multipart: `motivo`, un campo `asignaturas` por cada uuid elegido y partes `soporte`. Usa `radicarCancelacionAsignatura` con el uuid del usuario autenticado; responde uuid y radicado |
+| `GET /{uuid}` | los tres | Detalle de `solicitudes-academicas` más motivo y asignaturas, según rol y etapa |
+| `POST /{uuid}/funcionario/rechazar` | Funcionario Académico | Cuerpo `observacion` |
+| `POST /{uuid}/funcionario/remitir` | Funcionario Académico | Cuerpo `observacion` opcional y `evaluaciones` (`asignaturaSolicitudUuid`, `numeroFaltas`, `nota`, `situacionMatriculaUuid`, `cumpleCondiciones`, `observacionEvaluacion`) |
+| `POST /{uuid}/funcionario/responder` | Funcionario Académico | Sin cuerpo |
+| `POST /{uuid}/decano/aprobar` | Decano | Cuerpo `decisiones` (`asignaturaSolicitudUuid`, `aprobada`, `situacionCancelarUuid`, `observacionDecision`) |
+| `POST /{uuid}/decano/rechazar` | Decano | Cuerpo `observacion` |
+
+El resto de `cancelaciones-asignatura/**` es `denyAll()`.
+
+- `ConsultaCancelacionAsignaturaCUImplAdaptador` (bean
+  `crearConsultaCancelacionAsignaturaCU`) saca el estudiante del token y arma
+  el detalle sobre `ConsultaSolicitudAcademicaCUIntPuerto.getDetalle`, con la
+  misma visibilidad por `ETAPA_ETIQUETA_ROL` y la misma respuesta de
+  inexistente; una solicitud sin fila en `SOLICITUD_CANCELACION_ASIGNATURA`
+  también responde como inexistente.
+- El Funcionario asignado y el Decano ven de cada asignatura faltas, nota,
+  situación en la matrícula, `cumpleCondiciones`, `observacionEvaluacion` y,
+  cuando existen, `aprobadaPorDecano`, `observacionDecision` y la situación al
+  cancelar. El Estudiante ve solo uuid de la fila, código y nombre; en
+  `APROBADA` o `RECHAZADA` ve además `aprobadaPorDecano` y
+  `observacionDecision`. Nunca ve `observacionEvaluacion`. La vista del
+  Estudiante es una copia: no modifica las filas leídas.
+- No hay filas de `TIPO_ANEXO_ACADEMICO` para este proceso; el soporte libre
+  del formulario sale de `AnexoAcademicoConstantes`
+  (`FORMATOS_SOPORTE_LIBRE`, `TAMANIO_MAXIMO_BYTES`), las mismas constantes
+  con que se valida. Una parte con otro nombre se toma como tipo de anexo y
+  la radicación la rechaza.
+- Las acciones responden el detalle actualizado; el escaneo de la Resolución
+  se sube antes con `POST solicitudes-academicas/{uuid}/resolucion`. Las
+  situaciones salen de `GET catalogos-academicos/situaciones` (T5.1).
+- `backend/pruebas/t7_cancelacion_asignatura.ps1` recorre el proceso con
+  usuarios reales: permisos, formulario, radicación, recorrido con aprobación
+  parcial, rechazo del Funcionario, rechazo total del Decano y una falla a
+  mitad de camino provocada con un trigger temporal de MySQL sobre
+  `ANEXO_ACADEMICO`, que se borra al final. Deja la base, el responsable del
+  tipo y `uploads/anexos` como estaban, salvo los logs de root.
+
 ## Crear Estudiante y Funcionario Académico
 
 `UsuarioCUImplAdaptador.crearUsuario` y `crearUsuarios` no insertan nada en
