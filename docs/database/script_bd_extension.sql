@@ -196,6 +196,11 @@ CREATE TABLE IF NOT EXISTS SITUACION_ACADEMICA_ASIGNATURA (
 -- 7. Vinculación con asignaturas matriculadas (cancelaciones)
 -- ---------------------------------------------------------------------
 
+-- cumpleCondiciones, observacionEvaluacion, aprobadaPorDecano y
+-- observacionDecision solo se usan en Cancelación de Asignatura, donde el
+-- Decano decide cada asignatura por separado (decisión P14 de
+-- docs/database/etapas-por-proceso.md). En Cancelación de Matrícula quedan
+-- en NULL. BOOLEAN es TINYINT(1) en MySQL.
 CREATE TABLE IF NOT EXISTS ASIGNATURA_SOLICITUD_ACADEMICA (
     uuidAsignaturaSolicitud     VARCHAR(100) NOT NULL,
     SolicitudAcademica_uuid     VARCHAR(100) NOT NULL,
@@ -204,6 +209,10 @@ CREATE TABLE IF NOT EXISTS ASIGNATURA_SOLICITUD_ACADEMICA (
     nota                        DECIMAL(3,1) NULL,
     SituacionMatricula_uuid     VARCHAR(100) NULL,
     SituacionCancelar_uuid      VARCHAR(100) NULL,
+    cumpleCondiciones           BOOLEAN      NULL,
+    observacionEvaluacion       VARCHAR(255) NULL,
+    aprobadaPorDecano           BOOLEAN      NULL,
+    observacionDecision         VARCHAR(255) NULL,
     PRIMARY KEY (uuidAsignaturaSolicitud),
     CONSTRAINT fk_asigsol_solacad
         FOREIGN KEY (SolicitudAcademica_uuid) REFERENCES SOLICITUD_ACADEMICA (uuidSolicitudAcademica),

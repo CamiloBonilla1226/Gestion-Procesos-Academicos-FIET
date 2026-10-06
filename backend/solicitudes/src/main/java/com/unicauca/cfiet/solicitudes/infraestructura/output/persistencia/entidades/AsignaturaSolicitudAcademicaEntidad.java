@@ -50,4 +50,12 @@ public class AsignaturaSolicitudAcademicaEntidad {
             foreignKey = @ForeignKey(name = "fk_asigsol_situcancelar")
     )
     private SituacionAcademicaAsignaturaEntidad situacionCancelar;
+    @Column(name = "cumpleCondiciones", columnDefinition = "tinyint(1)")
+    private Boolean cumpleCondiciones;
+    @Column(name = "observacionEvaluacion", length = 255)
+    private String observacionEvaluacion;
+    @Column(name = "aprobadaPorDecano", columnDefinition = "tinyint(1)")
+    private Boolean aprobadaPorDecano;
+    @Column(name = "observacionDecision", length = 255)
+    private String observacionDecision;
 }

@@ -108,6 +108,7 @@ Comunes a los tres procesos:
   3. No se violan condiciones de co-requisitos.
   4. La nota promedio es igual o mayor a 3.0.
 - El resto de la matrícula permanece activa.
+- El Decano aprueba o rechaza cada asignatura por separado (decisión P14 de la sección 8).
 
 ### 4.3 Examen Supletorio
 
@@ -204,6 +205,7 @@ Propuestas adoptadas por defecto (cambiables antes de implementar la tarea que l
 | P11 | Las cuatro condiciones de Cancelación de Asignatura | La lista de la sección 4.2. |
 | P12 | Tamaño del escaneo de la Resolución y del recibo | 5 MB, igual que los demás archivos. |
 | P13 | Soporte libre del motivo en matrícula y asignatura | Sigue siendo opcional. Solo los documentos oficiales son obligatorios. |
+| P14 | Decisión del Decano en Cancelación de Asignatura | Confirmada por el autor; supera cualquier texto anterior. Aprobación parcial: el Decano aprueba o rechaza cada asignatura por separado. Al remitir, el Funcionario confirma por asignatura si cumple las condiciones de la sección 4.2 (una nota menor a 3.0 no puede marcarse como que cumple; si no cumple, la observación es obligatoria) y al menos una debe cumplir. El Decano solo aprueba asignaturas que cumplen, registra la situación al cancelar de las aprobadas (P9) y debe dar observación de las rechazadas; con al menos una aprobada la solicitud pasa a APROBADA_POR_DECANO, y si no aprueba ninguna usa el rechazo de la solicitud completa. Al enviar la respuesta aprobada solo se cancelan las asignaturas aprobadas que sigan activas. Cancelación de Matrícula no cambia. Se guarda en `ASIGNATURA_SOLICITUD_ACADEMICA` (`cumpleCondiciones`, `observacionEvaluacion`, `aprobadaPorDecano`, `observacionDecision`). |
 
 ## 9. Funcionalidad opcional, al final del proyecto
 

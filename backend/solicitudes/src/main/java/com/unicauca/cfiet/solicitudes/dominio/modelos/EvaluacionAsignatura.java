@@ -14,4 +14,6 @@ public class EvaluacionAsignatura {
     private Integer numeroFaltas;
     private BigDecimal nota;
     private String uuidSituacionMatricula;
+    private Boolean cumpleCondiciones;
+    private String observacionEvaluacion;
 }

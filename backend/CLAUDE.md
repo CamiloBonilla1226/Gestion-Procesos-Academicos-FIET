@@ -523,6 +523,36 @@ El resto de `cancelaciones-matricula/**` es `denyAll()`.
   solicitud, historial, especialización, asignaturas vinculadas, anexos ni
   archivos.
 
+### Trámite de Cancelación de Asignatura (aprobación parcial, P14)
+
+- `TramiteCancelacionAsignaturaCUImplAdaptador` (bean
+  `crearTramiteCancelacionAsignaturaCU`, sin endpoints hasta T7.3) tiene las
+  mismas cinco acciones que el de matrícula, con el token al final. Lo común
+  (actor desde el token, solicitud y transición validadas antes de escribir,
+  cobertura de todas las asignaturas, faltas, nota, situaciones del catálogo,
+  guardar filas y cancelar las activas) vive en el servicio de dominio
+  `dominio/servicios/TramiteCancelacion`, que también usa
+  `TramiteCancelacionMatriculaCUImplAdaptador` sin cambiar su comportamiento.
+- `ASIGNATURA_SOLICITUD_ACADEMICA` suma `cumpleCondiciones`,
+  `observacionEvaluacion`, `aprobadaPorDecano` y `observacionDecision`, todas
+  nulas; en matrícula quedan en `null`.
+- `remitirADecano`: cada `EvaluacionAsignatura` trae además
+  `cumpleCondiciones` (obligatorio) y `observacionEvaluacion`. Una nota menor
+  a 3.0 no puede venir con `cumpleCondiciones` verdadero; si no cumple, la
+  observación es obligatoria (máximo 255); al menos una debe cumplir, si no
+  el error pide rechazar la solicitud.
+- `aprobarPorDecano(uuid, decisiones, token)`: cada `DecisionAsignatura` trae
+  `aprobada`, `uuidSituacionCancelar` y `observacionDecision`. Solo se
+  aprueba una asignatura que cumple; rechazar exige observación; la
+  situación al cancelar se guarda solo en las aprobadas; al menos una
+  aprobada, si no el error pide usar `rechazarPorDecano`. La etapa pasa por
+  APROBAR_DECANO como en matrícula.
+- `rechazarPorFuncionario` y `rechazarPorDecano` actúan sobre la solicitud
+  completa, como en matrícula.
+- `enviarRespuesta`: en APROBADA pasan a `cancelada` solo las asignaturas con
+  `aprobadaPorDecano` verdadero que sigan `activa`; con rechazo no se toca
+  ninguna.
+
 ## Crear Estudiante y Funcionario Académico
 
 `UsuarioCUImplAdaptador.crearUsuario` y `crearUsuarios` no insertan nada en

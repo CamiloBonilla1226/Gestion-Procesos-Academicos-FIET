@@ -85,6 +85,10 @@ public class SolicitudCancelacionMatriculaGatewayImplAdaptador implements Solici
             fila.setNota(asignatura.getNota());
             fila.setSituacionMatricula(situacion(asignatura.getSituacionMatricula()));
             fila.setSituacionCancelar(situacion(asignatura.getSituacionCancelar()));
+            fila.setCumpleCondiciones(asignatura.getCumpleCondiciones());
+            fila.setObservacionEvaluacion(asignatura.getObservacionEvaluacion());
+            fila.setAprobadaPorDecano(asignatura.getAprobadaPorDecano());
+            fila.setObservacionDecision(asignatura.getObservacionDecision());
             filas.add(fila);
         }
         return asignaturaSolicitudRepositorio.saveAllAndFlush(filas).stream().map(asignaturaMapper::toDominio).toList();

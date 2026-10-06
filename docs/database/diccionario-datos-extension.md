@@ -143,7 +143,11 @@ como "situación al cancelar" en `ASIGNATURA_SOLICITUD_ACADEMICA`.
 | numeroFaltas | int |  | Sí | Nulo hasta que el funcionario evalúa |
 | nota | decimal |  | Sí | Nulo hasta evaluación |
 | SituacionMatricula\_uuid | varchar | FK -> SITUACION\_ACADEMICA\_ASIGNATURA | Sí | Nulo hasta evaluación |
-| SituacionCancelar\_uuid | varchar | FK -> SITUACION\_ACADEMICA\_ASIGNATURA | Sí | Nulo hasta resolución del Decano |
+| SituacionCancelar\_uuid | varchar | FK -> SITUACION\_ACADEMICA\_ASIGNATURA | Sí | Nulo hasta resolución del Decano; en Cancelación de Asignatura solo en las aprobadas |
+| cumpleCondiciones | boolean |  | Sí | Solo Cancelación de Asignatura: el Funcionario confirma que verificó las condiciones de la sección 4.2 de `etapas-por-proceso.md`. Nulo hasta evaluación |
+| observacionEvaluacion | varchar |  | Sí | Solo Cancelación de Asignatura: obligatoria si la asignatura no cumple las condiciones |
+| aprobadaPorDecano | boolean |  | Sí | Solo Cancelación de Asignatura: decisión del Decano sobre esa asignatura (P14). Nulo hasta su decisión |
+| observacionDecision | varchar |  | Sí | Solo Cancelación de Asignatura: obligatoria si el Decano rechaza la asignatura |
 
 ## TIPO\_ANEXO\_ACADEMICO
 

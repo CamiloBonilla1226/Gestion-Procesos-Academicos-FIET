@@ -16,4 +16,8 @@ public class AsignaturaSolicitudAcademica {
     private BigDecimal nota;
     private SituacionAcademicaAsignatura situacionMatricula;
     private SituacionAcademicaAsignatura situacionCancelar;
+    private Boolean cumpleCondiciones;
+    private String observacionEvaluacion;
+    private Boolean aprobadaPorDecano;
+    private String observacionDecision;
 }

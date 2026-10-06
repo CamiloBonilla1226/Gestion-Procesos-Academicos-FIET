@@ -22,6 +22,10 @@ public class AsignaturaSolicitudAcademicaOwnMapper implements OwnMapper<Asignatu
                 .nota(source.getNota())
                 .situacionMatricula(source.getSituacionMatricula() == null ? null : situacionMapper.toDominio(source.getSituacionMatricula()))
                 .situacionCancelar(source.getSituacionCancelar() == null ? null : situacionMapper.toDominio(source.getSituacionCancelar()))
+                .cumpleCondiciones(source.getCumpleCondiciones())
+                .observacionEvaluacion(source.getObservacionEvaluacion())
+                .aprobadaPorDecano(source.getAprobadaPorDecano())
+                .observacionDecision(source.getObservacionDecision())
                 .build();
     }
 
@@ -32,6 +36,10 @@ public class AsignaturaSolicitudAcademicaOwnMapper implements OwnMapper<Asignatu
                 .uuidAsignaturaSolicitud(source.getUuidAsignaturaSolicitud())
                 .numeroFaltas(source.getNumeroFaltas())
                 .nota(source.getNota())
+                .cumpleCondiciones(source.getCumpleCondiciones())
+                .observacionEvaluacion(source.getObservacionEvaluacion())
+                .aprobadaPorDecano(source.getAprobadaPorDecano())
+                .observacionDecision(source.getObservacionDecision())
                 .build();
     }
 }

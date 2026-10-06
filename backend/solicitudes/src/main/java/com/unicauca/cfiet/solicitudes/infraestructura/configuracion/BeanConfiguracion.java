@@ -264,4 +264,20 @@ public class BeanConfiguracion {
         return new CancelacionAsignaturaCUImplAdaptador(gateway, asignaturaSolicitudGateway, estudianteGateway, usuarioGateway,
                 tipoSolicitudGateway, solicitudCU, anexoCU, formateadorExcepciones, log);
     }
+
+    @Bean
+    public TramiteCancelacionAsignaturaCUImplAdaptador crearTramiteCancelacionAsignaturaCU(SolicitudCancelacionAsignaturaGatewayIntPuerto gateway,
+                                                                                         SolicitudCancelacionMatriculaGatewayIntPuerto asignaturaSolicitudGateway,
+                                                                                         SolicitudAcademicaGatewayIntPuerto solicitudGateway,
+                                                                                         SituacionAcademicaAsignaturaGatewayIntPuerto situacionGateway,
+                                                                                         UsuarioGatewayIntPuerto usuarioGateway,
+                                                                                         SesionGatewayIntPuerto sesionGateway,
+                                                                                         IJwtServicio jwtServicio,
+                                                                                         SolicitudAcademicaCUIntPuerto solicitudCU,
+                                                                                         MaquinaEtapas maquinaEtapas,
+                                                                                         ExcepcionesFormateadorIntPuerto formateadorExcepciones,
+                                                                                         LogCUIntPuerto log){
+        return new TramiteCancelacionAsignaturaCUImplAdaptador(gateway, asignaturaSolicitudGateway, solicitudGateway, situacionGateway,
+                usuarioGateway, sesionGateway, jwtServicio, solicitudCU, maquinaEtapas, formateadorExcepciones, log);
+    }
 }
