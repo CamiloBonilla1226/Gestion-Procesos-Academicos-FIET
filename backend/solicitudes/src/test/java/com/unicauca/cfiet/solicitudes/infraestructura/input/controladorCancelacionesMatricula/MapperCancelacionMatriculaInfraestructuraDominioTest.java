@@ -115,4 +115,18 @@ class MapperCancelacionMatriculaInfraestructuraDominioTest {
         assertEquals("R0", asignatura.getSituacionMatricula().getCodigo());
         assertNull(asignatura.getSituacionCancelar());
     }
+
+    @Test
+    void elDetalleTraeElCodigoDeLaEtapaSinCambiarLaEtiqueta() {
+        CancelacionMatriculaDetalleDTORespuesta respuesta = mapper.mapearDetalleARespuesta(DetalleCancelacionMatricula.builder()
+                .detalle(DetalleSolicitudAcademica.builder()
+                        .solicitudAcademica(SolicitudAcademica.builder().uuidSolicitudAcademica("sol-1")
+                                .etapa(EtapaSolicitudAcademica.builder().uuidEtapa("e-1").codigo("EN_REVISION_DECANO").build()).build())
+                        .etiqueta("En revisión")
+                        .build())
+                .build());
+
+        assertEquals("EN_REVISION_DECANO", respuesta.getSolicitud().getEtapaCodigo());
+        assertEquals("En revisión", respuesta.getSolicitud().getEtiqueta());
+    }
 }

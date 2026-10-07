@@ -20,6 +20,7 @@ public class SolicitudAcademicaDetalleDTORespuesta {
     private String tipoSolicitud;
     private LocalDateTime fechaCreacion;
     private String etiqueta;
+    private String etapaCodigo;
     private EstudianteSolicitudDTORespuesta estudiante;
     @Builder.Default
     private List<AnexoAcademicoDTORespuesta> anexos = new ArrayList<>();

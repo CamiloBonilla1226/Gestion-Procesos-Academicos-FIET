@@ -140,4 +140,18 @@ class MapperCancelacionAsignaturaInfraestructuraDominioTest {
         assertNull(respuesta.getAsignaturas().get(0).getSituacionMatricula());
         assertNull(respuesta.getAsignaturas().get(0).getSituacionCancelar());
     }
+
+    @Test
+    void elDetalleTraeElCodigoDeLaEtapaSinCambiarLaEtiqueta() {
+        CancelacionAsignaturaDetalleDTORespuesta respuesta = mapper.mapearDetalleARespuesta(DetalleCancelacionAsignatura.builder()
+                .detalle(DetalleSolicitudAcademica.builder()
+                        .solicitudAcademica(SolicitudAcademica.builder().uuidSolicitudAcademica("sol-1")
+                                .etapa(EtapaSolicitudAcademica.builder().uuidEtapa("e-1").codigo("APROBADA_POR_DECANO").build()).build())
+                        .etiqueta("Aprobada por el Decano")
+                        .build())
+                .build());
+
+        assertEquals("APROBADA_POR_DECANO", respuesta.getSolicitud().getEtapaCodigo());
+        assertEquals("Aprobada por el Decano", respuesta.getSolicitud().getEtiqueta());
+    }
 }

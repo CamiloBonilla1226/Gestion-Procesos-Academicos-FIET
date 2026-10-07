@@ -16,4 +16,5 @@ public class HistorialSolicitudAcademica {
     private String accion;
     private String observaciones;
     private LocalDateTime fecha;
+    private String etapaCodigo;
 }

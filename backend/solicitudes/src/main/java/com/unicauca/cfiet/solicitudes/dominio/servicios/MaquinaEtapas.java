@@ -121,6 +121,15 @@ public class MaquinaEtapas {
                 .toList();
     }
 
+    public String etapaDestino(TipoProcesoAcademico tipo, String etapaActual, AccionEtapa accion) {
+        String origen = etapaActual == null || etapaActual.isBlank() ? null : etapaActual.trim();
+        return TRANSICIONES.stream()
+                .filter(t -> t.procesos().contains(tipo) && Objects.equals(t.origen(), origen) && t.accion() == accion)
+                .map(Transicion::destino)
+                .findFirst()
+                .orElse(null);
+    }
+
     public ResponsableEtapa responsableActual(String codigoEtapa) {
         ResponsableEtapa responsable = codigoEtapa == null ? null : RESPONSABLES.get(codigoEtapa.trim());
         if (responsable == null)

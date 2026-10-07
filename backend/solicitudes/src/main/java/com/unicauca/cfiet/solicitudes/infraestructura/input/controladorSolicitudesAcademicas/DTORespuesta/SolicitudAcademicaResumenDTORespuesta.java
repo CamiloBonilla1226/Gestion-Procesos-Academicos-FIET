@@ -18,6 +18,7 @@ public class SolicitudAcademicaResumenDTORespuesta {
     private String tipoSolicitud;
     private LocalDateTime fechaCreacion;
     private String etiqueta;
+    private String etapaCodigo;
     private String nombreEstudiante;
     private String codigoEstudiantil;
 }

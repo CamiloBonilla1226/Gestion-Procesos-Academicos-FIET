@@ -8,6 +8,7 @@ import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
 import com.unicauca.cfiet.solicitudes.dominio.servicios.MaquinaEtapas;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.MensajesError;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -95,7 +96,38 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
     @Override
     public List<HistorialSolicitudAcademica> getHistorial(String uuidSolicitudAcademica, String token) {
         Acceso acceso = acceso(uuidSolicitudAcademica, token);
-        return historialGateway.getPorSolicitud(acceso.solicitud().getUuidSolicitudAcademica());
+        List<HistorialSolicitudAcademica> historial = historialGateway.getPorSolicitud(acceso.solicitud().getUuidSolicitudAcademica());
+        TipoSolicitudAcademica tipo = acceso.solicitud().getTipoSolicitudAcademica();
+        TipoProcesoAcademico proceso = tipo == null ? null : TipoProcesoAcademico.porNombre(tipo.getNombre());
+        if (historial != null && proceso != null)
+            asignarEtapas(historial, proceso);
+        return historial;
+    }
+
+    private void asignarEtapas(List<HistorialSolicitudAcademica> historial, TipoProcesoAcademico proceso) {
+        List<HistorialSolicitudAcademica> pendientes = new ArrayList<>(historial);
+        String etapa = null;
+        boolean avanzo = true;
+        while (avanzo && !pendientes.isEmpty()) {
+            avanzo = false;
+            for (HistorialSolicitudAcademica fila : pendientes) {
+                String destino = maquinaEtapas.etapaDestino(proceso, etapa, accionDe(fila.getAccion()));
+                if (destino != null) {
+                    fila.setEtapaCodigo(destino);
+                    pendientes.remove(fila);
+                    etapa = destino;
+                    avanzo = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    private AccionEtapa accionDe(String accion) {
+        for (AccionEtapa candidata : AccionEtapa.values())
+            if (candidata.name().equals(accion))
+                return candidata;
+        return null;
     }
 
     @Override

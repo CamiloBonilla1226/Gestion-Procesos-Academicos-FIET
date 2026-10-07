@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class HistorialSolicitudAcademicaDTORespuesta {
     private String accion;
+    private String etapaCodigo;
     private String observaciones;
     private LocalDateTime fecha;
     private String nombresUsuario;

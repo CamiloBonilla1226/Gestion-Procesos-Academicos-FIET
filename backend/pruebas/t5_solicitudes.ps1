@@ -124,6 +124,13 @@ function Uuids-DeLista {
     return @((Leer-Json $Respuesta) | ForEach-Object { $_.uuidSolicitudAcademica })
 }
 
+function Codigos-DeLista {
+    param($Respuesta, [string[]]$Solo = @())
+    if ($Respuesta.Status -ne 200) { return "" }
+    $filas = @((Leer-Json $Respuesta) | Where-Object { $Solo.Count -eq 0 -or $Solo -contains $_.uuidSolicitudAcademica })
+    return (@($filas | ForEach-Object { "$($_.uuidSolicitudAcademica):$($_.etapaCodigo)" }) -join ",")
+}
+
 function Insertar-Solicitud {
     param([string]$Uuid, [string]$Radicado, [string]$Estudiante, [string]$Tipo, [string]$Etapa, [string]$Fecha)
     Ejecutar-Sql ("insert into SOLICITUD_ACADEMICA (uuidSolicitudAcademica, radicado, Estudiante_uuid, TipoSolicitudAcademica_uuid, Etapa_uuid, fechaCreacion) " +
@@ -190,11 +197,13 @@ try {
     Escribir-Resultado "el estudiante 1 ve sus dos solicitudes de la mas reciente a la mas antigua (obtuvo $($lista -join ','))" (($r.Status -eq 200) -and ($lista.Count -eq 2) -and ($lista[0] -eq $s4) -and ($lista[1] -eq $s1))
     $item = @(Leer-Json $r) | Where-Object { $_.uuidSolicitudAcademica -eq $s1 }
     $enTramite = "En tr$([char]0x00E1)mite"
-    Escribir-Resultado "cada item trae la etiqueta del estudiante y no el codigo de etapa (obtuvo $($item.etiqueta))" (($item.etiqueta -eq $enTramite) -and ($r.Body -notmatch 'RADICADA') -and ($r.Body -notmatch '"codigo"'))
+    Escribir-Resultado "cada item trae la etiqueta del estudiante y el codigo de etapa en su propio campo (obtuvo $($item.etiqueta), $($item.etapaCodigo))" (($item.etiqueta -eq $enTramite) -and ($item.etapaCodigo -eq "RADICADA") -and ($r.Body -notmatch '"codigo"'))
     Escribir-Resultado "el item trae radicado y tipo" (($item.radicado -eq "1999-CM-$n") -and ($item.uuidTipoSolicitudAcademica -eq $tipoCm))
+    Escribir-Resultado "la bandeja del estudiante 1 trae etapaCodigo RADICADA en sus dos items (obtuvo $(Codigos-DeLista $r))" ((Codigos-DeLista $r) -eq "$($s4):RADICADA,$($s1):RADICADA")
     $r = Invoke-Api -Metodo GET -Ruta "$Global:Ruta/estudiante" -Token $est2.Token
     $lista = @(Uuids-DeLista $r)
     Escribir-Resultado "el estudiante 2 solo ve la suya (obtuvo $($lista -join ','))" (($lista.Count -eq 1) -and ($lista[0] -eq $s3))
+    Escribir-Resultado "la bandeja del estudiante 2 trae etapaCodigo EN_REVISION_DECANO (obtuvo $(Codigos-DeLista $r))" ((Codigos-DeLista $r) -eq "$($s3):EN_REVISION_DECANO")
 
     $inexistente = [guid]::NewGuid().ToString()
     $ajena = Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$s1" -Token $est2.Token
@@ -210,6 +219,7 @@ try {
     Escribir-Resultado "el funcionario asignado ve las de su tipo en orden (obtuvo $($lista -join ','))" (($r.Status -eq 200) -and ($lista.Count -eq 2) -and ($lista[0] -eq $s3) -and ($lista[1] -eq $s1))
     $item = @(Leer-Json $r) | Where-Object { $_.uuidSolicitudAcademica -eq $s1 }
     Escribir-Resultado "el funcionario ve su etiqueta Pendiente (obtuvo $($item.etiqueta))" ($item.etiqueta -eq "Pendiente")
+    Escribir-Resultado "la bandeja del funcionario trae el etapaCodigo de cada una (obtuvo $(Codigos-DeLista $r $solicitudes))" ((Codigos-DeLista $r $solicitudes) -eq "$($s3):EN_REVISION_DECANO,$($s1):RADICADA")
     $r = Invoke-Api -Metodo GET -Ruta "$Global:Ruta/funcionario" -Token $fa2.Token
     $lista = @(Uuids-DeLista $r | Where-Object { $solicitudes -contains $_ })
     Escribir-Resultado "el funcionario no asignado no ve ninguna de prueba (200, obtuvo $($r.Status) con $($lista.Count))" (($r.Status -eq 200) -and ($lista.Count -eq 0))
@@ -219,11 +229,14 @@ try {
     $r = Invoke-Api -Metodo GET -Ruta "$Global:Ruta/decano" -Token $decano.Token
     $lista = @(Uuids-DeLista $r | Where-Object { $solicitudes -contains $_ })
     Escribir-Resultado "el Decano ve la que esta en revision y no las radicadas (obtuvo $($lista -join ','))" (($r.Status -eq 200) -and ($lista.Count -eq 1) -and ($lista[0] -eq $s3))
+    Escribir-Resultado "la bandeja del Decano trae etapaCodigo EN_REVISION_DECANO (obtuvo $(Codigos-DeLista $r $solicitudes))" ((Codigos-DeLista $r $solicitudes) -eq "$($s3):EN_REVISION_DECANO")
     $r = Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$s1" -Token $decano.Token
     Escribir-Resultado "el Decano no ve el detalle de una radicada" ((Firma-Error $r $s1) -eq $firmaNoExiste)
+    Escribir-Resultado "esa respuesta no deja ver el codigo de la etapa" (($r.Body -notmatch 'etapaCodigo') -and ($r.Body -notmatch 'RADICADA'))
     $r = Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$s3" -Token $decano.Token
     $detalle = Leer-Json $r
     Escribir-Resultado "el Decano ve el detalle en revision con sus acciones (obtuvo $($detalle.accionesDisponibles -join ','))" (($r.Status -eq 200) -and ($detalle.etiqueta -eq "Pendiente") -and (($detalle.accionesDisponibles -join ',') -eq "APROBAR_DECANO,RECHAZAR_DECANO"))
+    Escribir-Resultado "el detalle del Decano trae etapaCodigo EN_REVISION_DECANO con su etiqueta (obtuvo $($detalle.etapaCodigo))" (($detalle.etapaCodigo -eq "EN_REVISION_DECANO") -and ($detalle.etiqueta -eq "Pendiente"))
 
     $r = Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$s1" -Token $est1.Token
     $detalle = Leer-Json $r
@@ -231,9 +244,11 @@ try {
     $deEstudiante = ($detalle.estudiante.uuidUsuario -eq $est1.Uuid) -and ($detalle.estudiante.nombres -eq "Solicitante") -and ($detalle.estudiante.codigoEstudiantil)
     Escribir-Resultado "el detalle del duenio trae radicado, tipo, fecha y datos del estudiante" ($basicos -and $deEstudiante)
     Escribir-Resultado "el duenio no tiene acciones ni resolucion en RADICADA" ((@($detalle.accionesDisponibles).Count -eq 0) -and (-not $detalle.tieneResolucion) -and (-not $detalle.puedeDescargarResolucion) -and ($detalle.etiqueta -eq $enTramite))
+    Escribir-Resultado "el detalle del duenio trae etapaCodigo RADICADA y conserva su etiqueta (obtuvo $($detalle.etapaCodigo))" (($detalle.etapaCodigo -eq "RADICADA") -and ($detalle.etiqueta -eq $enTramite))
     $r = Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$s1" -Token $fa1.Token
     $detalle = Leer-Json $r
     Escribir-Resultado "el funcionario asignado ve sus acciones en RADICADA (obtuvo $($detalle.accionesDisponibles -join ','))" (($detalle.accionesDisponibles -join ',') -eq "RECHAZAR_FUNCIONARIO,REMITIR_DECANO")
+    Escribir-Resultado "el detalle del funcionario trae etapaCodigo RADICADA con su etiqueta Pendiente (obtuvo $($detalle.etapaCodigo))" (($detalle.etapaCodigo -eq "RADICADA") -and ($detalle.etiqueta -eq "Pendiente"))
 
     $pdfAnexo = Nuevo-Pdf "anexo"; $archivos += $pdfAnexo
     $r = Subir-Multipart -Ruta "$Global:Ruta/$s1/anexos" -Archivo $pdfAnexo -Token $est1.Token -TipoAnexo $tipoPaz
@@ -273,11 +288,14 @@ try {
     Escribir-Resultado "en RECHAZADA el duenio baja la Resolucion identica (200, obtuvo $($d.Status))" (($d.Status -eq 200) -and (Mismos-Bytes $pdfResolucion $d.Bytes))
     $detalle = Leer-Json (Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$s1" -Token $est1.Token)
     Escribir-Resultado "en RECHAZADA el detalle del duenio permite la descarga (etiqueta $($detalle.etiqueta))" ($detalle.puedeDescargarResolucion -and ($detalle.etiqueta -eq "Rechazada"))
+    $r = Invoke-Api -Metodo GET -Ruta "$Global:Ruta/estudiante" -Token $est1.Token
+    Escribir-Resultado "en RECHAZADA el detalle y la bandeja del duenio traen etapaCodigo RECHAZADA (obtuvo $($detalle.etapaCodigo), $(Codigos-DeLista $r @($s1)))" (($detalle.etapaCodigo -eq "RECHAZADA") -and ((Codigos-DeLista $r @($s1)) -eq "$($s1):RECHAZADA"))
 
     $r = Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$s3/historial" -Token $est2.Token
     $historial = @(Leer-Json $r)
     Escribir-Resultado "el historial trae RADICAR y REMITIR_DECANO en orden (obtuvo $(($historial | ForEach-Object { $_.accion }) -join ','))" (($r.Status -eq 200) -and ($historial.Count -eq 2) -and ($historial[0].accion -eq "RADICAR") -and ($historial[1].accion -eq "REMITIR_DECANO"))
     Escribir-Resultado "cada fila del historial trae fecha y quien actuo" (($historial[0].nombresUsuario -eq "Solicitante") -and ($historial[1].nombresUsuario -eq "Revisor") -and ($historial[1].fecha -like "2026-01-02T11:00*"))
+    Escribir-Resultado "cada fila del historial trae el etapaCodigo al que llevo (obtuvo $(($historial | ForEach-Object { $_.etapaCodigo }) -join ','))" ((($historial | ForEach-Object { $_.etapaCodigo }) -join ',') -eq "RADICADA,EN_REVISION_DECANO")
     $r = Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$s3/historial" -Token $decano.Token
     Escribir-Resultado "el Decano ve el historial en revision (200, obtuvo $($r.Status))" ($r.Status -eq 200)
 

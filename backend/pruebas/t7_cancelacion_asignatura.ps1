@@ -144,6 +144,33 @@ function Etapa-De {
     return Ejecutar-Sql "select e.codigo from SOLICITUD_ACADEMICA s join ETAPA_SOLICITUD_ACADEMICA e on e.uuidEtapa = s.Etapa_uuid where s.uuidSolicitudAcademica = '$Solicitud'"
 }
 
+function Verificar-EtapaHttp {
+    param([string]$Solicitud, [string]$Esperada, [string]$Estudiante, [string]$Funcionario, [string]$Decano)
+    $lectores = [ordered]@{ estudiante = $Estudiante; funcionario = $Funcionario }
+    if ($Esperada -ne "RADICADA") { $lectores["decano"] = $Decano }
+    $fallos = @()
+    foreach ($rol in $lectores.Keys) {
+        $token = $lectores[$rol]
+        $proceso = (Leer-Json (Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$Solicitud" -Token $token)).solicitud.etapaCodigo
+        $comun = (Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$Solicitud" -Token $token)).etapaCodigo
+        $bandeja = (@(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$rol" -Token $token)) | Where-Object { $_.uuidSolicitudAcademica -eq $Solicitud }).etapaCodigo
+        $historial = @(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$Solicitud/historial" -Token $token))
+        $codigos = @($historial | ForEach-Object { $_.etapaCodigo })
+        $sinCodigo = @($historial | Where-Object { -not $_.etapaCodigo }).Count
+        if (($proceso -ne $Esperada) -or ($comun -ne $Esperada) -or ($bandeja -ne $Esperada) -or ($sinCodigo -gt 0) -or ($codigos -notcontains $Esperada)) {
+            $fallos += "$rol=$proceso/$comun/$bandeja/historial $($codigos -join ' ')"
+        }
+    }
+    if ($Esperada -eq "RADICADA") {
+        $r = Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$Solicitud" -Token $Decano
+        $b = Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/decano" -Token $Decano
+        if (($r.Status -eq 200) -or ($r.Body -match "etapaCodigo") -or ($b.Body -match $Solicitud)) { $fallos += "el Decano ve la solicitud RADICADA" }
+    }
+    $quienes = @($lectores.Keys) -join ", "
+    $detalle = if ($fallos.Count -gt 0) { " (" + ($fallos -join "; ") + ")" } else { "" }
+    Escribir-Resultado "etapaCodigo $Esperada en detalle, detalle comun, bandeja e historial para $quienes$detalle" ($fallos.Count -eq 0)
+}
+
 function Archivos-Subidos {
     if (-not (Test-Path $Global:CarpetaAnexos)) { return 0 }
     return @(Get-ChildItem $Global:CarpetaAnexos -Recurse -File).Count
@@ -316,6 +343,7 @@ try {
     $sol1 = $radicada.uuidSolicitudAcademica
     Escribir-Resultado "radicar tres asignaturas con un soporte responde uuid y radicado $esperado (obtuvo $($r.Status) $($radicada.radicado))" (($r.Status -eq 200) -and $sol1 -and ($radicada.radicado -eq $esperado))
     Escribir-Resultado "la solicitud queda RADICADA (obtuvo $(Etapa-De $sol1))" ((Etapa-De $sol1) -eq "RADICADA")
+    Verificar-EtapaHttp -Solicitud $sol1 -Esperada "RADICADA" -Estudiante $est1.Token -Funcionario $fa1.Token -Decano $decano.Token
     $anexos = Ejecutar-Sql "select count(*), sum(TipoAnexoAcademico_uuid is null) from ANEXO_ACADEMICO where SolicitudAcademica_uuid = '$sol1'"
     Escribir-Resultado "quedo el soporte libre y su archivo (obtuvo $anexos y $(@(Get-ChildItem (Join-Path $Global:CarpetaAnexos $sol1) -File).Count))" (($anexos -eq "1`t1") -and (@(Get-ChildItem (Join-Path $Global:CarpetaAnexos $sol1) -File).Count -eq 1))
     $f1 = Fila-De $sol1 $a1; $f2 = Fila-De $sol1 $a2; $f3 = Fila-De $sol1 $a3
@@ -361,6 +389,7 @@ try {
     $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol1/funcionario/remitir" -Token $fa1.Token -Cuerpo @{ observacion = "Condiciones verificadas"; evaluaciones = $buenas }
     $detalle = if ($r.Status -eq 200) { Leer-Json $r } else { $null }
     Escribir-Resultado "el funcionario asignado remite y pasa a EN_REVISION_DECANO (obtuvo $($r.Status), etapa $(Etapa-De $sol1))" (($r.Status -eq 200) -and ((Etapa-De $sol1) -eq "EN_REVISION_DECANO"))
+    Verificar-EtapaHttp -Solicitud $sol1 -Esperada "EN_REVISION_DECANO" -Estudiante $est1.Token -Funcionario $fa1.Token -Decano $decano.Token
     $cumplen = Ejecutar-Sql "select count(*) from ASIGNATURA_SOLICITUD_ACADEMICA where SolicitudAcademica_uuid = '$sol1' and cumpleCondiciones = 1 and nota is not null and numeroFaltas is not null and aprobadaPorDecano is null"
     Escribir-Resultado "las tres evaluaciones quedaron en MySQL con cumpleCondiciones (obtuvo $cumplen)" ($cumplen -eq "3")
     Escribir-Resultado "la respuesta del funcionario trae la evaluacion y su observacion" (((Asignatura-De $detalle $f1).observacionEvaluacion -eq $secreto) -and ((Asignatura-De $detalle $f3).nota -eq 3.0) -and ((Asignatura-De $detalle $f2).cumpleCondiciones -eq $true))
@@ -376,6 +405,7 @@ try {
     Escribir-Resultado "rechazar una asignatura sin motivo falla y no guarda nada (obtuvo $($r.Status), etapa $(Etapa-De $sol1))" (($r.Status -ne 200) -and ((Etapa-De $sol1) -eq "EN_REVISION_DECANO") -and ((Estado-Filas $sol1) -eq $filasAntes))
     $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol1/decano/aprobar" -Token $decano.Token -Cuerpo @{ decisiones = @((Decision $f1 $true $situaciones[1] ""), (Decision $f2 $true $situaciones[1] ""), (Decision $f3 $false $situaciones[1] $motivoRechazo)) }
     Escribir-Resultado "el Decano aprueba dos y rechaza una: pasa a APROBADA_POR_DECANO (obtuvo $($r.Status), etapa $(Etapa-De $sol1))" (($r.Status -eq 200) -and ((Etapa-De $sol1) -eq "APROBADA_POR_DECANO"))
+    Verificar-EtapaHttp -Solicitud $sol1 -Esperada "APROBADA_POR_DECANO" -Estudiante $est1.Token -Funcionario $fa1.Token -Decano $decano.Token
     $aprobadas = Ejecutar-Sql "select count(*) from ASIGNATURA_SOLICITUD_ACADEMICA where SolicitudAcademica_uuid = '$sol1' and aprobadaPorDecano = 1 and SituacionCancelar_uuid = '$($situaciones[1])'"
     $rechazada = Ejecutar-Sql "select concat(aprobadaPorDecano, '|', coalesce(SituacionCancelar_uuid, '-'), '|', observacionDecision) from ASIGNATURA_SOLICITUD_ACADEMICA where uuidAsignaturaSolicitud = '$f3'"
     Escribir-Resultado "quedaron dos aprobadas con situacion y una rechazada con motivo y sin situacion (obtuvo $aprobadas y $rechazada)" (($aprobadas -eq "2") -and ($rechazada -eq "0|-|$motivoRechazo"))
@@ -391,6 +421,7 @@ try {
     Escribir-Resultado "el funcionario sube el escaneo de la Resolucion (200, obtuvo $($r.Status))" ($r.Status -eq 200)
     $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol1/funcionario/responder" -Token $fa1.Token
     Escribir-Resultado "enviar la respuesta deja la solicitud APROBADA (obtuvo $($r.Status), etapa $(Etapa-De $sol1))" (($r.Status -eq 200) -and ((Etapa-De $sol1) -eq "APROBADA"))
+    Verificar-EtapaHttp -Solicitud $sol1 -Esperada "APROBADA" -Estudiante $est1.Token -Funcionario $fa1.Token -Decano $decano.Token
     $estados = Estados @($a1, $a2, $a3, $a4, $noActiva)
     Escribir-Resultado "quedan canceladas las dos aprobadas; la rechazada y la cuarta siguen activas (obtuvo $estados)" ($estados -eq "cancelada,cancelada,activa,activa,cancelada")
     $d = Descargar -Ruta "solicitudes-academicas/$sol1/resolucion" -Token $est1.Token
@@ -401,16 +432,19 @@ try {
     Escribir-Resultado "el estudiante nunca ve la observacion de la evaluacion ni los datos del funcionario" (($r.Body -notmatch $secreto) -and (@($detalle.asignaturas | Where-Object { $_.observacionEvaluacion -or ($null -ne $_.cumpleCondiciones) -or ($null -ne $_.nota) }).Count -eq 0))
     $historial = @(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol1/historial" -Token $est1.Token)) | ForEach-Object { $_.accion }
     Escribir-Resultado "el historial trae RADICAR, REMITIR_DECANO, APROBAR_DECANO y ENVIAR_RESPUESTA (obtuvo $($historial -join ','))" (($historial -join ',') -eq "RADICAR,REMITIR_DECANO,APROBAR_DECANO,ENVIAR_RESPUESTA")
+    $etapasHistorial = (@(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol1/historial" -Token $fa1.Token)) | ForEach-Object { "$($_.accion):$($_.etapaCodigo)" }) -join ","; Escribir-Resultado "cada accion del historial trae la etapa a la que llevo (obtuvo $etapasHistorial)" ($etapasHistorial -eq "RADICAR:RADICADA,REMITIR_DECANO:EN_REVISION_DECANO,APROBAR_DECANO:APROBADA_POR_DECANO,ENVIAR_RESPUESTA:APROBADA")
 
     $activas2 = Activas $est2
     $r = Radicar -Token $est2.Token -Asignaturas $activas2 -Pdf $pdf -ConSoporte $false
     $sol2 = (Leer-Json $r).uuidSolicitudAcademica
     Escribir-Resultado "el estudiante 2 radica sin soporte (200, obtuvo $($r.Status))" (($r.Status -eq 200) -and $sol2)
+    Verificar-EtapaHttp -Solicitud $sol2 -Esperada "RADICADA" -Estudiante $est2.Token -Funcionario $fa1.Token -Decano $decano.Token
     $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol2/funcionario/rechazar" -Token $fa1.Token -Cuerpo @{ observacion = "No cumple las condiciones" }
     Escribir-Resultado "rechazar sin escaneo falla y sigue RADICADA (obtuvo $($r.Status))" (($r.Status -ne 200) -and ((Etapa-De $sol2) -eq "RADICADA"))
     $r = Subir-Escaneo -Solicitud $sol2 -Pdf $pdfResolucion -Token $fa1.Token
     $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol2/funcionario/rechazar" -Token $fa1.Token -Cuerpo @{ observacion = "No cumple las condiciones" }
     Escribir-Resultado "el rechazo del funcionario con escaneo deja la solicitud RECHAZADA (obtuvo $($r.Status), etapa $(Etapa-De $sol2))" (($r.Status -eq 200) -and ((Etapa-De $sol2) -eq "RECHAZADA"))
+    Verificar-EtapaHttp -Solicitud $sol2 -Esperada "RECHAZADA" -Estudiante $est2.Token -Funcionario $fa1.Token -Decano $decano.Token
     Escribir-Resultado "tras el rechazo del funcionario las asignaturas siguen activas (obtuvo $(Estados $activas2))" ((Estados $activas2) -eq "activa,activa")
     $d = Descargar -Ruta "solicitudes-academicas/$sol2/resolucion" -Token $est2.Token
     Escribir-Resultado "el estudiante 2 descarga la Resolucion del rechazo (200, obtuvo $($d.Status))" (($d.Status -eq 200) -and (Mismos-Bytes $pdfResolucion $d.Bytes))
@@ -423,6 +457,7 @@ try {
     $g1 = Fila-De $sol3 $activas3[0]; $g2 = Fila-De $sol3 $activas3[1]
     $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol3/funcionario/remitir" -Token $fa1.Token -Cuerpo @{ evaluaciones = @((Evaluacion $g1 1 4.0 $situaciones[0] $true ""), (Evaluacion $g2 9 2.0 $situaciones[0] $false "Nota insuficiente")) }
     Escribir-Resultado "el estudiante 3 radica y el funcionario remite con una que no cumple (obtuvo $($r.Status), etapa $(Etapa-De $sol3))" (($r.Status -eq 200) -and ((Etapa-De $sol3) -eq "EN_REVISION_DECANO"))
+    Verificar-EtapaHttp -Solicitud $sol3 -Esperada "EN_REVISION_DECANO" -Estudiante $est3.Token -Funcionario $fa1.Token -Decano $decano.Token
     $filasAntes = Estado-Filas $sol3
     $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol3/decano/aprobar" -Token $decano.Token -Cuerpo @{ decisiones = @((Decision $g1 $true $situaciones[1] ""), (Decision $g2 $true $situaciones[1] "")) }
     Escribir-Resultado "el Decano no puede aprobar una asignatura que no cumple (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "*no se puede aprobar*"))
@@ -433,13 +468,16 @@ try {
     $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol3/decano/rechazar" -Token $decano.Token -Cuerpo @{ observacion = $motivoDecano }
     $sinDecision = Ejecutar-Sql "select count(*) from ASIGNATURA_SOLICITUD_ACADEMICA where SolicitudAcademica_uuid = '$sol3' and aprobadaPorDecano is null and SituacionCancelar_uuid is null"
     Escribir-Resultado "el rechazo total del Decano pasa a RECHAZADA_POR_DECANO sin decisiones por asignatura (obtuvo $($r.Status), etapa $(Etapa-De $sol3), filas $sinDecision)" (($r.Status -eq 200) -and ((Etapa-De $sol3) -eq "RECHAZADA_POR_DECANO") -and ($sinDecision -eq "2"))
+    Verificar-EtapaHttp -Solicitud $sol3 -Esperada "RECHAZADA_POR_DECANO" -Estudiante $est3.Token -Funcionario $fa1.Token -Decano $decano.Token
     $r = Subir-Escaneo -Solicitud $sol3 -Pdf $pdfResolucion -Token $fa1.Token
     $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol3/funcionario/responder" -Token $fa1.Token
     Escribir-Resultado "la respuesta final deja la solicitud RECHAZADA (obtuvo $($r.Status), etapa $(Etapa-De $sol3))" (($r.Status -eq 200) -and ((Etapa-De $sol3) -eq "RECHAZADA"))
+    Verificar-EtapaHttp -Solicitud $sol3 -Esperada "RECHAZADA" -Estudiante $est3.Token -Funcionario $fa1.Token -Decano $decano.Token
     Escribir-Resultado "tras el rechazo del Decano las asignaturas siguen activas (obtuvo $(Estados $activas3))" ((Estados $activas3) -eq "activa,activa")
     $filaDecano = @(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol3/historial" -Token $est3.Token)) | Where-Object { $_.accion -eq "RECHAZAR_DECANO" }
     $r = Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$sol3" -Token $est3.Token
     Escribir-Resultado "el estudiante 3 ve el motivo del Decano en el historial y no la observacion de la evaluacion" (($filaDecano.observaciones -eq $motivoDecano) -and ($r.Body -notmatch "Nota insuficiente") -and (Sin-Resultado (Leer-Json $r)))
+    $etapasHistorial = (@(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol3/historial" -Token $fa1.Token)) | ForEach-Object { "$($_.accion):$($_.etapaCodigo)" }) -join ","; Escribir-Resultado "cada accion del historial trae la etapa a la que llevo (obtuvo $etapasHistorial)" ($etapasHistorial -eq "RADICAR:RADICADA,REMITIR_DECANO:EN_REVISION_DECANO,RECHAZAR_DECANO:RECHAZADA_POR_DECANO,ENVIAR_RESPUESTA:RECHAZADA")
 
     $activas4 = Activas $est4
     Ejecutar-Sql "create trigger $Global:Trigger before insert on ANEXO_ACADEMICO for each row set NEW.tipoArchivo = if(NEW.nombreArchivo = '$Global:ArchivoFalla', null, NEW.tipoArchivo)" | Out-Null

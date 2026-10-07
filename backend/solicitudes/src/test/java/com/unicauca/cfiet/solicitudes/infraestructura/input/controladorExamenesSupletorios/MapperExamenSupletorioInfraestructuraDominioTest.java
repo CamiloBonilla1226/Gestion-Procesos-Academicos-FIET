@@ -131,4 +131,15 @@ class MapperExamenSupletorioInfraestructuraDominioTest {
         assertNull(respuesta.getCruce());
         assertNull(respuesta.getFechaAcordadaExamen());
     }
+
+    @Test
+    void elDetalleTraeElCodigoDeLaEtapaSinCambiarLaEtiqueta() {
+        DetalleExamenSupletorio detalle = detalle(SolicitudExamenSupletorio.builder().tipoCausa(CausaSupletorio.OTRA).build());
+        detalle.getDetalle().getSolicitudAcademica().setEtapa(EtapaSolicitudAcademica.builder().uuidEtapa("e-1").codigo("PENDIENTE_PAGO").build());
+
+        ExamenSupletorioDetalleDTORespuesta respuesta = mapper.mapearDetalleARespuesta(detalle);
+
+        assertEquals("PENDIENTE_PAGO", respuesta.getSolicitud().getEtapaCodigo());
+        assertEquals("En trámite", respuesta.getSolicitud().getEtiqueta());
+    }
 }

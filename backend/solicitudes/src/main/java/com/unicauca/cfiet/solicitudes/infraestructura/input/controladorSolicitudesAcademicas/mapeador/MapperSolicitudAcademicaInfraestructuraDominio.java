@@ -36,6 +36,7 @@ public class MapperSolicitudAcademicaInfraestructuraDominio {
                 .radicado(solicitud.getRadicado())
                 .fechaCreacion(solicitud.getFechaCreacion())
                 .etiqueta(resumen.getEtiqueta())
+                .etapaCodigo(codigoEtapa(solicitud))
                 .build();
         TipoSolicitudAcademica tipo = solicitud.getTipoSolicitudAcademica();
         if (tipo != null) {
@@ -59,6 +60,7 @@ public class MapperSolicitudAcademicaInfraestructuraDominio {
                 .radicado(solicitud.getRadicado())
                 .fechaCreacion(solicitud.getFechaCreacion())
                 .etiqueta(detalle.getEtiqueta())
+                .etapaCodigo(codigoEtapa(solicitud))
                 .estudiante(mapearEstudianteARespuesta(solicitud.getEstudiante()))
                 .anexos(detalle.getAnexos() == null ? new ArrayList<>() : detalle.getAnexos().stream().map(this::mapearAnexoARespuesta).toList())
                 .tieneResolucion(detalle.isTieneResolucion())
@@ -112,6 +114,7 @@ public class MapperSolicitudAcademicaInfraestructuraDominio {
         return historial.stream().map(fila -> {
             HistorialSolicitudAcademicaDTORespuesta respuesta = HistorialSolicitudAcademicaDTORespuesta.builder()
                     .accion(fila.getAccion())
+                    .etapaCodigo(fila.getEtapaCodigo())
                     .observaciones(fila.getObservaciones())
                     .fecha(fila.getFecha())
                     .build();
@@ -121,6 +124,10 @@ public class MapperSolicitudAcademicaInfraestructuraDominio {
             }
             return respuesta;
         }).toList();
+    }
+
+    private String codigoEtapa(SolicitudAcademica solicitud) {
+        return solicitud == null || solicitud.getEtapa() == null ? null : solicitud.getEtapa().getCodigo();
     }
 
     public ResolucionAcademicaDTORespuesta mapearResolucionARespuesta(ResolucionAcademica resolucion) {

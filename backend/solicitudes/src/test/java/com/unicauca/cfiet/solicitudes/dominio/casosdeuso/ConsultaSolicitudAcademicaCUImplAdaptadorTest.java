@@ -297,6 +297,67 @@ class ConsultaSolicitudAcademicaCUImplAdaptadorTest {
         verify(historialGateway, times(1)).getPorSolicitud(any());
     }
 
+    private HistorialSolicitudAcademica fila(String accion) {
+        return HistorialSolicitudAcademica.builder().accion(accion).fecha(LocalDateTime.of(2026, 3, 1, 8, 0)).build();
+    }
+
+    @Test
+    void cadaFilaDelHistorialTraeLaEtapaALaQueLlevoAunqueLasFechasEmpaten() {
+        HistorialSolicitudAcademica respuesta = fila("ENVIAR_RESPUESTA");
+        HistorialSolicitudAcademica radicar = fila("RADICAR");
+        HistorialSolicitudAcademica rechazo = fila("RECHAZAR_DECANO");
+        HistorialSolicitudAcademica remision = fila("REMITIR_DECANO");
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(RECHAZADA));
+        when(historialGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(respuesta, radicar, rechazo, remision));
+
+        List<HistorialSolicitudAcademica> historial = casoDeUso.getHistorial(SOLICITUD, token(ESTUDIANTE));
+
+        assertEquals(List.of(respuesta, radicar, rechazo, remision), historial);
+        assertEquals(Arrays.asList(RECHAZADA, RADICADA, RECHAZADA_POR_DECANO, EN_REVISION_DECANO),
+                historial.stream().map(HistorialSolicitudAcademica::getEtapaCodigo).toList());
+    }
+
+    @Test
+    void laRespuestaDespuesDeLaAprobacionLlevaAAprobada() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(APROBADA));
+        when(historialGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(fila("RADICAR"), fila("REMITIR_DECANO"),
+                fila("APROBAR_DECANO"), fila("ENVIAR_RESPUESTA")));
+
+        List<HistorialSolicitudAcademica> historial = casoDeUso.getHistorial(SOLICITUD, token(FUNCIONARIO));
+
+        assertEquals(List.of(RADICADA, EN_REVISION_DECANO, APROBADA_POR_DECANO, APROBADA),
+                historial.stream().map(HistorialSolicitudAcademica::getEtapaCodigo).toList());
+    }
+
+    @Test
+    void elHistorialDelSupletorioSigueSusPropiasTransiciones() {
+        SolicitudAcademica supletorio = solicitud(APROBADA);
+        supletorio.setTipoSolicitudAcademica(TipoSolicitudAcademica.builder().uuidTipoSolicitudAcademica("tipo-es").nombre("Examen Supletorio")
+                .funcionarioAcademico(FuncionarioAcademico.builder().uuidUsuario(FUNCIONARIO).build()).build());
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(supletorio);
+        when(historialGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(fila("RADICAR"), fila("REMITIR_DECANO"), fila("APROBAR_DECANO"),
+                fila("ENVIAR_RECIBO"), fila("SUBIR_COMPROBANTE"), fila("APROBAR_COMPROBANTE")));
+
+        List<HistorialSolicitudAcademica> historial = casoDeUso.getHistorial(SOLICITUD, token(ESTUDIANTE));
+
+        assertEquals(List.of(RADICADA, EN_REVISION_DECANO, APROBADA_POR_DECANO, PENDIENTE_PAGO, EN_VERIFICACION_PAGO, APROBADA),
+                historial.stream().map(HistorialSolicitudAcademica::getEtapaCodigo).toList());
+    }
+
+    @Test
+    void unaAccionQueNoEncajaEnElRecorridoQuedaSinEtapa() {
+        HistorialSolicitudAcademica desconocida = fila("ACCION_RARA");
+        HistorialSolicitudAcademica sinOrigen = fila("APROBAR_COMPROBANTE");
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(RADICADA));
+        when(historialGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(fila("RADICAR"), desconocida, sinOrigen));
+
+        List<HistorialSolicitudAcademica> historial = casoDeUso.getHistorial(SOLICITUD, token(ESTUDIANTE));
+
+        assertEquals(RADICADA, historial.get(0).getEtapaCodigo());
+        assertNull(desconocida.getEtapaCodigo());
+        assertNull(sinOrigen.getEtapaCodigo());
+    }
+
     @Test
     void descargarUnAnexoDeLaSolicitudDelegaConElActorResuelto() {
         when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(RADICADA));

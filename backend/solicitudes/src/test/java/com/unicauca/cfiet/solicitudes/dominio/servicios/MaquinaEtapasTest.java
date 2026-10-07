@@ -432,4 +432,20 @@ class MaquinaEtapasTest {
                 assertEquals(fila.rol().name(), maquina.responsableActual(fila.origen()).name(),
                         () -> "Origen " + fila.origen() + " accion " + fila.accion());
     }
+
+    @Test
+    void laEtapaDestinoCoincideConLaTablaCompleta() {
+        for (Fila fila : tablaCompleta())
+            assertEquals(fila.destino(), maquina.etapaDestino(fila.tipo(), fila.origen(), fila.accion()),
+                    () -> fila.tipo() + " " + fila.origen() + " " + fila.accion());
+    }
+
+    @Test
+    void laEtapaDestinoDeUnaTransicionInexistenteEsNulaSinLanzar() {
+        assertNull(maquina.etapaDestino(CANCELACION_MATRICULA, APROBADA_POR_DECANO, ENVIAR_RECIBO));
+        assertNull(maquina.etapaDestino(EXAMEN_SUPLETORIO, RADICADA, RADICAR));
+        assertNull(maquina.etapaDestino(EXAMEN_SUPLETORIO, RADICADA, null));
+        assertNull(maquina.etapaDestino(null, null, RADICAR));
+        assertEquals(RADICADA, maquina.etapaDestino(EXAMEN_SUPLETORIO, "  ", RADICAR));
+    }
 }

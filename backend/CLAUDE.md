@@ -365,8 +365,8 @@ leer el usuario recorre colecciones perezosas.
 | `GET /estudiante` | Estudiante | Solicitudes del estudiante autenticado |
 | `GET /funcionario` | Funcionario Académico | Solicitudes de los tipos asignados a él |
 | `GET /decano` | Decano | Todas las que tienen etiqueta para el Decano |
-| `GET /{uuid}` | los tres | Detalle: radicado, tipo, fecha, etiqueta, estudiante, anexos, Resolución, acciones |
-| `GET /{uuid}/historial` | los tres | Historial en orden de fecha |
+| `GET /{uuid}` | los tres | Detalle: radicado, tipo, fecha, etiqueta, `etapaCodigo`, estudiante, anexos, Resolución, acciones |
+| `GET /{uuid}/historial` | los tres | Historial en orden de fecha, con el `etapaCodigo` al que llevó cada acción |
 | `POST /{uuid}/anexos` | Estudiante, Funcionario Académico | Multipart `archivo` y `tipoAnexo` opcional; usa `adjuntarAnexo` |
 | `GET /{uuid}/anexos/{uuidAnexo}` | los tres | Descarga del anexo de esa solicitud |
 | `POST /{uuid}/resolucion` | Funcionario Académico | Multipart `archivo`; usa `adjuntarResolucion` |
@@ -386,8 +386,26 @@ El resto de `solicitudes-academicas/**` es `denyAll()`.
   misma `lanzarEntidadNoExiste` que para un uuid inexistente, así una
   solicitud ajena no revela que existe.
 - Las bandejas devuelven listas sin paginar, de la más reciente a la más
-  antigua (`fechaCreacion` y luego `radicado`), con la etiqueta del rol y no
-  el código de la etapa.
+  antigua (`fechaCreacion` y luego `radicado`), con la etiqueta del rol en
+  `etiqueta` y el código estable de la etapa en `etapaCodigo` (por ejemplo
+  `PENDIENTE_PAGO`).
+- `etapaCodigo` sale en las bandejas, en el detalle de `solicitudes-academicas`
+  y, dentro de `solicitud`, en los detalles de `cancelaciones-matricula`,
+  `cancelaciones-asignatura` y `examenes-supletorios`. Lo arma el mapper
+  común desde `solicitud.etapa.codigo`, así que solo aparece en lo que el rol
+  ya puede ver. La etiqueta es el texto para mostrar y el código es para que
+  el frontend decida; ninguno reemplaza al otro.
+- `HISTORIAL_SOLICITUD_ACADEMICA` no guarda la etapa y su `fecha` tiene
+  precisión de segundos, así que varias filas pueden empatar. Sin cambiar el
+  esquema, `getHistorial` reconstruye la etapa de cada fila encadenando
+  transiciones con `MaquinaEtapas.etapaDestino(tipo, etapa, accion)`:
+  1. Parte de `RADICAR` desde una solicitud nueva.
+  2. Busca la fila cuya acción sale de la etapa actual.
+  3. Avanza a la etapa siguiente y repite.
+
+  La máquina no tiene ciclos y cada etapa se visita una vez, así que el
+  resultado no depende del orden por fecha; el orden de las filas no cambia.
+  Una acción que no encaja en el recorrido queda con `etapaCodigo` nulo.
 - Los POST resuelven el actor con `resolverActor` y llaman a
   `adjuntarAnexo` o `adjuntarResolucion` con el token sin `Bearer ` para el
   log de Julián. Las respuestas nunca traen `urlArchivo` ni rutas de disco.
