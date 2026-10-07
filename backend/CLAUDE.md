@@ -673,6 +673,51 @@ El resto de `cancelaciones-asignatura/**` es `denyAll()`.
 - Ninguna acción cambia el estado de las asignaturas matriculadas. Todo corre
   en la transacción del controlador (D6).
 
+### Endpoints `examenes-supletorios`
+
+`ExamenSupletorioRestController` (`infraestructura/input/controladorExamenesSupletorios`),
+con el patrón de `cancelaciones-matricula`: todos sus métodos llevan
+`@Transactional` (los GET `readOnly`) y los DTO no llevan rol ni tipo de
+usuario. Las fechas viajan como texto `AAAA-MM-DD`; otro formato es error de
+formato.
+
+| Método y ruta | Roles en `ConfiguracionSeguridad` | Qué hace |
+|---|---|---|
+| `GET /formulario` | Estudiante | Asignaturas activas, causas (`cruce`, `otra`), anexos de radicación (FOR-23, soporte de justificación y formato del docente cruzado) con formatos, `tamanioMaximoBytes` y las causas que los exigen, y `plazoDiasHabiles`. Sin recibo ni comprobante |
+| `POST /` | Estudiante | Multipart: `asignaturaMatriculada`, `fechaExamenNoPresentado`, `tipoCausa`, y con cruce `asignaturaCruzada`, `fechaExamenCruzada`, `horaExamenCruzada`; una parte por archivo con el uuid de su tipo como nombre. Responde uuid y radicado |
+| `GET /{uuid}` | los tres | Detalle de `solicitudes-academicas` (radicado, etiqueta, anexos con su tipo, acciones) más asignatura, causa, fecha del examen, cruce si lo hay y `fechaAcordadaExamen` si existe |
+| `POST /{uuid}/funcionario/rechazar` | Funcionario Académico | Cuerpo `observacion` |
+| `POST /{uuid}/funcionario/remitir` | Funcionario Académico | Cuerpo `requisitosVerificados` y `observacion` opcional |
+| `POST /{uuid}/funcionario/responder` | Funcionario Académico | Sin cuerpo |
+| `POST /{uuid}/funcionario/recibo` | Funcionario Académico | Sin cuerpo; usa `enviarRecibo` |
+| `POST /{uuid}/funcionario/comprobante/aprobar` | Funcionario Académico | Cuerpo `fechaAcordadaExamen` opcional |
+| `POST /{uuid}/funcionario/comprobante/rechazar` | Funcionario Académico | Cuerpo `observacion` |
+| `POST /{uuid}/decano/aprobar` | Decano | Cuerpo `observacion` opcional |
+| `POST /{uuid}/decano/rechazar` | Decano | Cuerpo `observacion` |
+| `POST /{uuid}/estudiante/comprobante` | Estudiante | Sin cuerpo; usa `subirComprobante` |
+
+El resto de `examenes-supletorios/**` es `denyAll()`.
+
+- `ConsultaExamenSupletorioCUImplAdaptador` (bean
+  `crearConsultaExamenSupletorioCU`) arma el formulario y el detalle sobre
+  `ConsultaSolicitudAcademicaCUIntPuerto.getDetalle`, con la misma visibilidad
+  por `ETAPA_ETIQUETA_ROL`, Funcionario asignado y Estudiante dueño. Una
+  solicitud sin fila en `SOLICITUD_EXAMEN_SUPLETORIO` responde con el mismo
+  mensaje que una inexistente ("Solicitud académica").
+- El recibo y el comprobante se cargan antes con
+  `POST solicitudes-academicas/{uuid}/anexos` (reglas de T5.5) y la acción
+  solo confirma la transición. Se descargan con el endpoint genérico de
+  anexos: el Estudiante dueño, el Funcionario asignado y el Decano; nadie más.
+- Las acciones responden el detalle ya actualizado.
+- `backend/pruebas/t8_examen_supletorio.ps1` recorre el proceso con usuarios
+  reales y fechas calculadas a partir de hoy en hora de Colombia: permisos,
+  formulario, radicación por cruce y por otra con sus errores, recorrido hasta
+  APROBADA con recibo, comprobante, descargas y fecha acordada, rechazo del
+  Funcionario, rechazo del Decano, comprobante rechazado y una falla a mitad de
+  camino con un trigger temporal sobre `ANEXO_ACADEMICO`, que se borra al final.
+  Deja la base, el responsable del tipo y `uploads/anexos` como estaban, salvo
+  los logs de root.
+
 ## Crear Estudiante y Funcionario Académico
 
 `UsuarioCUImplAdaptador.crearUsuario` y `crearUsuarios` no insertan nada en

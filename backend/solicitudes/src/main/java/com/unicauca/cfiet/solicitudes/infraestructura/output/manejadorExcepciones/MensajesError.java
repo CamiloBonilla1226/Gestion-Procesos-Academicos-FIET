@@ -108,4 +108,5 @@ public class MensajesError {
     public static final String ANEXO_REPETIDO = "El anexo %s viene más de una vez...";
     public static final String REQUISITOS_NO_CONFIRMADOS = "Para remitir la solicitud %s al Decano debe confirmar que verificó los requisitos; si no se cumplen, debe rechazar la solicitud en lugar de remitirla...";
     public static final String FECHA_ACORDADA_ANTERIOR = "La fecha acordada para el supletorio (%s) no puede ser anterior a la fecha del examen no presentado (%s)...";
+    public static final String FECHA_MAL_FORMADA = "El valor %s de %s no es una fecha con el formato AAAA-MM-DD...";
 }

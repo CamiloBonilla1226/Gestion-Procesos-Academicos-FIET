@@ -119,6 +119,13 @@ public class ConfiguracionSeguridad {
                         .requestMatchers(HttpMethod.POST, baseUrl + "cancelaciones-asignatura/{uuidSolicitud}/decano/**").hasAnyAuthority(ApplicationConstantes.DECANO)
                         .requestMatchers(HttpMethod.GET, baseUrl + "cancelaciones-asignatura/{uuidSolicitud}").hasAnyAuthority(ApplicationConstantes.ESTUDIANTE_ROL, ApplicationConstantes.FUNCIONARIO_ACADEMICO_ROL, ApplicationConstantes.DECANO)
                         .requestMatchers(baseUrl + "cancelaciones-asignatura/**").denyAll()
+                        .requestMatchers(HttpMethod.GET, baseUrl + "examenes-supletorios/formulario").hasAnyAuthority(ApplicationConstantes.ESTUDIANTE_ROL)
+                        .requestMatchers(HttpMethod.POST, baseUrl + "examenes-supletorios").hasAnyAuthority(ApplicationConstantes.ESTUDIANTE_ROL)
+                        .requestMatchers(HttpMethod.POST, baseUrl + "examenes-supletorios/{uuidSolicitud}/funcionario/**").hasAnyAuthority(ApplicationConstantes.FUNCIONARIO_ACADEMICO_ROL)
+                        .requestMatchers(HttpMethod.POST, baseUrl + "examenes-supletorios/{uuidSolicitud}/decano/**").hasAnyAuthority(ApplicationConstantes.DECANO)
+                        .requestMatchers(HttpMethod.POST, baseUrl + "examenes-supletorios/{uuidSolicitud}/estudiante/**").hasAnyAuthority(ApplicationConstantes.ESTUDIANTE_ROL)
+                        .requestMatchers(HttpMethod.GET, baseUrl + "examenes-supletorios/{uuidSolicitud}").hasAnyAuthority(ApplicationConstantes.ESTUDIANTE_ROL, ApplicationConstantes.FUNCIONARIO_ACADEMICO_ROL, ApplicationConstantes.DECANO)
+                        .requestMatchers(baseUrl + "examenes-supletorios/**").denyAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex

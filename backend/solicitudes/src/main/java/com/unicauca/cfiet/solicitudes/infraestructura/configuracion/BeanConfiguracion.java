@@ -320,4 +320,17 @@ public class BeanConfiguracion {
         return new TramiteExamenSupletorioCUImplAdaptador(gateway, solicitudGateway, usuarioGateway, sesionGateway, jwtServicio,
                 solicitudCU, maquinaEtapas, formateadorExcepciones, log);
     }
+
+    @Bean
+    public ConsultaExamenSupletorioCUImplAdaptador crearConsultaExamenSupletorioCU(SolicitudExamenSupletorioGatewayIntPuerto gateway,
+                                                                                 EstudianteGatewayIntPuerto estudianteGateway,
+                                                                                 TipoSolicitudAcademicaGatewayIntPuerto tipoSolicitudGateway,
+                                                                                 TipoAnexoAcademicoGatewayIntPuerto tipoAnexoGateway,
+                                                                                 SesionGatewayIntPuerto sesionGateway,
+                                                                                 IJwtServicio jwtServicio,
+                                                                                 ConsultaSolicitudAcademicaCUIntPuerto consultaCU,
+                                                                                 ExcepcionesFormateadorIntPuerto formateadorExcepciones){
+        return new ConsultaExamenSupletorioCUImplAdaptador(gateway, estudianteGateway, tipoSolicitudGateway, tipoAnexoGateway,
+                sesionGateway, jwtServicio, consultaCU, formateadorExcepciones);
+    }
 }

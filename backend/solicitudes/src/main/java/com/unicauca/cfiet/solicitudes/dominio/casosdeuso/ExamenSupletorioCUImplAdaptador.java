@@ -25,7 +25,7 @@ public class ExamenSupletorioCUImplAdaptador implements ExamenSupletorioCUIntPue
     private static final String TIPO_SOLICITUD_ACADEMICA = "Tipo de solicitud académica";
     private static final String TIPO_ANEXO_ACADEMICO = "Tipo de anexo académico";
     private static final String NOMBRE = "nombre";
-    private static final int DIAS_HABILES_PLAZO = 3;
+    public static final int DIAS_HABILES_PLAZO = 3;
     private static final int MAXIMO_HORA = 10;
     private static final Pattern FORMATO_HORA = Pattern.compile("([01]\\d|2[0-3]):[0-5]\\d");
     private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
