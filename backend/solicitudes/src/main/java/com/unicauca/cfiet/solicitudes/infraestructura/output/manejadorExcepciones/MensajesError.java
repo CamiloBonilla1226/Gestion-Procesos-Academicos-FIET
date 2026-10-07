@@ -106,4 +106,6 @@ public class MensajesError {
     public static final String ANEXO_NO_PERMITIDO_AL_RADICAR = "El anexo %s no se entrega al radicar el examen supletorio...";
     public static final String ANEXO_NO_CORRESPONDE_CAUSA = "El anexo %s no corresponde a la causa %s...";
     public static final String ANEXO_REPETIDO = "El anexo %s viene más de una vez...";
+    public static final String REQUISITOS_NO_CONFIRMADOS = "Para remitir la solicitud %s al Decano debe confirmar que verificó los requisitos; si no se cumplen, debe rechazar la solicitud en lugar de remitirla...";
+    public static final String FECHA_ACORDADA_ANTERIOR = "La fecha acordada para el supletorio (%s) no puede ser anterior a la fecha del examen no presentado (%s)...";
 }

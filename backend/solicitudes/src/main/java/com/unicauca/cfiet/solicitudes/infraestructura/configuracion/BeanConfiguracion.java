@@ -306,4 +306,18 @@ public class BeanConfiguracion {
         return new ExamenSupletorioCUImplAdaptador(gateway, estudianteGateway, usuarioGateway, tipoSolicitudGateway, tipoAnexoGateway,
                 solicitudCU, anexoCU, formateadorExcepciones, log, Clock.system(ZoneId.of("America/Bogota")));
     }
+
+    @Bean
+    public TramiteExamenSupletorioCUImplAdaptador crearTramiteExamenSupletorioCU(SolicitudExamenSupletorioGatewayIntPuerto gateway,
+                                                                               SolicitudAcademicaGatewayIntPuerto solicitudGateway,
+                                                                               UsuarioGatewayIntPuerto usuarioGateway,
+                                                                               SesionGatewayIntPuerto sesionGateway,
+                                                                               IJwtServicio jwtServicio,
+                                                                               SolicitudAcademicaCUIntPuerto solicitudCU,
+                                                                               MaquinaEtapas maquinaEtapas,
+                                                                               ExcepcionesFormateadorIntPuerto formateadorExcepciones,
+                                                                               LogCUIntPuerto log){
+        return new TramiteExamenSupletorioCUImplAdaptador(gateway, solicitudGateway, usuarioGateway, sesionGateway, jwtServicio,
+                solicitudCU, maquinaEtapas, formateadorExcepciones, log);
+    }
 }

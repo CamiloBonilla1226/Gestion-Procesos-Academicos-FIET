@@ -638,6 +638,41 @@ El resto de `cancelaciones-asignatura/**` es `denyAll()`.
   supletorio". Todo corre en la transacción del controlador (D6): si algo
   falla no quedan filas ni archivos.
 
+### Trámite de Examen Supletorio
+
+- `TramiteExamenSupletorioCUImplAdaptador` (bean
+  `crearTramiteExamenSupletorioCU`, sin endpoints hasta T8.3), con el token al
+  final de cada método. Usa el servicio de dominio `TramiteSolicitud`
+  (actor desde el token con el rol que fija la acción, incluido el
+  Estudiante, y solicitud con la transición validada antes de escribir), que
+  también usa `TramiteCancelacion` por dentro. Una solicitud sin fila en
+  `SOLICITUD_EXAMEN_SUPLETORIO` responde como inexistente.
+- Todas las acciones pasan por `cambiarEtapa`, que valida rol, Funcionario
+  asignado, Estudiante dueño, etapa, observación y anexos, y escribe historial
+  y log:
+  - `rechazarPorFuncionario(uuid, observacion, token)`: RADICADA a
+    RECHAZADA, sin escaneo.
+  - `remitirADecano(uuid, requisitosVerificados, observacion, token)`:
+    RADICADA a EN_REVISION_DECANO. Sin `requisitosVerificados` verdadero se
+    rechaza (después de validar actor y etapa) pidiendo rechazar la solicitud
+    en lugar de remitirla.
+  - `aprobarPorDecano(uuid, observacion, token)`: observación opcional, a
+    APROBADA_POR_DECANO. `rechazarPorDecano`: observación obligatoria, a
+    RECHAZADA_POR_DECANO.
+  - `enviarRespuesta(uuid, token)`: RECHAZADA_POR_DECANO a RECHAZADA, sin
+    escaneo.
+  - `enviarRecibo(uuid, token)`: APROBADA_POR_DECANO a PENDIENTE_PAGO.
+    `subirComprobante(uuid, token)`: PENDIENTE_PAGO a EN_VERIFICACION_PAGO,
+    solo el Estudiante dueño. Los archivos se suben antes con
+    `adjuntarAnexo` (reglas de T5.5) y el motor verifica en base que estén.
+  - `aprobarComprobante(uuid, fechaAcordadaExamen, token)`: a APROBADA; la
+    fecha es opcional, no puede ser anterior a `fechaExamenNoPresentado` y se
+    guarda a las 00:00 con `actualizarFechaAcordada` y su propio log.
+  - `rechazarComprobante(uuid, observacion, token)`: observación obligatoria,
+    a RECHAZADA (P4: el estudiante radica una nueva).
+- Ninguna acción cambia el estado de las asignaturas matriculadas. Todo corre
+  en la transacción del controlador (D6).
+
 ## Crear Estudiante y Funcionario Académico
 
 `UsuarioCUImplAdaptador.crearUsuario` y `crearUsuarios` no insertan nada en

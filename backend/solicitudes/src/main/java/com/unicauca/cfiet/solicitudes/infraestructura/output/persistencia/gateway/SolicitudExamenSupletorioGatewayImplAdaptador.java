@@ -15,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 public class SolicitudExamenSupletorioGatewayImplAdaptador implements SolicitudExamenSupletorioGatewayIntPuerto {
@@ -46,6 +48,14 @@ public class SolicitudExamenSupletorioGatewayImplAdaptador implements SolicitudE
             cruceRepositorio.saveAndFlush(cruceEntidad);
         }
         return getPorSolicitud(uuidSolicitud);
+    }
+
+    @Override
+    @Transactional
+    public void actualizarFechaAcordada(String uuidSolicitudAcademica, LocalDateTime fechaAcordadaExamen) {
+        SolicitudExamenSupletorioEntidad entidad = repositorio.findById(uuidSolicitudAcademica).orElseThrow();
+        entidad.setFechaAcordadaExamen(fechaAcordadaExamen);
+        repositorio.saveAndFlush(entidad);
     }
 
     @Override
