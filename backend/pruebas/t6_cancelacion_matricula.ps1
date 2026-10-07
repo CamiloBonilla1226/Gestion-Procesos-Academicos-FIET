@@ -362,7 +362,7 @@ try {
     Escribir-Resultado "en APROBADA el estudiante ve la situacion al cancelar y la etiqueta Aprobada" (($detalle.solicitud.etiqueta -eq "Aprobada") -and (@($detalle.asignaturas | Where-Object { $_.situacionCancelar }).Count -eq 3))
     $historial = @(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol1/historial" -Token $est1.Token)) | ForEach-Object { $_.accion }
     Escribir-Resultado "el historial trae RADICAR, REMITIR_DECANO, APROBAR_DECANO y ENVIAR_RESPUESTA (obtuvo $($historial -join ','))" (($historial -join ',') -eq "RADICAR,REMITIR_DECANO,APROBAR_DECANO,ENVIAR_RESPUESTA")
-    $etapasHistorial = (@(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol1/historial" -Token $fa1.Token)) | ForEach-Object { "$($_.accion):$($_.etapaCodigo)" }) -join ","; Escribir-Resultado "cada accion del historial trae la etapa a la que llevo (obtuvo $etapasHistorial)" ($etapasHistorial -eq "RADICAR:RADICADA,REMITIR_DECANO:EN_REVISION_DECANO,APROBAR_DECANO:APROBADA_POR_DECANO,ENVIAR_RESPUESTA:APROBADA")
+    $etapasHistorial = (@(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol1/historial" -Token $fa1.Token)) | ForEach-Object { "$($_.accion):$($_.etapaCodigo)" } | Sort-Object) -join ","; Escribir-Resultado "cada accion del historial trae la etapa a la que llevo (obtuvo $etapasHistorial)" ($etapasHistorial -eq "APROBAR_DECANO:APROBADA_POR_DECANO,ENVIAR_RESPUESTA:APROBADA,RADICAR:RADICADA,REMITIR_DECANO:EN_REVISION_DECANO")
 
     $r = Radicar -Token $est2.Token -Tipos $tipos -Pdf $pdf -ConSoporte $false
     $sol2 = (Leer-Json $r).uuidSolicitudAcademica
@@ -405,7 +405,7 @@ try {
     Escribir-Resultado "tras el rechazo del Decano las asignaturas siguen activas (obtuvo $(Estados-Matricula $est3.Uuid))" ((Estados-Matricula $est3.Uuid) -eq "activa,activa")
     $detalle = Leer-Json (Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$sol3" -Token $est3.Token)
     Escribir-Resultado "el estudiante 3 ve su solicitud Rechazada con la Resolucion descargable" (($detalle.solicitud.etiqueta -eq "Rechazada") -and $detalle.solicitud.puedeDescargarResolucion)
-    $etapasHistorial = (@(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol3/historial" -Token $fa1.Token)) | ForEach-Object { "$($_.accion):$($_.etapaCodigo)" }) -join ","; Escribir-Resultado "cada accion del historial trae la etapa a la que llevo (obtuvo $etapasHistorial)" ($etapasHistorial -eq "RADICAR:RADICADA,REMITIR_DECANO:EN_REVISION_DECANO,RECHAZAR_DECANO:RECHAZADA_POR_DECANO,ENVIAR_RESPUESTA:RECHAZADA")
+    $etapasHistorial = (@(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol3/historial" -Token $fa1.Token)) | ForEach-Object { "$($_.accion):$($_.etapaCodigo)" } | Sort-Object) -join ","; Escribir-Resultado "cada accion del historial trae la etapa a la que llevo (obtuvo $etapasHistorial)" ($etapasHistorial -eq "ENVIAR_RESPUESTA:RECHAZADA,RADICAR:RADICADA,RECHAZAR_DECANO:RECHAZADA_POR_DECANO,REMITIR_DECANO:EN_REVISION_DECANO")
 }
 finally {
     if ($responsableCm) {

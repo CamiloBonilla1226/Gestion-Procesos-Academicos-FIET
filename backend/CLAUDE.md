@@ -927,6 +927,57 @@ Estudiante. Hoy son 63 filas. El script:
 Al agregar un endpoint académico se agrega su fila a la matriz; si no, el
 script falla.
 
+### Ejecución completa y limpieza de los scripts
+
+`backend/pruebas/todo.ps1` corre en orden t1 a t8 y `matriz-permisos.ps1`,
+cada uno en su propio proceso de PowerShell, desde `backend`:
+
+```
+powershell -File .\pruebas\todo.ps1
+```
+
+- Antes de empezar inicia sesión como rootfiet y hace `select 1` en
+  `cfiet_database`. Si algo falla, dice qué no responde y sale con código 2
+  sin correr nada.
+- Cuenta las líneas `PASS` y `FAIL` de cada script e imprime una tabla con el
+  total.
+- Marca ERROR a un script que no existe, que no imprime ninguna verificación
+  o que sale con código distinto de cero sin ningún FAIL (se cayó). Termina
+  con código 1 si hay algún FAIL o ERROR.
+- Avisa si en `pruebas` hay un `t*_*.ps1` que no está en su lista.
+- Un script nuevo se agrega a `$Global:Scripts`.
+
+`comun.ps1` tiene la limpieza que comparten los scripts que crean usuarios por
+la API:
+
+- `Inicio-Corrida` toma `now()` de MySQL antes de crear nada.
+- `Foto-Base` resume los conteos que deben volver a su valor: usuarios,
+  roles, `funcionarios` de Julián, estudiantes, funcionarios académicos,
+  asignaturas, matriculadas, solicitudes, anexos, logs de quien no es
+  rootfiet y responsables de los tipos.
+- `Limpiar-DatosPrueba -Desde -Usernames -CodigosAsignatura` borra, en una
+  sola transacción:
+  - los usuarios cuyo username exacto usó el script y que se crearon desde
+    `-Desde`, con sus logs, roles, filas de `funcionarios`, `ESTUDIANTE`,
+    `FUNCIONARIO_ACADEMICO` y matriculadas;
+  - las asignaturas con el código exacto que generó el script y que ya
+    nadie usa.
+
+  Nunca borra por patrón; los usernames y códigos llevan un sufijo único por
+  corrida.
+
+`t1_lectura_usuarios`, `t1_preauthorize`, `t3_estudiantes`, `t3_excel`,
+`t4_funcionarios_academicos` y `t4_excel` guardan cada username y código
+antes de crearlo. En un `finally` limpian y exigen que `Foto-Base` coincida
+con la del inicio; esa es su última verificación. Los logs de rootfiet sí
+quedan. `t2_asignaturas`, `t5_catalogos` y `t5_asignacion` todavía no
+limpian: dejan 11 usuarios, 2 funcionarios académicos y 1 asignatura por
+corrida.
+
+Las comprobaciones sobre el historial comparan las parejas acción:etapa
+ordenadas, porque `fecha` tiene precisión de segundos y dos transiciones
+seguidas pueden empatar.
+
 ### Nivel C: base de datos
 
 Después de `docker compose up --build`, se comprueba que las tablas que
