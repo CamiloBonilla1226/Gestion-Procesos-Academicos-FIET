@@ -11,7 +11,7 @@ Las reglas salen de estas fuentes:
 
 Las historias de usuario HU-V2 están desactualizadas y no se tienen en cuenta. Donde un prototipo contradice una decisión de este documento, manda este documento.
 
-Lo que no aparece en ninguna fuente no se inventa: está en la sección 8 como decisión pendiente. Quien implemente debe preguntar antes de decidir por su cuenta.
+Lo que no aparece en ninguna fuente no se inventa: se pregunta antes de decidir y la decisión queda en la sección 8. Hoy esa sección no tiene decisiones pendientes.
 
 ## 1. Actores
 
@@ -55,8 +55,8 @@ Toda transición exige que el usuario tenga el rol indicado, que la solicitud es
 | --- | --- | --- | --- | --- |
 | (nueva) | Radicar | RADICADA | Estudiante | Validaciones de la sección 4 y anexos de la sección 5. |
 | RADICADA | Rechazar | RECHAZADA | Funcionario | Observación obligatoria y escaneo de la Resolución (PDF). La Resolución la firma el Decano a mano. |
-| RADICADA | Remitir al Decano | EN_REVISION_DECANO | Funcionario | Requisitos verificados y cada asignatura evaluada: número de faltas, nota y situación en la matrícula. Sin archivo de Resolución en este paso. |
-| EN_REVISION_DECANO | Aprobar | APROBADA_POR_DECANO | Decano | Ninguno. |
+| RADICADA | Remitir al Decano | EN_REVISION_DECANO | Funcionario | Cada asignatura evaluada: número de faltas, nota y situación en la matrícula; en Cancelación de Asignatura, además, si cumple las condiciones (P14). Observación opcional. Sin archivo de Resolución en este paso; si había un escaneo, se retira (P21). |
+| EN_REVISION_DECANO | Aprobar | APROBADA_POR_DECANO | Decano | Situación al cancelar de cada asignatura (P9). En Cancelación de Asignatura, la decisión por asignatura (P14). |
 | EN_REVISION_DECANO | Rechazar | RECHAZADA_POR_DECANO | Decano | Observación obligatoria. |
 | APROBADA_POR_DECANO | Enviar respuesta | APROBADA | Funcionario | Escaneo de la Resolución firmada (PDF). Queda descargable para el Estudiante. |
 | RECHAZADA_POR_DECANO | Enviar respuesta | RECHAZADA | Funcionario | Escaneo de la Resolución firmada (PDF). La observación del Decano llega al Estudiante. |
@@ -162,9 +162,9 @@ Los anexos condicionales no se pueden expresar con la columna `obligatorio` sola
 
 Solo para Cancelación de Matrícula y Cancelación de Asignatura. La Resolución es un documento físico firmado a mano por el Decano; en la aplicación solo vive su escaneo.
 
-- Lo sube el Funcionario al cerrar el trámite: al rechazar él mismo o al enviar la respuesta final tras la decisión del Decano.
+- Lo sube el Funcionario al cerrar el trámite: al rechazar él mismo o al enviar la respuesta final tras la decisión del Decano. Por eso se acepta en RADICADA, APROBADA_POR_DECANO y RECHAZADA_POR_DECANO (P21).
 - Formato PDF. Se guarda en `RESOLUCION_ACADEMICA` con el funcionario que lo subió.
-- El Estudiante la descarga desde el detalle de su solicitud.
+- El Estudiante la descarga desde el detalle de su solicitud cuando esta llega a APROBADA o RECHAZADA (P21).
 - Examen Supletorio no produce Resolución.
 - Las copias físicas de la Resolución se reparten en tres ejemplares fuera de la aplicación.
 
@@ -206,6 +206,24 @@ Propuestas adoptadas por defecto (cambiables antes de implementar la tarea que l
 | P12 | Tamaño del escaneo de la Resolución y del recibo | 5 MB, igual que los demás archivos. |
 | P13 | Soporte libre del motivo en matrícula y asignatura | Sigue siendo opcional. Solo los documentos oficiales son obligatorios. |
 | P14 | Decisión del Decano en Cancelación de Asignatura | Confirmada por el autor; supera cualquier texto anterior. Aprobación parcial: el Decano aprueba o rechaza cada asignatura por separado. Al remitir, el Funcionario confirma por asignatura si cumple las condiciones de la sección 4.2 (una nota menor a 3.0 no puede marcarse como que cumple; si no cumple, la observación es obligatoria) y al menos una debe cumplir. El Decano solo aprueba asignaturas que cumplen, registra la situación al cancelar de las aprobadas (P9) y debe dar observación de las rechazadas; con al menos una aprobada la solicitud pasa a APROBADA_POR_DECANO, y si no aprueba ninguna usa el rechazo de la solicitud completa. Al enviar la respuesta aprobada solo se cancelan las asignaturas aprobadas que sigan activas. Cancelación de Matrícula no cambia. Se guarda en `ASIGNATURA_SOLICITUD_ACADEMICA` (`cumpleCondiciones`, `observacionEvaluacion`, `aprobadaPorDecano`, `observacionDecision`). |
+
+Decisiones de implementación, tomadas al construir el backend y registradas en `change.md`. Describen lo que hace el código hoy:
+
+| N | Tema | Se adopta |
+| --- | --- | --- |
+| P15 | Lo que ve el Estudiante en Cancelación de Asignatura | Antes de APROBADA o RECHAZADA ve de cada asignatura solo el uuid de la fila, el código y el nombre. En APROBADA o RECHAZADA ve además `aprobadaPorDecano` y `observacionDecision`. Nunca ve faltas, nota, situaciones, `cumpleCondiciones` ni `observacionEvaluacion`. El Funcionario asignado y el Decano ven todo. |
+| P16 | Observación del Decano al aprobar el supletorio | Opcional. Al rechazar sigue siendo obligatoria. En las cancelaciones la aprobación del Decano no lleva observación. |
+| P17 | Fecha acordada del supletorio | La registra el Funcionario asignado al aprobar el comprobante (EN_VERIFICACION_PAGO a APROBADA). Es opcional, no puede ser anterior a la fecha del examen no presentado y se guarda a las 00:00 en `fechaAcordadaExamen`. |
+| P18 | Código de etapa y reconstrucción del historial | Bandejas, detalles e historial devuelven, además de la etiqueta del rol, el código estable de la etapa (`etapaCodigo`). El historial no guarda la etapa y su fecha tiene precisión de segundos, así que la etapa de cada fila se reconstruye encadenando las transiciones de la sección 3 desde RADICAR, sin depender del orden por fecha. Una acción que no encaja en el recorrido queda sin código. |
+| P19 | Visibilidad por rol | El rol con que actúa un usuario lo decide el servidor: dueño con rol Estudiante, si no Funcionario asignado al tipo, si no Decano. Un rol solo ve las solicitudes cuya etapa tiene etiqueta para él en `ETAPA_ETIQUETA_ROL`, en bandejas, detalle, historial y descargas. Una solicitud ajena o sin etiqueta responde igual que una inexistente. |
+| P20 | Quién sube cada anexo y cuándo | Los anexos del Estudiante y los soportes libres los sube el Estudiante dueño en RADICADA; el recibo de pago, el Funcionario asignado en APROBADA_POR_DECANO; el comprobante, el Estudiante dueño en PENDIENTE_PAGO. Examen Supletorio no admite soportes libres. No se limita la cantidad de archivos por tipo. jpg y jpeg son el mismo formato, y además de la extensión se valida la firma del contenido (pdf, png, jpg). |
+| P21 | Escaneo de la Resolución | Solo en las cancelaciones. Lo sube el Funcionario asignado, en PDF, en RADICADA, APROBADA_POR_DECANO o RECHAZADA_POR_DECANO. Subirlo otra vez reemplaza el anterior; en etapa final ya no se sube ni se reemplaza. Remitir al Decano retira el escaneo que hubiera. El Estudiante dueño lo descarga solo en etapa final; el Funcionario asignado y el Decano, en cualquier etapa. |
+| P22 | Situación al cancelar en Cancelación de Matrícula | El Estudiante la ve solo cuando la solicitud está en etapa final; antes llega vacía. |
+| P23 | Asignaturas que se cancelan al aprobar | Al enviar la respuesta aprobada de Cancelación de Matrícula pasan a `cancelada` las asignaturas de la solicitud que sigan `activa`; las que tengan otro estado no se tocan. Ninguna acción del supletorio cambia asignaturas. |
+| P24 | Concurrencia al radicar | La regla de una solicitud en curso por tipo se valida con una consulta previa, sin bloqueo. El radicado se calcula como el último del año y tipo más uno; si dos radicaciones chocan, la segunda se rechaza con "No se pudo generar el radicado, intente de nuevo" y no deja nada escrito. |
+| P25 | Conteo del plazo del supletorio | Con la hora de Colombia, se cuentan los días lunes a viernes posteriores al examen hasta hoy inclusive. El mismo día cuenta 0 y un examen en fin de semana empieza a contar el lunes. La fecha del examen no puede ser posterior a hoy. |
+| P26 | Límites de texto | Motivo de cancelación: 255 caracteres. Observación de una acción: 500. Observación de evaluación y de decisión por asignatura: 255. Hora del examen cruzado: formato HH:mm. |
+| P27 | Remitir el supletorio al Decano | El Funcionario debe confirmar `requisitosVerificados`; sin esa confirmación se rechaza la acción y se le indica que rechace la solicitud. La confirmación se revisa después del actor y la etapa. |
 
 ## 9. Funcionalidad opcional, al final del proyecto
 

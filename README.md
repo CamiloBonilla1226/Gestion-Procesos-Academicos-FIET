@@ -37,11 +37,18 @@ Julián (ver `docs/database/`).
 ```
 .
 ├── backend/    Spring Boot 3 + MySQL (Java 17) — API REST
+│   └── pruebas/   Scripts de humo en PowerShell (todo.ps1 los corre todos)
 ├── frontend/   Angular 20 + PrimeNG — SPA
 └── docs/
-    └── database/
-        ├── script_bd_extension.sql          DDL de referencia de las tablas nuevas (no se ejecuta)
-        └── diccionario-datos-extension.md   Diccionario de datos de la extensión
+    ├── api/
+    │   └── contrato-api-procesos-academicos.md   Contrato de los 63 endpoints académicos
+    ├── database/
+    │   ├── script_bd_extension.sql          DDL de referencia de las 18 tablas nuevas (no se ejecuta)
+    │   ├── diccionario-datos-extension.md   Diccionario de datos de la extensión
+    │   ├── etapas-por-proceso.md            Etapas, transiciones, anexos, plazos y decisiones
+    │   ├── seed-roles-extension.sql         Roles y tipo de usuario de la extensión
+    │   └── seed-procesos-academicos.sql     Tipos de solicitud, etapas, etiquetas, anexos y situaciones
+    └── informe-discrepancias-documentacion.md   Correcciones hechas a la documentación
 ```
 
 > `docs/database/script_bd_extension.sql` es el DDL de referencia de las
@@ -76,12 +83,32 @@ npm start
 # Frontend disponible en http://localhost:4200
 ```
 
-Primer arranque: Hibernate crea las tablas al levantar el backend, pero los
-roles, los tipos de usuario y el usuario `root` no se cargan solos
-(`spring.sql.init.mode=never`). Después del primer arranque hay que correr
-`backend/solicitudes/src/main/resources/data.sql` una sola vez contra la base
-(`docker compose exec cfiet_database mysql -u root -pmysql cfiet` y pegar su
-contenido). Sin ese paso no existen roles ni login.
+Primer arranque: Hibernate crea las tablas al levantar el backend, pero
+nada se siembra solo (`spring.sql.init.mode=never`). Con una base vacía, en
+este orden:
+
+1. Correr `backend/solicitudes/src/main/resources/data.sql` una sola vez
+   contra la base (`docker compose exec cfiet_database mysql -u root -pmysql
+   cfiet` y pegar su contenido). Carga los roles y tipos de usuario de
+   Julián, los roles `Estudiante` y `Funcionario Académico` y el tipo de
+   usuario `Estudiante` de la extensión, y el usuario `rootfiet` (Secretario
+   General, contraseña `rootfiet1234`, la
+   misma que usan los scripts de `backend/pruebas`). Sin ese paso no existen
+   roles ni login.
+2. Crear el Funcionario Académico que atenderá los tres procesos con
+   `POST /api/unicauca/fiet/consejo/funcionarios-academicos`, autenticado
+   como `rootfiet`.
+3. Correr `docs/database/seed-procesos-academicos.sql` con la variable
+   `@funcionario_uuid` apuntando a ese funcionario; el encabezado del
+   archivo trae el comando para Docker. Siembra los tres tipos de solicitud,
+   sus etapas, etiquetas por rol, tipos de anexo y el catálogo de situaciones
+   académicas. Se puede correr más de una vez.
+
+Si la base ya tenía el `data.sql` original de Julián, los roles y el tipo de
+usuario de la extensión se agregan con `docs/database/seed-roles-extension.sql`.
+
+Los archivos subidos quedan en `backend/uploads`, que `docker-compose.yml`
+monta en el contenedor como `/app/uploads`.
 
 El frontend también tiene su propio `dockerfile` si se prefiere
 contenerizarlo en vez de correrlo con `npm start`.
@@ -93,14 +120,40 @@ contenerizarlo en vez de correrlo con `npm start`.
   proyecto
 - **Node.js 20.19+** (o 22.12+; requisito de Angular 20)
 
-Ajustar en ese caso `backend/solicitudes/src/main/resources/application.properties`
-(o las variables `DB_URL`, `DB_USER_NAME`, `DB_PASSWORD` que use el proyecto)
-para apuntar al MySQL local en vez del contenedor `cfiet_database`.
+`backend/solicitudes/src/main/resources/application.properties` no trae
+valores fijos de conexión: lee las variables de entorno `SERVER_PORT`,
+`DB_URL`, `DB_USER_NAME`, `DB_PASSWORD` y `UPLOADS_PATH` (esta última por
+defecto `/app/uploads`). Hay que definirlas para apuntar al MySQL local en
+vez del contenedor `cfiet_database`.
+
+## Pruebas
+
+Desde `backend/solicitudes`, con la base arriba y las variables de entorno de
+la conexión definidas (el detalle está en `backend/CLAUDE.md`, sección
+"Pruebas"):
+
+```
+.\mvnw.cmd test
+```
+
+Con el backend corriendo en Docker, desde `backend`:
+
+```
+powershell -File .\pruebas\todo.ps1
+```
+
+`todo.ps1` corre los scripts de humo de `backend/pruebas` y la matriz de
+permisos de los endpoints académicos. Además comprueba que cada script deje
+el conteo de filas de todas las tablas (salvo la de logs), los responsables
+de cada tipo de solicitud y la carpeta `uploads` como estaban.
 
 ## Estado del proyecto
 
-Este repositorio se inicializa con el código base de Julián tal como está en
-su rama de producción, más la documentación de base de datos ya definida
-para la extensión (tabla `RESOLUCION_ACADEMICA` incluida). La implementación
-de los tres módulos de proceso académico se desarrolla de aquí en adelante
-sobre esta base.
+Este repositorio se inicializó con el código base de Julián tal como está en
+su rama de producción. Sobre esa base, el backend ya implementa los tres
+procesos académicos: catálogo de asignaturas, estudiantes y funcionarios
+académicos (por formulario y por carga masiva desde Excel), catálogos
+académicos, radicación, trámite por etapas, anexos, Resolución escaneada y
+consultas por rol. El contrato de la API está en
+`docs/api/contrato-api-procesos-academicos.md`. El frontend todavía no
+consume los endpoints de los procesos académicos.

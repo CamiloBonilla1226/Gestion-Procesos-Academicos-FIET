@@ -52,15 +52,20 @@ El método se llama `crear<X>CU`, devuelve la clase concreta
 `<X>CUImplAdaptador` (no el puerto) y sus parámetros van en el mismo orden
 que el constructor del caso de uso, que no es el mismo entre casos de uso.
 Si el caso de uso registra historial, recibe `LogCUIntPuerto`, que lo
-satisface el bean `crearLogCU`; no hace falta nada más entre beans.
+satisface el bean `crearLogCU`. Si necesita otro caso de uso (por ejemplo
+`SolicitudAcademicaCUIntPuerto` o `AnexoAcademicoCUIntPuerto`, como las
+radicaciones), lo pide por su puerto de entrada; Spring resuelve el orden.
 Las validaciones de negocio van acá, usando `ExcepcionesFormateadorIntPuerto`
 y constantes nuevas en `MensajesError` si hace falta un mensaje que no
 existe todavía. Si la operación debe quedar en el historial, llama a
 `LogCUIntPuerto.crearLog`. Un fallo técnico de IO (por ejemplo guardar o
-borrar un archivo adjunto) no se formatea con
-`ExcepcionesFormateadorIntPuerto` — se envuelve en un `RuntimeException`
-plano con el mensaje y la causa original, igual que hacen
-`SolicitudCUImplAdaptador` y `RespuestaCUImplAdaptador`.
+borrar un archivo adjunto) en el código de Julián se envuelve en un
+`RuntimeException` plano con el mensaje y la causa original
+(`SolicitudCUImplAdaptador`, `RespuestaCUImplAdaptador`). En la extensión,
+los archivos se guardan con `AlmacenamientoAnexosIntPuerto` y, si falla, el
+caso de uso lanza `lanzarErrorGenerico(MensajesError.ERROR_GUARDANDO_ARCHIVO)`,
+como hacen `AnexoAcademicoCUImplAdaptador` y
+`ResolucionAcademicaCUImplAdaptador`.
 
 ## Paso 5 — Persistencia
 
@@ -96,7 +101,11 @@ Carpeta `infraestructura/input/controlador<X>/` con sus cuatro subcarpetas:
   Validation (`@NotNull`, `@NotBlank`, etc.) que correspondan.
 - `DTORespuesta/<X>DTORespuesta.java`
 - `mapeador/MapperXInfraestructuraDominio.java` — usa `ModelMapper`
-  (`@Qualifier("mapeadorSimple")`), igual que `MapperRolInfraestructuraDominio`.
+  (`@Qualifier("mapeadorSimple")`), igual que `MapperRolInfraestructuraDominio`
+  y `MapperAsignaturaInfraestructuraDominio`, cuando el DTO es plano. Si los
+  nombres de campo quedan ambiguos o hay objetos anidados, el mapeo se arma a
+  mano en un `@Component`, como en los demás controladores de la extensión
+  (estudiantes, funcionarios académicos y los procesos académicos).
 - `controlador/<X>RestController.java` — `@RestController`,
   `@RequestMapping("${url.application}<recurso>")`,
   `@CrossOrigin(origins = "${url.frontend}")`, `@RequiredArgsConstructor`,
@@ -104,7 +113,13 @@ Carpeta `infraestructura/input/controlador<X>/` con sus cuatro subcarpetas:
   de `ApplicationConstantes` del rol permitido, pero solo para documentar la
   intención: en este proyecto no existe `@EnableMethodSecurity` y
   `@PreAuthorize` no protege nada. La protección real es el
-  `requestMatchers` del paso 8, que todo endpoint necesita.
+  `requestMatchers` del paso 8, que todo endpoint necesita. Las escrituras
+  llevan `@Transactional` en el método del controlador, y en los
+  controladores de solicitudes académicas también los GET
+  (`@Transactional(readOnly = true)`): leer el usuario recorre colecciones
+  perezosas de Julián y, sin transacción, falla con
+  `LazyInitializationException`. Las rutas con uuid usan la expresión
+  regular `[0-9a-fA-F\\-]{36}`.
 
 Solo si el recurso necesita carga masiva desde Excel, sigue el patrón que
 ya existe para usuarios y tipos de solicitud (detalle en la sección "Carga
@@ -115,32 +130,42 @@ con `@Transactional`. Si el recurso no necesita carga masiva, no se agrega.
 
 ## Paso 8 — Seguridad
 
-`ApplicationConstantes` todavía no tiene constantes de rol para "Estudiante"
-ni para "Funcionario Académico" (solo tiene las de Julián:
-`SECRETARIO_GENERAL`, `DECANO`, `FUNCIONARIO_ROL`). El Decano de los procesos
+`ApplicationConstantes` ya tiene las constantes de rol de Julián
+(`SECRETARIO_GENERAL`, `DECANO`, `FUNCIONARIO_ROL`) y las de la extensión
+(`ESTUDIANTE_ROL`, `FUNCIONARIO_ACADEMICO_ROL`), con sus perfiles
+compuestos de `hasAnyAuthority(...)` (lista completa en la sección
+"Seguridad" de `backend/CLAUDE.md`). Antes de crear una constante, revisa si
+ya existe. El Decano de los procesos
 nuevos usa el rol `Decano` existente: se usa `DECANO`, no se crea otro rol. El Decano es un `Usuario` normal con ese
 rol, sin fila en `FUNCIONARIO_ACADEMICO`.
 
 La única protección real de acceso son los `requestMatchers` de
 `ConfiguracionSeguridad.securityFilterChain`. `@PreAuthorize` no protege
-nada, porque no existe `@EnableMethodSecurity`; lo confirmó
-`backend/pruebas/t1_preauthorize.ps1`, donde un `Funcionario` recibe 200 en
-endpoints anotados para Secretario General y Decano. Una ruta sin regla
+nada, porque no existe `@EnableMethodSecurity`; lo mostró
+`backend/pruebas/t1_preauthorize.ps1` cuando se escribió, con un
+`Funcionario` que recibía 200 en endpoints anotados para Secretario General
+y Decano (hoy esos listados los cierra un `requestMatchers`). Una ruta sin regla
 propia cae en una regla genérica (`usuarios/**`, `solicitudes/**`) o en
 `anyRequest().authenticated()`, y la puede llamar cualquier usuario
 autenticado. No se habilita `@EnableMethodSecurity`.
 
 Para todo endpoint nuevo:
 
-1. Si se restringe a Estudiante o a Funcionario Académico, agrega la
-   constante del rol y, si hace falta, la constante compuesta de
-   `hasAnyAuthority(...)`, siguiendo el mismo patrón que ya existe ahí.
-2. En ese mismo caso, el rol va como fila nueva en `roles` de `data.sql`.
-   `crearUsuario` busca el tipo de usuario por nombre y falla si no existe:
-   el Estudiante usa el tipo `Estudiante` (fila nueva en `tiposUsuario`) y el
-   Funcionario Académico usa el tipo `Empleado FIET - Funcionario` de Julián,
-   con el rol `Funcionario Académico` (no el rol `Funcionario`). Cierra con `;` la última sentencia actual del archivo, que
-   no la tiene.
+1. Si se restringe a Estudiante o a Funcionario Académico, usa sus
+   constantes de rol (`ESTUDIANTE_ROL`, `FUNCIONARIO_ACADEMICO_ROL`) y el
+   perfil compuesto que ya exista; si la combinación de roles no tiene
+   perfil, agrega la constante de `hasAnyAuthority(...)` siguiendo el mismo
+   patrón.
+2. Los roles `Estudiante` y `Funcionario Académico` y el tipo de usuario
+   `Estudiante` ya están en `data.sql` y en
+   `docs/database/seed-roles-extension.sql`. `crearUsuario` busca el tipo de
+   usuario por nombre y falla si no existe: el Estudiante usa el tipo
+   `Estudiante` y el Funcionario Académico usa el tipo `Empleado FIET -
+   Funcionario` de Julián, con el rol `Funcionario Académico` (no el rol
+   `Funcionario`). Si una tarea necesitara un rol nuevo, va en una sentencia
+   nueva al final de `data.sql` (todas sus sentencias terminan en `;`) y
+   también en `seed-roles-extension.sql` con `INSERT IGNORE`, para las bases
+   que ya tienen el `data.sql` cargado.
 3. Siempre, agrega su regla explícita en
    `ConfiguracionSeguridad.securityFilterChain` (en
    `infraestructura/configuracion/seguridad/configuracion`, no en
@@ -193,12 +218,18 @@ docker compose up --build
 ```
 
 En una base nueva: levanta el backend (Hibernate crea las tablas), ejecuta
-`data.sql` a mano (`spring.sql.init.mode=never`) y recién entonces prueba.
+`data.sql` a mano (`spring.sql.init.mode=never`), crea el Funcionario
+Académico y corre `docs/database/seed-procesos-academicos.sql` con su uuid,
+y recién entonces prueba (detalle en "Orden de arranque con una base nueva"
+de `backend/CLAUDE.md`).
 
 Sigue la sección "Pruebas" de `backend/CLAUDE.md`: prueba unitaria del caso
 de uso con JUnit 5 y Mockito (nivel A), script de humo en `backend/pruebas/`
 en ASCII puro con `PASS`/`FAIL` y la matriz de permisos (nivel B), y la
-comprobación de tablas contra el script (nivel C). La tarea no termina hasta
+comprobación de tablas contra el script (nivel C). Un endpoint académico
+nuevo agrega su fila a `backend/pruebas/matriz-permisos.ps1` (si no, la
+matriz falla), un script nuevo se agrega a `$Global:Scripts` de
+`backend/pruebas/todo.ps1`, y todo script borra al final lo que creó. La tarea no termina hasta
 que pasa la compuerta de aceptación de esa sección. Para `.\mvnw.cmd test`
 hay que definir antes `SERVER_PORT`, `DB_URL`, `DB_USER_NAME` y
 `DB_PASSWORD`, con la base corriendo.

@@ -18,18 +18,37 @@ cd ..
 docker compose up --build           # backend (8080) + MySQL (3307 host / 3306 contenedor)
 ```
 
-Sin Docker: JDK 17 + MySQL 8 local, ajustando `DB_URL`, `DB_USER_NAME`,
-`DB_PASSWORD` en `solicitudes/src/main/resources/application.properties`.
+Sin Docker: JDK 17 + MySQL 8 local. `application.properties` no trae valores
+fijos: lee las variables de entorno `SERVER_PORT`, `DB_URL`, `DB_USER_NAME`,
+`DB_PASSWORD` y `UPLOADS_PATH` (por defecto `/app/uploads`). En Docker las
+define `docker-compose.yml` y la carpeta `backend/uploads` del host se monta
+en `/app/uploads`.
 
-`spring.sql.init.mode=never` — el `data.sql` (roles, tipos de usuario,
-usuario root) no se ejecuta solo, hay que correrlo a mano contra la base
-la primera vez (`docker compose exec cfiet_database mysql -u root -pmysql
-cfiet` y pegar el contenido de `data.sql`). Hay que correrlo después del
-primer arranque, porque necesita las tablas que crea Hibernate. Los roles
-`Estudiante` y `Funcionario Académico` y el tipo de usuario `Estudiante` se
-agregan en ese mismo `data.sql`; el Funcionario Académico usa el tipo
-`Empleado FIET - Funcionario` de Julián, que ya existe. Su última sentencia (`INSERT INTO Usuario_has_Roles`)
-no termina en `;`: hay que cerrarla antes de agregar sentencias nuevas.
+### Orden de arranque con una base nueva
+
+`spring.sql.init.mode=never`: nada se siembra solo. Con una base vacía:
+
+1. `docker compose up --build`. Hibernate crea las tablas de Julián y las 18
+   de la extensión al arrancar.
+2. Correr `solicitudes/src/main/resources/data.sql` una sola vez (usa
+   `INSERT` sin `IGNORE`), con `docker compose exec cfiet_database mysql -u
+   root -pmysql cfiet` y pegando su contenido. Carga los roles y tipos de
+   usuario de Julián, el usuario `rootfiet` (Secretario General), los roles
+   `Estudiante` y `Funcionario Académico` y el tipo de usuario `Estudiante`.
+   Todas sus sentencias terminan en `;`. En una base que ya tenía el
+   `data.sql` de Julián, los roles y el tipo nuevos se cargan con
+   `docs/database/seed-roles-extension.sql` (`INSERT IGNORE`).
+3. Crear el Funcionario Académico que atenderá los tres procesos, con
+   `POST funcionarios-academicos` como `rootfiet` o como Decano.
+4. Correr `docs/database/seed-procesos-academicos.sql` con
+   `@funcionario_uuid` apuntando a ese funcionario (el archivo trae el
+   comando exacto para Docker). Siembra los tres tipos de solicitud, las 8
+   etapas, las 23 etiquetas por rol, los 11 tipos de anexo y las situaciones
+   R0 a R3. Usa `INSERT IGNORE` con UUID fijos y se puede repetir; sin
+   `@funcionario_uuid` no se insertan los tipos ni lo que depende de ellos.
+
+El Funcionario Académico usa el tipo `Empleado FIET - Funcionario` de
+Julián, que ya existe en `data.sql`.
 
 La base usa `spring.jpa.hibernate.naming.physical-strategy=
 PhysicalNamingStrategyStandardImpl`: Hibernate NO convierte a snake_case,
@@ -54,7 +73,8 @@ dominio/            no depende de nada de Spring ni de JPA
 │                     persistencia ni de validación — nunca ven JPA
 ├── casosdeuso/       *CUImplAdaptador — implementa los puertos de entrada
 ├── servicios/        reglas de dominio que no son un caso de uso (MaquinaEtapas,
-│                     ValidadorActorSolicitud, ValidadorArchivoAdjunto), sin Spring ni JPA
+│                     TramiteSolicitud, TramiteCancelacion, ValidadorActorSolicitud,
+│                     ValidadorArchivoAdjunto), sin Spring ni JPA
 └── helper/constantes/ constantes compartidas (roles, etc.)
 
 aplicacion/          interfaces únicamente — son los "puertos"
@@ -70,7 +90,8 @@ infraestructura/
 │   ├── controlador/      *RestController
 │   ├── DTOPeticion/       *DTOPeticion (lo que llega en el body)
 │   ├── DTORespuesta/      *DTORespuesta (lo que se devuelve)
-│   └── mapeador/          Mapper*InfraestructuraDominio (DTO <-> modelo de dominio, con ModelMapper)
+│   └── mapeador/          Mapper*InfraestructuraDominio (DTO <-> modelo de dominio; con ModelMapper
+│                           en Julián y en asignaturas, a mano en el resto de la extensión)
 └── output/
     ├── persistencia/
     │   ├── entidades/      *Entidad (JPA, @Entity)
@@ -128,7 +149,10 @@ public RespuestaCUImplAdaptador crearRespuestaCU(RespuestaGatewayIntPuerto gatew
 - Parámetros: los puertos de salida (`*GatewayIntPuerto`), más
   `ExcepcionesFormateadorIntPuerto`, más `LogCUIntPuerto` cuando el caso de
   uso registra historial, más lo que haga falta de infraestructura
-  (`IJwtServicio`, `OrdenDelDiaExportador`, `AlmacenadorArchivos`).
+  (`IJwtServicio`, `OrdenDelDiaExportador`, `AlmacenadorArchivos`,
+  `AlmacenamientoAnexosIntPuerto`). Los casos de uso que miden plazos o fechan
+  registros reciben un `Clock`, que el método crea con
+  `Clock.system(ZoneId.of("America/Bogota"))`.
 - Orden de los argumentos del `new`: es el mismo orden de los parámetros del
   método, que a su vez es el orden del constructor del caso de uso. No hay un
   orden común entre casos de uso (`RolCUImplAdaptador` recibe gateway,
@@ -137,18 +161,24 @@ public RespuestaCUImplAdaptador crearRespuestaCU(RespuestaGatewayIntPuerto gatew
   del constructor del caso de uso nuevo, no el de otro bean.
 - Dependencia entre beans de la misma clase: no hay ninguna inyección
   explícita de un método `@Bean` a otro (ningún método llama a otro ni recibe
-  un `XCUImplAdaptador` como parámetro). La única dependencia implícita es
-  `LogCUIntPuerto`: la satisface el bean `crearLogCU`
-  (`LogCUImplAdaptador implements LogCUIntPuerto`) y la reciben `Rol`,
-  `Usuario`, `Sesion`, `TipoSolicitud`, `OrdenDelDia`, `Solicitud` y
-  `Respuesta`. Spring resuelve el orden de creación solo; un caso de uso
-  nuevo que registre historial pide `LogCUIntPuerto` como parámetro y listo.
-  Lo mismo pasa con los casos de uso que crean Estudiante y Funcionario
-  Académico: piden `UsuarioCUIntPuerto` como parámetro, y lo satisface el
-  bean `createUsuarioCU` (ver "Crear Estudiante y Funcionario Académico").
+  un `XCUImplAdaptador` como parámetro). Las dependencias entre beans son
+  implícitas, por el puerto de entrada que pide cada método:
+  - `LogCUIntPuerto`, que satisface `crearLogCU`, para todo caso de uso que
+    escribe en el log de Julián.
+  - `UsuarioCUIntPuerto` (`createUsuarioCU`) en los casos de uso que crean
+    Estudiante y Funcionario Académico (ver "Crear Estudiante y Funcionario
+    Académico").
+  - `SolicitudAcademicaCUIntPuerto` y `AnexoAcademicoCUIntPuerto` en las
+    radicaciones y los trámites, y `ConsultaSolicitudAcademicaCUIntPuerto` en
+    las consultas de cada proceso.
+  - `MaquinaEtapas`, que también es un `@Bean` de esta clase
+    (`crearMaquinaEtapas`).
+
+  Spring resuelve el orden de creación solo.
 - Todo el resto de parámetros (gateways, `IJwtServicio`,
-  `OrdenDelDiaExportador`, `AlmacenadorArchivos`) son `@Service` definidos
-  fuera de esta clase.
+  `OrdenDelDiaExportador`, `AlmacenadorArchivos`,
+  `AlmacenamientoAnexosIntPuerto`) son `@Service` definidos fuera de esta
+  clase.
 
 ## Convención de nombres
 
@@ -193,10 +223,18 @@ excepción en `excepcionesPropias/`, su entrada en `CodigoError` y su
 Una excepción aparte es el manejo de fallos de IO al guardar o borrar un
 archivo adjunto (`SolicitudCUImplAdaptador`, `RespuestaCUImplAdaptador`):
 ahí sí se envuelve el error real en un `RuntimeException` plano, porque no
-es una regla de negocio violada sino un fallo técnico de almacenamiento. Se
-sigue ese mismo criterio para casos de uso nuevos que también manejen
-archivos: fallo de negocio -> `ExcepcionesFormateadorIntPuerto`; fallo
-técnico de IO -> `RuntimeException` con el mensaje y la causa original.
+es una regla de negocio violada sino un fallo técnico de almacenamiento.
+
+En la extensión el fallo técnico se separa en dos capas.
+`AlmacenamientoAnexosImplAdaptador` envuelve el `IOException` en un
+`UncheckedIOException` y no deja restos en disco.
+`AnexoAcademicoCUImplAdaptador` y `ResolucionAcademicaCUImplAdaptador`
+capturan ese `RuntimeException` al guardar y lanzan
+`lanzarErrorGenerico(MensajesError.ERROR_GUARDANDO_ARCHIVO)` (código 1, "No
+se pudo guardar el archivo del anexo..."). Así el cliente recibe el formato
+de error común sin ver la causa interna. Las reglas de negocio sobre el
+archivo (vacío, tamaño, formato, contenido) siguen siendo
+`lanzarMalFormato`.
 
 ## Seguridad
 
@@ -207,11 +245,14 @@ real de acceso son los `requestMatchers` de
 
 `@PreAuthorize` no protege nada en este proyecto: la clase solo tiene
 `@EnableWebSecurity` y no existe `@EnableMethodSecurity` en ninguna parte,
-así que Spring no evalúa las anotaciones de método. Lo confirmó la prueba
-`backend/pruebas/t1_preauthorize.ps1`: un usuario con rol `Funcionario`
-recibe 200 en `GET usuarios`, `usuarios/paginado` y `usuarios/funcionarios`,
-aunque los tres llevan `@PreAuthorize(SECRETARIO_DECANO_ACCESO)`, porque
-la regla `GET usuarios/**` es `authenticated()`.
+así que Spring no evalúa las anotaciones de método. Lo mostró
+`backend/pruebas/t1_preauthorize.ps1` cuando se escribió: un usuario con rol
+`Funcionario` recibía 200 en `GET usuarios`, `usuarios/paginado` y
+`usuarios/funcionarios`, aunque los tres llevan
+`@PreAuthorize(SECRETARIO_DECANO_ACCESO)`. Después se agregaron
+`requestMatchers` para esos listados (y para `usuarios/filtro` y
+`usuarios/tipos`) que los restringen a Secretario General y Decano; hoy el
+403 lo da esa regla, no la anotación.
 
 En consecuencia:
 
@@ -231,14 +272,33 @@ En consecuencia:
   permitido 403, sin token 401) se comprueba con el script de humo de la
   tarea (ver "Pruebas").
 
-`ApplicationConstantes` solo tiene roles de Julián (`SECRETARIO_GENERAL`,
-`DECANO`, `FUNCIONARIO_ROL`) y los perfiles compuestos
-`SECRETARIO_DECANO_ACCESO` / `SECRETARIO_DECANO_FUNCIONARIO_ACCESO`. No
-existen constantes para "Estudiante" ni para "Funcionario Académico" — hay
-que agregarlas ahí (siguiendo el mismo patrón de constante de rol +
-constante de `hasAnyAuthority(...)` armada con ellas) para usarlas en el
-`requestMatchers` de `ConfiguracionSeguridad` y en el `@PreAuthorize`
-que documenta el endpoint.
+`ApplicationConstantes` tiene los roles de Julián (`SECRETARIO_GENERAL`,
+`DECANO`, `FUNCIONARIO_ROL`) y los de la extensión (`ESTUDIANTE_ROL`,
+`FUNCIONARIO_ACADEMICO_ROL`), más los perfiles compuestos que usan los
+`@PreAuthorize`: de Julián `SECRETARIO_DECANO_ACCESO`,
+`SECRETARIO_DECANO_FUNCIONARIO_ACCESO` y `AUTHENTICATED`, y de la extensión
+`SECRETARIO_DECANO_FUNCIONARIO_ACADEMICO_ACCESO`, `ESTUDIANTE_ACCESO`,
+`FUNCIONARIO_ACADEMICO_ACCESO`, `DECANO_ACCESO`,
+`ESTUDIANTE_FUNCIONARIO_ACADEMICO_ACCESO` y
+`ESTUDIANTE_FUNCIONARIO_ACADEMICO_DECANO_ACCESO`. Un perfil nuevo sigue el
+mismo patrón de `hasAnyAuthority(...)` armado con las constantes de rol.
+
+Las reglas de los ocho prefijos de la extensión, en ese orden dentro de
+`securityFilterChain`, van después de las de Julián y antes de
+`anyRequest().authenticated()`, y cada prefijo termina en `denyAll()`:
+
+| Prefijo | Reglas |
+|---|---|
+| `asignaturas` | GET `asignaturas/**`: Secretario General, Decano, Funcionario Académico. POST `asignaturas` y PUT `asignaturas/**`: Secretario General, Decano |
+| `estudiantes` | GET `mis-asignaturas`: Estudiante. GET `paginado`, `filtro`, `{uuidEstudiante}`: Secretario General, Decano, Funcionario Académico. POST, PUT, POST de asignaturas, PATCH de estado y `cargar/archivo`: Secretario General, Decano |
+| `funcionarios-academicos` | GET `paginado`, `filtro`, `{uuidFuncionario}`: Secretario General, Decano, Funcionario Académico. POST, PUT y `cargar/archivo`: Secretario General, Decano |
+| `catalogos-academicos` | PUT `tipos-solicitud/{uuidTipo}/funcionario`: Secretario General, Decano. GET `catalogos-academicos/**`: cualquier autenticado |
+| `solicitudes-academicas` | GET `estudiante`: Estudiante. GET `funcionario`: Funcionario Académico. GET `decano`: Decano. GET detalle, historial, descarga de anexo y de Resolución: Estudiante, Funcionario Académico, Decano. POST anexos: Estudiante, Funcionario Académico. POST Resolución: Funcionario Académico |
+| `cancelaciones-matricula`, `cancelaciones-asignatura`, `examenes-supletorios` | GET `formulario` y POST de radicación: Estudiante. POST `{uuid}/funcionario/**`: Funcionario Académico. POST `{uuid}/decano/**`: Decano. POST `{uuid}/estudiante/**` (solo supletorio): Estudiante. GET `{uuid}`: Estudiante, Funcionario Académico, Decano |
+
+El Secretario General no tiene acceso a ninguna ruta de solicitudes
+académicas: no interviene en los tres procesos. El detalle de cada endpoint
+está en `docs/api/contrato-api-procesos-academicos.md`.
 
 El Decano de los procesos académicos nuevos entra con el rol `Decano` que ya
 existe: se usa `ApplicationConstantes.DECANO`, no se crea otro rol. Los roles
@@ -253,10 +313,13 @@ No se reutiliza el rol `Funcionario` de Julián ni existe un tipo de usuario
 
 Los `requestMatchers` se evalúan en orden y gana el primero que coincide: una
 regla nueva va antes de las genéricas (`usuarios/**`, `solicitudes/**`,
-`anyRequest()`). Hoy `GET usuarios/**` está abierto a cualquier usuario
-autenticado, y `POST`/`PUT` sobre `usuarios/**` está restringido a Secretario
-General y Decano, que son quienes crean estudiantes y funcionarios
-académicos.
+`anyRequest()`). De Julián, hoy `GET usuarios`, `usuarios/paginado`,
+`usuarios/filtro`, `usuarios/funcionarios` y `usuarios/tipos` son solo para
+Secretario General y Decano; el resto de `GET usuarios/**` (por ejemplo
+`usuarios/{uuid}`) y `PATCH usuarios/**` quedan en `authenticated()`, y los
+demás métodos sobre `usuarios/**` son para Secretario General y Decano.
+Estudiantes y funcionarios académicos se crean por sus propios endpoints
+(`estudiantes` y `funcionarios-academicos`), no por `usuarios`.
 
 ## Persistencia
 
@@ -289,6 +352,93 @@ la información académica. El Decano, como en Julián, es un `Usuario` con rol
 ninguna FK de la extensión apunta al Decano (el historial apunta a
 `usuarios`).
 
+## Procesos académicos: piezas y máquina de etapas
+
+Las reglas de negocio de los tres procesos (etapas, transiciones, anexos,
+plazos y decisiones P4 a P27) están en `docs/database/etapas-por-proceso.md`;
+el contrato HTTP, en `docs/api/contrato-api-procesos-academicos.md`.
+
+### Casos de uso por área
+
+| Área | Casos de uso (`dominio/casosdeuso`) |
+|---|---|
+| Catálogo y actores | `AsignaturaCUImplAdaptador`, `EstudianteCUImplAdaptador`, `FuncionarioAcademicoCUImplAdaptador`, `AsignacionFuncionarioAcademicoCUImplAdaptador` |
+| Catálogos académicos (solo lectura) | `TipoSolicitudAcademicaCUImplAdaptador`, `EtapaSolicitudAcademicaCUImplAdaptador`, `TipoAnexoAcademicoCUImplAdaptador`, `SituacionAcademicaAsignaturaCUImplAdaptador` |
+| Motor común | `SolicitudAcademicaCUImplAdaptador` (crear y cambiar etapa), `AnexoAcademicoCUImplAdaptador`, `ResolucionAcademicaCUImplAdaptador`, `ConsultaSolicitudAcademicaCUImplAdaptador` (bandejas, detalle, historial, descargas y rol del actor) |
+| Cada proceso | Radicación (`CancelacionMatricula`, `CancelacionAsignatura`, `ExamenSupletorio`), trámite (`TramiteCancelacionMatricula`, `TramiteCancelacionAsignatura`, `TramiteExamenSupletorio`) y consulta (`ConsultaCancelacionMatricula`, `ConsultaCancelacionAsignatura`, `ConsultaExamenSupletorio`), todos con sufijo `CUImplAdaptador` |
+
+Las radicaciones validan todo y después llaman a
+`SolicitudAcademicaCUIntPuerto.crearSolicitud` y a `adjuntarAnexo`. Los
+trámites pasan cada acción por `cambiarEtapa`. Las consultas de cada proceso
+arman su detalle sobre `ConsultaSolicitudAcademicaCUIntPuerto.getDetalle`.
+
+### Servicios de dominio (`dominio/servicios`)
+
+No son beans de Spring, salvo `MaquinaEtapas`: se crean con `new` en el
+constructor del caso de uso o del servicio que los usa (por ejemplo,
+`TramiteCancelacion` crea su `TramiteSolicitud`).
+
+- `MaquinaEtapas`: tabla de transiciones (tipo de proceso, etapa de origen,
+  acción, etapa destino, rol y lo que exige: observación, escaneo de la
+  Resolución, recibo o comprobante). Expone `siguienteEtapa`, `transicionar`
+  (además verifica lo exigido), `accionesDisponibles(tipo, etapa, rol)`,
+  `etapaDestino`, `responsableActual` y `esFinal`.
+- `TramiteSolicitud`: saca el actor del token con el rol que fija la acción
+  (`actorDe`) y devuelve la solicitud con el actor y la transición ya
+  validados (`solicitudValidada`), antes de escribir nada.
+- `TramiteCancelacion`: lo común de los dos trámites de cancelación sobre
+  `TramiteSolicitud`: cobertura de todas las asignaturas de la solicitud,
+  faltas, nota, situaciones del catálogo, guardado de filas y cancelación de
+  las matriculadas que siguen activas.
+- `ValidadorActorSolicitud`: rol real del usuario, Estudiante dueño y
+  Funcionario asignado al tipo.
+- `ValidadorArchivoAdjunto`: archivo vacío, 5 MB, extensión permitida por el
+  tipo de anexo y firma del contenido (pdf, png, jpg).
+
+Los archivos los guarda `AlmacenamientoAnexosImplAdaptador`
+(`infraestructura/output/almacenamiento`) sobre el `AlmacenadorArchivos` de
+Julián (ver "Solicitudes académicas, historial, anexos y Resolución").
+
+### Acciones de la máquina de etapas
+
+| Acción (`AccionEtapa`) | De | A | Rol | Procesos | Exige |
+|---|---|---|---|---|---|
+| `RADICAR` | (nueva) | RADICADA | Estudiante | los tres | |
+| `RECHAZAR_FUNCIONARIO` | RADICADA | RECHAZADA | Funcionario | los tres | observación; escaneo en las cancelaciones |
+| `REMITIR_DECANO` | RADICADA | EN_REVISION_DECANO | Funcionario | los tres | |
+| `APROBAR_DECANO` | EN_REVISION_DECANO | APROBADA_POR_DECANO | Decano | los tres | |
+| `RECHAZAR_DECANO` | EN_REVISION_DECANO | RECHAZADA_POR_DECANO | Decano | los tres | observación |
+| `ENVIAR_RESPUESTA` | APROBADA_POR_DECANO | APROBADA | Funcionario | cancelaciones | escaneo |
+| `ENVIAR_RESPUESTA` | RECHAZADA_POR_DECANO | RECHAZADA | Funcionario | los tres | escaneo en las cancelaciones |
+| `ENVIAR_RECIBO` | APROBADA_POR_DECANO | PENDIENTE_PAGO | Funcionario | supletorio | recibo de pago |
+| `SUBIR_COMPROBANTE` | PENDIENTE_PAGO | EN_VERIFICACION_PAGO | Estudiante | supletorio | comprobante de pago |
+| `APROBAR_COMPROBANTE` | EN_VERIFICACION_PAGO | APROBADA | Funcionario | supletorio | |
+| `RECHAZAR_COMPROBANTE` | EN_VERIFICACION_PAGO | RECHAZADA | Funcionario | supletorio | observación |
+
+APROBADA y RECHAZADA son finales. Los casos de uso de trámite agregan sus
+propias exigencias encima de la tabla (evaluaciones, situaciones, decisiones
+por asignatura, `requisitosVerificados`).
+
+### Patrón de los controladores de la extensión
+
+- Todos los métodos de `solicitudes-academicas`, `cancelaciones-matricula`,
+  `cancelaciones-asignatura` y `examenes-supletorios` llevan
+  `@Transactional` (los GET `readOnly = true`), y las escrituras de
+  `asignaturas`, `estudiantes`, `funcionarios-academicos` y la asignación de
+  `catalogos-academicos` también. Hay dos razones:
+  - `UsuarioGatewayIntPuerto.getUsuario` de Julián, que usa
+    `ValidadorActorSolicitud`, recorre colecciones perezosas y fuera de una
+    transacción lanza `LazyInitializationException`.
+  - Una radicación o una acción escribe en varias tablas, en el log y en
+    disco. Si algo falla, la transacción revierte todo y el almacenamiento
+    borra los archivos nuevos al revertir.
+- El rol nunca llega del cliente: se deduce del token y de la relación con la
+  solicitud. Los DTO no llevan rol ni tipo de usuario.
+- Las acciones de los trámites responden el detalle del proceso ya
+  actualizado. Una `DataAccessException` se captura y responde 500 con
+  `mensaje` y `error`, como en Julián.
+- Las rutas con uuid llevan la expresión regular `[0-9a-fA-F\-]{36}`.
+
 ## Solicitudes académicas, historial, anexos y Resolución
 
 - `SolicitudAcademicaCUImplAdaptador` crea la solicitud y cambia su etapa con
@@ -317,7 +467,8 @@ ninguna FK de la extensión apunta al Decano (el historial apunta a
   `SolicitudAcademicaGatewayImplAdaptador.crear` lo convierte en regla de
   negocio violada (`RADICADO_NO_GENERADO`, "No se pudo generar el radicado,
   intente de nuevo") antes de escribir el historial. No se reintenta solo,
-  para que la operación siga siendo atómica cuando T6 junte solicitud y anexos.
+  para que la radicación, que junta solicitud, especialización y anexos en una
+  sola transacción, siga siendo atómica.
 - `crearSolicitud`, `cambiarEtapa`, `adjuntarAnexo` y `adjuntarResolucion`
   reciben el `token` y escriben en el log de Julián con
   `LogCUIntPuerto.crearLog(accion, resultado, token)` después de guardar, igual
@@ -356,9 +507,10 @@ ninguna FK de la extensión apunta al Decano (el historial apunta a
 ### Endpoints `solicitudes-academicas`
 
 `SolicitudAcademicaRestController` (`infraestructura/input/controladorSolicitudesAcademicas`)
-expone consulta y archivos; el cambio de etapa no tiene endpoint todavía (T6 a
-T8). Todos sus métodos llevan `@Transactional` (los GET `readOnly`), porque
-leer el usuario recorre colecciones perezosas.
+expone consulta y archivos; los cambios de etapa están en los controladores
+de cada proceso (`cancelaciones-matricula`, `cancelaciones-asignatura` y
+`examenes-supletorios`). Todos sus métodos llevan `@Transactional` (los GET
+`readOnly`), porque leer el usuario recorre colecciones perezosas.
 
 | Método y ruta | Roles en `ConfiguracionSeguridad` | Qué hace |
 |---|---|---|
@@ -410,15 +562,16 @@ El resto de `solicitudes-academicas/**` es `denyAll()`.
   `adjuntarAnexo` o `adjuntarResolucion` con el token sin `Bearer ` para el
   log de Julián. Las respuestas nunca traen `urlArchivo` ni rutas de disco.
 - `backend/pruebas/t5_solicitudes.ps1` inserta las solicitudes de prueba
-  directo en MySQL (`docker compose exec -T cfiet_database mysql ...`), porque
-  todavía no hay endpoint para radicar, y al final borra solicitudes,
+  directo en MySQL (`docker compose exec -T cfiet_database mysql ...`), sin
+  pasar por los endpoints de radicación (el script es anterior a ellos), y al
+  final borra solicitudes,
   usuarios, logs de esos usuarios y carpetas de `uploads/anexos`.
 
 ### Radicación de Cancelación de Matrícula
 
 - `CancelacionMatriculaCUImplAdaptador.radicarCancelacionMatricula(uuidEstudiante,
-  motivo, anexos, token)` (bean `crearCancelacionMatriculaCU`, sin endpoint
-  hasta T6.3). `anexos` es una lista de `AnexoRadicacion` (uuid del tipo de
+  motivo, anexos, token)` (bean `crearCancelacionMatriculaCU`; endpoint
+  `POST cancelaciones-matricula`). `anexos` es una lista de `AnexoRadicacion` (uuid del tipo de
   anexo y `ArchivoAdjunto`); el soporte libre va con tipo nulo.
 - Antes de escribir nada valida, en este orden: usuario con rol Estudiante y
   fila en `ESTUDIANTE`; al menos una asignatura matriculada `activa`; motivo
@@ -439,7 +592,8 @@ El resto de `solicitudes-academicas/**` es `denyAll()`.
 ### Trámite de Cancelación de Matrícula (Funcionario y Decano)
 
 - `TramiteCancelacionMatriculaCUImplAdaptador` (bean
-  `crearTramiteCancelacionMatriculaCU`, sin endpoints hasta T6.3), con el
+  `crearTramiteCancelacionMatriculaCU`; endpoints `funcionario/*` y
+  `decano/*` de `cancelaciones-matricula`), con el
   token al final de cada método. El actor sale del token
   (`IJwtServicio.getUsername` y `SesionGatewayIntPuerto.getUsuario`) y el rol
   lo fija la acción: Funcionario Académico o Decano. Una solicitud sin fila en
@@ -521,7 +675,7 @@ El resto de `cancelaciones-matricula/**` es `denyAll()`.
 
 - `CancelacionAsignaturaCUImplAdaptador.radicarCancelacionAsignatura(uuidEstudiante,
   motivo, uuidsAsignaturaMatriculada, anexos, token)` (bean
-  `crearCancelacionAsignaturaCU`, sin endpoint hasta T7.3).
+  `crearCancelacionAsignaturaCU`; endpoint `POST cancelaciones-asignatura`).
   `SOLICITUD_CANCELACION_ASIGNATURA` comparte PK con la solicitud (`@MapsId`,
   `fk_solca_solacad`), como la de matrícula.
 - Antes de escribir nada valida, en este orden: usuario con rol Estudiante y
@@ -544,7 +698,8 @@ El resto de `cancelaciones-matricula/**` es `denyAll()`.
 ### Trámite de Cancelación de Asignatura (aprobación parcial, P14)
 
 - `TramiteCancelacionAsignaturaCUImplAdaptador` (bean
-  `crearTramiteCancelacionAsignaturaCU`, sin endpoints hasta T7.3) tiene las
+  `crearTramiteCancelacionAsignaturaCU`; endpoints `funcionario/*` y
+  `decano/*` de `cancelaciones-asignatura`) tiene las
   mismas cinco acciones que el de matrícula, con el token al final. Lo común
   (actor desde el token, solicitud y transición validadas antes de escribir,
   cobertura de todas las asignaturas, faltas, nota, situaciones del catálogo,
@@ -624,7 +779,8 @@ El resto de `cancelaciones-asignatura/**` es `denyAll()`.
 - `ExamenSupletorioCUImplAdaptador.radicarExamenSupletorio(uuidEstudiante,
   uuidAsignaturaMatriculada, fechaExamenNoPresentado, tipoCausa,
   uuidAsignaturaCruzada, fechaExamenCruzada, horaExamenCruzada, anexos, token)`
-  (bean `crearExamenSupletorioCU`, sin endpoint hasta T8.3). Las fechas son
+  (bean `crearExamenSupletorioCU`; endpoint `POST examenes-supletorios`). Las
+  fechas son
   `LocalDate` y se guardan a las 00:00 en las columnas DATETIME; `anexos` es
   una lista de `AnexoRadicacion` con el uuid de su tipo.
   `SOLICITUD_EXAMEN_SUPLETORIO` comparte PK con la solicitud
@@ -659,7 +815,8 @@ El resto de `cancelaciones-asignatura/**` es `denyAll()`.
 ### Trámite de Examen Supletorio
 
 - `TramiteExamenSupletorioCUImplAdaptador` (bean
-  `crearTramiteExamenSupletorioCU`, sin endpoints hasta T8.3), con el token al
+  `crearTramiteExamenSupletorioCU`; endpoints `funcionario/*`, `decano/*` y
+  `estudiante/*` de `examenes-supletorios`), con el token al
   final de cada método. Usa el servicio de dominio `TramiteSolicitud`
   (actor desde el token con el rol que fija la acción, incluido el
   Estudiante, y solicitud con la transición validada antes de escribir), que
@@ -820,11 +977,30 @@ Si un proceso nuevo llegara a necesitar carga masiva, se sigue este mismo
 trío (`ProcesadorArchivos`, `ValidadorPeticionesExcel`, endpoint
 `cargar/archivo`) en vez de crear un patrón distinto.
 
+La extensión lo sigue para estudiantes (`POST estudiantes/cargar/archivo`,
+`"archivos-estudiantes"` y `"validador-estudiantes"`) y funcionarios
+académicos (`POST funcionarios-academicos/cargar/archivo`,
+`"archivos-funcionarios-academicos"` y `"validador-funcionarios-academicos"`),
+con tres diferencias frente a Julián:
+
+- Sus lectores no se tragan los errores: un archivo que no es `.xlsx`, vacío,
+  ilegible, sin hojas, con un encabezado distinto al esperado o sin filas de
+  datos lanza mal formato (500, código 6).
+- El mapa de errores de validación sí trae la fila: cada valor dice
+  `Fila N, columna X (campo): mensaje`.
+- Antes de llamar al caso de uso, `AgrupadorEstudiantesExcel` junta las filas
+  del mismo estudiante (una por asignatura matriculada) y
+  `DuplicadosFuncionariosAcademicosExcel` rechaza documento, correo o username
+  repetidos dentro del archivo, también con fila y columna. Los conflictos
+  con datos que ya están en la base los detecta el caso de uso y responden
+  500 con código 2, sin número de fila.
+
 ## Tests
 
-`solicitudes/src/test` tiene un único archivo:
+`solicitudes/src/test` empezó con un único archivo de Julián,
 `com/unicauca/cfiet/solicitudes/SolicitudesApplicationTests.java`, el test
-que genera Spring Initializr:
+que genera Spring Initializr. Hoy tiene además las pruebas unitarias de la
+extensión (ver "Pruebas"):
 
 ```java
 @SpringBootTest
@@ -911,6 +1087,23 @@ script se pueda repetir. Se ejecutan desde `backend`:
 ```
 powershell -File .\pruebas\<script>.ps1
 ```
+
+Scripts que hay hoy:
+
+| Script | Qué cubre |
+|---|---|
+| `t1_lectura_usuarios.ps1`, `t1_preauthorize.ps1` | Listados de usuarios de Julián cerrados a Secretario General y Decano; `@PreAuthorize` inerte |
+| `t2_asignaturas.ps1` | Catálogo de asignaturas |
+| `t3_estudiantes.ps1`, `t3_excel.ps1` | Estudiantes por formulario y por Excel |
+| `t4_funcionarios_academicos.ps1`, `t4_excel.ps1` | Funcionarios académicos por formulario y por Excel |
+| `t5_catalogos.ps1`, `t5_asignacion.ps1` | Catálogos sembrados y asignación de tipos a funcionarios |
+| `t5_solicitudes.ps1` | Bandejas, detalle, historial, anexos y Resolución de `solicitudes-academicas` |
+| `t6_cancelacion_matricula.ps1`, `t7_cancelacion_asignatura.ps1`, `t8_examen_supletorio.ps1` | Recorrido completo de cada proceso con usuarios reales |
+| `matriz-permisos.ps1` | Matriz de los 63 endpoints por rol |
+| `todo.ps1` | Corre todos los anteriores y verifica la limpieza |
+
+`comun.ps1` tiene las funciones compartidas y `generar_plantilla_*.ps1`
+genera las plantillas `.xlsx` de carga masiva que están en la misma carpeta.
 
 Los `.ps1` se escriben en ASCII puro, sin tildes ni eñes, ni siquiera en
 los textos que se envían. Windows PowerShell 5.1 lee un `.ps1` sin BOM como

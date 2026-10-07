@@ -11,8 +11,11 @@ misma base de datos:
 - `backend/` — Spring Boot 3 (Java 17), arquitectura hexagonal. Ver
   `backend/CLAUDE.md`.
 - `frontend/` — Angular 20 + PrimeNG. Ver `frontend/CLAUDE.md`.
-- `docs/database/` — script de extensión del esquema y diccionario de datos
-  de las tablas nuevas (no tocan las tablas de Julián).
+- `docs/database/` — script de extensión del esquema, diccionario de datos
+  de las tablas nuevas (no tocan las tablas de Julián), reglas por proceso
+  (`etapas-por-proceso.md`) y scripts de siembra.
+- `docs/api/contrato-api-procesos-academicos.md` — contrato de los 63
+  endpoints académicos para quien construya el frontend.
 
 ## Regla de estilo, válida para todo el repositorio
 
@@ -43,9 +46,13 @@ campo por campo (etapas de la solicitud, anexos obligatorios por tipo,
 situación académica, Resolución física escaneada), y
 `docs/database/script_bd_extension.sql` su DDL de referencia: no se ejecuta,
 las tablas las crea Hibernate desde las entidades (`ddl-auto=update`), igual
-que en Julián. Esa documentación es la fuente de verdad del modelo de datos — antes de modelar una entidad o
-endpoint nuevo, revisa ahí primero. No documenta plazos ni reglas de
-negocio en prosa; esas reglas están en la sección siguiente.
+que en Julián. Las 18 tablas coinciden con la base real (`SHOW TABLES` y
+`DESCRIBE`). Esa documentación es la fuente de verdad del modelo de datos — antes de modelar una entidad o
+endpoint nuevo, revisa ahí primero. El diccionario anota en cada columna la
+regla que la afecta (rangos, valores permitidos, cuándo es obligatoria), pero
+las etapas, transiciones, anexos por proceso, plazos y decisiones tomadas
+están en `docs/database/etapas-por-proceso.md`; las reglas que no se
+revierten están en la sección siguiente.
 
 ## Reglas de negocio confirmadas (no revertir)
 
@@ -68,10 +75,15 @@ negocio en prosa; esas reglas están en la sección siguiente.
   rechazo en el Funcionario o decisión final después del Decano. Vive en
   `RESOLUCION_ACADEMICA` (1 a 0..1 con `SOLICITUD_ACADEMICA`), separada de
   `ANEXO_ACADEMICO`.
-- Un rechazo en la etapa del Funcionario siempre produce una Resolución formal
-  firmada físicamente por el Decano.
+- En Cancelación de Matrícula y Cancelación de Asignatura, un rechazo en la
+  etapa del Funcionario siempre produce una Resolución formal firmada
+  físicamente por el Decano: el backend no deja rechazar sin el escaneo.
+- Cancelación de Asignatura tiene aprobación parcial: el Decano aprueba o
+  rechaza cada asignatura por separado y solo se cancelan las aprobadas
+  (decisión P14 de `docs/database/etapas-por-proceso.md`).
 - Examen Supletorio no produce Resolución y tiene un plazo de tres días
-  hábiles.
+  hábiles. Tras la aprobación del Decano, el Funcionario sube el recibo de
+  pago y el Estudiante el comprobante; el Funcionario lo aprueba o lo rechaza.
 - Cancelación de Matrícula tiene seis anexos obligatorios. Cancelación de
   Asignatura tiene cuatro condiciones académicas.
 - Secretario General o Decano crean los usuarios Estudiante y Funcionario
