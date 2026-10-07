@@ -2,6 +2,20 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-07 - Limpieza completa de los scripts de humo (Tarea T9.2b)
+- Qué se hizo:
+  - t2_asignaturas, t5_catalogos y t5_asignacion ahora borran al terminar solo lo que crearon y comprueban que la base quedó como al inicio, con los helpers de T9.2.
+  - `todo.ps1` toma antes y después de cada script el `COUNT(*)` de todas las tablas de `cfiet` salvo `logs`, el responsable de cada tipo de solicitud académica y el contenido de `uploads`. Cada diferencia cuenta como FAIL de ese script y la tabla final suma la columna `Difs`.
+  - Sin cambios en el código de la aplicación.
+- Archivos: `backend/pruebas/t2_asignaturas.ps1` (modificado), `backend/pruebas/t5_catalogos.ps1` (modificado), `backend/pruebas/t5_asignacion.ps1` (modificado), `backend/pruebas/todo.ps1` (modificado), `backend/CLAUDE.md` (modificado)
+- Notas:
+  - **Identificación:** usuarios por username exacto y creados durante la corrida. `ASIGNATURA` no tiene fecha de creación, así que la de t2 se borra por su código exacto con sufijo único (también el código `X...` de la escritura denegada) y solo si nadie la usa, como en t3.
+  - **t5_asignacion:** primero devuelve los responsables y después borra sus funcionarios académicos (`asig...`), porque `TIPO_SOLICITUD_ACADEMICA` los referencia.
+  - **t5_catalogos:** no pasa `-CodigosAsignatura`, porque su `$codigos` guarda códigos de etapa.
+  - **t2:** se quitaron las dos líneas que imprimían credenciales de usuarios que ahora se borran.
+  - **Exclusiones:** ningún script cambió tablas que no fueran de datos de prueba; solo se excluye `logs`.
+  - **Resultados:** dos corridas seguidas de `todo.ps1` con 1115 PASS, 0 FAIL y 0 diferencias. Usuarios 436, asignaturas 101, estudiantes 62, funcionarios académicos 67, solicitudes 0 y anexos 0, iguales antes y después de ambas corridas. `uploads` solo con README. `mvnw test` 928 pruebas en verde.
+
 ## 2026-10-06 - Ejecución completa de pruebas de humo (Tarea T9.2)
 - Qué se hizo:
   - Nuevo `todo.ps1`, que corre t1 a t8 y la matriz de permisos con tabla de PASS y FAIL por script y en total. Sale con 1 si hay FAIL o un script que no corre, y con 2 si el backend o la base no responden.

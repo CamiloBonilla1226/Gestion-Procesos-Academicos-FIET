@@ -14,6 +14,7 @@ function Nuevo-FuncionarioAcademico {
         password          = "Clave12345"
         dependencia       = "DepAsig $s"
     }
+    $script:usernames += $cuerpo.username
     $r = Invoke-Api -Metodo POST -Ruta "funcionarios-academicos" -Token $Token -Cuerpo $cuerpo
     if ($r.Status -ne 200) { throw "No se pudo crear el funcionario academico ($($r.Status)): $($r.Body)" }
     return (Leer-Json $r)
@@ -44,14 +45,21 @@ $tokenRoot = Iniciar-Sesion -Usuario "rootfiet" -Clave "rootfiet1234"
 $originales = Responsables-Actuales -Token $tokenRoot
 if ($originales.Count -eq 0) { Write-Host "No hay tipos de solicitud sembrados; corre docs/database/seed-procesos-academicos.sql"; exit 1 }
 $uuidTipo = @($originales.Keys | Sort-Object)[0]
+$inicio = Inicio-Corrida
+$fotoInicial = Foto-Base
+$usernames = @()
 
 try {
     $faA = Nuevo-FuncionarioAcademico -Token $tokenRoot
     $faB = Nuevo-FuncionarioAcademico -Token $tokenRoot
     $estudiante = Crear-UsuarioPrueba -Perfil "Estudiante" -TokenAdmin $tokenRoot -Prefijo "est"
+    $usernames += $estudiante.Username
     $funcAcad = Crear-UsuarioPrueba -Perfil "FuncionarioAcademico" -TokenAdmin $tokenRoot -Prefijo "facad"
+    $usernames += $funcAcad.Username
     $funcionario = Crear-UsuarioPrueba -Perfil "Funcionario" -TokenAdmin $tokenRoot -Prefijo "func"
+    $usernames += $funcionario.Username
     $decano = Crear-UsuarioPrueba -Perfil "Decano" -TokenAdmin $tokenRoot -Prefijo "dec"
+    $usernames += $decano.Username
 
     Escribir-Resultado "un funcionario recien creado no atiende tipos (obtuvo $(@(Tipos-DeFuncionario $faA.uuidUsuario $tokenRoot).Count))" (@(Tipos-DeFuncionario $faA.uuidUsuario $tokenRoot).Count -eq 0)
 
@@ -113,4 +121,7 @@ finally {
     $finales = Responsables-Actuales -Token $tokenRoot
     $distintos = @($originales.Keys | Where-Object { $finales[$_] -ne $originales[$_] })
     Escribir-Resultado "los tipos quedaron con su responsable original (distintos: $($distintos.Count))" ($distintos.Count -eq 0)
+    $borrados = Limpiar-DatosPrueba -Desde $inicio -Usernames $usernames
+    $fotoFinal = Foto-Base
+    Escribir-Resultado "la base quedo como al inicio salvo los logs de rootfiet (usuarios borrados $borrados; $fotoFinal)" ($fotoFinal -eq $fotoInicial)
 }

@@ -946,6 +946,12 @@ powershell -File .\pruebas\todo.ps1
   con código 1 si hay algún FAIL o ERROR.
 - Avisa si en `pruebas` hay un `t*_*.ps1` que no está en su lista.
 - Un script nuevo se agrega a `$Global:Scripts`.
+- Antes y después de cada script toma una foto con el `COUNT(*)` de cada
+  tabla de `cfiet` (la lista sale de `information_schema.tables`; solo se
+  excluye `logs`), el responsable de cada tipo de `TIPO_SOLICITUD_ACADEMICA`
+  y lo que hay en `uploads`. Cada diferencia es un FAIL de ese script, con la
+  tabla y los valores antes y después, y suma al total; la tabla final tiene
+  una columna `Difs`. Si no puede leer la base cuenta un FAIL.
 
 `comun.ps1` tiene la limpieza que comparten los scripts que crean usuarios por
 la API:
@@ -966,13 +972,17 @@ la API:
   Nunca borra por patrón; los usernames y códigos llevan un sufijo único por
   corrida.
 
-`t1_lectura_usuarios`, `t1_preauthorize`, `t3_estudiantes`, `t3_excel`,
-`t4_funcionarios_academicos` y `t4_excel` guardan cada username y código
-antes de crearlo. En un `finally` limpian y exigen que `Foto-Base` coincida
-con la del inicio; esa es su última verificación. Los logs de rootfiet sí
-quedan. `t2_asignaturas`, `t5_catalogos` y `t5_asignacion` todavía no
-limpian: dejan 11 usuarios, 2 funcionarios académicos y 1 asignatura por
-corrida.
+`t1_lectura_usuarios`, `t1_preauthorize`, `t2_asignaturas`,
+`t3_estudiantes`, `t3_excel`, `t4_funcionarios_academicos`, `t4_excel`,
+`t5_catalogos` y `t5_asignacion` guardan cada username y código antes de
+crearlo. En un `finally` limpian y exigen que `Foto-Base` coincida con la
+del inicio; esa es su última verificación. Los logs de rootfiet sí quedan.
+`ASIGNATURA` no tiene fecha de creación, así que una asignatura se borra solo
+por su código exacto (con sufijo único) y si ninguna matriculada la usa.
+`t5_asignacion` primero devuelve cada tipo a su responsable original y
+después borra sus funcionarios académicos, porque `TIPO_SOLICITUD_ACADEMICA`
+los referencia. `t1` y `t5_catalogos` no crean asignaturas y no pasan
+`-CodigosAsignatura`; en `t5_catalogos` `$codigos` guarda códigos de etapa.
 
 Las comprobaciones sobre el historial comparan las parejas acción:etapa
 ordenadas, porque `fecha` tiene precisión de segundos y dos transiciones
