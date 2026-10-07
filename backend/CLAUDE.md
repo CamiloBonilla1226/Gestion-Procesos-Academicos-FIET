@@ -879,6 +879,36 @@ ANSI, así que un literal como `Cédula` llega al backend como `CÃ©dula`.
 Cuando un valor necesita tildes, se arma con `[char]` (por ejemplo
 `$Global:CedulaCiudadania` en `comun.ps1`).
 
+### Matriz de permisos de los endpoints académicos
+
+`backend/pruebas/matriz-permisos.ps1` lleva escrita la matriz esperada: una
+fila por endpoint de los controladores de la extensión (`asignaturas`,
+`estudiantes`, `funcionarios-academicos`, `catalogos-academicos`,
+`solicitudes-academicas`, `cancelaciones-matricula`,
+`cancelaciones-asignatura` y `examenes-supletorios`) y una columna por
+actor: sin token, Secretario General, Decano, Funcionario Académico y
+Estudiante. Hoy son 63 filas. El script:
+
+- Prueba cada celda por HTTP. Una celda denegada exige 401 sin token y 403
+  con token. Una permitida se llama con uuid inexistente, JSON malformado,
+  multipart sin archivo o parámetros faltantes, y no puede responder 401,
+  403 ni ruta no encontrada. Los errores de Julián llegan como 500 con
+  `codigoError`.
+- Lee los `@RequestMapping` y `@XxxMapping` de todos los `*RestController`
+  cuyo prefijo no es de Julián. Marca FAIL si una ruta del código falta en la
+  matriz o si una ruta de la matriz no existe en el código.
+- Comprueba que cada prefijo nuevo termina en `denyAll()`, con `DELETE` y
+  `POST` a rutas no declaradas: 401 sin token y 403 con cualquier rol.
+  También comprueba que los únicos `permitAll()` son los seis de Julián.
+- Crea su propio Secretario General, Decano, Funcionario Académico y
+  Estudiante. Al final exige que no aparezcan solicitudes, anexos,
+  resoluciones, historial ni archivos, y deja usuarios, asignaturas y
+  responsables como estaban; solo quedan los logs de root.
+- Imprime el conteo de PASS y FAIL y sale con código 1 si hay algún FAIL.
+
+Al agregar un endpoint académico se agrega su fila a la matriz; si no, el
+script falla.
+
 ### Nivel C: base de datos
 
 Después de `docker compose up --build`, se comprueba que las tablas que
