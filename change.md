@@ -2,6 +2,15 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-07 - Pruebas unitarias de servicios de dominio y archivos (Tarea T9.4)
+- Qué se hizo: siete clases de prueba nuevas con JUnit 5 y Mockito para `TramiteSolicitud`, `TramiteCancelacion`, `ValidadorActorSolicitud`, `ValidadorArchivoAdjunto`, `AlmacenadorArchivos`, `AgrupadorEstudiantesExcel` y `DuplicadosFuncionariosAcademicosExcel`. Sin cambios en el código de la aplicación ni en las pruebas existentes.
+- Archivos: `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/dominio/servicios/TramiteSolicitudTest.java` (creado), `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/dominio/servicios/TramiteCancelacionTest.java` (creado), `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/dominio/servicios/ValidadorActorSolicitudTest.java` (creado), `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/dominio/servicios/ValidadorArchivoAdjuntoTest.java` (creado), `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/infraestructura/configuracion/lectorArchivos/almacenador/AlmacenadorArchivosTest.java` (creado), `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/infraestructura/configuracion/lectorArchivos/AgrupadorEstudiantesExcelTest.java` (creado), `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/infraestructura/configuracion/lectorArchivos/DuplicadosFuncionariosAcademicosExcelTest.java` (creado), `backend/CLAUDE.md` (modificado)
+- Notas:
+  - **Conteo:** `mvnw test` pasa de 928 a 1091 pruebas, todas en verde. Por clase: TramiteSolicitud 25, TramiteCancelacion 43, ValidadorActorSolicitud 27, ValidadorArchivoAdjunto 36, AlmacenadorArchivos 16, AgrupadorEstudiantesExcel 9 y DuplicadosFuncionariosAcademicosExcel 7.
+  - **Errores encontrados:** ninguna prueba descubrió un error del código.
+  - **AlmacenadorArchivos:** no tiene lectura, borrado ni lógica de commit o rollback; eso vive en `AlmacenamientoAnexosImplAdaptador` y ya lo cubre su prueba de T5. No valida `uuidSolicitud`: la extensión lo valida antes en el adaptador y Julián le pasa uuids generados por el sistema.
+  - No se ejecutaron los scripts de humo porque no cambió la aplicación.
+
 ## 2026-10-07 - Limpieza completa de los scripts de humo (Tarea T9.2b)
 - Qué se hizo:
   - t2_asignaturas, t5_catalogos y t5_asignacion ahora borran al terminar solo lo que crearon y comprueban que la base quedó como al inicio, con los helpers de T9.2.

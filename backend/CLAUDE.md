@@ -863,6 +863,27 @@ con los gateways y demás puertos simulados con Mockito. Cubren el camino
 feliz y cada fallo de cada regla de negocio. Se ejecutan desde
 `backend\solicitudes` con `.\mvnw.cmd test`.
 
+Los servicios de dominio y las piezas de archivos y Excel también tienen su
+propia clase de prueba. Usan el `ExcepcionesFormateadorImplAdaptador` y la
+`MaquinaEtapas` reales y comparan el mensaje exacto de `MensajesError`:
+
+- `dominio/servicios/TramiteSolicitudTest`: actor desde el token, solicitud
+  inexistente, etapa, rol de la transición, Funcionario no asignado y
+  Estudiante ajeno, sin escrituras cuando algo falla.
+- `dominio/servicios/TramiteCancelacionTest`: cobertura de asignaturas,
+  faltas, nota, situaciones del catálogo, guardado de filas y cancelación de
+  las matriculadas activas.
+- `dominio/servicios/ValidadorActorSolicitudTest` y
+  `dominio/servicios/ValidadorArchivoAdjuntoTest`.
+- `infraestructura/configuracion/lectorArchivos/almacenador/AlmacenadorArchivosTest`,
+  con `@TempDir`: nombre generado por el sistema y nombres maliciosos. La
+  lectura, el borrado y el borrado tras commit o rollback están en
+  `AlmacenamientoAnexosImplAdaptadorTest`.
+- `infraestructura/configuracion/lectorArchivos/AgrupadorEstudiantesExcelTest`
+  y `DuplicadosFuncionariosAcademicosExcelTest`.
+
+Hoy `.\mvnw.cmd test` corre 1091 pruebas.
+
 `.\mvnw.cmd test` también ejecuta `SolicitudesApplicationTests`
 (`@SpringBootTest`), que levanta el contexto completo y necesita la base de
 datos. Antes de correrlo hay que tener arriba la base (`docker compose up`
