@@ -2,6 +2,21 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-08 - Capa de acceso a la API de los procesos académicos en el frontend (Tarea T10.1)
+- Qué se hizo: modelos, servicios, constantes y utilidades del frontend para los 63 endpoints de `docs/api/contrato-api-procesos-academicos.md`, sin pantallas, rutas, menús ni cambios en el login. Specs de Karma para el operador de errores Blob, la lectura de `codigoError` y los FormData de Cancelación de Matrícula y Examen Supletorio. Ningún archivo existente del frontend cambió.
+- Archivos:
+  - `frontend/src/app/core/models/{Asignatura,Estudiante,FuncionarioAcademico,CatalogoAcademico,SolicitudAcademica,CancelacionMatricula,CancelacionAsignatura,ExamenSupletorio}/DTORequest|DTOResponse/*.ts` (creados, 59 interfaces)
+  - `frontend/src/app/core/services/asignatura-service.ts`, `estudiante-service.ts`, `funcionario-academico-service.ts`, `catalogo-academico-service.ts`, `solicitud-academica-service.ts`, `cancelacion-matricula-service.ts`, `cancelacion-asignatura-service.ts`, `examen-supletorio-service.ts` (creados)
+  - `frontend/src/app/core/services/cancelacion-matricula-service.spec.ts`, `examen-supletorio-service.spec.ts` (creados)
+  - `frontend/src/app/core/constantes/procesos-academicos.ts` (creado)
+  - `frontend/src/app/core/utils/descargas.ts`, `errores-http.ts`, `parametros-http.ts`, `descargas.spec.ts` (creados)
+- Notas:
+  - **Nombres:** los modelos son `interface` y llevan el nombre de su DTO Java (`CancelacionMatriculaDetalleDTORespuesta`, `RemisionDecanoDTOPeticion`, etc.), no la forma corta del contrato. `ObservacionDTOPeticion` vive en `CancelacionMatricula`, como en el backend, y la usan los tres procesos. Las peticiones multipart no tienen DTO en Java y se nombraron con el mismo estilo (`RadicacionCancelacionMatriculaDTOPeticion`, `AnexoRadicacionDTOPeticion`, `AnexoAcademicoDTOPeticion`).
+  - **Cobertura:** las 63 rutas de `backend/pruebas/matriz-permisos.ps1` tienen exactamente un método de servicio; se comprobó con un script que lee los servicios.
+  - **Supletorio:** los datos del examen cruzado solo se envían con causa `cruce`, aunque vengan en el objeto.
+  - **Constantes:** además de los códigos de error 1, 2, 3, 4 y 6 se incluyó el 7 (sin información), que también está en el contrato.
+  - **Verificación:** `npm run build` con código 0 y el bundle inicial igual (824.34 kB antes y después, mismo hash de `main`). `ng test` de los tres specs nuevos: 12 de 12.
+
 ## 2026-10-07 - Documentación final del backend (Tarea T9.3)
 - Qué se hizo: documentación revisada contra el código, `ConfiguracionSeguridad`, las entidades, los scripts de prueba y la base real. Contrato de la API de los 63 endpoints académicos para el frontend, decisiones de implementación P15 a P27 en `etapas-por-proceso.md`, informe de discrepancias, y backend/CLAUDE.md, la skill, CLAUDE.md de la raíz, README y diccionario actualizados con lo implementado. Sin cambios de código ni de scripts de prueba.
 - Archivos: `docs/api/contrato-api-procesos-academicos.md` (creado), `docs/informe-discrepancias-documentacion.md` (creado), `backend/CLAUDE.md` (modificado), `.claude/skills/extender-backend-fiet/SKILL.md` (modificado), `CLAUDE.md` (modificado), `README.md` (modificado), `docs/database/diccionario-datos-extension.md` (modificado), `docs/database/etapas-por-proceso.md` (modificado)

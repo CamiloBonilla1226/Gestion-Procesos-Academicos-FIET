@@ -1,0 +1,114 @@
+export const ETAPAS_ACADEMICAS = {
+  RADICADA: 'RADICADA',
+  EN_REVISION_DECANO: 'EN_REVISION_DECANO',
+  APROBADA_POR_DECANO: 'APROBADA_POR_DECANO',
+  RECHAZADA_POR_DECANO: 'RECHAZADA_POR_DECANO',
+  PENDIENTE_PAGO: 'PENDIENTE_PAGO',
+  EN_VERIFICACION_PAGO: 'EN_VERIFICACION_PAGO',
+  APROBADA: 'APROBADA',
+  RECHAZADA: 'RECHAZADA'
+} as const;
+
+export type EtapaAcademica = (typeof ETAPAS_ACADEMICAS)[keyof typeof ETAPAS_ACADEMICAS];
+
+export const ETAPAS_FINALES: readonly string[] = [ETAPAS_ACADEMICAS.APROBADA, ETAPAS_ACADEMICAS.RECHAZADA];
+
+export const ACCIONES_ACADEMICAS = {
+  RADICAR: 'RADICAR',
+  RECHAZAR_FUNCIONARIO: 'RECHAZAR_FUNCIONARIO',
+  REMITIR_DECANO: 'REMITIR_DECANO',
+  APROBAR_DECANO: 'APROBAR_DECANO',
+  RECHAZAR_DECANO: 'RECHAZAR_DECANO',
+  ENVIAR_RESPUESTA: 'ENVIAR_RESPUESTA',
+  ENVIAR_RECIBO: 'ENVIAR_RECIBO',
+  SUBIR_COMPROBANTE: 'SUBIR_COMPROBANTE',
+  APROBAR_COMPROBANTE: 'APROBAR_COMPROBANTE',
+  RECHAZAR_COMPROBANTE: 'RECHAZAR_COMPROBANTE'
+} as const;
+
+export type AccionAcademica = (typeof ACCIONES_ACADEMICAS)[keyof typeof ACCIONES_ACADEMICAS];
+
+export const TIPOS_SOLICITUD_ACADEMICA = {
+  CANCELACION_MATRICULA: 'Cancelación de Matrícula',
+  CANCELACION_ASIGNATURA: 'Cancelación de Asignatura',
+  EXAMEN_SUPLETORIO: 'Examen Supletorio'
+} as const;
+
+export type TipoSolicitudAcademica = (typeof TIPOS_SOLICITUD_ACADEMICA)[keyof typeof TIPOS_SOLICITUD_ACADEMICA];
+
+export const PROCESOS_ACADEMICOS = {
+  CANCELACION_MATRICULA: 'cancelaciones-matricula',
+  CANCELACION_ASIGNATURA: 'cancelaciones-asignatura',
+  EXAMEN_SUPLETORIO: 'examenes-supletorios'
+} as const;
+
+export type ProcesoAcademico = (typeof PROCESOS_ACADEMICOS)[keyof typeof PROCESOS_ACADEMICOS];
+
+const PROCESO_POR_TIPO: Record<string, ProcesoAcademico> = {
+  [TIPOS_SOLICITUD_ACADEMICA.CANCELACION_MATRICULA]: PROCESOS_ACADEMICOS.CANCELACION_MATRICULA,
+  [TIPOS_SOLICITUD_ACADEMICA.CANCELACION_ASIGNATURA]: PROCESOS_ACADEMICOS.CANCELACION_ASIGNATURA,
+  [TIPOS_SOLICITUD_ACADEMICA.EXAMEN_SUPLETORIO]: PROCESOS_ACADEMICOS.EXAMEN_SUPLETORIO
+};
+
+export function procesoDeTipoSolicitud(nombreTipo: string | null | undefined): ProcesoAcademico | undefined {
+  if (!nombreTipo) return undefined;
+  return PROCESO_POR_TIPO[nombreTipo.trim().normalize('NFC')];
+}
+
+export const ROLES_ACADEMICOS = {
+  ESTUDIANTE: 'Estudiante',
+  FUNCIONARIO_ACADEMICO: 'Funcionario Académico',
+  DECANO: 'Decano',
+  SECRETARIO_GENERAL: 'Secretario General'
+} as const;
+
+export const ROLES_ETIQUETA = {
+  ESTUDIANTE: 'ESTUDIANTE',
+  FUNCIONARIO: 'FUNCIONARIO',
+  DECANO: 'DECANO'
+} as const;
+
+export type RolEtiqueta = (typeof ROLES_ETIQUETA)[keyof typeof ROLES_ETIQUETA];
+
+export const CAUSAS_SUPLETORIO = {
+  CRUCE: 'cruce',
+  OTRA: 'otra'
+} as const;
+
+export type CausaSupletorio = (typeof CAUSAS_SUPLETORIO)[keyof typeof CAUSAS_SUPLETORIO];
+
+export const ESTADOS_ASIGNATURA_MATRICULADA = {
+  ACTIVA: 'activa',
+  CANCELADA: 'cancelada',
+  APROBADA: 'aprobada',
+  PERDIDA: 'perdida'
+} as const;
+
+export const ANEXOS_PAGO_SUPLETORIO = {
+  RECIBO: 'Recibo de pago',
+  COMPROBANTE: 'Comprobante de pago'
+} as const;
+
+export const TAMANIO_MAXIMO_ARCHIVO_BYTES = 5242880;
+export const MAXIMO_CARACTERES_MOTIVO = 255;
+export const MAXIMO_CARACTERES_OBSERVACION = 500;
+export const MAXIMO_CARACTERES_OBSERVACION_ASIGNATURA = 255;
+export const PLAZO_SUPLETORIO_DIAS_HABILES = 3;
+
+export const CODIGOS_ERROR = {
+  GENERICO: 1,
+  ENTIDAD_EXISTE: 2,
+  ENTIDAD_NO_EXISTE: 3,
+  REGLA_NEGOCIO_VIOLADA: 4,
+  MAL_FORMATO: 6,
+  SIN_INFORMACION: 7
+} as const;
+
+export const SIGNIFICADO_CODIGOS_ERROR: Record<number, string> = {
+  [CODIGOS_ERROR.GENERICO]: 'Error genérico',
+  [CODIGOS_ERROR.ENTIDAD_EXISTE]: 'La entidad ya existe',
+  [CODIGOS_ERROR.ENTIDAD_NO_EXISTE]: 'La entidad no existe',
+  [CODIGOS_ERROR.REGLA_NEGOCIO_VIOLADA]: 'Regla de negocio violada',
+  [CODIGOS_ERROR.MAL_FORMATO]: 'Mal formato',
+  [CODIGOS_ERROR.SIN_INFORMACION]: 'Sin información'
+};
