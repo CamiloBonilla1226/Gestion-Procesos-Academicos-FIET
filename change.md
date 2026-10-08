@@ -2,6 +2,26 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-08 - Acceso por rol en el frontend: login, menús y rutas esqueleto (Tarea T10.2)
+- Qué se hizo:
+  - Estudiante, Funcionario Académico y Decano inician sesión, llegan a su área, ven su menú y navegan a páginas de su rol protegidas con `AuthGuard` y `RoleGuard`.
+  - Las páginas de solicitudes y de detalle son esqueleto: marco completo y solo el título, sin llamadas a la API.
+  - La página de inicio de cada rol muestra "Mi Usuario" (`InfoUsuarioComponent`), como en los roles de Julián.
+- Archivos:
+  - `frontend/src/app/core/estudiante/`, `frontend/src/app/core/funcionario-academico/`, `frontend/src/app/core/decano/` (creados: sidebar propio y páginas de inicio, solicitudes y detalle)
+  - `frontend/src/app/shared/pages/{est,fun-acad,dec}-solicitudes-component/`, `frontend/src/app/shared/pages/{est,fun-acad,dec}-detalle-solicitud-component/` (creados)
+  - `frontend/src/app/shared/pages/content/{est,fun-acad,dec}-solicitudes-content-component/`, `frontend/src/app/shared/pages/content/{est,fun-acad,dec}-detalle-solicitud-content-component/` (creados)
+  - `frontend/src/app/shared/login-form-component/login-form-redireccion.spec.ts`, `frontend/src/app/app-rutas-academicas.spec.ts` (creados)
+  - `frontend/src/app/shared/login-form-component/login-form-component.ts` (modificado, solo líneas agregadas)
+  - `frontend/src/app/app.routes.ts` (modificado, solo líneas agregadas)
+  - `frontend/src/app/app.routes.server.ts` (modificado, solo líneas agregadas)
+- Notas:
+  - **Login:** orden de evaluación Secretario General, Funcionario, Secretaria Decanatura FIET, Decano (`/decano`), Funcionario Académico (`/funcionario-academico`), Estudiante (`/estudiante`) y al final los roles FIET de Julián. El Decano ya no llega a `/usuario-fiet`, pero conserva esa ruta: su menú enlaza "Solicitudes del Consejo" a `/usuario-fiet/solicitudes`.
+  - **SSR:** el primer build falló porque las rutas con `:uuid` caían en `'**'` con `RenderMode.Prerender` sin `getPrerenderParams`. Se agregaron en `app.routes.server.ts`, antes del comodín, las tres rutas de detalle con `RenderMode.Client`; el segundo build terminó con código 0.
+  - **Tamaño:** el bundle inicial pasa de 824.34 kB a 827.18 kB (definiciones de las nueve rutas y constantes de rol en `main`). Las nueve páginas van en chunks diferidos.
+  - **Pruebas:** `ng test` con los specs de T10.1 y T10.2: 39 de 39.
+  - **Menú del Consejo:** en `/usuario-fiet/solicitudes` el Decano ve el sidebar de Julián (`SideBarUsuarioFietComponent`), no el suyo.
+
 ## 2026-10-08 - Capa de acceso a la API de los procesos académicos en el frontend (Tarea T10.1)
 - Qué se hizo: modelos, servicios, constantes y utilidades del frontend para los 63 endpoints de `docs/api/contrato-api-procesos-academicos.md`, sin pantallas, rutas, menús ni cambios en el login. Specs de Karma para el operador de errores Blob, la lectura de `codigoError` y los FormData de Cancelación de Matrícula y Examen Supletorio. Ningún archivo existente del frontend cambió.
 - Archivos:

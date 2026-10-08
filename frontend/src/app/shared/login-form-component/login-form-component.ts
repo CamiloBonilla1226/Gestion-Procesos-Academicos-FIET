@@ -9,6 +9,7 @@ import { Router } from '@angular/router';
 import { ErrorHandlerService } from '../../core/services/error-handler-service';
 import { ROLES_FIET } from '../../core/constantes/constantes';
 import { ToastService } from '../../core/services/toast-service';
+import { ROLES_ACADEMICOS } from '../../core/constantes/procesos-academicos';
 
 /**
  * Componente de formulario de login.
@@ -68,6 +69,12 @@ export class LoginFormComponent {
           this.router.navigate(['/funcionario']);
         else if(roles.includes('Secretaria Decanatura FIET'))
           this.router.navigate(['/sec-fiet']);
+        else if (roles.includes(ROLES_ACADEMICOS.DECANO))
+          this.router.navigate(['/decano']);
+        else if (roles.includes(ROLES_ACADEMICOS.FUNCIONARIO_ACADEMICO))
+          this.router.navigate(['/funcionario-academico']);
+        else if (roles.includes(ROLES_ACADEMICOS.ESTUDIANTE))
+          this.router.navigate(['/estudiante']);
         else if (roles.some(r => this.usuariosFiet.includes(r))) 
           this.router.navigate(['/usuario-fiet']);
         else

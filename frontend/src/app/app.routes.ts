@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { AuthGuard } from './core/auth/guards/auth-guard';
 import { RoleGuard } from './core/auth/guards/role-guard';
+import { ROLES_ACADEMICOS } from './core/constantes/procesos-academicos';
 
 export const routes: Routes = [
     // Rutas autenticación
@@ -104,6 +105,60 @@ export const routes: Routes = [
         canActivate: [AuthGuard, RoleGuard],
         data: { roles: ['Coordinador Pregrado', 'Coordinador Posgrados', 'Jefe de Departamento', 'Decano', 'Docente']},
         loadComponent: () => import('./core/usuario fiet/pages/usuariofiet-solicitudes-component/usuariofiet-solicitudes-component').then(m => m.UsuariofietSolicitudesComponent)
+    },
+    {
+        path: 'estudiante',
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: [ROLES_ACADEMICOS.ESTUDIANTE] },
+        loadComponent: () => import('./core/estudiante/pages/estudiante-home-component/estudiante-home-component').then(m => m.EstudianteHomeComponent)
+    },
+    {
+        path: 'estudiante/solicitudes',
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: [ROLES_ACADEMICOS.ESTUDIANTE] },
+        loadComponent: () => import('./core/estudiante/pages/estudiante-solicitudes-component/estudiante-solicitudes-component').then(m => m.EstudianteSolicitudesComponent)
+    },
+    {
+        path: 'estudiante/solicitudes/:uuid',
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: [ROLES_ACADEMICOS.ESTUDIANTE] },
+        loadComponent: () => import('./core/estudiante/pages/estudiante-detalle-solicitud-component/estudiante-detalle-solicitud-component').then(m => m.EstudianteDetalleSolicitudComponent)
+    },
+    {
+        path: 'funcionario-academico',
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: [ROLES_ACADEMICOS.FUNCIONARIO_ACADEMICO] },
+        loadComponent: () => import('./core/funcionario-academico/pages/funcionario-academico-home-component/funcionario-academico-home-component').then(m => m.FuncionarioAcademicoHomeComponent)
+    },
+    {
+        path: 'funcionario-academico/solicitudes',
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: [ROLES_ACADEMICOS.FUNCIONARIO_ACADEMICO] },
+        loadComponent: () => import('./core/funcionario-academico/pages/funcionario-academico-solicitudes-component/funcionario-academico-solicitudes-component').then(m => m.FuncionarioAcademicoSolicitudesComponent)
+    },
+    {
+        path: 'funcionario-academico/solicitudes/:uuid',
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: [ROLES_ACADEMICOS.FUNCIONARIO_ACADEMICO] },
+        loadComponent: () => import('./core/funcionario-academico/pages/funcionario-academico-detalle-solicitud-component/funcionario-academico-detalle-solicitud-component').then(m => m.FuncionarioAcademicoDetalleSolicitudComponent)
+    },
+    {
+        path: 'decano',
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: [ROLES_ACADEMICOS.DECANO] },
+        loadComponent: () => import('./core/decano/pages/decano-home-component/decano-home-component').then(m => m.DecanoHomeComponent)
+    },
+    {
+        path: 'decano/solicitudes',
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: [ROLES_ACADEMICOS.DECANO] },
+        loadComponent: () => import('./core/decano/pages/decano-solicitudes-component/decano-solicitudes-component').then(m => m.DecanoSolicitudesComponent)
+    },
+    {
+        path: 'decano/solicitudes/:uuid',
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: [ROLES_ACADEMICOS.DECANO] },
+        loadComponent: () => import('./core/decano/pages/decano-detalle-solicitud-component/decano-detalle-solicitud-component').then(m => m.DecanoDetalleSolicitudComponent)
     },
     {
         path: '',

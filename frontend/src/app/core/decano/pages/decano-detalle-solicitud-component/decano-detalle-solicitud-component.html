@@ -1,0 +1,9 @@
+<app-page-component [sidebarComponent]="sidebar" [headerComponent]="header" [breadcrumbComponent]="breadcrumb"
+  [breadcrumbInputs]="{
+    role: 'Decano',
+    breadcrumbs: [
+      { label: 'Solicitudes académicas', url: '/decano/solicitudes' },
+      { label: 'Detalle' }
+    ]
+  }" [mainComponent]="main">
+</app-page-component>

@@ -1,0 +1,9 @@
+<app-page-component [sidebarComponent]="sidebar" [headerComponent]="header" [breadcrumbComponent]="breadcrumb"
+  [breadcrumbInputs]="{
+    role: 'Funcionario Académico',
+    breadcrumbs: [
+      { label: 'Solicitudes', url: '/funcionario-academico/solicitudes' },
+      { label: 'Detalle' }
+    ]
+  }" [mainComponent]="main">
+</app-page-component>
