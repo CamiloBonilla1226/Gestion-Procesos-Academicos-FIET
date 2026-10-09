@@ -1,0 +1,166 @@
+<section class="card">
+  <div class="card-body d-flex flex-column gap-3">
+    <h6 class="card-title mb-0">Examen Supletorio</h6>
+
+    @if (cargando && !detalle) {
+    <div class="d-flex align-items-center gap-2 text-secondary" data-estado="cargando">
+      <div class="spinner-border spinner-border-sm" role="status"></div>
+      <span>Cargando datos del examen supletorio...</span>
+    </div>
+    } @else if (errorCarga) {
+    <div class="alert alert-danger d-flex justify-content-between align-items-center mb-0" data-estado="error">
+      <span>No se pudieron cargar los datos del examen supletorio.</span>
+      <app-simple-button-component label="Reintentar" width="100px" height="30px" (clicked)="cargarDetalle()">
+      </app-simple-button-component>
+    </div>
+    } @else if (detalle) {
+    <div class="row g-3" data-datos-supletorio>
+      <div class="col-md-6">
+        <small class="text-secondary d-block">Asignatura del examen no presentado</small>
+        <span data-asignatura>{{ detalle.asignatura.codigoAsignatura }} - {{ detalle.asignatura.nombreAsignatura }} (grupo {{ detalle.asignatura.grupo }})</span>
+      </div>
+      <div class="col-md-3">
+        <small class="text-secondary d-block">Fecha del examen</small>
+        <span data-fecha-examen>{{ formatearFecha(detalle.fechaExamenNoPresentado) }}</span>
+      </div>
+      <div class="col-md-3">
+        <small class="text-secondary d-block">Causa</small>
+        <span data-causa>{{ textoCausa(detalle.tipoCausa) }}</span>
+      </div>
+      @if (detalle.cruce) {
+      <div class="col-md-6" data-cruce>
+        <small class="text-secondary d-block">Asignatura con la que se cruzó</small>
+        <span>{{ detalle.cruce.asignatura.codigoAsignatura }} - {{ detalle.cruce.asignatura.nombreAsignatura }} (grupo {{ detalle.cruce.asignatura.grupo }})</span>
+      </div>
+      <div class="col-md-6" data-cruce-fecha>
+        <small class="text-secondary d-block">Fecha y hora del examen cruzado</small>
+        <span>{{ formatearFecha(detalle.cruce.fechaExamenCruzada) }} {{ detalle.cruce.horaExamenCruzada }}</span>
+      </div>
+      }
+      @if (detalle.fechaAcordadaExamen) {
+      <div class="col-md-6" data-fecha-acordada>
+        <small class="text-secondary d-block">Fecha acordada para el supletorio</small>
+        <span>{{ formatearFecha(detalle.fechaAcordadaExamen) }}</span>
+      </div>
+      }
+    </div>
+    }
+
+    @if (etapa === 'PENDIENTE_PAGO') {
+    <div class="alert alert-warning mb-0" data-aviso-etapa="PENDIENTE_PAGO">
+      @if (esEstudiante) {
+      Descarga el recibo de pago en la sección Anexos, realiza el pago y sube el comprobante con el botón
+      "Subir comprobante de pago".
+      } @else {
+      El estudiante debe pagar el recibo y subir el comprobante de pago.
+      }
+    </div>
+    } @else if (etapa === 'EN_VERIFICACION_PAGO') {
+    <div class="alert alert-warning mb-0" data-aviso-etapa="EN_VERIFICACION_PAGO">
+      @if (esEstudiante) {
+      El Funcionario Académico está verificando tu comprobante de pago.
+      } @else {
+      El comprobante de pago está en la sección Anexos y espera la verificación del Funcionario Académico.
+      }
+    </div>
+    } @else if (comprobanteRechazado) {
+    <div class="alert alert-danger mb-0" data-aviso-etapa="COMPROBANTE_RECHAZADO">
+      @if (esEstudiante) {
+      Tu comprobante de pago fue rechazado. Si aún necesitas el examen supletorio, debes radicar una solicitud nueva.
+      } @else {
+      El comprobante de pago fue rechazado. Para continuar, el estudiante debe radicar una solicitud nueva.
+      }
+    </div>
+    }
+
+    @if (accionesVisibles.length > 0) {
+    <div class="d-flex flex-wrap gap-2 justify-content-end" data-acciones>
+      @for (accion of accionesVisibles; track accion) {
+      <app-simple-button-component [attr.data-accion]="accion" [label]="etiquetaBoton(accion)" width="210px"
+        height="34px" [color]="esRechazo(accion) ? '#B02A37' : '#1E257B'" [disabled]="!detalle || cargandoTipos"
+        (clicked)="abrir(accion)">
+      </app-simple-button-component>
+      }
+    </div>
+    }
+  </div>
+</section>
+
+<app-generic-dialog-form-component [visible]="dialogoVisible" [title]="tituloDialogo" (visibleChange)="cerrar($event)"
+  (save)="confirmar()">
+  <div class="d-flex flex-column gap-3" data-dialogo>
+    @switch (accionActiva) {
+    @case (acciones.RECHAZAR_FUNCIONARIO) {
+    <p class="mb-0">La solicitud quedará rechazada y terminará el trámite. Escribe la observación que verá el estudiante.</p>
+    }
+    @case (acciones.REMITIR_DECANO) {
+    <div class="form-check" data-campo-requisitos>
+      <input class="form-check-input" type="checkbox" id="requisitos-verificados" [checked]="requisitosVerificados"
+        (change)="alCambiarVerificacion($event)">
+      <label class="form-check-label" for="requisitos-verificados">Verifiqué los requisitos del examen supletorio.</label>
+    </div>
+    <small class="text-danger" data-error="requisitos">{{ errores['requisitos'] || '' }}</small>
+    }
+    @case (acciones.APROBAR_DECANO) {
+    <p class="mb-0">El Funcionario Académico enviará después el recibo de pago al estudiante.</p>
+    }
+    @case (acciones.RECHAZAR_DECANO) {
+    <p class="mb-0">La solicitud pasará al Funcionario Académico para que envíe la respuesta al estudiante.</p>
+    }
+    @case (acciones.ENVIAR_RESPUESTA) {
+    <p class="mb-0">La solicitud termina como rechazada y el estudiante verá la decisión del Decano.</p>
+    }
+    @case (acciones.APROBAR_COMPROBANTE) {
+    <p class="mb-0">La solicitud quedará aprobada. Puedes registrar la fecha acordada para presentar el supletorio.</p>
+    <div data-campo-fecha-acordada>
+      <app-input-date-component label="Fecha acordada (opcional)" [value]="fechaAcordada"
+        (valueChange)="fechaAcordada = $event">
+      </app-input-date-component>
+      <small class="text-danger d-block" data-error="fechaAcordada">{{ errores['fechaAcordada'] || '' }}</small>
+    </div>
+    }
+    @case (acciones.RECHAZAR_COMPROBANTE) {
+    <p class="mb-0">La solicitud quedará rechazada y el estudiante deberá radicar una solicitud nueva.</p>
+    }
+    }
+
+    @if (pideAnexoPago && campoAnexoPago) {
+    <div data-campo-anexo-pago>
+      @if (anexoPagoYaCargado) {
+      <small class="text-success d-block mb-1">El archivo ya está cargado en la solicitud. Puedes confirmar sin subirlo otra vez.</small>
+      }
+      <app-input-anexo-upload-component #entradaPago [tipoAnexo]="campoAnexoPago" [uploadedFile]="archivoPago"
+        (fileSelected)="alSeleccionarAnexoPago($event, entradaPago)" (fileRemoved)="alQuitarAnexoPago()">
+      </app-input-anexo-upload-component>
+      <small class="text-danger" data-error="anexoPago">{{ errores['anexoPago'] || '' }}</small>
+    </div>
+    }
+
+    @if (pideObservacion) {
+    <div>
+      <app-input-text-tarea-component [label]="observacionObligatoria ? 'Observación' : 'Observación (opcional)'"
+        [required]="observacionObligatoria" [(value)]="observacion">
+      </app-input-text-tarea-component>
+      <div class="d-flex justify-content-between">
+        <small class="text-danger" data-error="observacion">{{ errores['observacion'] || '' }}</small>
+        <small class="text-secondary">{{ observacion.length }}/{{ maximoObservacion }}</small>
+      </div>
+    </div>
+    }
+
+    @if (erroresServidor.length > 0) {
+    <div class="alert alert-danger mb-0 py-2" data-error="servidor">
+      @for (mensaje of erroresServidor; track mensaje) {
+      <div>{{ mensaje }}</div>
+      }
+    </div>
+    }
+
+    @if (enviando) {
+    <div class="d-flex align-items-center gap-2 text-secondary" data-estado="enviando">
+      <div class="spinner-border spinner-border-sm" role="status"></div>
+      <span>Enviando...</span>
+    </div>
+    }
+  </div>
+</app-generic-dialog-form-component>

@@ -1,5 +1,7 @@
+import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
+import { RouterTestingHarness } from '@angular/router/testing';
 import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { Subject, of, throwError } from 'rxjs';
@@ -185,6 +187,70 @@ describe('EstCancelacionAsignaturaContentComponent', () => {
     componente.radicar();
     expect(errores.handleError).toHaveBeenCalledWith(error, 'Error', 'No se pudo radicar la solicitud');
     expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  it('tras radicar reemplaza el formulario por el radicado', () => {
+    servicio.radicar.and.returnValue(of({ uuidSolicitudAcademica: 's-3', radicado: '2026-CA-0003' }));
+    const fixture = crear();
+    const componente = fixture.componentInstance;
+    componente.alCambiarSeleccion('am-1', marcar());
+    componente.alCambiarMotivo('Motivo');
+    componente.radicar();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-estado="radicada"]').textContent).toContain('2026-CA-0003');
+    expect(fixture.nativeElement.querySelectorAll('[data-asignatura]').length).toBe(0);
+    expect(fixture.nativeElement.querySelector('[data-boton-radicar]')).toBeNull();
+  });
+});
+
+@Component({ template: '<p data-destino>Detalle</p>' })
+class DestinoComponent {}
+
+describe('EstCancelacionAsignaturaContentComponent con el Router real', () => {
+  function configurar(detallePermitido: boolean): void {
+    const servicio = jasmine.createSpyObj<CancelacionAsignaturaService>('CancelacionAsignaturaService', ['getFormulario', 'radicar']);
+    servicio.getFormulario.and.returnValue(of(formulario()));
+    servicio.radicar.and.returnValue(of({ uuidSolicitudAcademica: 's-3', radicado: '2026-CA-0003' }));
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([
+          { path: 'estudiante/cancelacion-asignatura', component: EstCancelacionAsignaturaContentComponent },
+          { path: 'estudiante/solicitudes/:uuid', component: DestinoComponent, canActivate: [() => detallePermitido] }
+        ]),
+        { provide: CancelacionAsignaturaService, useValue: servicio },
+        { provide: ErrorHandlerService, useValue: jasmine.createSpyObj('ErrorHandlerService', ['handleError']) },
+        { provide: ToastService, useValue: jasmine.createSpyObj('ToastService', ['showError', 'showSuccess']) }
+      ]
+    });
+  }
+
+  async function radicarDesdeLaRuta(): Promise<RouterTestingHarness> {
+    const harness = await RouterTestingHarness.create();
+    const componente = await harness.navigateByUrl('/estudiante/cancelacion-asignatura', EstCancelacionAsignaturaContentComponent);
+    componente.alCambiarSeleccion('am-1', marcar());
+    componente.alCambiarMotivo('Cruce de horario laboral');
+    componente.radicar();
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+    return harness;
+  }
+
+  it('navega de verdad al detalle de la solicitud radicada', async () => {
+    configurar(true);
+    const harness = await radicarDesdeLaRuta();
+    expect(TestBed.inject(Router).url).toBe('/estudiante/solicitudes/s-3');
+    expect(harness.routeNativeElement?.querySelector('[data-destino]')).toBeTruthy();
+  });
+
+  it('si la navegacion no ocurre muestra el radicado y no el formulario', async () => {
+    configurar(false);
+    const harness = await radicarDesdeLaRuta();
+    expect(TestBed.inject(Router).url).toBe('/estudiante/cancelacion-asignatura');
+    const pantalla = harness.routeNativeElement as HTMLElement;
+    expect(pantalla.querySelector('[data-estado="radicada"]')?.textContent).toContain('2026-CA-0003');
+    expect(pantalla.querySelectorAll('[data-asignatura]').length).toBe(0);
   });
 });
 

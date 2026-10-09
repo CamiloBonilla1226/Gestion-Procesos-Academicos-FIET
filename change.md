@@ -2,6 +2,35 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-09 - Examen Supletorio en el frontend (Tarea T10.6)
+- Qué se hizo:
+  - Radicación de Cancelación de Asignatura: tras el éxito muestra el radicado y "Ver solicitud" en lugar del formulario, además de navegar, igual que Matrícula.
+  - Radicación del Examen Supletorio en `/estudiante/examen-supletorio`, con ítem "Examen supletorio" en el menú del Estudiante:
+    - Asignatura, fecha del examen, causa y, con cruce, asignatura, fecha y hora del examen cruzado.
+    - Anexos según el campo `causas` de cada anexo del formulario. Al cambiar de causa se descartan los archivos y los datos de cruce de la anterior.
+    - El plazo de `plazoDiasHabiles` se muestra como texto informativo; el vencimiento lo decide el backend.
+  - Componente de proceso del supletorio registrado en `COMPONENTES_PROCESO`:
+    - Datos del examen, del cruce y la fecha acordada, con fechas en dd/MM/aaaa.
+    - Las nueve acciones del proceso con su diálogo.
+    - Recibo y comprobante: el uuid del tipo de anexo se toma de `catalogos-academicos/tipos-solicitud/{uuidTipo}/tipos-anexo`; primero se sube el anexo y luego se llama la acción.
+    - Avisos para PENDIENTE_PAGO, EN_VERIFICACION_PAGO y para el comprobante rechazado.
+  - `esFechaValida`, `esHoraValida` y `fechaDeHoy` en `validaciones-academicas.ts`.
+- Archivos:
+  - `frontend/src/app/shared/pages/content/est-examen-supletorio-content-component/` (creado: ts, html, spec)
+  - `frontend/src/app/shared/pages/est-examen-supletorio-component/` (creado: ts, html)
+  - `frontend/src/app/core/estudiante/pages/estudiante-examen-supletorio-component/` (creado: ts, html)
+  - `frontend/src/app/shared/pages/content/examen-supletorio-proceso-component/` (creado: ts, html, spec)
+  - `frontend/src/app/shared/pages/content/est-cancelacion-asignatura-content-component/` (modificado: ts, html, spec)
+  - `frontend/src/app/shared/pages/content/detalle-solicitud-academica-component/componentes-proceso.ts` (modificado)
+  - `frontend/src/app/shared/pages/content/detalle-solicitud-academica-component/detalle-solicitud-academica-component.spec.ts` (modificado)
+  - `frontend/src/app/core/utils/validaciones-academicas.ts` y su spec (modificados)
+  - `frontend/src/app/core/estudiante/components/side-bar-estudiante-component/side-bar-estudiante-component.html` (modificado)
+  - `frontend/src/app/app.routes.ts` (modificado, solo líneas agregadas)
+- Notas:
+  - No se envían los campos de las maquetas que el contrato no tiene (teléfono, grupo, código manual, fecha propuesta, nombre libre del cruce, declaración de veracidad).
+  - El detalle común ya listaba todos los anexos con su descarga; el recibo y el comprobante aparecen al recargar tras cada acción. No hizo falta cambiarlo.
+  - El aviso de comprobante rechazado se decide por etapa RECHAZADA con un anexo de tipo "Comprobante de pago" en la solicitud.
+
 ## 2026-10-09 - Correcciones de pruebas en vivo de las cancelaciones (Tarea T10.5.1)
 - Qué se hizo:
   - Aprobar del Decano y remitir del Funcionario, en Cancelación de Matrícula y de Asignatura: el diálogo se abre solo después de cargar el catálogo de situaciones. Si la carga falla o el catálogo viene vacío, el error se muestra por `ErrorHandlerService` y el diálogo no abre. Los botones se deshabilitan mientras carga.

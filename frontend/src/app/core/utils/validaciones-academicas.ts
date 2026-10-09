@@ -78,6 +78,23 @@ export function leerFaltas(valor: string | null | undefined): number | null {
   return Number.isSafeInteger(faltas) && faltas >= FALTAS_MINIMAS ? faltas : null;
 }
 
+export function esFechaValida(valor: string | null | undefined): boolean {
+  const partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec((valor ?? '').trim());
+  if (!partes) return false;
+  const [anio, mes, dia] = partes.slice(1).map(Number);
+  const fecha = new Date(Date.UTC(anio, mes - 1, dia));
+  return fecha.getUTCFullYear() === anio && fecha.getUTCMonth() === mes - 1 && fecha.getUTCDate() === dia;
+}
+
+export function esHoraValida(valor: string | null | undefined): boolean {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test((valor ?? '').trim());
+}
+
+export function fechaDeHoy(hoy: Date = new Date()): string {
+  const dosDigitos = (valor: number) => String(valor).padStart(2, '0');
+  return `${hoy.getFullYear()}-${dosDigitos(hoy.getMonth() + 1)}-${dosDigitos(hoy.getDate())}`;
+}
+
 export function comoTipoAnexo(
   uuid: string,
   nombre: string,

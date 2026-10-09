@@ -200,4 +200,33 @@ describe('DetalleSolicitudAcademicaComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-bloque-proceso] app-cancelacion-matricula-proceso-component')).toBeNull();
     http.expectOne(req => req.url.endsWith('/cancelaciones-asignatura/u-1'));
   });
+
+  it('inserta el componente de Examen Supletorio en el bloque del proceso', async () => {
+    const fixture = crear({ ...detalle(false, false), tipoSolicitud: 'Examen Supletorio' }, 'ESTUDIANTE');
+    await COMPONENTES_PROCESO['examenes-supletorios']!();
+    await new Promise(resolver => setTimeout(resolver));
+    fixture.detectChanges();
+    expect(fixture.componentInstance.proceso).toBe('examenes-supletorios');
+    expect(fixture.nativeElement.querySelector('[data-bloque-proceso] app-examen-supletorio-proceso-component')).toBeTruthy();
+    http.expectOne(req => req.url.endsWith('/examenes-supletorios/u-1'));
+  });
+
+  it('lista el recibo y el comprobante de pago con su descarga', () => {
+    const datos = detalle(false, false);
+    const fixture = crear({
+      ...datos,
+      tipoSolicitud: 'Examen Supletorio',
+      etapaCodigo: 'EN_VERIFICACION_PAGO',
+      anexos: [
+        { uuidAnexoAcademico: 'a-r', nombreArchivo: 'recibo.pdf', uuidTipoAnexoAcademico: 'tr', tipoAnexo: 'Recibo de pago',
+          tipoArchivo: 'application/pdf', tamanioBytes: 1024, fechaSubida: '2026-10-09T08:00:00' },
+        { uuidAnexoAcademico: 'a-c', nombreArchivo: 'pago.png', uuidTipoAnexoAcademico: 'tc', tipoAnexo: 'Comprobante de pago',
+          tipoArchivo: 'image/png', tamanioBytes: 2048, fechaSubida: '2026-10-09T09:00:00' }
+      ]
+    });
+    const anexos = texto(fixture, '[data-anexo]');
+    expect(anexos[0]).toContain('Recibo de pago');
+    expect(anexos[1]).toContain('Comprobante de pago');
+    expect(fixture.nativeElement.querySelectorAll('[data-anexo] app-simple-button-component').length).toBe(2);
+  });
 });

@@ -137,6 +137,12 @@ export const routes: Routes = [
         loadComponent: () => import('./core/estudiante/pages/estudiante-cancelacion-asignatura-component/estudiante-cancelacion-asignatura-component').then(m => m.EstudianteCancelacionAsignaturaComponent)
     },
     {
+        path: 'estudiante/examen-supletorio',
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: [ROLES_ACADEMICOS.ESTUDIANTE] },
+        loadComponent: () => import('./core/estudiante/pages/estudiante-examen-supletorio-component/estudiante-examen-supletorio-component').then(m => m.EstudianteExamenSupletorioComponent)
+    },
+    {
         path: 'funcionario-academico',
         canActivate: [AuthGuard, RoleGuard],
         data: { roles: [ROLES_ACADEMICOS.FUNCIONARIO_ACADEMICO] },

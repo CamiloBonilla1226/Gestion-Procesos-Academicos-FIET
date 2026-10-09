@@ -4,6 +4,9 @@ import {
   errorDeArchivo,
   errorDeTexto,
   erroresDeCampos,
+  esFechaValida,
+  esHoraValida,
+  fechaDeHoy,
   extensionPermitida,
   leerFaltas,
   leerNota,
@@ -79,5 +82,17 @@ describe('validaciones academicas', () => {
     const error500 = new HttpErrorResponse({ status: 500, error: { codigoError: '4', mensaje: 'x' } });
     expect(erroresDeCampos(error500)).toEqual({});
     expect(erroresDeCampos(null)).toEqual({});
+  });
+
+  it('valida fechas AAAA-MM-DD reales, horas HH:mm y arma la fecha de hoy', () => {
+    expect(esFechaValida('2026-10-09')).toBeTrue();
+    expect(esFechaValida('2026-02-30')).toBeFalse();
+    expect(esFechaValida('09/10/2026')).toBeFalse();
+    expect(esFechaValida('')).toBeFalse();
+    expect(esHoraValida('07:30')).toBeTrue();
+    expect(esHoraValida('23:59')).toBeTrue();
+    expect(esHoraValida('24:00')).toBeFalse();
+    expect(esHoraValida('7:30')).toBeFalse();
+    expect(fechaDeHoy(new Date(2026, 0, 5))).toBe('2026-01-05');
   });
 });

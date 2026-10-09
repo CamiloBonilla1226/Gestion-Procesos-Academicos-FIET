@@ -7,6 +7,7 @@ import { SimpleButtonComponent } from '../../../buttons/simple-button-component/
 import { CancelacionAsignaturaService } from '../../../../core/services/cancelacion-asignatura-service';
 import { ErrorHandlerService } from '../../../../core/services/error-handler-service';
 import { ToastService } from '../../../../core/services/toast-service';
+import { RadicacionCancelacionAsignaturaDTORespuesta } from '../../../../core/models/CancelacionAsignatura/DTOResponse/RadicacionCancelacionAsignaturaDTORespuesta';
 import { FormularioCancelacionAsignaturaDTORespuesta } from '../../../../core/models/CancelacionAsignatura/DTOResponse/FormularioCancelacionAsignaturaDTORespuesta';
 import {
   FORMATOS_SOPORTE_LIBRE,
@@ -43,6 +44,7 @@ export class EstCancelacionAsignaturaContentComponent implements OnInit {
   erroresServidor: Record<string, string> = {};
   intentoEnvio = false;
   enviando = false;
+  radicacion: RadicacionCancelacionAsignaturaDTORespuesta | null = null;
 
   constructor(
     private cancelacionAsignaturaService: CancelacionAsignaturaService,
@@ -142,14 +144,20 @@ export class EstCancelacionAsignaturaContentComponent implements OnInit {
       .pipe(finalize(() => (this.enviando = false)))
       .subscribe({
         next: respuesta => {
+          this.radicacion = respuesta;
           this.toastService.showSuccess('Solicitud radicada', `Radicado ${respuesta.radicado}`);
-          this.router.navigate([RUTAS_SOLICITUDES_POR_ROL[ROLES_ETIQUETA.ESTUDIANTE], respuesta.uuidSolicitudAcademica]);
+          this.irAlDetalle();
         },
         error: err => {
           this.erroresServidor = erroresDeCampos(err);
           this.errorHandlerService.handleError(err, 'Error', 'No se pudo radicar la solicitud');
         }
       });
+  }
+
+  irAlDetalle(): void {
+    if (!this.radicacion) return;
+    this.router.navigate([RUTAS_SOLICITUDES_POR_ROL[ROLES_ETIQUETA.ESTUDIANTE], this.radicacion.uuidSolicitudAcademica]);
   }
 
   private revalidar(): void {
