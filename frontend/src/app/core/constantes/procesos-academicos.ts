@@ -70,6 +70,60 @@ export const ROLES_ETIQUETA = {
 
 export type RolEtiqueta = (typeof ROLES_ETIQUETA)[keyof typeof ROLES_ETIQUETA];
 
+export const RUTAS_SOLICITUDES_POR_ROL: Record<RolEtiqueta, string> = {
+  [ROLES_ETIQUETA.ESTUDIANTE]: '/estudiante/solicitudes',
+  [ROLES_ETIQUETA.FUNCIONARIO]: '/funcionario-academico/solicitudes',
+  [ROLES_ETIQUETA.DECANO]: '/decano/solicitudes'
+};
+
+export const TEXTOS_ACCIONES: Record<AccionAcademica, string> = {
+  [ACCIONES_ACADEMICAS.RADICAR]: 'Radicación de la solicitud',
+  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'Rechazo del Funcionario Académico',
+  [ACCIONES_ACADEMICAS.REMITIR_DECANO]: 'Remisión al Decano',
+  [ACCIONES_ACADEMICAS.APROBAR_DECANO]: 'Aprobación del Decano',
+  [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: 'Rechazo del Decano',
+  [ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA]: 'Envío de la respuesta al estudiante',
+  [ACCIONES_ACADEMICAS.ENVIAR_RECIBO]: 'Envío del recibo de pago',
+  [ACCIONES_ACADEMICAS.SUBIR_COMPROBANTE]: 'Envío del comprobante de pago',
+  [ACCIONES_ACADEMICAS.APROBAR_COMPROBANTE]: 'Aprobación del comprobante de pago',
+  [ACCIONES_ACADEMICAS.RECHAZAR_COMPROBANTE]: 'Rechazo del comprobante de pago'
+};
+
+export const TEXTOS_ETAPAS: Record<EtapaAcademica, string> = {
+  [ETAPAS_ACADEMICAS.RADICADA]: 'Radicada',
+  [ETAPAS_ACADEMICAS.EN_REVISION_DECANO]: 'En revisión del Decano',
+  [ETAPAS_ACADEMICAS.APROBADA_POR_DECANO]: 'Aprobada por el Decano',
+  [ETAPAS_ACADEMICAS.RECHAZADA_POR_DECANO]: 'Rechazada por el Decano',
+  [ETAPAS_ACADEMICAS.PENDIENTE_PAGO]: 'Pendiente de pago',
+  [ETAPAS_ACADEMICAS.EN_VERIFICACION_PAGO]: 'En verificación de pago',
+  [ETAPAS_ACADEMICAS.APROBADA]: 'Aprobada',
+  [ETAPAS_ACADEMICAS.RECHAZADA]: 'Rechazada'
+};
+
+export function textoAccion(codigo: string | null | undefined): string {
+  if (!codigo) return 'Acción sin registrar';
+  return TEXTOS_ACCIONES[codigo as AccionAcademica] ?? codigo;
+}
+
+export function textoEtapa(codigo: string | null | undefined): string {
+  if (!codigo) return 'Etapa no determinada';
+  return TEXTOS_ETAPAS[codigo as EtapaAcademica] ?? codigo;
+}
+
+export function claseInsigniaEtapa(codigo: string | null | undefined): string {
+  switch (codigo) {
+    case ETAPAS_ACADEMICAS.APROBADA:
+      return 'text-bg-success';
+    case ETAPAS_ACADEMICAS.RECHAZADA:
+      return 'text-bg-danger';
+    case ETAPAS_ACADEMICAS.PENDIENTE_PAGO:
+    case ETAPAS_ACADEMICAS.EN_VERIFICACION_PAGO:
+      return 'text-bg-warning';
+    default:
+      return 'text-bg-secondary';
+  }
+}
+
 export const CAUSAS_SUPLETORIO = {
   CRUCE: 'cruce',
   OTRA: 'otra'

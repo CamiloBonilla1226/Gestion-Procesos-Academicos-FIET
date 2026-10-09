@@ -14,7 +14,8 @@ describe('Rutas de los procesos academicos', () => {
     ['funcionario-academico/solicitudes/:uuid', 'Funcionario Académico'],
     ['decano', 'Decano'],
     ['decano/solicitudes', 'Decano'],
-    ['decano/solicitudes/:uuid', 'Decano']
+    ['decano/solicitudes/:uuid', 'Decano'],
+    ['decano/solicitudes-consejo', 'Decano']
   ];
 
   for (const [ruta, rol] of esperadas) {

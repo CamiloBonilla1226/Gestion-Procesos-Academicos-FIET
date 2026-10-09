@@ -161,6 +161,12 @@ export const routes: Routes = [
         loadComponent: () => import('./core/decano/pages/decano-detalle-solicitud-component/decano-detalle-solicitud-component').then(m => m.DecanoDetalleSolicitudComponent)
     },
     {
+        path: 'decano/solicitudes-consejo',
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: [ROLES_ACADEMICOS.DECANO] },
+        loadComponent: () => import('./core/decano/pages/decano-solicitudes-consejo-component/decano-solicitudes-consejo-component').then(m => m.DecanoSolicitudesConsejoComponent)
+    },
+    {
         path: '',
         redirectTo: 'usuario-publico/solicitudes',
         pathMatch: 'full'

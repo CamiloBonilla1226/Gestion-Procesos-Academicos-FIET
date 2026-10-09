@@ -1,0 +1,42 @@
+<div class="d-flex flex-column gap-3">
+  <div class="row g-3 align-items-center">
+    <div class="col-md-4">
+      <app-input-select-component label="Tipo de solicitud" [options]="opcionesTipo" [value]="tipoFiltro"
+        (valueChange)="onTipoChange($event)">
+      </app-input-select-component>
+    </div>
+    <div class="col-md-8">
+      <app-barra-busqueda-component placeholder="Buscar por radicado, nombre o código estudiantil"
+        (valueChange)="onBusquedaChange($event)">
+      </app-barra-busqueda-component>
+    </div>
+  </div>
+
+  @if (cargando) {
+  <div class="d-flex align-items-center gap-2 text-secondary" data-estado="cargando">
+    <div class="spinner-border spinner-border-sm" role="status"></div>
+    <span>Cargando solicitudes...</span>
+  </div>
+  } @else if (errorCarga) {
+  <div class="alert alert-danger d-flex justify-content-between align-items-center mb-0" data-estado="error">
+    <span>No se pudieron cargar las solicitudes.</span>
+    <app-simple-button-component label="Reintentar" width="100px" height="30px" (clicked)="cargarSolicitudes()">
+    </app-simple-button-component>
+  </div>
+  } @else if (filtradas.length === 0) {
+  <p class="text-secondary mb-0" data-estado="vacio">No hay solicitudes para mostrar</p>
+  } @else {
+  <app-table-generic-component [headers]="headers" [data]="filas" [actionTemplate]="acciones">
+  </app-table-generic-component>
+  <div class="d-flex justify-content-between align-items-center">
+    <small class="text-secondary">{{ filtradas.length }} {{ filtradas.length === 1 ? 'solicitud' : 'solicitudes' }}</small>
+    <app-paginator [totalPages]="totalDePaginas" [currentPage]="paginaActual" (pageChange)="onPageChange($event)">
+    </app-paginator>
+  </div>
+  }
+</div>
+
+<ng-template #acciones let-fila>
+  <app-simple-button-component label="Ver" width="60px" height="30px" (clicked)="verSolicitud(fila)">
+  </app-simple-button-component>
+</ng-template>

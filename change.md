@@ -2,6 +2,29 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-08 - Bandejas, detalle común y ruta del Consejo para el Decano (Tarea T10.3)
+- Qué se hizo:
+  - Bandeja de solicitudes académicas por rol con datos reales: filtros por tipo y texto, y paginación en el cliente de 10 por página.
+  - Detalle común de la solicitud: datos generales, estudiante, anexos y Resolución descargables, e historial.
+  - Ruta `/decano/solicitudes-consejo`, que muestra el contenido de Julián de `/usuario-fiet/solicitudes` con el sidebar y el breadcrumb del Decano.
+  - Sin acciones de proceso; queda el punto de extensión.
+- Archivos:
+  - `frontend/src/app/shared/pages/content/bandeja-solicitudes-academicas-component/` (creado, con spec)
+  - `frontend/src/app/shared/pages/content/detalle-solicitud-academica-component/` (creado: componente, `componentes-proceso.ts` y spec)
+  - `frontend/src/app/shared/others/anexos-academicos-component/` (creado, con spec)
+  - `frontend/src/app/core/decano/pages/decano-solicitudes-consejo-component/` (creado)
+  - `frontend/src/app/core/utils/formato.ts`, `bandeja-solicitudes.ts` y sus specs (creados)
+  - `frontend/src/app/core/constantes/procesos-academicos.spec.ts` (creado)
+  - `frontend/src/app/core/constantes/procesos-academicos.ts` (modificado: textos de acciones y etapas, insignias y rutas de bandeja por rol)
+  - Los seis `*-content-component` de T10.2, el sidebar del Decano y `app-rutas-academicas.spec.ts` (modificados)
+  - `frontend/src/app/app.routes.ts` (modificado, solo líneas agregadas)
+- Notas:
+  - **Estado en la bandeja:** se muestra como texto plano, sin insignia, por decisión del autor. `TableGenericComponent` de Julián solo interpola texto y no se modificó. La insignia por `etapaCodigo` se ve en el detalle y en el historial.
+  - **Punto de extensión:** `COMPONENTES_PROCESO` en `componentes-proceso.ts` asocia cada proceso a un cargador diferido de su componente. El detalle lo inserta con `ngComponentOutlet` y le pasa `uuidSolicitud`, `solicitud`, `rol` y `recargar`. Hoy el mapa está vacío y el bloque no se pinta.
+  - **Tamaño:** el bundle inicial pasa de 827.18 kB a 829.24 kB. El aumento es el archivo de constantes, que también importa `app.routes.ts` y ahora lleva los textos. Se evitó `RouterLink` en el detalle porque sumaba unos 3.6 kB al chunk inicial del router.
+  - **Pruebas:** `ng test` con todos los specs de T10.1 a T10.3: 79 de 79.
+  - **Contenido del Consejo:** el de Julián toma el perfil solicitante de `usuario.roles[0]` y lee `usuario$` sin esperar a que cargue, igual que en su propia página.
+
 ## 2026-10-08 - Acceso por rol en el frontend: login, menús y rutas esqueleto (Tarea T10.2)
 - Qué se hizo:
   - Estudiante, Funcionario Académico y Decano inician sesión, llegan a su área, ven su menú y navegan a páginas de su rol protegidas con `AuthGuard` y `RoleGuard`.

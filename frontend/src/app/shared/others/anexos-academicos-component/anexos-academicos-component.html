@@ -1,0 +1,19 @@
+@if (anexos.length === 0) {
+<p class="text-secondary mb-0" data-estado="sin-anexos">La solicitud no tiene anexos.</p>
+} @else {
+<ul class="list-group">
+  @for (anexo of anexos; track anexo.uuidAnexoAcademico) {
+  <li class="list-group-item d-flex justify-content-between align-items-center gap-3" data-anexo>
+    <div class="d-flex flex-column">
+      <strong class="text-break">{{ anexo.nombreArchivo }}</strong>
+      <small class="text-secondary">
+        {{ tipoDe(anexo) }} &middot; {{ formatearTamanio(anexo.tamanioBytes) }} &middot; {{ formatearFechaHora(anexo.fechaSubida) }}
+      </small>
+    </div>
+    <app-simple-button-component [label]="descargando.has(anexo.uuidAnexoAcademico) ? 'Descargando...' : 'Descargar'"
+      width="120px" height="30px" [disabled]="descargando.has(anexo.uuidAnexoAcademico)" (clicked)="descargar(anexo)">
+    </app-simple-button-component>
+  </li>
+  }
+</ul>
+}

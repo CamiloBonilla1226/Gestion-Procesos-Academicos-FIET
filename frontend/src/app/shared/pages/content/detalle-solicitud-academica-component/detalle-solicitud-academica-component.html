@@ -1,0 +1,119 @@
+@if (cargando && !solicitud) {
+<div class="d-flex align-items-center gap-2 text-secondary" data-estado="cargando">
+  <div class="spinner-border spinner-border-sm" role="status"></div>
+  <span>Cargando solicitud...</span>
+</div>
+} @else if (noEncontrada) {
+<div class="alert alert-warning mb-0" data-estado="no-encontrada">
+  <p class="mb-2">Solicitud no encontrada</p>
+  <a [href]="rutaBandeja" (click)="volverABandeja($event)">Volver a las solicitudes</a>
+</div>
+} @else if (errorCarga) {
+<div class="alert alert-danger d-flex justify-content-between align-items-center mb-0" data-estado="error">
+  <span>No se pudo cargar la solicitud.</span>
+  <app-simple-button-component label="Reintentar" width="100px" height="30px" (clicked)="cargar()">
+  </app-simple-button-component>
+</div>
+} @else if (solicitud) {
+<div class="d-flex flex-column gap-4">
+  <section class="card">
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+        <div>
+          <h5 class="mb-1">{{ solicitud.radicado }}</h5>
+          <span class="text-secondary">{{ solicitud.tipoSolicitud }}</span>
+        </div>
+        <span class="badge fs-6" [ngClass]="claseInsigniaEtapa(solicitud.etapaCodigo)" data-estado-solicitud>
+          {{ solicitud.etiqueta }}
+        </span>
+      </div>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <small class="text-secondary d-block">Fecha de radicación</small>
+          <span>{{ formatearFechaHora(solicitud.fechaCreacion) }}</span>
+        </div>
+        @if (solicitud.puedeDescargarResolucion) {
+        <div class="col-md-6 d-flex align-items-end justify-content-md-end">
+          <app-simple-button-component data-boton-resolucion
+            [label]="descargandoResolucion ? 'Descargando...' : 'Descargar Resolución'" width="200px" height="34px"
+            [disabled]="descargandoResolucion" (clicked)="descargarResolucion()">
+          </app-simple-button-component>
+        </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-body">
+      <h6 class="card-title mb-3">Estudiante</h6>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <small class="text-secondary d-block">Nombres</small>
+          <span>{{ solicitud.estudiante.nombres }}</span>
+        </div>
+        <div class="col-md-4">
+          <small class="text-secondary d-block">Apellidos</small>
+          <span>{{ solicitud.estudiante.apellidos }}</span>
+        </div>
+        <div class="col-md-4">
+          <small class="text-secondary d-block">Código estudiantil</small>
+          <span>{{ solicitud.estudiante.codigoEstudiantil }}</span>
+        </div>
+        <div class="col-md-4">
+          <small class="text-secondary d-block">Programa académico</small>
+          <span>{{ solicitud.estudiante.programaAcademico }}</span>
+        </div>
+        <div class="col-md-4">
+          <small class="text-secondary d-block">Semestre</small>
+          <span>{{ solicitud.estudiante.semestre }}</span>
+        </div>
+        <div class="col-md-4">
+          <small class="text-secondary d-block">Correo electrónico</small>
+          <span class="text-break">{{ solicitud.estudiante.correoElectronico }}</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  @if (componenteProceso) {
+  <section data-bloque-proceso>
+    <ng-container *ngComponentOutlet="componenteProceso; inputs: entradasProceso ?? {}"></ng-container>
+  </section>
+  }
+
+  <section class="card">
+    <div class="card-body">
+      <h6 class="card-title mb-3">Anexos</h6>
+      <app-anexos-academicos-component [uuidSolicitud]="uuidSolicitud" [anexos]="solicitud.anexos">
+      </app-anexos-academicos-component>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-body">
+      <h6 class="card-title mb-3">Historial</h6>
+      @if (historial.length === 0) {
+      <p class="text-secondary mb-0">La solicitud no tiene historial registrado.</p>
+      } @else {
+      <ol class="list-group list-group-numbered">
+        @for (entrada of historial; track $index) {
+        <li class="list-group-item d-flex justify-content-between align-items-start gap-3" data-historial>
+          <div class="ms-2 me-auto">
+            <div class="fw-semibold">{{ textoAccion(entrada.accion) }}</div>
+            <small class="text-secondary d-block">{{ nombreUsuario(entrada) }} &middot; {{ formatearFechaHora(entrada.fecha) }}</small>
+            @if (entrada.observaciones) {
+            <p class="mb-0 mt-1" style="white-space: pre-line;">{{ entrada.observaciones }}</p>
+            }
+          </div>
+          <span class="badge rounded-pill" [ngClass]="claseInsigniaEtapa(entrada.etapaCodigo)">
+            {{ textoEtapa(entrada.etapaCodigo) }}
+          </span>
+        </li>
+        }
+      </ol>
+      }
+    </div>
+  </section>
+</div>
+}
