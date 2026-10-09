@@ -36,10 +36,17 @@ describe('validaciones academicas', () => {
     expect(errorDeArchivo(archivo('a.png', 10), 'pdf')).toContain('pdf');
   });
 
+  it('acepta un maximo menor por tipo, pero nunca mayor a 5 MB', () => {
+    expect(errorDeArchivo(archivo('a.pdf', 2048), 'pdf', 1024)).toContain('1,0 KB');
+    expect(errorDeArchivo(archivo('a.pdf', 5242881), 'pdf', 10485760)).toContain('5 MB');
+    expect(errorDeArchivo(archivo('a.pdf', 5242880), 'pdf', 0)).toBeNull();
+  });
+
   it('valida textos obligatorios y su largo maximo', () => {
     expect(errorDeTexto('', 255, true, 'El motivo')).toBe('El motivo es obligatorio.');
     expect(errorDeTexto('   ', 255, true, 'El motivo')).toBe('El motivo es obligatorio.');
     expect(errorDeTexto('', 500, false, 'La observación')).toBeNull();
+    expect(errorDeTexto('', 500, true, 'La observación', true)).toBe('La observación es obligatoria.');
     expect(errorDeTexto('a'.repeat(255), 255, true, 'El motivo')).toBeNull();
     expect(errorDeTexto('a'.repeat(256), 255, true, 'El motivo')).toContain('255');
     expect(errorDeTexto('a'.repeat(501), 500, false, 'La observación')).toContain('500');

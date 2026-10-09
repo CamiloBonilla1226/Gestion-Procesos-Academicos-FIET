@@ -189,4 +189,15 @@ describe('DetalleSolicitudAcademicaComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-bloque-proceso] app-cancelacion-matricula-proceso-component')).toBeTruthy();
     http.expectOne(req => req.url.endsWith('/cancelaciones-matricula/u-1'));
   });
+
+  it('inserta el componente de Cancelacion de Asignatura en el bloque del proceso', async () => {
+    const fixture = crear({ ...detalle(false, false), tipoSolicitud: 'Cancelación de Asignatura' }, 'DECANO');
+    await COMPONENTES_PROCESO['cancelaciones-asignatura']!();
+    await new Promise(resolver => setTimeout(resolver));
+    fixture.detectChanges();
+    expect(fixture.componentInstance.proceso).toBe('cancelaciones-asignatura');
+    expect(fixture.nativeElement.querySelector('[data-bloque-proceso] app-cancelacion-asignatura-proceso-component')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('[data-bloque-proceso] app-cancelacion-matricula-proceso-component')).toBeNull();
+    http.expectOne(req => req.url.endsWith('/cancelaciones-asignatura/u-1'));
+  });
 });

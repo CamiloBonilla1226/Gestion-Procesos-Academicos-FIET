@@ -154,6 +154,12 @@ export const FORMATOS_RESOLUCION = 'pdf';
 export const NOTA_MINIMA = 0;
 export const NOTA_MAXIMA = 5;
 export const FALTAS_MINIMAS = 0;
+export const NOTA_MINIMA_PARA_CUMPLIR = 3;
+
+export const OPCIONES_SI_NO: { label: string; value: boolean }[] = [
+  { label: 'Sí', value: true },
+  { label: 'No', value: false }
+];
 
 export const CODIGOS_ERROR = {
   GENERICO: 1,

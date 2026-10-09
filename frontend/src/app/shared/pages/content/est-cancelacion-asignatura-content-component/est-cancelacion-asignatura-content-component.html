@@ -1,0 +1,93 @@
+@if (cargando) {
+<div class="d-flex align-items-center gap-2 text-secondary" data-estado="cargando">
+  <div class="spinner-border spinner-border-sm" role="status"></div>
+  <span>Cargando formulario...</span>
+</div>
+} @else if (errorCarga) {
+<div class="alert alert-danger d-flex justify-content-between align-items-center mb-0" data-estado="error">
+  <span>No se pudo cargar el formulario.</span>
+  <app-simple-button-component label="Reintentar" width="100px" height="30px" (clicked)="cargarFormulario()">
+  </app-simple-button-component>
+</div>
+} @else if (formulario) {
+<div class="d-flex flex-column gap-4">
+  @if (!puedeRadicar) {
+  <div class="alert alert-warning mb-0" data-estado="sin-asignaturas">
+    No tienes asignaturas activas, por eso no puedes radicar una Cancelación de Asignatura.
+  </div>
+  } @else {
+  <section class="card">
+    <div class="card-body">
+      <h6 class="card-title">Asignaturas que quieres cancelar</h6>
+      <p class="text-secondary small mb-2">Elige al menos una. El resto de tu matrícula sigue activa.</p>
+      <div class="list-group">
+        @for (asignatura of formulario.asignaturas; track asignatura.uuidAsignaturaMatriculada) {
+        <label class="list-group-item d-flex gap-2 align-items-center" [attr.data-asignatura]="asignatura.uuidAsignaturaMatriculada">
+          <input class="form-check-input m-0" type="checkbox" [checked]="estaSeleccionada(asignatura.uuidAsignaturaMatriculada)"
+            (change)="alCambiarSeleccion(asignatura.uuidAsignaturaMatriculada, $event)">
+          <span>{{ asignatura.codigoAsignatura }} - {{ asignatura.nombreAsignatura }} (grupo {{ asignatura.grupo }})</span>
+        </label>
+        }
+      </div>
+      @if (errores['asignaturas'] || erroresServidor['asignaturas']) {
+      <small class="text-danger d-block mt-1" data-error="asignaturas">{{ errores['asignaturas'] || erroresServidor['asignaturas'] }}</small>
+      }
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-body">
+      <app-input-text-tarea-component label="Motivo de la cancelación" [required]="true" [value]="motivo"
+        [forceValidation]="intentoEnvio" (valueChange)="alCambiarMotivo($event)">
+      </app-input-text-tarea-component>
+      <div class="d-flex justify-content-between">
+        <small class="text-danger" data-error="motivo">{{ errores['motivo'] || erroresServidor['motivo'] || '' }}</small>
+        <small [class.text-danger]="motivo.length > maximoMotivo" class="text-secondary">{{ motivo.length }}/{{ maximoMotivo }}</small>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-body d-flex flex-column gap-3">
+      <h6 class="card-title mb-0">Soportes opcionales</h6>
+      <p class="text-secondary small mb-0">Cada archivo puede pesar máximo {{ formatearTamanio(maximoSoporteBytes) }}.</p>
+      <app-input-anexo-upload-component #entradaSoporte [tipoAnexo]="tipoSoporte" [uploadedFile]="null"
+        (fileSelected)="alAgregarSoporte($event, entradaSoporte)">
+      </app-input-anexo-upload-component>
+      @if (errores['soporte'] || erroresServidor['soporte']) {
+      <small class="text-danger" data-error="soporte">{{ errores['soporte'] || erroresServidor['soporte'] }}</small>
+      }
+      @if (soportes.length > 0) {
+      <ul class="list-group">
+        @for (soporte of soportes; track $index) {
+        <li class="list-group-item d-flex justify-content-between align-items-center" data-soporte>
+          <span class="text-break">{{ soporte.name }} ({{ formatearTamanio(soporte.size) }})</span>
+          <app-simple-button-component label="Quitar" width="80px" height="28px" color="#6c757d"
+            (clicked)="quitarSoporte($index)">
+          </app-simple-button-component>
+        </li>
+        }
+      </ul>
+      }
+    </div>
+  </section>
+
+  @if (errores['total']) {
+  <div class="alert alert-danger mb-0" data-error="total">{{ errores['total'] }}</div>
+  }
+  @if (erroresServidorGenerales.length > 0) {
+  <div class="alert alert-danger mb-0" data-error="servidor">
+    @for (mensaje of erroresServidorGenerales; track mensaje) {
+    <div>{{ mensaje }}</div>
+    }
+  </div>
+  }
+  }
+
+  <div class="d-flex justify-content-end">
+    <app-simple-button-component data-boton-radicar [label]="enviando ? 'Enviando...' : 'Radicar solicitud'"
+      width="180px" height="36px" [disabled]="enviando || !puedeRadicar" (clicked)="radicar()">
+    </app-simple-button-component>
+  </div>
+</div>
+}

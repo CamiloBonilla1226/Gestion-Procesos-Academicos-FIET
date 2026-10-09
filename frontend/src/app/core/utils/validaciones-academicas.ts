@@ -5,6 +5,7 @@ import {
   NOTA_MINIMA,
   TAMANIO_MAXIMO_ARCHIVO_BYTES
 } from '../constantes/procesos-academicos';
+import { formatearTamanio } from './formato';
 
 const EQUIVALENTES: Record<string, string[]> = {
   jpg: ['jpg', 'jpeg'],
@@ -31,23 +32,34 @@ export function extensionPermitida(nombreArchivo: string, formatos: string | nul
   return permitidos.includes(extensionDe(nombreArchivo));
 }
 
-export function errorDeArchivo(archivo: File, formatos: string | null | undefined): string | null {
+export function errorDeArchivo(
+  archivo: File,
+  formatos: string | null | undefined,
+  maximoBytes: number = TAMANIO_MAXIMO_ARCHIVO_BYTES
+): string | null {
+  const maximo = Math.min(maximoBytes > 0 ? maximoBytes : TAMANIO_MAXIMO_ARCHIVO_BYTES, TAMANIO_MAXIMO_ARCHIVO_BYTES);
   if (archivo.size === 0) return 'El archivo está vacío.';
-  if (archivo.size > TAMANIO_MAXIMO_ARCHIVO_BYTES) return 'El archivo supera el máximo de 5 MB.';
+  if (archivo.size > maximo) return `El archivo supera el máximo de ${textoMaximo(maximo)}.`;
   if (!extensionPermitida(archivo.name, formatos)) {
     return `Formato no permitido. Se aceptan: ${listaFormatos(formatos).join(', ')}.`;
   }
   return null;
 }
 
+function textoMaximo(bytes: number): string {
+  const megabyte = 1024 * 1024;
+  return bytes % megabyte === 0 ? `${bytes / megabyte} MB` : formatearTamanio(bytes);
+}
+
 export function errorDeTexto(
   valor: string | null | undefined,
   maximo: number,
   obligatorio: boolean,
-  campo: string
+  campo: string,
+  femenino = false
 ): string | null {
   const texto = (valor ?? '').trim();
-  if (obligatorio && texto === '') return `${campo} es obligatorio.`;
+  if (obligatorio && texto === '') return `${campo} es ${femenino ? 'obligatoria' : 'obligatorio'}.`;
   if (texto.length > maximo) return `${campo} supera los ${maximo} caracteres permitidos.`;
   return null;
 }

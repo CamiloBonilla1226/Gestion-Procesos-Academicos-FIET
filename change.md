@@ -2,6 +2,39 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-08 - Cancelación de Asignatura en el frontend (Tarea T10.5)
+- Qué se hizo:
+  - Pantalla de radicación para el Estudiante en `/estudiante/cancelacion-asignatura`: elección de una o más asignaturas, motivo y soportes opcionales.
+  - Componente de proceso con aprobación parcial (P14):
+    - Vista de solo lectura del Estudiante según la etapa.
+    - Evaluación del Funcionario por asignatura con `cumpleCondiciones`.
+    - Decisión del Decano por asignatura.
+    - Rechazos y envío de la respuesta con el escaneo de la Resolución.
+  - El componente quedó registrado en `COMPONENTES_PROCESO` con una línea.
+- Archivos:
+  - `frontend/src/app/shared/pages/content/est-cancelacion-asignatura-content-component/` (creado, con spec)
+  - `frontend/src/app/shared/pages/est-cancelacion-asignatura-component/` (creado)
+  - `frontend/src/app/core/estudiante/pages/estudiante-cancelacion-asignatura-component/` (creado)
+  - `frontend/src/app/shared/pages/content/cancelacion-asignatura-proceso-component/` (creado, con spec)
+  - `frontend/src/app/core/constantes/procesos-academicos.ts` (modificado: `NOTA_MINIMA_PARA_CUMPLIR` y `OPCIONES_SI_NO`)
+  - `frontend/src/app/core/utils/validaciones-academicas.ts` y su spec (modificados: tamaño máximo opcional en `errorDeArchivo` y concordancia de género en `errorDeTexto`)
+  - `frontend/src/app/shared/pages/content/cancelacion-matricula-proceso-component/cancelacion-matricula-proceso-component.ts` (modificado: "La observación es obligatoria")
+  - `frontend/src/app/shared/pages/content/detalle-solicitud-academica-component/componentes-proceso.ts` y el spec del detalle (modificados)
+  - `frontend/src/app/core/estudiante/components/side-bar-estudiante-component/side-bar-estudiante-component.html` (modificado)
+  - `frontend/src/app/app.routes.ts` (modificado, solo líneas agregadas)
+- Notas:
+  - **Lo que ve el Estudiante (P15):** antes de la etapa final, solo código y nombre. En APROBADA o RECHAZADA, además la decisión del Decano y su observación cuando existen.
+  - **Columnas vacías:** en ningún rol se pintan columnas sin datos.
+  - **Reglas de interfaz:**
+    - Con nota menor a 3.0 no se puede marcar que cumple.
+    - Si no cumple, la observación de la evaluación es obligatoria (255).
+    - Al menos una asignatura debe cumplir para remitir.
+    - Solo se aprueba una asignatura que cumple; la aprobada exige situación al cancelar y la rechazada, observación de la decisión.
+    - Al menos una aprobada para aprobar.
+  - **Duplicación:** el flujo de diálogos y la subida del escaneo de la Resolución se duplicaron de Cancelación de Matrícula en lugar de extraerlos. Extraerlos exigía cambiar el componente de T10.4 y sus specs.
+  - **Tamaño:** el bundle inicial pasa de 829.66 kB a 830.13 kB.
+  - **Pruebas:** specs de T10.1 a T10.5: 146 de 146. En la corrida completa siguen fallando los mismos 58 specs de Julián, por falta de `HttpClient`.
+
 ## 2026-10-08 - Cancelación de Matrícula en el frontend (Tarea T10.4)
 - Qué se hizo:
   - Pantalla de radicación para el Estudiante en `/estudiante/cancelacion-matricula`: motivo, los seis anexos obligatorios, soportes opcionales y la advertencia de primer periodo con casilla de confirmación.

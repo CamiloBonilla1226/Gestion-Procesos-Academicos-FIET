@@ -316,7 +316,7 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
     const errores: Record<string, string> = {};
     const observacionObligatoria =
       accion === ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO || accion === ACCIONES_ACADEMICAS.RECHAZAR_DECANO;
-    const errorObservacion = errorDeTexto(this.observacion, MAXIMO_CARACTERES_OBSERVACION, observacionObligatoria, 'La observación');
+    const errorObservacion = errorDeTexto(this.observacion, MAXIMO_CARACTERES_OBSERVACION, observacionObligatoria, 'La observación', true);
     if (errorObservacion) errores['observacion'] = errorObservacion;
 
     const exigeResolucion =

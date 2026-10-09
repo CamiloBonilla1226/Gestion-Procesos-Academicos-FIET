@@ -12,5 +12,6 @@ export interface EntradasComponenteProceso {
 export type CargadorComponenteProceso = () => Promise<Type<unknown>>;
 
 export const COMPONENTES_PROCESO: Partial<Record<ProcesoAcademico, CargadorComponenteProceso>> = {
-  'cancelaciones-matricula': () => import('../cancelacion-matricula-proceso-component/cancelacion-matricula-proceso-component').then(m => m.CancelacionMatriculaProcesoComponent)
+  'cancelaciones-matricula': () => import('../cancelacion-matricula-proceso-component/cancelacion-matricula-proceso-component').then(m => m.CancelacionMatriculaProcesoComponent),
+  'cancelaciones-asignatura': () => import('../cancelacion-asignatura-proceso-component/cancelacion-asignatura-proceso-component').then(m => m.CancelacionAsignaturaProcesoComponent)
 };
