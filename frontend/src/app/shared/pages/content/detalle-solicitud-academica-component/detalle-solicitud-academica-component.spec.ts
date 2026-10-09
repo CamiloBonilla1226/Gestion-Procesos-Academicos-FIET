@@ -1,8 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { of, throwError } from 'rxjs';
 import { DetalleSolicitudAcademicaComponent } from './detalle-solicitud-academica-component';
+import { COMPONENTES_PROCESO } from './componentes-proceso';
 import { SolicitudAcademicaService } from '../../../../core/services/solicitud-academica-service';
 import { ErrorHandlerService } from '../../../../core/services/error-handler-service';
 import { SolicitudAcademicaDetalleDTORespuesta } from '../../../../core/models/SolicitudAcademica/DTOResponse/SolicitudAcademicaDetalleDTORespuesta';
@@ -52,6 +55,7 @@ const historial: HistorialSolicitudAcademicaDTORespuesta[] = [
 describe('DetalleSolicitudAcademicaComponent', () => {
   let servicio: jasmine.SpyObj<SolicitudAcademicaService>;
   let errores: jasmine.SpyObj<ErrorHandlerService>;
+  let http: HttpTestingController;
 
   beforeEach(() => {
     servicio = jasmine.createSpyObj<SolicitudAcademicaService>('SolicitudAcademicaService', [
@@ -61,12 +65,16 @@ describe('DetalleSolicitudAcademicaComponent', () => {
     TestBed.configureTestingModule({
       imports: [DetalleSolicitudAcademicaComponent],
       providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideNoopAnimations(),
         { provide: SolicitudAcademicaService, useValue: servicio },
         { provide: ErrorHandlerService, useValue: errores },
         { provide: Router, useValue: jasmine.createSpyObj<Router>('Router', ['navigate']) },
         { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ uuid: 'u-1' })) } }
       ]
     });
+    http = TestBed.inject(HttpTestingController);
   });
 
   function crear(datos: SolicitudAcademicaDetalleDTORespuesta, rol = 'ESTUDIANTE'): ComponentFixture<DetalleSolicitudAcademicaComponent> {
@@ -164,9 +172,21 @@ describe('DetalleSolicitudAcademicaComponent', () => {
     expect(errores.handleError).toHaveBeenCalledTimes(1);
   });
 
-  it('el bloque del proceso queda vacio mientras no haya componente registrado', () => {
-    const fixture = crear(detalle(false, false));
-    expect(fixture.componentInstance.proceso).toBe('cancelaciones-matricula');
+  it('el bloque del proceso queda vacio si el proceso no tiene componente registrado', async () => {
+    const fixture = crear({ ...detalle(false, false), tipoSolicitud: 'Examen Supletorio' });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.proceso).toBe('examenes-supletorios');
     expect(fixture.nativeElement.querySelector('[data-bloque-proceso]')).toBeNull();
+  });
+
+  it('inserta el componente de Cancelacion de Matricula en el bloque del proceso', async () => {
+    const fixture = crear(detalle(false, false), 'FUNCIONARIO');
+    await COMPONENTES_PROCESO['cancelaciones-matricula']!();
+    await new Promise(resolver => setTimeout(resolver));
+    fixture.detectChanges();
+    expect(fixture.componentInstance.proceso).toBe('cancelaciones-matricula');
+    expect(fixture.nativeElement.querySelector('[data-bloque-proceso] app-cancelacion-matricula-proceso-component')).toBeTruthy();
+    http.expectOne(req => req.url.endsWith('/cancelaciones-matricula/u-1'));
   });
 });

@@ -1,0 +1,9 @@
+<app-page-component [sidebarComponent]="sidebar" [headerComponent]="header" [breadcrumbComponent]="breadcrumb"
+  [breadcrumbInputs]="{
+    role: 'Estudiante',
+    breadcrumbs: [
+      { label: 'Mis solicitudes', url: '/estudiante/solicitudes' },
+      { label: 'Cancelación de Matrícula' }
+    ]
+  }" [mainComponent]="main">
+</app-page-component>

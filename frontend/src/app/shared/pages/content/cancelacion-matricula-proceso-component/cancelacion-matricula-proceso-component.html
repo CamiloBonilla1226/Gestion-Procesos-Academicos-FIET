@@ -1,0 +1,145 @@
+<section class="card">
+  <div class="card-body d-flex flex-column gap-3">
+    <h6 class="card-title mb-0">Cancelación de Matrícula</h6>
+
+    @if (cargando && !detalle) {
+    <div class="d-flex align-items-center gap-2 text-secondary" data-estado="cargando">
+      <div class="spinner-border spinner-border-sm" role="status"></div>
+      <span>Cargando datos de la cancelación...</span>
+    </div>
+    } @else if (errorCarga) {
+    <div class="alert alert-danger d-flex justify-content-between align-items-center mb-0" data-estado="error">
+      <span>No se pudieron cargar los datos de la cancelación.</span>
+      <app-simple-button-component label="Reintentar" width="100px" height="30px" (clicked)="cargarDetalle()">
+      </app-simple-button-component>
+    </div>
+    } @else if (detalle) {
+    <div>
+      <small class="text-secondary d-block">Motivo de la cancelación</small>
+      <p class="mb-0" style="white-space: pre-line;" data-motivo>{{ detalle.motivoCancelacion }}</p>
+    </div>
+    <app-table-generic-component [headers]="encabezados" [data]="filasAsignaturas"></app-table-generic-component>
+    }
+
+    @if (accionesVisibles.length > 0) {
+    <div class="d-flex flex-wrap gap-2 justify-content-end" data-acciones>
+      @for (accion of accionesVisibles; track accion) {
+      <app-simple-button-component [attr.data-accion]="accion" [label]="etiquetaBoton(accion)" width="180px"
+        height="34px" [color]="accion === acciones.RECHAZAR_FUNCIONARIO || accion === acciones.RECHAZAR_DECANO ? '#B02A37' : '#1E257B'"
+        [disabled]="!detalle" (clicked)="abrir(accion)">
+      </app-simple-button-component>
+      }
+    </div>
+    }
+  </div>
+</section>
+
+<app-generic-dialog-form-component [visible]="dialogoVisible" [title]="tituloDialogo" (visibleChange)="cerrar($event)"
+  (save)="confirmar()">
+  <div class="d-flex flex-column gap-3" data-dialogo>
+    @switch (accionActiva) {
+    @case (acciones.RECHAZAR_FUNCIONARIO) {
+    <p class="mb-0">
+      La solicitud quedará rechazada y terminará el trámite. Sube el escaneo de la Resolución firmada por el Decano y
+      escribe la observación que verá el estudiante.
+    </p>
+    }
+    @case (acciones.REMITIR_DECANO) {
+    <p class="mb-0">Registra la evaluación de cada asignatura antes de remitir la solicitud al Decano.</p>
+    @if (solicitud.tieneResolucion) {
+    <div class="alert alert-warning mb-0 py-2">Al remitir se retira el escaneo de la Resolución que estaba cargado.</div>
+    }
+    @for (asignatura of asignaturas; track asignatura.uuidAsignaturaSolicitud) {
+    <div class="border rounded p-2" [attr.data-evaluacion]="asignatura.uuidAsignaturaSolicitud">
+      <strong>{{ asignatura.codigoAsignatura }} - {{ asignatura.nombreAsignatura }}</strong>
+      <div class="row g-2">
+        <div class="col-md-3">
+          <app-input-text-component label="Faltas" [required]="true"
+            [(value)]="evaluaciones[asignatura.uuidAsignaturaSolicitud].faltas">
+          </app-input-text-component>
+          <small class="text-danger">{{ errores['faltas-' + asignatura.uuidAsignaturaSolicitud] || '' }}</small>
+        </div>
+        <div class="col-md-3">
+          <app-input-text-component label="Nota" [required]="true"
+            [(value)]="evaluaciones[asignatura.uuidAsignaturaSolicitud].nota">
+          </app-input-text-component>
+          <small class="text-danger">{{ errores['nota-' + asignatura.uuidAsignaturaSolicitud] || '' }}</small>
+        </div>
+        <div class="col-md-6">
+          <app-input-select-component label="Situación en la matrícula" [required]="true" [options]="opcionesSituacion"
+            [(value)]="evaluaciones[asignatura.uuidAsignaturaSolicitud].situacion">
+          </app-input-select-component>
+          <small class="text-danger">{{ errores['situacion-' + asignatura.uuidAsignaturaSolicitud] || '' }}</small>
+        </div>
+      </div>
+    </div>
+    }
+    }
+    @case (acciones.APROBAR_DECANO) {
+    <p class="mb-0">Registra la situación al cancelar de cada asignatura.</p>
+    @for (asignatura of asignaturas; track asignatura.uuidAsignaturaSolicitud) {
+    <div [attr.data-situacion-cancelar]="asignatura.uuidAsignaturaSolicitud">
+      <app-input-select-component [label]="asignatura.codigoAsignatura + ' - ' + asignatura.nombreAsignatura"
+        [required]="true" [options]="opcionesSituacion"
+        [(value)]="situacionesCancelar[asignatura.uuidAsignaturaSolicitud]">
+      </app-input-select-component>
+      <small class="text-danger">{{ errores['cancelar-' + asignatura.uuidAsignaturaSolicitud] || '' }}</small>
+    </div>
+    }
+    }
+    @case (acciones.RECHAZAR_DECANO) {
+    <p class="mb-0">La solicitud pasará al Funcionario Académico para que envíe la respuesta al estudiante.</p>
+    }
+    @case (acciones.ENVIAR_RESPUESTA) {
+    <p class="mb-0">
+      Sube el escaneo de la Resolución firmada por el Decano. Al enviar la respuesta la solicitud termina
+      @if (solicitud.etapaCodigo === 'APROBADA_POR_DECANO') {
+      y las asignaturas que sigan activas quedan canceladas.
+      } @else {
+      como rechazada.
+      }
+    </p>
+    }
+    }
+
+    @if (accionActiva === acciones.RECHAZAR_FUNCIONARIO || accionActiva === acciones.ENVIAR_RESPUESTA) {
+    <div data-campo-resolucion>
+      @if (hayResolucion) {
+      <small class="text-success d-block mb-1">Ya hay un escaneo de la Resolución cargado. Puedes reemplazarlo si lo necesitas.</small>
+      }
+      <app-input-anexo-upload-component #entradaResolucion [tipoAnexo]="tipoResolucion" [uploadedFile]="archivoResolucion"
+        (fileSelected)="alSeleccionarResolucion($event, entradaResolucion)" (fileRemoved)="alQuitarResolucion()">
+      </app-input-anexo-upload-component>
+      <small class="text-danger" data-error="resolucion">{{ errores['resolucion'] || '' }}</small>
+    </div>
+    }
+
+    @if (accionActiva && accionActiva !== acciones.APROBAR_DECANO && accionActiva !== acciones.ENVIAR_RESPUESTA) {
+    <div>
+      <app-input-text-tarea-component
+        [label]="accionActiva === acciones.REMITIR_DECANO ? 'Observación (opcional)' : 'Observación'"
+        [required]="accionActiva !== acciones.REMITIR_DECANO" [(value)]="observacion">
+      </app-input-text-tarea-component>
+      <div class="d-flex justify-content-between">
+        <small class="text-danger" data-error="observacion">{{ errores['observacion'] || '' }}</small>
+        <small class="text-secondary">{{ observacion.length }}/{{ maximoObservacion }}</small>
+      </div>
+    </div>
+    }
+
+    @if (erroresServidor.length > 0) {
+    <div class="alert alert-danger mb-0 py-2" data-error="servidor">
+      @for (mensaje of erroresServidor; track mensaje) {
+      <div>{{ mensaje }}</div>
+      }
+    </div>
+    }
+
+    @if (enviando) {
+    <div class="d-flex align-items-center gap-2 text-secondary" data-estado="enviando">
+      <div class="spinner-border spinner-border-sm" role="status"></div>
+      <span>Enviando...</span>
+    </div>
+    }
+  </div>
+</app-generic-dialog-form-component>

@@ -1,0 +1,120 @@
+@if (cargando) {
+<div class="d-flex align-items-center gap-2 text-secondary" data-estado="cargando">
+  <div class="spinner-border spinner-border-sm" role="status"></div>
+  <span>Cargando formulario...</span>
+</div>
+} @else if (errorCarga) {
+<div class="alert alert-danger d-flex justify-content-between align-items-center mb-0" data-estado="error">
+  <span>No se pudo cargar el formulario.</span>
+  <app-simple-button-component label="Reintentar" width="100px" height="30px" (clicked)="cargarFormulario()">
+  </app-simple-button-component>
+</div>
+} @else if (formulario) {
+<div class="d-flex flex-column gap-4">
+  @if (!puedeRadicar) {
+  <div class="alert alert-warning mb-0" data-estado="sin-asignaturas">
+    No tienes asignaturas activas para cancelar, por eso no puedes radicar una Cancelación de Matrícula.
+  </div>
+  } @else {
+  <section class="card">
+    <div class="card-body">
+      <h6 class="card-title">Asignaturas que se cancelan</h6>
+      <p class="text-secondary small mb-2">La solicitud incluye todas tus asignaturas activas.</p>
+      <ul class="list-group">
+        @for (asignatura of formulario.asignaturas; track asignatura.codigoAsignatura) {
+        <li class="list-group-item" data-asignatura>{{ asignatura.codigoAsignatura }} - {{ asignatura.nombreAsignatura }}</li>
+        }
+      </ul>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-body">
+      <app-input-text-tarea-component label="Motivo de la cancelación" [required]="true" [value]="motivo"
+        [forceValidation]="intentoEnvio" (valueChange)="alCambiarMotivo($event)">
+      </app-input-text-tarea-component>
+      <div class="d-flex justify-content-between">
+        <small class="text-danger" data-error="motivo">{{ errores['motivo'] || erroresServidor['motivo'] || '' }}</small>
+        <small [class.text-danger]="motivo.length > maximoMotivo" class="text-secondary">{{ motivo.length }}/{{ maximoMotivo }}</small>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-body d-flex flex-column gap-3">
+      <h6 class="card-title mb-0">Anexos obligatorios</h6>
+      <p class="text-secondary small mb-0">Cada archivo puede pesar máximo 5 MB.</p>
+      @for (campo of campos; track campo.requerido.uuidTipoAnexoAcademico) {
+      <div [attr.data-campo-anexo]="campo.requerido.uuidTipoAnexoAcademico">
+        <app-input-anexo-upload-component #entrada [tipoAnexo]="campo.tipo"
+          [uploadedFile]="archivos[campo.requerido.uuidTipoAnexoAcademico]"
+          (fileSelected)="alSeleccionarAnexo(campo, $event, entrada)" (fileRemoved)="alQuitarAnexo(campo)">
+        </app-input-anexo-upload-component>
+        @if (errores[campo.requerido.uuidTipoAnexoAcademico] || erroresServidor[campo.requerido.uuidTipoAnexoAcademico]) {
+        <small class="text-danger" data-error-anexo>
+          {{ errores[campo.requerido.uuidTipoAnexoAcademico] || erroresServidor[campo.requerido.uuidTipoAnexoAcademico] }}
+        </small>
+        }
+      </div>
+      }
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-body d-flex flex-column gap-3">
+      <h6 class="card-title mb-0">Soportes opcionales</h6>
+      <app-input-anexo-upload-component #entradaSoporte [tipoAnexo]="tipoSoporte" [uploadedFile]="null"
+        (fileSelected)="alAgregarSoporte($event, entradaSoporte)">
+      </app-input-anexo-upload-component>
+      @if (errores['soporte'] || erroresServidor['soporte']) {
+      <small class="text-danger" data-error="soporte">{{ errores['soporte'] || erroresServidor['soporte'] }}</small>
+      }
+      @if (soportes.length > 0) {
+      <ul class="list-group">
+        @for (soporte of soportes; track $index) {
+        <li class="list-group-item d-flex justify-content-between align-items-center" data-soporte>
+          <span class="text-break">{{ soporte.name }} ({{ formatearTamanio(soporte.size) }})</span>
+          <app-simple-button-component label="Quitar" width="80px" height="28px" color="#6c757d"
+            (clicked)="quitarSoporte($index)">
+          </app-simple-button-component>
+        </li>
+        }
+      </ul>
+      }
+    </div>
+  </section>
+
+  <section class="alert alert-warning mb-0">
+    <p class="mb-2">
+      Si cursas tu primer periodo académico de la carrera, al cancelar la matrícula solo podrás volver al programa por
+      el proceso de admisión vigente.
+    </p>
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" id="acepta-advertencia" [checked]="aceptaAdvertencia"
+        (change)="alCambiarAdvertencia($event)">
+      <label class="form-check-label" for="acepta-advertencia">Leí y entiendo la advertencia.</label>
+    </div>
+    @if (errores['advertencia']) {
+    <small class="text-danger d-block mt-1" data-error="advertencia">{{ errores['advertencia'] }}</small>
+    }
+  </section>
+
+  @if (errores['total']) {
+  <div class="alert alert-danger mb-0" data-error="total">{{ errores['total'] }}</div>
+  }
+  @if (erroresServidorGenerales.length > 0) {
+  <div class="alert alert-danger mb-0" data-error="servidor">
+    @for (mensaje of erroresServidorGenerales; track mensaje) {
+    <div>{{ mensaje }}</div>
+    }
+  </div>
+  }
+  }
+
+  <div class="d-flex justify-content-end">
+    <app-simple-button-component data-boton-radicar [label]="enviando ? 'Enviando...' : 'Radicar solicitud'"
+      width="180px" height="36px" [disabled]="enviando || !puedeRadicar" (clicked)="radicar()">
+    </app-simple-button-component>
+  </div>
+</div>
+}

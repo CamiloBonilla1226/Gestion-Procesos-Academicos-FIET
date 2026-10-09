@@ -148,6 +148,12 @@ export const MAXIMO_CARACTERES_MOTIVO = 255;
 export const MAXIMO_CARACTERES_OBSERVACION = 500;
 export const MAXIMO_CARACTERES_OBSERVACION_ASIGNATURA = 255;
 export const PLAZO_SUPLETORIO_DIAS_HABILES = 3;
+export const TAMANIO_MAXIMO_PETICION_BYTES = 20971520;
+export const FORMATOS_SOPORTE_LIBRE = 'pdf,jpg,jpeg,png';
+export const FORMATOS_RESOLUCION = 'pdf';
+export const NOTA_MINIMA = 0;
+export const NOTA_MAXIMA = 5;
+export const FALTAS_MINIMAS = 0;
 
 export const CODIGOS_ERROR = {
   GENERICO: 1,

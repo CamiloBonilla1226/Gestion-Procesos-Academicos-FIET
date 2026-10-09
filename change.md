@@ -2,6 +2,31 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-08 - Cancelación de Matrícula en el frontend (Tarea T10.4)
+- Qué se hizo:
+  - Pantalla de radicación para el Estudiante en `/estudiante/cancelacion-matricula`: motivo, los seis anexos obligatorios, soportes opcionales y la advertencia de primer periodo con casilla de confirmación.
+  - Componente de proceso para el detalle: motivo, asignaturas con su evaluación y situaciones, y las acciones del Funcionario (rechazar, remitir, enviar respuesta) y del Decano (aprobar, rechazar), cada una con diálogo de confirmación.
+  - El componente quedó registrado en `COMPONENTES_PROCESO` con una línea.
+- Archivos:
+  - `frontend/src/app/shared/pages/content/est-cancelacion-matricula-content-component/` (creado, con spec)
+  - `frontend/src/app/shared/pages/est-cancelacion-matricula-component/` (creado)
+  - `frontend/src/app/core/estudiante/pages/estudiante-cancelacion-matricula-component/` (creado)
+  - `frontend/src/app/shared/pages/content/cancelacion-matricula-proceso-component/` (creado, con spec)
+  - `frontend/src/app/core/utils/validaciones-academicas.ts` y su spec (creados)
+  - `frontend/src/app/core/constantes/procesos-academicos.ts` (modificado: tamaño máximo de la petición, formatos del soporte libre y de la Resolución, rango de nota y faltas mínimas)
+  - `frontend/src/app/shared/pages/content/detalle-solicitud-academica-component/componentes-proceso.ts` (modificado)
+  - `frontend/src/app/shared/pages/content/detalle-solicitud-academica-component/detalle-solicitud-academica-component.spec.ts` (modificado)
+  - `frontend/src/app/core/estudiante/components/side-bar-estudiante-component/side-bar-estudiante-component.html` (modificado)
+  - `frontend/src/app/app.routes.ts` (modificado, solo líneas agregadas)
+- Notas:
+  - **Contrato:** el formulario de radicación solo trae `anexosRequeridos` y `asignaturas`. Nota y faltas se piden al remitir, en las evaluaciones del Funcionario, no al radicar. La situación al cancelar la registra el Decano al aprobar (P9).
+  - **Resolución:** al rechazar en el Funcionario y al enviar la respuesta, el escaneo PDF se sube con `POST solicitudes-academicas/{uuid}/resolucion` antes de la acción. Si ya había un escaneo cargado no se exige otro, pero se puede reemplazar.
+  - **Validación de archivos:** máximo 5 MB por archivo, archivo no vacío, extensión del tipo (jpg y jpeg equivalen) y 20 MB por petición. `InputAnexoUploadComponent` de Julián se usa con un adaptador (`comoTipoAnexo`).
+  - **Diálogos:** se usa `GenericDialogFormComponent` de Julián, por decisión del autor. Su botón siempre dice "Guardar" y no se deshabilita; el doble envío se bloquea en el componente.
+  - **Advertencia de primer periodo:** se muestra a todos los estudiantes con una casilla obligatoria, por decisión del autor, porque el formulario no dice en qué periodo va el estudiante.
+  - **Tamaño:** el bundle inicial pasa de 829.24 kB a 829.66 kB.
+  - **Pruebas:** specs de T10.1 a T10.4: 112 de 112. En la corrida completa de `ng test` fallan 58 specs generados de Julián por falta del proveedor `HttpClient` en sus pruebas; no se tocaron.
+
 ## 2026-10-08 - Bandejas, detalle común y ruta del Consejo para el Decano (Tarea T10.3)
 - Qué se hizo:
   - Bandeja de solicitudes académicas por rol con datos reales: filtros por tipo y texto, y paginación en el cliente de 10 por página.
