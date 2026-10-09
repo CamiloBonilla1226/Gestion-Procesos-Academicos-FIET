@@ -185,6 +185,18 @@ export const routes: Routes = [
         loadComponent: () => import('./core/decano/pages/decano-solicitudes-consejo-component/decano-solicitudes-consejo-component').then(m => m.DecanoSolicitudesConsejoComponent)
     },
     {
+        path: 'decano/administracion-academica',
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: [ROLES_ACADEMICOS.DECANO] },
+        loadComponent: () => import('./core/decano/pages/decano-administracion-academica-component/decano-administracion-academica-component').then(m => m.DecanoAdministracionAcademicaComponent)
+    },
+    {
+        path: 'sec-general/administracion-academica',
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: [ROLES_ACADEMICOS.SECRETARIO_GENERAL] },
+        loadComponent: () => import('./core/secretario-general/pages/secretario-general-administracion-academica-component/secretario-general-administracion-academica-component').then(m => m.SecretarioGeneralAdministracionAcademicaComponent)
+    },
+    {
         path: '',
         redirectTo: 'usuario-publico/solicitudes',
         pathMatch: 'full'

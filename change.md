@@ -2,6 +2,37 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-09 - Administración académica en el frontend (Tarea T10.7)
+- Qué se hizo:
+  - Página "Administración académica" para el Decano (`/decano/administracion-academica`) y el Secretario General (`/sec-general/administracion-academica`), cada una con su guardia de rol y su ítem de menú.
+  - Cuatro pestañas:
+    - Asignaturas: búsqueda por texto, paginado, alta y edición.
+    - Estudiantes: filtros, paginado, alta con asignaturas, carga por Excel, edición de datos académicos y diálogo de asignaturas matriculadas con alta y cambio de estado.
+    - Funcionarios académicos: filtros, paginado, alta, carga por Excel y edición de la dependencia.
+    - Responsable por proceso: cambio del funcionario a cargo de cada tipo de solicitud.
+  - Piezas compartidas nuevas: formulario de datos personales y de acceso, y diálogo de carga por Excel con la lista de encabezados y de errores.
+  - Paginación: el paginador de Julián es de base 1 y se convierte a base 0 al llamar al backend; la tabla recibe solo la página actual.
+- Archivos:
+  - `frontend/src/app/shared/pages/content/admin-academica-content-component/` (creado: ts, html, spec)
+  - `frontend/src/app/shared/pages/content/admin-asignaturas-content-component/` (creado: ts, html, spec)
+  - `frontend/src/app/shared/pages/content/admin-estudiantes-content-component/` (creado: ts, html, spec)
+  - `frontend/src/app/shared/pages/content/admin-funcionarios-content-component/` (creado: ts, html, spec)
+  - `frontend/src/app/shared/pages/content/admin-responsables-content-component/` (creado: ts, html, spec)
+  - `frontend/src/app/shared/pages/admin-academica-component/` (creado: ts, html)
+  - `frontend/src/app/shared/others/datos-usuario-academico-component/` (creado: ts, html)
+  - `frontend/src/app/shared/others/carga-excel-academica-component/` (creado: ts, html, spec)
+  - `frontend/src/app/core/decano/pages/decano-administracion-academica-component/` (creado: ts, html)
+  - `frontend/src/app/core/secretario-general/pages/secretario-general-administracion-academica-component/` (creado: ts, html)
+  - `frontend/src/app/core/utils/usuarios-academicos.ts` (creado)
+  - `frontend/src/app/core/constantes/procesos-academicos.ts` (modificado)
+  - `frontend/src/app/core/decano/components/side-bar-decano-component/side-bar-decano-component.html` (modificado)
+  - `frontend/src/app/core/secretario-general/components/side-bar-secretario-general-component/side-bar-secretario-general-component.html` (modificado, una línea agregada)
+  - `frontend/src/app/app.routes.ts` (modificado, solo líneas agregadas)
+- Notas:
+  - No hay borrado: el contrato no tiene endpoints para eso.
+  - El diálogo de responsable lista los primeros 100 funcionarios académicos (`paginado` con tamaño 100) y avisa si hay más.
+  - Se reutilizan `TIPOS_DOCUMENTO` de Julián y los servicios y modelos de T10.1, sin cambios.
+
 ## 2026-10-09 - Examen Supletorio en el frontend (Tarea T10.6)
 - Qué se hizo:
   - Radicación de Cancelación de Asignatura: tras el éxito muestra el radicado y "Ver solicitud" en lugar del formulario, además de navegar, igual que Matrícula.

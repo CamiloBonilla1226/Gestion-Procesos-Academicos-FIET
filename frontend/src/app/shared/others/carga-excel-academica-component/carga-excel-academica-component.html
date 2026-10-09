@@ -1,0 +1,44 @@
+<app-generic-dialog-form-component [visible]="visible" [title]="titulo" (visibleChange)="cerrar($event)" (save)="confirmar()">
+  <div class="d-flex flex-column gap-3" data-carga-excel>
+    <div>
+      <p class="mb-1">La primera fila de la primera hoja debe tener estos encabezados, en este orden:</p>
+      <ol class="small mb-1" data-encabezados>
+        @for (encabezado of encabezados; track encabezado) {
+        <li><code>{{ encabezado }}</code></li>
+        }
+      </ol>
+      @if (regla) {
+      <p class="small text-secondary mb-0" data-regla>{{ regla }}</p>
+      }
+    </div>
+
+    <app-input-anexo-upload-component #entradaExcel [tipoAnexo]="tipoArchivo" [uploadedFile]="archivo"
+      (fileSelected)="alSeleccionar($event, entradaExcel)" (fileRemoved)="alQuitar()">
+    </app-input-anexo-upload-component>
+    @if (error) {
+    <small class="text-danger" data-error="archivo">{{ error }}</small>
+    }
+
+    @if (erroresCarga.length > 0) {
+    <div class="alert alert-danger mb-0 py-2" data-errores-carga>
+      <p class="mb-1 fw-semibold">No se creó ningún registro. Corrige el archivo y vuelve a cargarlo:</p>
+      <ul class="mb-0">
+        @for (mensaje of erroresCarga; track $index) {
+        <li>{{ mensaje }}</li>
+        }
+      </ul>
+    </div>
+    }
+
+    @if (resultado) {
+    <div class="alert alert-success mb-0 py-2" data-resultado-carga>{{ resultado }}</div>
+    }
+
+    @if (enviando) {
+    <div class="d-flex align-items-center gap-2 text-secondary" data-estado="enviando">
+      <div class="spinner-border spinner-border-sm" role="status"></div>
+      <span>Cargando el archivo...</span>
+    </div>
+    }
+  </div>
+</app-generic-dialog-form-component>

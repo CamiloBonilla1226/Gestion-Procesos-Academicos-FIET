@@ -1,0 +1,40 @@
+<div class="row g-2" data-datos-usuario>
+  <div class="col-md-6">
+    <app-input-text-component label="Nombres" [required]="true" [(value)]="datos.nombres"></app-input-text-component>
+    <small class="text-danger" data-error="nombres">{{ errores['nombres'] || '' }}</small>
+  </div>
+  <div class="col-md-6">
+    <app-input-text-component label="Apellidos" [required]="true" [(value)]="datos.apellidos"></app-input-text-component>
+    <small class="text-danger" data-error="apellidos">{{ errores['apellidos'] || '' }}</small>
+  </div>
+  <div class="col-md-6">
+    <app-input-select-component label="Tipo de documento" [required]="true" [options]="tiposDocumento"
+      [(value)]="datos.tipoDocumento">
+    </app-input-select-component>
+    <small class="text-danger" data-error="tipoDocumento">{{ errores['tipoDocumento'] || '' }}</small>
+  </div>
+  <div class="col-md-6">
+    <app-input-text-component label="Número de documento" [required]="true" [(value)]="datos.numeroDocumento">
+    </app-input-text-component>
+    <small class="text-danger" data-error="numeroDocumento">{{ errores['numeroDocumento'] || '' }}</small>
+  </div>
+  <div class="col-md-6">
+    <app-input-text-component label="Teléfono" [required]="true" [(value)]="datos.telefono"></app-input-text-component>
+    <small class="text-danger" data-error="telefono">{{ errores['telefono'] || '' }}</small>
+  </div>
+  <div class="col-md-6">
+    <app-input-text-component label="Correo electrónico" [required]="true" [(value)]="datos.correoElectronico">
+    </app-input-text-component>
+    <small class="text-danger" data-error="correoElectronico">{{ errores['correoElectronico'] || '' }}</small>
+  </div>
+  <div class="col-md-6">
+    <app-input-text-component label="Nombre de usuario" [required]="true" [(value)]="datos.username">
+    </app-input-text-component>
+    <small class="text-danger" data-error="username">{{ errores['username'] || '' }}</small>
+  </div>
+  <div class="col-md-6">
+    <app-input-password-component label="Contraseña" [required]="true" [(value)]="datos.password">
+    </app-input-password-component>
+    <small class="text-danger" data-error="password">{{ errores['password'] || '' }}</small>
+  </div>
+</div>

@@ -156,6 +156,18 @@ export const NOTA_MAXIMA = 5;
 export const FALTAS_MINIMAS = 0;
 export const NOTA_MINIMA_PARA_CUMPLIR = 3;
 
+export const TAMANIO_PAGINA_ADMINISTRACION = 10;
+
+export const ENCABEZADOS_EXCEL_ESTUDIANTES = [
+  'nombres', 'apellidos', 'tipoDocumento', 'numeroDocumento', 'telefono', 'correoElectronico', 'username', 'password',
+  'codigoEstudiantil', 'programaAcademico', 'semestre', 'facultad', 'codigoAsignatura', 'nombreAsignatura', 'grupo'
+];
+
+export const ENCABEZADOS_EXCEL_FUNCIONARIOS = [
+  'nombres', 'apellidos', 'tipoDocumento', 'numeroDocumento', 'telefono', 'correoElectronico', 'username', 'password',
+  'dependencia'
+];
+
 export const OPCIONES_SI_NO: { label: string; value: boolean }[] = [
   { label: 'Sí', value: true },
   { label: 'No', value: false }

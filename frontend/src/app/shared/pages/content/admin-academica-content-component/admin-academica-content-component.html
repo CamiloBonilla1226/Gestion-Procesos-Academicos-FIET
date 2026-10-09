@@ -1,0 +1,23 @@
+<ul class="nav nav-tabs mb-3" data-secciones>
+  @for (item of secciones; track item.codigo) {
+  <li class="nav-item">
+    <a class="nav-link" href="#" [class.active]="seccion === item.codigo" [attr.data-seccion]="item.codigo"
+      (click)="elegir(item.codigo, $event)">{{ item.titulo }}</a>
+  </li>
+  }
+</ul>
+
+@switch (seccion) {
+@case ('asignaturas') {
+<app-admin-asignaturas-content-component></app-admin-asignaturas-content-component>
+}
+@case ('estudiantes') {
+<app-admin-estudiantes-content-component></app-admin-estudiantes-content-component>
+}
+@case ('funcionarios') {
+<app-admin-funcionarios-content-component></app-admin-funcionarios-content-component>
+}
+@case ('responsables') {
+<app-admin-responsables-content-component></app-admin-responsables-content-component>
+}
+}

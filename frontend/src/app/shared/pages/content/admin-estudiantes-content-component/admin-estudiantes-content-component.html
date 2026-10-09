@@ -1,0 +1,246 @@
+<div class="d-flex flex-column gap-3">
+  <div class="row g-2 align-items-center" data-filtros>
+    <div class="col-md-3">
+      <app-input-text-component label="Nombre" [(value)]="filtro.nombre"></app-input-text-component>
+    </div>
+    <div class="col-md-3">
+      <app-input-text-component label="Apellido" [(value)]="filtro.apellido"></app-input-text-component>
+    </div>
+    <div class="col-md-3">
+      <app-input-text-component label="Código estudiantil" [(value)]="filtro.codigo"></app-input-text-component>
+    </div>
+    <div class="col-md-3">
+      <app-simple-button-component data-boton-buscar label="Buscar" width="100px" height="36px" (clicked)="buscar()">
+      </app-simple-button-component>
+    </div>
+  </div>
+  <div class="d-flex flex-wrap gap-2 justify-content-end">
+    <app-simple-button-component data-boton-excel label="Cargar Excel" width="150px" height="36px" color="#6c757d"
+      (clicked)="dialogoExcel = true">
+    </app-simple-button-component>
+    <app-simple-button-component data-boton-nuevo label="Nuevo estudiante" width="170px" height="36px"
+      (clicked)="abrirCrear()">
+    </app-simple-button-component>
+  </div>
+
+  @if (cargando) {
+  <div class="d-flex align-items-center gap-2 text-secondary" data-estado="cargando">
+    <div class="spinner-border spinner-border-sm" role="status"></div>
+    <span>Cargando estudiantes...</span>
+  </div>
+  } @else if (errorCarga) {
+  <div class="alert alert-danger d-flex justify-content-between align-items-center mb-0" data-estado="error">
+    <span>No se pudieron cargar los estudiantes.</span>
+    <app-simple-button-component label="Reintentar" width="100px" height="30px" (clicked)="cargar()">
+    </app-simple-button-component>
+  </div>
+  } @else if (filas.length === 0) {
+  <p class="text-secondary mb-0" data-estado="vacio">No hay estudiantes que coincidan con los filtros.</p>
+  } @else {
+  <app-table-generic-component [headers]="encabezados" [data]="filas" [actionTemplate]="acciones">
+  </app-table-generic-component>
+  <div class="d-flex justify-content-between align-items-center">
+    <small class="text-secondary">{{ totalElementos }} estudiantes</small>
+    <app-paginator [totalPages]="totalPaginas" [currentPage]="paginaActual" (pageChange)="cambiarPagina($event)">
+    </app-paginator>
+  </div>
+  }
+</div>
+
+<ng-template #acciones let-fila>
+  <div class="d-flex gap-1">
+    <app-simple-button-component [attr.data-detalle]="fila.uuid" label="Asignaturas" width="110px" height="28px"
+      (clicked)="abrirDetalle(fila)">
+    </app-simple-button-component>
+    <app-simple-button-component [attr.data-editar]="fila.uuid" label="Editar" width="80px" height="28px"
+      color="#6c757d" (clicked)="abrirEditar(fila)">
+    </app-simple-button-component>
+  </div>
+</ng-template>
+
+<app-generic-dialog-form-component [visible]="dialogoCrear" title="Nuevo estudiante" (visibleChange)="cerrarCrear($event)"
+  (save)="crear()">
+  <div class="d-flex flex-column gap-2" data-dialogo-crear>
+    <h6 class="mb-0">Datos personales y de acceso</h6>
+    <app-datos-usuario-academico-component [datos]="datosUsuario" [errores]="errores">
+    </app-datos-usuario-academico-component>
+    <h6 class="mb-0 mt-2">Datos académicos</h6>
+    <div class="row g-2">
+      <div class="col-md-6">
+        <app-input-text-component label="Código estudiantil" [required]="true" [(value)]="datosAcademicos.codigoEstudiantil">
+        </app-input-text-component>
+        <small class="text-danger" data-error="codigoEstudiantil">{{ errores['codigoEstudiantil'] || '' }}</small>
+      </div>
+      <div class="col-md-6">
+        <app-input-text-component label="Programa académico" [required]="true" [(value)]="datosAcademicos.programaAcademico">
+        </app-input-text-component>
+        <small class="text-danger" data-error="programaAcademico">{{ errores['programaAcademico'] || '' }}</small>
+      </div>
+      <div class="col-md-6">
+        <app-input-text-component label="Semestre" [required]="true" [(value)]="datosAcademicos.semestre">
+        </app-input-text-component>
+        <small class="text-danger" data-error="semestre">{{ errores['semestre'] || '' }}</small>
+      </div>
+      <div class="col-md-6">
+        <app-input-text-component label="Facultad" [required]="true" [(value)]="datosAcademicos.facultad">
+        </app-input-text-component>
+        <small class="text-danger" data-error="facultad">{{ errores['facultad'] || '' }}</small>
+      </div>
+    </div>
+    <div class="d-flex justify-content-between align-items-center mt-2">
+      <h6 class="mb-0">Asignaturas matriculadas</h6>
+      <app-simple-button-component data-boton-agregar-fila label="Agregar asignatura" width="170px" height="30px"
+        color="#6c757d" (clicked)="agregarFilaAsignatura()">
+      </app-simple-button-component>
+    </div>
+    @for (asignatura of asignaturasNuevas; track $index; let i = $index) {
+    <div class="row g-2 align-items-center border rounded p-1" data-fila-asignatura>
+      <div class="col-md-3">
+        <app-input-text-component label="Código" [required]="true" [(value)]="asignatura.codigoAsignatura">
+        </app-input-text-component>
+        <small class="text-danger">{{ errores['asignatura-' + i + '-codigo'] || '' }}</small>
+      </div>
+      <div class="col-md-5">
+        <app-input-text-component label="Nombre" [required]="true" [(value)]="asignatura.nombreAsignatura">
+        </app-input-text-component>
+        <small class="text-danger">{{ errores['asignatura-' + i + '-nombre'] || '' }}</small>
+      </div>
+      <div class="col-md-2">
+        <app-input-text-component label="Grupo" [required]="true" [(value)]="asignatura.grupo">
+        </app-input-text-component>
+        <small class="text-danger">{{ errores['asignatura-' + i + '-grupo'] || '' }}</small>
+      </div>
+      <div class="col-md-2">
+        <app-simple-button-component label="Quitar" width="80px" height="28px" color="#B02A37"
+          [disabled]="asignaturasNuevas.length === 1" (clicked)="quitarFilaAsignatura(i)">
+        </app-simple-button-component>
+      </div>
+    </div>
+    }
+    <small class="text-danger" data-error="asignaturas">{{ errores['asignaturas'] || '' }}</small>
+    @if (erroresServidor.length > 0) {
+    <div class="alert alert-danger mb-0 py-2" data-error="servidor">
+      @for (mensaje of erroresServidor; track $index) {
+      <div>{{ mensaje }}</div>
+      }
+    </div>
+    }
+  </div>
+</app-generic-dialog-form-component>
+
+<app-generic-dialog-form-component [visible]="dialogoEditar" title="Editar datos académicos"
+  (visibleChange)="cerrarEditar($event)" (save)="editar()">
+  <div class="d-flex flex-column gap-2" data-dialogo-editar>
+    <p class="mb-0 small text-secondary">
+      {{ nombreSeleccionado }}. Escribe solo los datos que quieres cambiar; los que dejes vacíos se conservan.
+    </p>
+    <div class="row g-2">
+      <div class="col-md-6">
+        <app-input-text-component [label]="'Código estudiantil (' + (seleccionado?.codigoEstudiantil ?? '') + ')'"
+          [(value)]="edicion.codigoEstudiantil">
+        </app-input-text-component>
+        <small class="text-danger">{{ errores['codigoEstudiantil'] || '' }}</small>
+      </div>
+      <div class="col-md-6">
+        <app-input-text-component [label]="'Programa (' + (seleccionado?.programaAcademico ?? '') + ')'"
+          [(value)]="edicion.programaAcademico">
+        </app-input-text-component>
+        <small class="text-danger">{{ errores['programaAcademico'] || '' }}</small>
+      </div>
+      <div class="col-md-6">
+        <app-input-text-component [label]="'Semestre (' + (seleccionado?.semestre ?? '') + ')'" [(value)]="edicion.semestre">
+        </app-input-text-component>
+        <small class="text-danger">{{ errores['semestre'] || '' }}</small>
+      </div>
+      <div class="col-md-6">
+        <app-input-text-component [label]="'Facultad (' + (seleccionado?.facultad ?? '') + ')'" [(value)]="edicion.facultad">
+        </app-input-text-component>
+        <small class="text-danger">{{ errores['facultad'] || '' }}</small>
+      </div>
+    </div>
+    <small class="text-danger" data-error="edicion">{{ errores['edicion'] || '' }}</small>
+    @if (erroresServidor.length > 0) {
+    <div class="alert alert-danger mb-0 py-2" data-error="servidor">
+      @for (mensaje of erroresServidor; track $index) {
+      <div>{{ mensaje }}</div>
+      }
+    </div>
+    }
+  </div>
+</app-generic-dialog-form-component>
+
+<app-generic-dialog-info-component [visible]="dialogoDetalle" [title]="'Asignaturas de ' + nombreSeleccionado"
+  [showCustomContent]="true" [data]="{}" (visibleChange)="cerrarDetalle($event)">
+  @if (seleccionado) {
+  <div class="d-flex flex-column gap-3" data-dialogo-detalle>
+    @if (seleccionado.asignaturasMatriculadas.length === 0) {
+    <p class="text-secondary mb-0">El estudiante no tiene asignaturas matriculadas.</p>
+    } @else {
+    <ul class="list-group">
+      @for (matricula of seleccionado.asignaturasMatriculadas; track matricula.uuidAsignaturaMatriculada) {
+      <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2"
+        [attr.data-matricula]="matricula.uuidAsignaturaMatriculada">
+        <div>
+          <strong>{{ matricula.codigoAsignatura }} - {{ matricula.nombreAsignatura }}</strong>
+          <small class="text-secondary d-block">Grupo {{ matricula.grupo }} &middot; Estado: <span data-estado-matricula>{{ matricula.estado }}</span></small>
+        </div>
+        @if (matricula.estado === estadoActiva) {
+        <div class="d-flex align-items-center gap-2">
+          <app-input-select-component label="Nuevo estado" [options]="opcionesEstado"
+            [(value)]="estadosNuevos[matricula.uuidAsignaturaMatriculada]">
+          </app-input-select-component>
+          <app-simple-button-component data-boton-estado label="Cambiar" width="90px" height="30px"
+            [disabled]="!estadosNuevos[matricula.uuidAsignaturaMatriculada] || estadosNuevos[matricula.uuidAsignaturaMatriculada] === estadoActiva || cambiando.has(matricula.uuidAsignaturaMatriculada)"
+            (clicked)="cambiarEstado(matricula)">
+          </app-simple-button-component>
+        </div>
+        } @else {
+        <small class="text-secondary" data-sin-cambio>Solo se cambia el estado de las asignaturas activas.</small>
+        }
+      </li>
+      }
+    </ul>
+    }
+
+    <div class="border rounded p-2" data-agregar-matricula>
+      <h6 class="mb-0">Agregar asignatura (queda activa)</h6>
+      <div class="row g-2 align-items-center">
+        <div class="col-md-3">
+          <app-input-text-component label="Código" [required]="true" [(value)]="nuevaMatricula.codigoAsignatura">
+          </app-input-text-component>
+          <small class="text-danger">{{ errores['nueva-codigo'] || '' }}</small>
+        </div>
+        <div class="col-md-5">
+          <app-input-text-component label="Nombre" [required]="true" [(value)]="nuevaMatricula.nombreAsignatura">
+          </app-input-text-component>
+          <small class="text-danger">{{ errores['nueva-nombre'] || '' }}</small>
+        </div>
+        <div class="col-md-2">
+          <app-input-text-component label="Grupo" [required]="true" [(value)]="nuevaMatricula.grupo">
+          </app-input-text-component>
+          <small class="text-danger">{{ errores['nueva-grupo'] || '' }}</small>
+        </div>
+        <div class="col-md-2">
+          <app-simple-button-component data-boton-agregar-matricula label="Agregar" width="90px" height="30px"
+            [disabled]="enviando" (clicked)="agregarMatricula()">
+          </app-simple-button-component>
+        </div>
+      </div>
+    </div>
+
+    @if (erroresServidor.length > 0) {
+    <div class="alert alert-danger mb-0 py-2" data-error="servidor">
+      @for (mensaje of erroresServidor; track $index) {
+      <div>{{ mensaje }}</div>
+      }
+    </div>
+    }
+  </div>
+  }
+</app-generic-dialog-info-component>
+
+<app-carga-excel-academica-component [visible]="dialogoExcel" (visibleChange)="dialogoExcel = $event"
+  titulo="Cargar estudiantes desde Excel" [encabezados]="encabezadosExcel" nombrePlural="estudiantes"
+  regla="Una fila por asignatura matriculada: las filas con el mismo número de documento se juntan en un estudiante y deben repetir los mismos datos personales y académicos. La lectura termina en la primera fila vacía."
+  [cargar]="cargarExcel" (cargado)="alCargarExcel()">
+</app-carga-excel-academica-component>

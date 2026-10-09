@@ -1,0 +1,93 @@
+<div class="d-flex flex-column gap-3">
+  <div class="row g-2 align-items-center" data-filtros>
+    <div class="col-md-3">
+      <app-input-text-component label="Nombre" [(value)]="filtro.nombre"></app-input-text-component>
+    </div>
+    <div class="col-md-3">
+      <app-input-text-component label="Apellido" [(value)]="filtro.apellido"></app-input-text-component>
+    </div>
+    <div class="col-md-3">
+      <app-input-text-component label="Dependencia" [(value)]="filtro.dependencia"></app-input-text-component>
+    </div>
+    <div class="col-md-3">
+      <app-simple-button-component data-boton-buscar label="Buscar" width="100px" height="36px" (clicked)="buscar()">
+      </app-simple-button-component>
+    </div>
+  </div>
+  <div class="d-flex flex-wrap gap-2 justify-content-end">
+    <app-simple-button-component data-boton-excel label="Cargar Excel" width="150px" height="36px" color="#6c757d"
+      (clicked)="dialogoExcel = true">
+    </app-simple-button-component>
+    <app-simple-button-component data-boton-nuevo label="Nuevo funcionario" width="170px" height="36px"
+      (clicked)="abrirCrear()">
+    </app-simple-button-component>
+  </div>
+
+  @if (cargando) {
+  <div class="d-flex align-items-center gap-2 text-secondary" data-estado="cargando">
+    <div class="spinner-border spinner-border-sm" role="status"></div>
+    <span>Cargando funcionarios académicos...</span>
+  </div>
+  } @else if (errorCarga) {
+  <div class="alert alert-danger d-flex justify-content-between align-items-center mb-0" data-estado="error">
+    <span>No se pudieron cargar los funcionarios académicos.</span>
+    <app-simple-button-component label="Reintentar" width="100px" height="30px" (clicked)="cargar()">
+    </app-simple-button-component>
+  </div>
+  } @else if (filas.length === 0) {
+  <p class="text-secondary mb-0" data-estado="vacio">No hay funcionarios académicos que coincidan con los filtros.</p>
+  } @else {
+  <app-table-generic-component [headers]="encabezados" [data]="filas" [actionTemplate]="acciones">
+  </app-table-generic-component>
+  <div class="d-flex justify-content-between align-items-center">
+    <small class="text-secondary">{{ totalElementos }} funcionarios académicos</small>
+    <app-paginator [totalPages]="totalPaginas" [currentPage]="paginaActual" (pageChange)="cambiarPagina($event)">
+    </app-paginator>
+  </div>
+  }
+</div>
+
+<ng-template #acciones let-fila>
+  <app-simple-button-component [attr.data-editar]="fila.uuid" label="Editar dependencia" width="160px" height="28px"
+    (clicked)="abrirEditar(fila)">
+  </app-simple-button-component>
+</ng-template>
+
+<app-generic-dialog-form-component [visible]="dialogoCrear" title="Nuevo funcionario académico"
+  (visibleChange)="cerrarCrear($event)" (save)="crear()">
+  <div class="d-flex flex-column gap-2" data-dialogo-crear>
+    <app-datos-usuario-academico-component [datos]="datosUsuario" [errores]="errores">
+    </app-datos-usuario-academico-component>
+    <app-input-text-component label="Dependencia" [required]="true" [(value)]="dependencia"></app-input-text-component>
+    <small class="text-danger" data-error="dependencia">{{ errores['dependencia'] || '' }}</small>
+    @if (erroresServidor.length > 0) {
+    <div class="alert alert-danger mb-0 py-2" data-error="servidor">
+      @for (mensaje of erroresServidor; track $index) {
+      <div>{{ mensaje }}</div>
+      }
+    </div>
+    }
+  </div>
+</app-generic-dialog-form-component>
+
+<app-generic-dialog-form-component [visible]="dialogoEditar" title="Editar dependencia" (visibleChange)="cerrarEditar($event)"
+  (save)="editar()">
+  <div class="d-flex flex-column gap-2" data-dialogo-editar>
+    <p class="mb-0 small text-secondary">{{ seleccionado?.nombres }} {{ seleccionado?.apellidos }}</p>
+    <app-input-text-component label="Dependencia" [required]="true" [(value)]="dependenciaEditada"></app-input-text-component>
+    <small class="text-danger" data-error="dependencia">{{ errores['dependencia'] || '' }}</small>
+    @if (erroresServidor.length > 0) {
+    <div class="alert alert-danger mb-0 py-2" data-error="servidor">
+      @for (mensaje of erroresServidor; track $index) {
+      <div>{{ mensaje }}</div>
+      }
+    </div>
+    }
+  </div>
+</app-generic-dialog-form-component>
+
+<app-carga-excel-academica-component [visible]="dialogoExcel" (visibleChange)="dialogoExcel = $event"
+  titulo="Cargar funcionarios académicos desde Excel" [encabezados]="encabezadosExcel" nombrePlural="funcionarios académicos"
+  regla="Una fila por funcionario académico. La lectura termina en la primera fila vacía."
+  [cargar]="cargarExcel" (cargado)="alCargarExcel()">
+</app-carga-excel-academica-component>

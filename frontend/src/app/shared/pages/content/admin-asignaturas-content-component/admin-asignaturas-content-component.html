@@ -1,0 +1,59 @@
+<div class="d-flex flex-column gap-3">
+  <div class="d-flex flex-wrap gap-2 align-items-center">
+    <div class="flex-grow-1">
+      <app-barra-busqueda-component placeholder="Buscar por código o nombre" [(value)]="texto">
+      </app-barra-busqueda-component>
+    </div>
+    <app-simple-button-component data-boton-buscar label="Buscar" width="100px" height="36px" (clicked)="buscar()">
+    </app-simple-button-component>
+    <app-simple-button-component data-boton-nueva label="Nueva asignatura" width="170px" height="36px"
+      (clicked)="abrirNueva()">
+    </app-simple-button-component>
+  </div>
+
+  @if (cargando) {
+  <div class="d-flex align-items-center gap-2 text-secondary" data-estado="cargando">
+    <div class="spinner-border spinner-border-sm" role="status"></div>
+    <span>Cargando asignaturas...</span>
+  </div>
+  } @else if (errorCarga) {
+  <div class="alert alert-danger d-flex justify-content-between align-items-center mb-0" data-estado="error">
+    <span>No se pudieron cargar las asignaturas.</span>
+    <app-simple-button-component label="Reintentar" width="100px" height="30px" (clicked)="cargar()">
+    </app-simple-button-component>
+  </div>
+  } @else if (filas.length === 0) {
+  <p class="text-secondary mb-0" data-estado="vacio">No hay asignaturas que coincidan con la búsqueda.</p>
+  } @else {
+  <app-table-generic-component [headers]="encabezados" [data]="filas" [actionTemplate]="acciones">
+  </app-table-generic-component>
+  <div class="d-flex justify-content-between align-items-center">
+    <small class="text-secondary">{{ totalElementos }} asignaturas</small>
+    <app-paginator [totalPages]="totalPaginas" [currentPage]="paginaActual" (pageChange)="cambiarPagina($event)">
+    </app-paginator>
+  </div>
+  }
+</div>
+
+<ng-template #acciones let-fila>
+  <app-simple-button-component [attr.data-editar]="fila.uuid" label="Editar" width="80px" height="28px"
+    (clicked)="abrirEdicion(fila)">
+  </app-simple-button-component>
+</ng-template>
+
+<app-generic-dialog-form-component [visible]="dialogoVisible" [title]="tituloDialogo" (visibleChange)="cerrar($event)"
+  (save)="guardar()">
+  <div class="d-flex flex-column" data-dialogo-asignatura>
+    <app-input-text-component label="Código" [required]="true" [(value)]="codigo"></app-input-text-component>
+    <small class="text-danger" data-error="codigo">{{ errores['codigo'] || '' }}</small>
+    <app-input-text-component label="Nombre" [required]="true" [(value)]="nombre"></app-input-text-component>
+    <small class="text-danger" data-error="nombre">{{ errores['nombre'] || '' }}</small>
+    @if (erroresServidor.length > 0) {
+    <div class="alert alert-danger mt-2 mb-0 py-2" data-error="servidor">
+      @for (mensaje of erroresServidor; track $index) {
+      <div>{{ mensaje }}</div>
+      }
+    </div>
+    }
+  </div>
+</app-generic-dialog-form-component>
