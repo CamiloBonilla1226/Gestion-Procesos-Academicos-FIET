@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { Subject, of, throwError } from 'rxjs';
 import { CancelacionAsignaturaProcesoComponent } from './cancelacion-asignatura-proceso-component';
@@ -13,6 +13,7 @@ import { SolicitudAcademicaDetalleDTORespuesta } from '../../../../core/models/S
 import { CancelacionAsignaturaDetalleDTORespuesta } from '../../../../core/models/CancelacionAsignatura/DTOResponse/CancelacionAsignaturaDetalleDTORespuesta';
 import { AsignaturaSolicitadaDTORespuesta } from '../../../../core/models/CancelacionAsignatura/DTOResponse/AsignaturaSolicitadaDTORespuesta';
 import { InputAnexoUploadComponent } from '../../../inputs/input-anexo-upload-component/input-anexo-upload-component';
+import { environment } from '../../../../../enviroments/environment';
 
 function solicitud(acciones: string[], etapaCodigo = 'RADICADA', tieneResolucion = false): SolicitudAcademicaDetalleDTORespuesta {
   return {
@@ -357,5 +358,78 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
     expect(componente.dialogoVisible).toBeTrue();
     expect(componente.enviando).toBeFalse();
     expect(recargar).not.toHaveBeenCalled();
+  });
+});
+
+describe('CancelacionAsignaturaProcesoComponent con el catalogo real', () => {
+  const URL_SITUACIONES = `${environment.apiUrl}/catalogos-academicos/situaciones`;
+  let http: HttpTestingController;
+  let toast: jasmine.SpyObj<ToastService>;
+  let errores: ErrorHandlerService;
+
+  beforeEach(() => {
+    const cancelaciones = jasmine.createSpyObj<CancelacionAsignaturaService>('CancelacionAsignaturaService', ['getDetalle']);
+    cancelaciones.getDetalle.and.returnValue(of(detalle(EVALUADAS)));
+    toast = jasmine.createSpyObj<ToastService>('ToastService', ['showSuccess', 'showError']);
+    TestBed.configureTestingModule({
+      imports: [CancelacionAsignaturaProcesoComponent],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideNoopAnimations(),
+        { provide: CancelacionAsignaturaService, useValue: cancelaciones },
+        { provide: ToastService, useValue: toast }
+      ]
+    });
+    http = TestBed.inject(HttpTestingController);
+    errores = TestBed.inject(ErrorHandlerService);
+    spyOn(errores, 'handleError').and.callThrough();
+    spyOn(console, 'error');
+  });
+
+  function clicEnDecidir(): ComponentFixture<CancelacionAsignaturaProcesoComponent> {
+    const fixture = TestBed.createComponent(CancelacionAsignaturaProcesoComponent);
+    fixture.componentRef.setInput('uuidSolicitud', 's-1');
+    fixture.componentRef.setInput('solicitud', solicitud(['APROBAR_DECANO', 'RECHAZAR_DECANO'], 'EN_REVISION_DECANO'));
+    fixture.componentRef.setInput('rol', 'DECANO');
+    fixture.componentRef.setInput('recargar', () => undefined);
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-accion="APROBAR_DECANO"] button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  it('con rol Decano pide el catalogo de situaciones y abre el dialogo de decidir por asignatura', () => {
+    const fixture = clicEnDecidir();
+    const componente = fixture.componentInstance;
+    const peticion = http.expectOne(URL_SITUACIONES);
+    expect(peticion.request.method).toBe('GET');
+    expect(componente.dialogoVisible).toBeFalse();
+    peticion.flush([{ uuidSituacionAcademica: 'r3', codigo: 'R3', nombre: 'Cancelada' }]);
+    fixture.detectChanges();
+    expect(componente.dialogoVisible).toBeTrue();
+    expect(componente.opcionesSituacion).toEqual([{ label: 'R3 - Cancelada', value: 'r3' }]);
+    expect(document.querySelector('[data-decision="as-1"]')).toBeTruthy();
+    expect(errores.handleError).not.toHaveBeenCalled();
+  });
+
+  it('si el catalogo falla muestra el error y no abre el dialogo', () => {
+    const fixture = clicEnDecidir();
+    http.expectOne(URL_SITUACIONES).flush({ codigoError: '1', mensaje: 'Error interno' }, { status: 500, statusText: 'Error' });
+    fixture.detectChanges();
+    expect(fixture.componentInstance.dialogoVisible).toBeFalse();
+    expect(fixture.componentInstance.accionActiva).toBeNull();
+    expect(toast.showError).toHaveBeenCalledWith('Error', 'No se pudieron cargar las situaciones académicas. Error interno');
+  });
+
+  it('si el catalogo viene vacio muestra el error y no abre el dialogo', () => {
+    const fixture = clicEnDecidir();
+    http.expectOne(URL_SITUACIONES).flush([]);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.dialogoVisible).toBeFalse();
+    expect(toast.showError).toHaveBeenCalledWith(
+      'Error',
+      'No se pudieron cargar las situaciones académicas. El catálogo de situaciones académicas está vacío'
+    );
   });
 });

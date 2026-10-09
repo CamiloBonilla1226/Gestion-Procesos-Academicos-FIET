@@ -26,7 +26,7 @@
       @for (accion of accionesVisibles; track accion) {
       <app-simple-button-component [attr.data-accion]="accion" [label]="etiquetaBoton(accion)" width="210px"
         height="34px" [color]="accion === acciones.RECHAZAR_FUNCIONARIO || accion === acciones.RECHAZAR_DECANO ? '#B02A37' : '#1E257B'"
-        [disabled]="!detalle" (clicked)="abrir(accion)">
+        [disabled]="!detalle || cargandoSituaciones" (clicked)="abrir(accion)">
       </app-simple-button-component>
       }
     </div>

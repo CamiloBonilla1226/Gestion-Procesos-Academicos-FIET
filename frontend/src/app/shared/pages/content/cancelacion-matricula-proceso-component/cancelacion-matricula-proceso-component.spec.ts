@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { Subject, of, throwError } from 'rxjs';
 import { CancelacionMatriculaProcesoComponent } from './cancelacion-matricula-proceso-component';
@@ -12,6 +12,7 @@ import { ToastService } from '../../../../core/services/toast-service';
 import { SolicitudAcademicaDetalleDTORespuesta } from '../../../../core/models/SolicitudAcademica/DTOResponse/SolicitudAcademicaDetalleDTORespuesta';
 import { CancelacionMatriculaDetalleDTORespuesta } from '../../../../core/models/CancelacionMatricula/DTOResponse/CancelacionMatriculaDetalleDTORespuesta';
 import { InputAnexoUploadComponent } from '../../../inputs/input-anexo-upload-component/input-anexo-upload-component';
+import { environment } from '../../../../../enviroments/environment';
 
 function solicitud(acciones: string[], tieneResolucion = false, etapaCodigo = 'RADICADA'): SolicitudAcademicaDetalleDTORespuesta {
   return {
@@ -274,5 +275,98 @@ describe('CancelacionMatriculaProcesoComponent', () => {
     fixture.detectChanges();
     expect(componente.erroresServidor).toEqual(['evaluaciones[0].nota: debe ser menor o igual a 5.0']);
     expect(document.querySelector('[data-error="servidor"]')?.textContent).toContain('debe ser menor o igual a 5.0');
+  });
+
+  it('el Estudiante no ve las columnas sin ningun dato', () => {
+    cancelaciones.getDetalle.and.returnValue(of({
+      ...DETALLE,
+      asignaturas: DETALLE.asignaturas.map(a => ({ ...a, numeroFaltas: null, nota: null, situacionMatricula: null }))
+    }));
+    const fixture = crear(solicitud([]), 'ESTUDIANTE');
+    const encabezados = Array.from(fixture.nativeElement.querySelectorAll('thead th')).map((th: any) => th.textContent.trim());
+    expect(encabezados).toEqual(['Código', 'Asignatura']);
+    expect(fixture.nativeElement.querySelector('tbody').textContent).not.toContain('Sin registrar');
+  });
+
+  it('el Funcionario sigue viendo todas las columnas aunque esten vacias', () => {
+    cancelaciones.getDetalle.and.returnValue(of({
+      ...DETALLE,
+      asignaturas: DETALLE.asignaturas.map(a => ({ ...a, numeroFaltas: null, nota: null, situacionMatricula: null }))
+    }));
+    const fixture = crear(solicitud([]));
+    expect(fixture.nativeElement.querySelectorAll('thead th').length).toBe(6);
+  });
+});
+
+describe('CancelacionMatriculaProcesoComponent con el catalogo real', () => {
+  const URL_SITUACIONES = `${environment.apiUrl}/catalogos-academicos/situaciones`;
+  let http: HttpTestingController;
+  let toast: jasmine.SpyObj<ToastService>;
+  let errores: ErrorHandlerService;
+
+  beforeEach(() => {
+    const cancelaciones = jasmine.createSpyObj<CancelacionMatriculaService>('CancelacionMatriculaService', ['getDetalle']);
+    cancelaciones.getDetalle.and.returnValue(of(DETALLE));
+    toast = jasmine.createSpyObj<ToastService>('ToastService', ['showSuccess', 'showError']);
+    TestBed.configureTestingModule({
+      imports: [CancelacionMatriculaProcesoComponent],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideNoopAnimations(),
+        { provide: CancelacionMatriculaService, useValue: cancelaciones },
+        { provide: ToastService, useValue: toast }
+      ]
+    });
+    http = TestBed.inject(HttpTestingController);
+    errores = TestBed.inject(ErrorHandlerService);
+    spyOn(errores, 'handleError').and.callThrough();
+    spyOn(console, 'error');
+  });
+
+  function clicEnAprobar(): ComponentFixture<CancelacionMatriculaProcesoComponent> {
+    const fixture = TestBed.createComponent(CancelacionMatriculaProcesoComponent);
+    fixture.componentRef.setInput('uuidSolicitud', 's-1');
+    fixture.componentRef.setInput('solicitud', solicitud(['APROBAR_DECANO', 'RECHAZAR_DECANO'], false, 'EN_REVISION_DECANO'));
+    fixture.componentRef.setInput('rol', 'DECANO');
+    fixture.componentRef.setInput('recargar', () => undefined);
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-accion="APROBAR_DECANO"] button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  it('con rol Decano pide el catalogo de situaciones y abre el dialogo de aprobar', () => {
+    const fixture = clicEnAprobar();
+    const componente = fixture.componentInstance;
+    const peticion = http.expectOne(URL_SITUACIONES);
+    expect(peticion.request.method).toBe('GET');
+    expect(componente.dialogoVisible).toBeFalse();
+    peticion.flush([{ uuidSituacionAcademica: 'r3', codigo: 'R3', nombre: 'Cancelada' }]);
+    fixture.detectChanges();
+    expect(componente.dialogoVisible).toBeTrue();
+    expect(componente.opcionesSituacion).toEqual([{ label: 'R3 - Cancelada', value: 'r3' }]);
+    expect(document.querySelector('[data-situacion-cancelar="as-1"]')).toBeTruthy();
+    expect(errores.handleError).not.toHaveBeenCalled();
+  });
+
+  it('si el catalogo falla muestra el error y no abre el dialogo', () => {
+    const fixture = clicEnAprobar();
+    http.expectOne(URL_SITUACIONES).flush({ codigoError: '1', mensaje: 'Error interno' }, { status: 500, statusText: 'Error' });
+    fixture.detectChanges();
+    expect(fixture.componentInstance.dialogoVisible).toBeFalse();
+    expect(fixture.componentInstance.accionActiva).toBeNull();
+    expect(toast.showError).toHaveBeenCalledWith('Error', 'No se pudieron cargar las situaciones académicas. Error interno');
+  });
+
+  it('si el catalogo viene vacio muestra el error y no abre el dialogo', () => {
+    const fixture = clicEnAprobar();
+    http.expectOne(URL_SITUACIONES).flush([]);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.dialogoVisible).toBeFalse();
+    expect(toast.showError).toHaveBeenCalledWith(
+      'Error',
+      'No se pudieron cargar las situaciones académicas. El catálogo de situaciones académicas está vacío'
+    );
   });
 });

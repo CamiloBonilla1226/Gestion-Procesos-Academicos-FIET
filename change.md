@@ -2,6 +2,26 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-09 - Correcciones de pruebas en vivo de las cancelaciones (Tarea T10.5.1)
+- Qué se hizo:
+  - Aprobar del Decano y remitir del Funcionario, en Cancelación de Matrícula y de Asignatura: el diálogo se abre solo después de cargar el catálogo de situaciones. Si la carga falla o el catálogo viene vacío, el error se muestra por `ErrorHandlerService` y el diálogo no abre. Los botones se deshabilitan mientras carga.
+  - Radicación de Cancelación de Matrícula: tras el éxito la pantalla muestra el radicado con un botón "Ver solicitud" en lugar del formulario, además de navegar al detalle.
+  - Vista del Estudiante en Cancelación de Matrícula: se ocultan las columnas sin ningún dato, salvo Código y Asignatura.
+- Archivos:
+  - `frontend/src/app/shared/pages/content/cancelacion-matricula-proceso-component/cancelacion-matricula-proceso-component.ts` (modificado)
+  - `frontend/src/app/shared/pages/content/cancelacion-matricula-proceso-component/cancelacion-matricula-proceso-component.html` (modificado)
+  - `frontend/src/app/shared/pages/content/cancelacion-matricula-proceso-component/cancelacion-matricula-proceso-component.spec.ts` (modificado)
+  - `frontend/src/app/shared/pages/content/cancelacion-asignatura-proceso-component/cancelacion-asignatura-proceso-component.ts` (modificado)
+  - `frontend/src/app/shared/pages/content/cancelacion-asignatura-proceso-component/cancelacion-asignatura-proceso-component.html` (modificado)
+  - `frontend/src/app/shared/pages/content/cancelacion-asignatura-proceso-component/cancelacion-asignatura-proceso-component.spec.ts` (modificado)
+  - `frontend/src/app/shared/pages/content/est-cancelacion-matricula-content-component/est-cancelacion-matricula-content-component.ts` (modificado)
+  - `frontend/src/app/shared/pages/content/est-cancelacion-matricula-content-component/est-cancelacion-matricula-content-component.html` (modificado)
+  - `frontend/src/app/shared/pages/content/est-cancelacion-matricula-content-component/est-cancelacion-matricula-content-component.spec.ts` (modificado)
+- Notas:
+  - No se pudo reproducir sin backend que el botón de aprobar no pida el catálogo: con los servicios reales y `HttpTestingController` la petición sale y el diálogo abre. La corrección hace visible cualquier falla de esa carga en lugar de abrir un diálogo sin opciones.
+  - No se pudo reproducir que la radicación de Matrícula no navegue: con el Router real navega igual que la de Asignatura. El código de éxito de los dos componentes ya era idéntico. El spec anterior simulaba el Router con un espía; el nuevo usa rutas reales.
+  - El mensaje "Este anexo es obligatorio" que aparece al abrir un diálogo lo pinta `InputAnexoUploadComponent` de Julián; no se modificó.
+
 ## 2026-10-08 - Cancelación de Asignatura en el frontend (Tarea T10.5)
 - Qué se hizo:
   - Pantalla de radicación para el Estudiante en `/estudiante/cancelacion-asignatura`: elección de una o más asignaturas, motivo y soportes opcionales.

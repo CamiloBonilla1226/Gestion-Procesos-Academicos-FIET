@@ -22,6 +22,7 @@ import {
   AccionAcademica,
   FORMATOS_RESOLUCION,
   MAXIMO_CARACTERES_OBSERVACION,
+  ROLES_ETIQUETA,
   RolEtiqueta
 } from '../../../../core/constantes/procesos-academicos';
 import {
@@ -71,6 +72,10 @@ const MENSAJES_EXITO: Partial<Record<AccionAcademica, string>> = {
   [ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA]: 'La respuesta fue enviada al estudiante.'
 };
 
+const SIN_REGISTRAR = 'Sin registrar';
+const TITULOS_COLUMNAS = ['Código', 'Asignatura', 'Faltas', 'Nota', 'Situación en la matrícula', 'Situación al cancelar'];
+const COLUMNAS_FIJAS = ['Código', 'Asignatura'];
+
 @Component({
   selector: 'app-cancelacion-matricula-proceso-component',
   imports: [
@@ -94,9 +99,7 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
   readonly maximoObservacion = MAXIMO_CARACTERES_OBSERVACION;
   readonly tipoResolucion = comoTipoAnexo('resolucion', 'Escaneo de la Resolución firmada', FORMATOS_RESOLUCION, true);
 
-  readonly encabezados: TableHeader[] = [
-    'Código', 'Asignatura', 'Faltas', 'Nota', 'Situación en la matrícula', 'Situación al cancelar'
-  ].map(title => ({ title }));
+  encabezados: TableHeader[] = TITULOS_COLUMNAS.map(title => ({ title }));
 
   detalle: CancelacionMatriculaDetalleDTORespuesta | null = null;
   filasAsignaturas: Record<string, string>[] = [];
@@ -104,7 +107,7 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
   errorCarga = false;
 
   opcionesSituacion: { label: string; value: string }[] = [];
-  private situacionesCargadas = false;
+  cargandoSituaciones = false;
 
   accionActiva: AccionAcademica | null = null;
   dialogoVisible = false;
@@ -176,9 +179,10 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
             'Asignatura': a.nombreAsignatura,
             'Faltas': this.textoValor(a.numeroFaltas),
             'Nota': this.textoNota(a.nota),
-            'Situación en la matrícula': a.situacionMatricula ? `${a.situacionMatricula.codigo} - ${a.situacionMatricula.nombre}` : 'Sin registrar',
-            'Situación al cancelar': a.situacionCancelar ? `${a.situacionCancelar.codigo} - ${a.situacionCancelar.nombre}` : 'Sin registrar'
+            'Situación en la matrícula': a.situacionMatricula ? `${a.situacionMatricula.codigo} - ${a.situacionMatricula.nombre}` : SIN_REGISTRAR,
+            'Situación al cancelar': a.situacionCancelar ? `${a.situacionCancelar.codigo} - ${a.situacionCancelar.nombre}` : SIN_REGISTRAR
           }));
+          this.encabezados = this.titulosVisibles().map(title => ({ title }));
         },
         error: err => {
           this.detalle = null;
@@ -190,7 +194,7 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
   }
 
   abrir(accion: AccionAcademica): void {
-    if (!this.accionesVisibles.includes(accion)) return;
+    if (!this.accionesVisibles.includes(accion) || this.cargandoSituaciones) return;
     this.accionActiva = accion;
     this.observacion = '';
     this.archivoResolucion = null;
@@ -210,7 +214,8 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
       this.asignaturas.map(a => [a.uuidAsignaturaSolicitud, a.situacionCancelar?.uuidSituacionAcademica ?? null])
     );
     if (accion === ACCIONES_ACADEMICAS.REMITIR_DECANO || accion === ACCIONES_ACADEMICAS.APROBAR_DECANO) {
-      this.cargarSituaciones();
+      this.abrirConSituaciones();
+      return;
     }
     this.dialogoVisible = true;
   }
@@ -258,6 +263,13 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
           this.errorHandlerService.handleError(err, 'Error', 'No se pudo completar la acción');
         }
       });
+  }
+
+  private titulosVisibles(): string[] {
+    if (this.rol !== ROLES_ETIQUETA.ESTUDIANTE) return TITULOS_COLUMNAS;
+    return TITULOS_COLUMNAS.filter(
+      titulo => COLUMNAS_FIJAS.includes(titulo) || this.filasAsignaturas.some(fila => fila[titulo] !== SIN_REGISTRAR)
+    );
   }
 
   private ejecutar(accion: AccionAcademica): Observable<unknown> {
@@ -350,14 +362,33 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
     return errores;
   }
 
-  private cargarSituaciones(): void {
-    if (this.situacionesCargadas) return;
-    this.catalogoAcademicoService.getSituaciones().subscribe({
-      next: situaciones => {
-        this.situacionesCargadas = true;
-        this.opcionesSituacion = situaciones.map(s => ({ label: `${s.codigo} - ${s.nombre}`, value: s.uuidSituacionAcademica }));
-      },
-      error: err => this.errorHandlerService.handleError(err, 'Error', 'No se pudieron cargar las situaciones académicas')
-    });
+  private abrirConSituaciones(): void {
+    if (this.opcionesSituacion.length > 0) {
+      this.dialogoVisible = true;
+      return;
+    }
+    this.cargandoSituaciones = true;
+    this.catalogoAcademicoService
+      .getSituaciones()
+      .pipe(finalize(() => (this.cargandoSituaciones = false)))
+      .subscribe({
+        next: situaciones => {
+          this.opcionesSituacion = (situaciones ?? []).map(s => ({ label: `${s.codigo} - ${s.nombre}`, value: s.uuidSituacionAcademica }));
+          if (this.opcionesSituacion.length === 0) {
+            this.accionActiva = null;
+            this.errorHandlerService.handleError(
+              { message: 'El catálogo de situaciones académicas está vacío' },
+              'Error',
+              'No se pudieron cargar las situaciones académicas'
+            );
+            return;
+          }
+          this.dialogoVisible = true;
+        },
+        error: err => {
+          this.accionActiva = null;
+          this.errorHandlerService.handleError(err, 'Error', 'No se pudieron cargar las situaciones académicas');
+        }
+      });
   }
 }

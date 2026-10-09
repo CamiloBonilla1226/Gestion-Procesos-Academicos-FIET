@@ -162,7 +162,7 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   errorCarga = false;
 
   opcionesSituacion: { label: string; value: string }[] = [];
-  private situacionesCargadas = false;
+  cargandoSituaciones = false;
 
   accionActiva: AccionAcademica | null = null;
   dialogoVisible = false;
@@ -251,7 +251,7 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   }
 
   abrir(accion: AccionAcademica): void {
-    if (!this.accionesVisibles.includes(accion)) return;
+    if (!this.accionesVisibles.includes(accion) || this.cargandoSituaciones) return;
     this.accionActiva = accion;
     this.observacion = '';
     this.archivoResolucion = null;
@@ -261,11 +261,13 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
     this.decisiones = {};
     if (accion === ACCIONES_ACADEMICAS.REMITIR_DECANO) {
       this.evaluaciones = Object.fromEntries(this.asignaturas.map(a => [a.uuidAsignaturaSolicitud, this.evaluacionInicial(a)]));
-      this.cargarSituaciones();
+      this.abrirConSituaciones();
+      return;
     }
     if (accion === ACCIONES_ACADEMICAS.APROBAR_DECANO) {
       this.decisiones = Object.fromEntries(this.asignaturas.map(a => [a.uuidAsignaturaSolicitud, this.decisionInicial(a)]));
-      this.cargarSituaciones();
+      this.abrirConSituaciones();
+      return;
     }
     this.dialogoVisible = true;
   }
@@ -481,14 +483,33 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
     }
   }
 
-  private cargarSituaciones(): void {
-    if (this.situacionesCargadas) return;
-    this.catalogoAcademicoService.getSituaciones().subscribe({
-      next: situaciones => {
-        this.situacionesCargadas = true;
-        this.opcionesSituacion = situaciones.map(s => ({ label: `${s.codigo} - ${s.nombre}`, value: s.uuidSituacionAcademica }));
-      },
-      error: err => this.errorHandlerService.handleError(err, 'Error', 'No se pudieron cargar las situaciones académicas')
-    });
+  private abrirConSituaciones(): void {
+    if (this.opcionesSituacion.length > 0) {
+      this.dialogoVisible = true;
+      return;
+    }
+    this.cargandoSituaciones = true;
+    this.catalogoAcademicoService
+      .getSituaciones()
+      .pipe(finalize(() => (this.cargandoSituaciones = false)))
+      .subscribe({
+        next: situaciones => {
+          this.opcionesSituacion = (situaciones ?? []).map(s => ({ label: `${s.codigo} - ${s.nombre}`, value: s.uuidSituacionAcademica }));
+          if (this.opcionesSituacion.length === 0) {
+            this.accionActiva = null;
+            this.errorHandlerService.handleError(
+              { message: 'El catálogo de situaciones académicas está vacío' },
+              'Error',
+              'No se pudieron cargar las situaciones académicas'
+            );
+            return;
+          }
+          this.dialogoVisible = true;
+        },
+        error: err => {
+          this.accionActiva = null;
+          this.errorHandlerService.handleError(err, 'Error', 'No se pudieron cargar las situaciones académicas');
+        }
+      });
   }
 }

@@ -8,6 +8,7 @@ import { CancelacionMatriculaService } from '../../../../core/services/cancelaci
 import { ErrorHandlerService } from '../../../../core/services/error-handler-service';
 import { ToastService } from '../../../../core/services/toast-service';
 import { FormularioCancelacionMatriculaDTORespuesta } from '../../../../core/models/CancelacionMatricula/DTOResponse/FormularioCancelacionMatriculaDTORespuesta';
+import { RadicacionCancelacionMatriculaDTORespuesta } from '../../../../core/models/CancelacionMatricula/DTOResponse/RadicacionCancelacionMatriculaDTORespuesta';
 import { AnexoRequeridoDTORespuesta } from '../../../../core/models/CancelacionMatricula/DTOResponse/AnexoRequeridoDTORespuesta';
 import { TipoAnexoDTORespuesta } from '../../../../core/models/TipoSolicitud/DTOResponse/TipoAnexoDTORespuesta';
 import {
@@ -49,6 +50,7 @@ export class EstCancelacionMatriculaContentComponent implements OnInit {
   erroresServidor: Record<string, string> = {};
   intentoEnvio = false;
   enviando = false;
+  radicacion: RadicacionCancelacionMatriculaDTORespuesta | null = null;
 
   constructor(
     private cancelacionMatriculaService: CancelacionMatriculaService,
@@ -160,14 +162,20 @@ export class EstCancelacionMatriculaContentComponent implements OnInit {
       .pipe(finalize(() => (this.enviando = false)))
       .subscribe({
         next: respuesta => {
+          this.radicacion = respuesta;
           this.toastService.showSuccess('Solicitud radicada', `Radicado ${respuesta.radicado}`);
-          this.router.navigate([RUTAS_SOLICITUDES_POR_ROL[ROLES_ETIQUETA.ESTUDIANTE], respuesta.uuidSolicitudAcademica]);
+          this.irAlDetalle();
         },
         error: err => {
           this.erroresServidor = erroresDeCampos(err);
           this.errorHandlerService.handleError(err, 'Error', 'No se pudo radicar la solicitud');
         }
       });
+  }
+
+  irAlDetalle(): void {
+    if (!this.radicacion) return;
+    this.router.navigate([RUTAS_SOLICITUDES_POR_ROL[ROLES_ETIQUETA.ESTUDIANTE], this.radicacion.uuidSolicitudAcademica]);
   }
 
   private revalidar(): void {

@@ -1,5 +1,7 @@
+import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
+import { RouterTestingHarness } from '@angular/router/testing';
 import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Subject, of, throwError } from 'rxjs';
@@ -190,5 +192,72 @@ describe('EstCancelacionMatriculaContentComponent', () => {
     expect(componente.erroresServidor).toEqual({});
     expect(componente.enviando).toBeFalse();
     expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  it('tras radicar no deja el formulario limpio con errores', () => {
+    servicio.radicar.and.returnValue(of({ uuidSolicitudAcademica: 's-9', radicado: '2026-CM-0009' }));
+    const fixture = crear();
+    llenar(fixture.componentInstance);
+    fixture.componentInstance.radicar();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-estado="radicada"]').textContent).toContain('2026-CM-0009');
+    expect(fixture.nativeElement.querySelectorAll('[data-campo-anexo]').length).toBe(0);
+    expect(fixture.nativeElement.textContent).not.toContain('Este anexo es obligatorio');
+  });
+});
+
+@Component({ template: '<p data-destino>Detalle</p>' })
+class DestinoComponent {}
+
+describe('EstCancelacionMatriculaContentComponent con el Router real', () => {
+  let servicio: jasmine.SpyObj<CancelacionMatriculaService>;
+  const entrada = { reset: () => undefined } as unknown as InputAnexoUploadComponent;
+
+  function configurar(detallePermitido: boolean): void {
+    servicio = jasmine.createSpyObj<CancelacionMatriculaService>('CancelacionMatriculaService', ['getFormulario', 'radicar']);
+    servicio.getFormulario.and.returnValue(of(formulario()));
+    servicio.radicar.and.returnValue(of({ uuidSolicitudAcademica: 's-9', radicado: '2026-CM-0009' }));
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([
+          { path: 'estudiante/cancelacion-matricula', component: EstCancelacionMatriculaContentComponent },
+          { path: 'estudiante/solicitudes/:uuid', component: DestinoComponent, canActivate: [() => detallePermitido] }
+        ]),
+        { provide: CancelacionMatriculaService, useValue: servicio },
+        { provide: ErrorHandlerService, useValue: jasmine.createSpyObj('ErrorHandlerService', ['handleError']) },
+        { provide: ToastService, useValue: jasmine.createSpyObj('ToastService', ['showError', 'showSuccess']) }
+      ]
+    });
+  }
+
+  async function radicarDesdeLaRuta(): Promise<RouterTestingHarness> {
+    const harness = await RouterTestingHarness.create();
+    const componente = await harness.navigateByUrl('/estudiante/cancelacion-matricula', EstCancelacionMatriculaContentComponent);
+    componente.alCambiarMotivo('Problemas de salud');
+    componente.campos.forEach((campo, i) => componente.alSeleccionarAnexo(campo, archivo(i === 5 ? 'carne.jpeg' : `anexo${i}.pdf`), entrada));
+    componente.aceptaAdvertencia = true;
+    componente.radicar();
+    await harness.fixture.whenStable();
+    harness.detectChanges();
+    return harness;
+  }
+
+  it('navega de verdad al detalle de la solicitud radicada', async () => {
+    configurar(true);
+    const harness = await radicarDesdeLaRuta();
+    expect(TestBed.inject(Router).url).toBe('/estudiante/solicitudes/s-9');
+    expect(harness.routeNativeElement?.querySelector('[data-destino]')).toBeTruthy();
+  });
+
+  it('si la navegacion no ocurre muestra el radicado y no el formulario limpio', async () => {
+    configurar(false);
+    const harness = await radicarDesdeLaRuta();
+    expect(TestBed.inject(Router).url).toBe('/estudiante/cancelacion-matricula');
+    const pantalla = harness.routeNativeElement as HTMLElement;
+    expect(pantalla.querySelector('[data-estado="radicada"]')?.textContent).toContain('2026-CM-0009');
+    expect(pantalla.querySelectorAll('[data-campo-anexo]').length).toBe(0);
+    expect(pantalla.textContent).not.toContain('Este anexo es obligatorio');
   });
 });
