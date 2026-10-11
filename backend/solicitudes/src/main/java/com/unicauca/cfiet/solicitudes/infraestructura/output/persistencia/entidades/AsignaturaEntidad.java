@@ -2,7 +2,10 @@ package com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.entid
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.*;
@@ -25,4 +28,11 @@ public class AsignaturaEntidad {
     private String codigoAsignatura;
     @Column(name = "nombreAsignatura", length = 150, nullable = false)
     private String nombreAsignatura;
+    @ManyToOne(optional = false)
+    @JoinColumn(
+            name = "ProgramaAcademico_uuid",
+            nullable = false,
+            foreignKey = @ForeignKey(name = "fk_asignatura_programa")
+    )
+    private ProgramaAcademicoEntidad programaAcademico;
 }

@@ -2,33 +2,48 @@ package com.unicauca.cfiet.solicitudes.infraestructura.input.controladorAsignatu
 
 import com.unicauca.cfiet.solicitudes.dominio.helper.PaginacionRespuestaDTO;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.Asignatura;
+import com.unicauca.cfiet.solicitudes.dominio.modelos.ProgramaAcademico;
+import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorAsignaturas.DTOPeticion.AsignaturaActualizarDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorAsignaturas.DTOPeticion.AsignaturaDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorAsignaturas.DTORespuesta.AsignaturaDTORespuesta;
-import org.modelmapper.ModelMapper;
-import org.modelmapper.TypeToken;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 @Component
 public class MapperAsignaturaInfraestructuraDominio {
-    private final ModelMapper mapper;
-
-    public MapperAsignaturaInfraestructuraDominio(@Qualifier("mapeadorSimple") ModelMapper mapper) {
-        this.mapper = mapper;
-    }
 
     public Asignatura mapearPeticionAModelo(AsignaturaDTOPeticion peticion) {
-        return mapper.map(peticion, Asignatura.class);
+        return Asignatura.builder()
+                .nombreAsignatura(peticion.getNombreAsignatura())
+                .programaAcademico(ProgramaAcademico.builder()
+                        .uuidProgramaAcademico(peticion.getUuidProgramaAcademico())
+                        .build())
+                .build();
+    }
+
+    public Asignatura mapearActualizacionAModelo(AsignaturaActualizarDTOPeticion peticion) {
+        return Asignatura.builder()
+                .nombreAsignatura(peticion.getNombreAsignatura())
+                .build();
     }
 
     public AsignaturaDTORespuesta mapearModeloARespuesta(Asignatura modelo) {
-        return mapper.map(modelo, AsignaturaDTORespuesta.class);
+        AsignaturaDTORespuesta respuesta = AsignaturaDTORespuesta.builder()
+                .uuidAsignatura(modelo.getUuidAsignatura())
+                .codigoAsignatura(modelo.getCodigoAsignatura())
+                .nombreAsignatura(modelo.getNombreAsignatura())
+                .build();
+        ProgramaAcademico programa = modelo.getProgramaAcademico();
+        if (programa != null) {
+            respuesta.setUuidProgramaAcademico(programa.getUuidProgramaAcademico());
+            respuesta.setProgramaAcademico(programa.getNombre());
+        }
+        return respuesta;
     }
 
     public List<AsignaturaDTORespuesta> mapearModelosARespuesta(List<Asignatura> modelos) {
-        return mapper.map(modelos, new TypeToken<List<AsignaturaDTORespuesta>>(){}.getType());
+        return modelos.stream().map(this::mapearModeloARespuesta).toList();
     }
 
     public PaginacionRespuestaDTO<AsignaturaDTORespuesta> mapearPaginaARespuesta(PaginacionRespuestaDTO<Asignatura> pagina) {

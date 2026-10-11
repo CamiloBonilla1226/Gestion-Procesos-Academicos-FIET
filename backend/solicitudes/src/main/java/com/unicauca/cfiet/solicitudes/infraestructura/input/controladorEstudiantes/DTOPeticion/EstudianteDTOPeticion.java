@@ -55,7 +55,7 @@ public class EstudianteDTOPeticion {
 
     @NotBlank(message = "El programa académico no puede estar vacío")
     @Size(max = 100, message = "El programa académico debe tener máximo 100 caracteres")
-    private String programaAcademico;
+    private String uuidProgramaAcademico;
 
     @NotBlank(message = "El semestre no puede estar vacío")
     @Size(max = 10, message = "El semestre debe tener máximo 10 caracteres")

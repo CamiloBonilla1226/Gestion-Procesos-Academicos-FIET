@@ -1,7 +1,7 @@
 # Contrato de la API de los procesos académicos
 
-Este documento describe los 63 endpoints que la extensión agrega al backend:
-catálogo de asignaturas, estudiantes, funcionarios académicos, catálogos
+Este documento describe los 66 endpoints que la extensión agrega al backend:
+programas académicos y catálogo de asignaturas, estudiantes, funcionarios académicos, catálogos
 académicos, solicitudes académicas y los tres procesos (Cancelación de
 Matrícula, Cancelación de Asignatura y Examen Supletorio). Es la misma lista
 que comprueba `backend/pruebas/matriz-permisos.ps1`, y cada dato sale de los
@@ -45,9 +45,9 @@ Los errores de negocio llegan siempre como HTTP 500; el frontend debe mirar
 | codigoError | Significado | Ejemplos |
 | --- | --- | --- |
 | 1 | Error genérico | JSON mal formado, falta un parámetro de consulta o una parte multipart obligatoria, token sin username, no se pudo guardar el archivo |
-| 2 | La entidad ya existe | Código de asignatura, código estudiantil, documento, correo o username repetidos contra la base |
+| 2 | La entidad ya existe | Nombre de asignatura repetido en su programa, código estudiantil, documento, correo o username repetidos contra la base |
 | 3 | La entidad no existe | uuid inexistente, o una solicitud que el usuario no puede ver (responde igual que una inexistente) |
-| 4 | Regla de negocio violada | Etapa que no admite la acción, anexo faltante, plazo vencido, solicitud en curso |
+| 4 | Regla de negocio violada | Etapa que no admite la acción, anexo faltante, plazo vencido, solicitud en curso, asignatura de otro programa al matricular |
 | 6 | Mal formato | Paginación inválida, fecha mal escrita, nota o faltas fuera de rango, archivo no permitido, errores de Excel |
 | 7 | Sin información | Carga masiva sin filas |
 
@@ -173,8 +173,12 @@ responden el detalle del proceso ya actualizado. Errores comunes a todas:
 
 ## 2. Objetos que se repiten
 
-**AsignaturaDTORespuesta**: `uuidAsignatura`, `codigoAsignatura`,
-`nombreAsignatura` (texto).
+**AsignaturaDTORespuesta**: `uuidAsignatura`, `codigoAsignatura` (generado,
+por ejemplo `ISI-001`), `nombreAsignatura`, `uuidProgramaAcademico` y
+`programaAcademico` (nombre del programa) (texto).
+
+**ProgramaAcademicoDTORespuesta**: `uuidProgramaAcademico`, `nombre`, `sigla`
+(texto).
 
 **AsignaturaMatriculadaDTORespuesta**: `uuidAsignaturaMatriculada`,
 `uuidAsignatura`, `codigoAsignatura`, `nombreAsignatura`, `grupo`, `estado`
@@ -182,8 +186,8 @@ responden el detalle del proceso ya actualizado. Errores comunes a todas:
 
 **EstudianteDTORespuesta**: `uuidUsuario`, `nombres`, `apellidos`,
 `tipoDocumento`, `numeroDocumento`, `telefono`, `correoElectronico`,
-`username`, `codigoEstudiantil`, `programaAcademico`, `semestre`, `facultad`
-(texto), `estado` (booleano, usuario activo) y `asignaturasMatriculadas`
+`username`, `codigoEstudiantil`, `uuidProgramaAcademico`,
+`programaAcademico` (nombre del programa), `semestre`, `facultad` (texto), `estado` (booleano, usuario activo) y `asignaturasMatriculadas`
 (lista de AsignaturaMatriculadaDTORespuesta). Nunca trae la contraseña.
 
 **FuncionarioAcademicoDTORespuesta**: `uuidUsuario`, `nombres`, `apellidos`,
@@ -231,21 +235,62 @@ encaja en el recorrido), `observaciones`, `fecha` (fecha y hora),
 
 ## 3. Endpoints
 
-### 3.1 Asignaturas (5)
+### 3.1 Asignaturas (7)
 
 | Método y ruta | Roles | Parámetros | Cuerpo | Respuesta |
 | --- | --- | --- | --- | --- |
-| `POST asignaturas` | Secretario General, Decano | | `{codigoAsignatura, nombreAsignatura}` | AsignaturaDTORespuesta |
-| `GET asignaturas/paginado` | Secretario General, Decano, Funcionario Académico | `pagina`, `tamanio` | | Página de AsignaturaDTORespuesta, por código |
-| `GET asignaturas/filtro` | Secretario General, Decano, Funcionario Académico | `texto` (opcional; busca en código y nombre, sin distinguir mayúsculas), `pagina`, `tamanio` | | Página de AsignaturaDTORespuesta |
+| `POST asignaturas` | Secretario General, Decano | | `{nombreAsignatura, uuidProgramaAcademico}` | AsignaturaDTORespuesta con el código generado |
+| `POST asignaturas/cargar/archivo` | Secretario General, Decano | | Multipart, parte `file` (.xlsx) | Lista de AsignaturaDTORespuesta creadas, en el orden del archivo |
+| `GET asignaturas/paginado` | Secretario General, Decano, Funcionario Académico | `pagina`, `tamanio` | | Página de AsignaturaDTORespuesta, por sigla del programa y consecutivo |
+| `GET asignaturas/filtro` | Secretario General, Decano, Funcionario Académico | `texto` (opcional; busca en código y nombre, sin distinguir mayúsculas), `uuidProgramaAcademico` (opcional), `pagina`, `tamanio` | | Página de AsignaturaDTORespuesta, en el mismo orden |
+| `GET asignaturas/programa/{uuidPrograma}` | Secretario General, Decano, Funcionario Académico | | | Lista sin paginar de AsignaturaDTORespuesta del programa, por consecutivo (`ISI-999` antes de `ISI-1000`) |
 | `GET asignaturas/{uuidAsignatura}` | Secretario General, Decano, Funcionario Académico | | | AsignaturaDTORespuesta |
-| `PUT asignaturas/{uuidAsignatura}` | Secretario General, Decano | | `{codigoAsignatura, nombreAsignatura}` | AsignaturaDTORespuesta |
+| `PUT asignaturas/{uuidAsignatura}` | Secretario General, Decano | | `{nombreAsignatura}` | AsignaturaDTORespuesta |
 
-Cuerpo: `codigoAsignatura` obligatorio, máximo 45; `nombreAsignatura`
-obligatorio, máximo 150 (400 si no se cumple).
+Cuerpo de `POST asignaturas`: `nombreAsignatura` obligatorio, máximo 150;
+`uuidProgramaAcademico` obligatorio, máximo 100 (400 si no se cumple). El
+cuerpo no lleva código: el backend lo genera con la sigla del programa, un
+guion y el siguiente consecutivo del programa con al menos tres dígitos
+(`ISI-001`, ..., `ISI-999`, `ISI-1000`). El código nunca se edita ni se
+reutiliza. El nombre se guarda sin espacios sobrantes y no se repite dentro
+del mismo programa sin distinguir mayúsculas ni espacios.
 
-Errores: 2 `Asignatura con codigo: <codigo> existe en el sistema...`; 3
-`Asignatura con id <uuid> no fue encontrado en el sistema...`.
+`PUT asignaturas/{uuid}`: `nombreAsignatura` obligatorio, máximo 150. Solo
+cambia el nombre; si el cuerpo trae `codigoAsignatura` o
+`uuidProgramaAcademico`, se ignoran.
+
+Excel de asignaturas: hoja 1, fila 1 con los encabezados `nombreAsignatura,
+programaAcademico`, en ese orden. `programaAcademico` es el nombre exacto de
+uno de los cinco programas (sección 3.4), sin distinguir mayúsculas ni
+espacios al inicio o al final. Termina en la primera fila vacía. Es todo o
+nada: si una fila falla no se crea ninguna. Hay una plantilla en
+`backend/pruebas/plantilla-asignaturas.xlsx`.
+
+Errores:
+
+- 400: mapa `{"campo": "mensaje"}` por las anotaciones del cuerpo; en la
+  carga, `{"campo": "Fila <n>, columna <letra> (<campo>): <mensaje>"}` con
+  `El nombre de la asignatura no puede estar vacío`, `El nombre de la
+  asignatura debe tener máximo 150 caracteres` o `El programa académico no
+  puede estar vacío`.
+- 2: `La asignatura <nombre> ya existe en el programa <programa> con el
+  código <codigo>...`; en la carga, `Fila <n>, columna A (nombreAsignatura):
+  la asignatura <nombre> ya existe en el programa <programa> con el código
+  <codigo>...`.
+- 3: `Asignatura con id <uuid> no fue encontrado en el sistema...`;
+  `Programa académico con id <uuid> no fue encontrado en el sistema...`
+  (al crear, en `filtro` y en `programa/{uuidPrograma}`).
+- 6: `El nombre de la asignatura no puede estar vacío...`; `El nombre de la
+  asignatura supera los 150 caracteres permitidos...`; `Debe indicar el
+  programa académico...`; `La petición trae la asignatura <nombre> más de
+  una vez...`; paginación inválida.
+- 6 en la carga: `El archivo debe ser un Excel .xlsx valido con una
+  hoja...`; `Fila 1, columna <letra>: se esperaba el encabezado <campo> y se
+  encontró '<valor>'...`; `El archivo no tiene filas de datos despues del
+  encabezado...`; `Fila <n>, columna B (programaAcademico): el programa
+  '<valor>' no existe, los programas permitidos son <lista>...`; `Fila <n>,
+  columna A (nombreAsignatura): la asignatura <nombre> ya aparece en la fila
+  <m> para el programa <programa>...`.
 
 ### 3.2 Estudiantes (9)
 
@@ -257,8 +302,8 @@ Errores: 2 `Asignatura con codigo: <codigo> existe en el sistema...`; 3
 | `GET estudiantes/filtro` | Secretario General, Decano, Funcionario Académico | `nombre`, `apellido`, `codigo` (opcionales; contienen, sin distinguir mayúsculas), `pagina`, `tamanio` | | Página de EstudianteDTORespuesta |
 | `GET estudiantes/mis-asignaturas` | Estudiante | | | Lista de AsignaturaMatriculadaDTORespuesta activas del estudiante autenticado, por código |
 | `GET estudiantes/{uuidEstudiante}` | Secretario General, Decano, Funcionario Académico | | | EstudianteDTORespuesta |
-| `PUT estudiantes/{uuidEstudiante}` | Secretario General, Decano | | `{codigoEstudiantil, programaAcademico, semestre, facultad}`, todos opcionales; los vacíos no cambian | EstudianteDTORespuesta |
-| `POST estudiantes/{uuidEstudiante}/asignaturas` | Secretario General, Decano | | `{codigoAsignatura, nombreAsignatura, grupo}` | AsignaturaMatriculadaDTORespuesta, en estado `activa` |
+| `PUT estudiantes/{uuidEstudiante}` | Secretario General, Decano | | `{codigoEstudiantil, semestre, facultad}`, todos opcionales; los vacíos no cambian | EstudianteDTORespuesta |
+| `POST estudiantes/{uuidEstudiante}/asignaturas` | Secretario General, Decano | | `{codigoAsignatura, grupo}` | AsignaturaMatriculadaDTORespuesta, en estado `activa` |
 | `PATCH estudiantes/{uuidEstudiante}/asignaturas/{uuidMatricula}/estado` | Secretario General, Decano | | `{estado}` | AsignaturaMatriculadaDTORespuesta |
 
 EstudianteDTOPeticion: `nombres`, `apellidos` (obligatorios, máximo 1000),
@@ -266,41 +311,60 @@ EstudianteDTOPeticion: `nombres`, `apellidos` (obligatorios, máximo 1000),
 extranjería`, sin distinguir mayúsculas), `numeroDocumento` (5 a 255),
 `telefono` (5 a 1000), `correoElectronico` (correo válido), `username` (5 a
 255), `password` (5 a 255), `codigoEstudiantil` (máximo 45),
-`programaAcademico` (máximo 100), `semestre` (máximo 10), `facultad` (máximo
-100), `asignaturas` (al menos una: `{codigoAsignatura, nombreAsignatura,
-grupo}`). El rol y el tipo de usuario los asigna el backend. Una asignatura se
-busca por su código en el catálogo y, si no existe, se crea.
+`uuidProgramaAcademico` (obligatorio, máximo 100), `semestre` (máximo 10),
+`facultad` (máximo 100), `asignaturas` (al menos una: `{codigoAsignatura,
+grupo}`; código máximo 45 y grupo máximo 20). El rol y el tipo de usuario los
+asigna el backend.
+
+El programa se elige al crear el estudiante y no se cambia después: `PUT`
+no lo recibe (si llega, se ignora). Cada `codigoAsignatura` se busca en el
+catálogo sin distinguir mayúsculas ni espacios y debe ser una asignatura del
+programa del estudiante; ningún endpoint de estudiantes crea asignaturas.
+La misma regla aplica a `POST estudiantes/{uuid}/asignaturas`.
 
 Excel de estudiantes: hoja 1, fila 1 con estos encabezados en este orden:
 `nombres, apellidos, tipoDocumento, numeroDocumento, telefono,
 correoElectronico, username, password, codigoEstudiantil, programaAcademico,
-semestre, facultad, codigoAsignatura, nombreAsignatura, grupo`. Una fila por
-asignatura matriculada; las filas del mismo `numeroDocumento` se juntan en un
-estudiante y deben repetir los mismos datos. Termina en la primera fila
-vacía. Hay una plantilla en `backend/pruebas/plantilla-estudiantes.xlsx`.
+semestre, facultad, codigoAsignatura, grupo`. `programaAcademico` es el
+nombre exacto de uno de los cinco programas, sin distinguir mayúsculas. Una
+fila por asignatura matriculada; las filas del mismo `numeroDocumento` se
+juntan en un estudiante y deben repetir los mismos datos, programa incluido.
+Termina en la primera fila vacía. Hay una plantilla en
+`backend/pruebas/plantilla-estudiantes.xlsx`.
 
 Errores principales:
 
-- 400 en la carga: mapa `{"campo": "Fila <n>, columna <letra> (<campo>): <mensaje>"}`.
+- 400 en la carga: mapa `{"campo": "Fila <n>, columna <letra> (<campo>): <mensaje>"}`;
+  un programa vacío sale en la columna J (`programaAcademico`).
 - 2: `Estudiante con codigo estudiantil: <x> existe en el sistema...`, `Usuario
   con numero de documento: <x> existe...`, `... correo electronico ...`,
   `... username ...`.
 - 3: `Estudiante con id <uuid> no fue encontrado en el sistema...`; en
   `mis-asignaturas`, `Estudiante con username: <x> no fue encontrado en el
-  sistema...`; `Asignatura matriculada con id <uuid> no fue encontrado...`.
+  sistema...`; `Asignatura matriculada con id <uuid> no fue encontrado...`;
+  `Programa académico con id <uuid> no fue encontrado en el sistema...`;
+  `Asignatura con codigo: <codigo> no fue encontrado en el sistema...`.
+- 4: `La asignatura <codigo> (<nombre>) es del programa <programa de la
+  asignatura> y el estudiante es del programa <programa del estudiante>...`.
 - 6: `La petición trae <dato> <valor> más de una vez...`; `El estudiante ya
   tiene activa la asignatura <codigo> en el grupo <grupo>...`; `El estado <x>
   no es valido, los estados permitidos son activa, cancelada, aprobada,
   perdida...`; `No se puede cambiar la asignatura matriculada de <actual> a
-  <nuevo>...` (solo se cambia desde `activa`); `Tipo de documento invalido...`.
+  <nuevo>...` (solo se cambia desde `activa`); `Tipo de documento invalido...`;
+  `Debe indicar el programa académico...`.
 - 6 en la carga: `El archivo debe ser un Excel .xlsx valido con una hoja...`;
   `Fila 1, columna <letra>: se esperaba el encabezado <campo> y se encontró
   '<valor>'...`; `El archivo no tiene filas de estudiantes despues del
-  encabezado...`; `Fila <n>, columna <letra> (<campo>): el estudiante con
-  documento <doc> tiene un valor distinto al de la fila <m>...`; `... la
-  asignatura <codigo> en el grupo <grupo> ya aparece en la fila <m> para el
-  mismo estudiante...`; `... el valor <x> ya lo usa otro estudiante en la fila
-  <m>...`.
+  encabezado...`; `Fila <n>, columna J (programaAcademico): el programa
+  '<valor>' no existe, los programas permitidos son <lista>...`; `Fila <n>,
+  columna M (codigoAsignatura): la asignatura con código <codigo> no existe
+  en el catálogo...`; `Fila <n>, columna M (codigoAsignatura): la asignatura
+  <codigo> es del programa <programa> y el estudiante es del programa
+  <programa>...`; `Fila <n>, columna <letra> (<campo>): el estudiante con
+  documento <doc> tiene un valor distinto al de la fila <m>...` (también si
+  cambia el programa); `... la asignatura <codigo> en el grupo <grupo> ya
+  aparece en la fila <m> para el mismo estudiante...`; `... el valor <x> ya
+  lo usa otro estudiante en la fila <m>...`.
 
 ### 3.3 Funcionarios académicos (6)
 
@@ -331,7 +395,7 @@ encabezado distinto, `El archivo no tiene filas de datos despues del
 encabezado...` y `Fila <n>, columna <letra> (<campo>): el valor <x> ya
 aparece en la fila <m> del archivo...`.
 
-### 3.4 Catálogos académicos (6)
+### 3.4 Catálogos académicos (7)
 
 | Método y ruta | Roles | Parámetros | Cuerpo | Respuesta |
 | --- | --- | --- | --- | --- |
@@ -340,6 +404,7 @@ aparece en la fila <m> del archivo...`.
 | `GET catalogos-academicos/tipos-solicitud/{uuidTipo}/tipos-anexo` | Cualquier usuario autenticado | | | Lista de `{uuidTipoAnexoAcademico, uuidTipoSolicitudAcademica, nombre, formatosPermitidos, obligatorio}`, por nombre |
 | `GET catalogos-academicos/etiquetas` | Cualquier usuario autenticado | `rol`: `ESTUDIANTE`, `FUNCIONARIO` o `DECANO` (sin distinguir mayúsculas) | | Lista de `{uuidEtapa, codigoEtapa, rol, etiqueta}`, por código de etapa |
 | `GET catalogos-academicos/situaciones` | Cualquier usuario autenticado | | | Lista de SituacionAsignaturaDTORespuesta, por código |
+| `GET catalogos-academicos/programas` | Cualquier usuario autenticado | | | Lista de ProgramaAcademicoDTORespuesta de los cinco programas, por nombre |
 | `PUT catalogos-academicos/tipos-solicitud/{uuidTipo}/funcionario` | Secretario General, Decano | | `{funcionarioUuid}` (obligatorio, máximo 100) | TipoSolicitudAcademicaDTORespuesta con el nuevo responsable |
 
 Errores: 3 `Tipo de solicitud académica con id <uuid> no fue encontrado en el

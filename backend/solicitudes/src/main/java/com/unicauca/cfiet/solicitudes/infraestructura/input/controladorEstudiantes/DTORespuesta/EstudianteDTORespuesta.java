@@ -23,6 +23,7 @@ public class EstudianteDTORespuesta {
     private String correoElectronico;
     private String username;
     private String codigoEstudiantil;
+    private String uuidProgramaAcademico;
     private String programaAcademico;
     private String semestre;
     private String facultad;

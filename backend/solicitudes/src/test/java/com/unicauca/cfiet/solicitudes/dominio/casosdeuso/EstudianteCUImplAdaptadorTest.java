@@ -5,6 +5,7 @@ import com.unicauca.cfiet.solicitudes.aplicacion.input.UsuarioCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.AsignaturaGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.EstudianteGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.IJwtServicio;
+import com.unicauca.cfiet.solicitudes.aplicacion.output.ProgramaAcademicoGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.RolGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.SesionGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.UsuarioGatewayIntPuerto;
@@ -13,14 +14,17 @@ import com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EstadoAsignatura
 import com.unicauca.cfiet.solicitudes.dominio.modelos.Asignatura;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.AsignaturaMatriculada;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.Estudiante;
+import com.unicauca.cfiet.solicitudes.dominio.modelos.ProgramaAcademico;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.Rol;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.TipoUsuario;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.Usuario;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.formateador.ExcepcionesFormateadorImplAdaptador;
+import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.MensajesError;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.excepcionesPropias.ErrorEntidadExisteExcepcion;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.excepcionesPropias.ErrorEntidadNoExisteExcepcion;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.excepcionesPropias.ErrorMalFormatoExcepcion;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.excepcionesPropias.ErrorNoInformacionExcepcion;
+import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.excepcionesPropias.ErrorReglaNegocioVioladaExcepcion;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,6 +52,11 @@ class EstudianteCUImplAdaptadorTest {
     private static final String TOKEN = "token";
     private static final String UUID_USUARIO = "uuid-usuario-creado";
     private static final String UUID_ESTUDIANTE = "uuid-estudiante";
+    private static final String UUID_ISI = "uuid-isi";
+    private static final ProgramaAcademico SISTEMAS = ProgramaAcademico.builder()
+            .uuidProgramaAcademico(UUID_ISI).sigla("ISI").nombre("Ingeniería de Sistemas").ultimoConsecutivoAsignatura(5).build();
+    private static final ProgramaAcademico ELECTRONICA = ProgramaAcademico.builder()
+            .uuidProgramaAcademico("uuid-iet").sigla("IET").nombre("Ingeniería Electrónica y Telecomunicaciones").ultimoConsecutivoAsignatura(5).build();
 
     @Mock
     private UsuarioCUIntPuerto usuarioCU;
@@ -57,6 +66,9 @@ class EstudianteCUImplAdaptadorTest {
 
     @Mock
     private AsignaturaGatewayIntPuerto asignaturaGateway;
+
+    @Mock
+    private ProgramaAcademicoGatewayIntPuerto programaGateway;
 
     @Mock
     private RolGatewayIntPuerto rolGateway;
@@ -81,8 +93,11 @@ class EstudianteCUImplAdaptadorTest {
 
     @BeforeEach
     void setUp() {
-        casoDeUso = new EstudianteCUImplAdaptador(usuarioCU, gateway, asignaturaGateway, rolGateway,
+        casoDeUso = new EstudianteCUImplAdaptador(usuarioCU, gateway, asignaturaGateway, programaGateway, rolGateway,
                 usuarioGateway, sesionGateway, jwtServicio, new ExcepcionesFormateadorImplAdaptador(), log);
+        lenient().when(programaGateway.getPorUuid(UUID_ISI)).thenReturn(SISTEMAS);
+        lenient().when(asignaturaGateway.getPorCodigo(anyString())).thenAnswer(invocacion ->
+                existente("asig-" + invocacion.getArgument(0), invocacion.getArgument(0), "Materia " + invocacion.getArgument(0)));
     }
 
     private AsignaturaMatriculada materia(String codigo, String nombre, String grupo) {
@@ -112,7 +127,7 @@ class EstudianteCUImplAdaptadorTest {
         return Estudiante.builder()
                 .usuario(usuario)
                 .codigoEstudiantil(codigoEstudiantil)
-                .programaAcademico("Ingenieria de Sistemas")
+                .programaAcademico(ProgramaAcademico.builder().uuidProgramaAcademico(UUID_ISI).build())
                 .semestre("5")
                 .facultad("FIET")
                 .asignaturasMatriculadas(new ArrayList<>(List.of(materias)))
@@ -122,12 +137,13 @@ class EstudianteCUImplAdaptadorTest {
     private Estudiante registrado(String codigoEstudiantil, AsignaturaMatriculada... materias) {
         Estudiante estudiante = estudiante(codigoEstudiantil, materias);
         estudiante.setUuidUsuario(UUID_ESTUDIANTE);
+        estudiante.setProgramaAcademico(SISTEMAS);
         estudiante.getUsuario().setUuidUsuario(UUID_ESTUDIANTE);
         return estudiante;
     }
 
     private Asignatura existente(String uuid, String codigo, String nombre) {
-        return Asignatura.builder().uuidAsignatura(uuid).codigoAsignatura(codigo).nombreAsignatura(nombre).build();
+        return Asignatura.builder().uuidAsignatura(uuid).codigoAsignatura(codigo).nombreAsignatura(nombre).programaAcademico(SISTEMAS).build();
     }
 
     private void prepararCreacion() {
@@ -245,7 +261,7 @@ class EstudianteCUImplAdaptadorTest {
                 materia("IS101", "Introduccion", "B")), TOKEN);
 
         assertEquals(2, creado.getAsignaturasMatriculadas().size());
-        verify(asignaturaGateway, times(1)).getPorCodigo("IS101");
+        assertSame(creado.getAsignaturasMatriculadas().get(0).getAsignatura().getProgramaAcademico(), SISTEMAS);
     }
 
     @Test
@@ -257,7 +273,6 @@ class EstudianteCUImplAdaptadorTest {
                 () -> casoDeUso.crearEstudiante(estudiante("1001", materia("IS101", "Introduccion", "A")), TOKEN));
 
         verificarQueNoSeCreoNada();
-        verifyNoInteractions(asignaturaGateway);
     }
 
     @Test
@@ -270,28 +285,82 @@ class EstudianteCUImplAdaptadorTest {
                 () -> casoDeUso.crearEstudiante(estudiante("1001", materia("IS101", "Introduccion", "A")), TOKEN));
 
         verificarQueNoSeCreoNada();
-        verifyNoInteractions(asignaturaGateway);
     }
 
     @Test
-    void crearEstudianteConMateriaNuevaLaCreaEnElCatalogo() {
+    void crearEstudianteConAsignaturaInexistenteLanzaEntidadNoExisteYNoCreaNada() {
+        when(gateway.existePorCodigoEstudiantil("1001")).thenReturn(false);
+        when(asignaturaGateway.getPorCodigo("ISI-999")).thenReturn(null);
+
+        ErrorEntidadNoExisteExcepcion error = assertThrows(ErrorEntidadNoExisteExcepcion.class,
+                () -> casoDeUso.crearEstudiante(estudiante("1001", materia("ISI-999", null, "A")), TOKEN));
+
+        assertEquals(String.format(MensajesError.ENTIDAD_NO_ENCONTRADA_FILTRO, "Asignatura", "codigo", "ISI-999"), error.getMessage());
+        verificarQueNoSeCreoNada();
+    }
+
+    @Test
+    void crearEstudianteConAsignaturaDeOtroProgramaLanzaReglaNegocioYNoCreaNada() {
+        when(gateway.existePorCodigoEstudiantil("1001")).thenReturn(false);
+        Asignatura ajena = existente("asig-iet", "IET-001", "Circuitos I");
+        ajena.setProgramaAcademico(ELECTRONICA);
+        when(asignaturaGateway.getPorCodigo("IET-001")).thenReturn(ajena);
+
+        ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
+                () -> casoDeUso.crearEstudiante(estudiante("1001", materia("IET-001", null, "A")), TOKEN));
+
+        assertEquals(String.format(MensajesError.ASIGNATURA_OTRO_PROGRAMA, "IET-001", "Circuitos I",
+                ELECTRONICA.getNombre(), SISTEMAS.getNombre()), error.getMessage());
+        verificarQueNoSeCreoNada();
+    }
+
+    @Test
+    void crearEstudianteConProgramaInexistenteLanzaEntidadNoExisteYNoCreaNada() {
+        when(gateway.existePorCodigoEstudiantil("1001")).thenReturn(false);
+        Estudiante peticion = estudiante("1001", materia("ISI-001", null, "A"));
+        peticion.getProgramaAcademico().setUuidProgramaAcademico("no-existe");
+
+        assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso.crearEstudiante(peticion, TOKEN));
+
+        verify(asignaturaGateway, never()).getPorCodigo(anyString());
+        verificarQueNoSeCreoNada();
+    }
+
+    @Test
+    void crearEstudianteSinProgramaLanzaMalFormatoYNoCreaNada() {
+        when(gateway.existePorCodigoEstudiantil("1001")).thenReturn(false);
+        Estudiante peticion = estudiante("1001", materia("ISI-001", null, "A"));
+        peticion.setProgramaAcademico(null);
+
+        ErrorMalFormatoExcepcion error = assertThrows(ErrorMalFormatoExcepcion.class, () -> casoDeUso.crearEstudiante(peticion, TOKEN));
+
+        assertEquals(MensajesError.PROGRAMA_ACADEMICO_REQUERIDO, error.getMessage());
+        verificarQueNoSeCreoNada();
+    }
+
+    @Test
+    void crearEstudianteBuscaElCodigoDeAsignaturaSinEspaciosYEnMayusculas() {
         prepararCreacion();
-        when(asignaturaGateway.getPorCodigo("IS999")).thenReturn(null);
-        when(asignaturaGateway.guardar(any(Asignatura.class))).thenAnswer(invocacion -> invocacion.getArgument(0));
 
-        Estudiante creado = casoDeUso.crearEstudiante(estudiante("1001", materia("IS999", "Materia Nueva", "A")), TOKEN);
+        Estudiante creado = casoDeUso.crearEstudiante(estudiante("1001", materia(" isi-001 ", null, "A")), TOKEN);
 
-        ArgumentCaptor<Asignatura> captor = ArgumentCaptor.forClass(Asignatura.class);
-        verify(asignaturaGateway).guardar(captor.capture());
-        assertNotNull(captor.getValue().getUuidAsignatura());
-        assertEquals("IS999", captor.getValue().getCodigoAsignatura());
-        assertEquals("Materia Nueva", captor.getValue().getNombreAsignatura());
-        assertEquals(captor.getValue().getUuidAsignatura(),
-                creado.getAsignaturasMatriculadas().get(0).getAsignatura().getUuidAsignatura());
+        verify(asignaturaGateway).getPorCodigo("ISI-001");
+        assertEquals("asig-ISI-001", creado.getAsignaturasMatriculadas().get(0).getAsignatura().getUuidAsignatura());
+        assertSame(SISTEMAS, creado.getProgramaAcademico());
+    }
 
-        InOrder orden = inOrder(asignaturaGateway, usuarioCU);
-        orden.verify(asignaturaGateway).guardar(any(Asignatura.class));
-        orden.verify(usuarioCU).crearUsuario(any(Usuario.class), eq("ESTUDIANTE"), eq(TOKEN));
+    @Test
+    void crearEstudiantesConAsignaturaDeOtroProgramaEnElSegundoNoCreaAlPrimero() {
+        when(gateway.existePorCodigoEstudiantil(anyString())).thenReturn(false);
+        Asignatura ajena = existente("asig-iet", "IET-001", "Circuitos I");
+        ajena.setProgramaAcademico(ELECTRONICA);
+        when(asignaturaGateway.getPorCodigo("IET-001")).thenReturn(ajena);
+
+        assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> casoDeUso.crearEstudiantes(List.of(
+                estudiante("1001", materia("ISI-001", null, "A")),
+                estudiante("1002", materia("IET-001", null, "A"))), TOKEN));
+
+        verificarQueNoSeCreoNada();
     }
 
     @Test
@@ -301,7 +370,6 @@ class EstudianteCUImplAdaptadorTest {
 
         Estudiante creado = casoDeUso.crearEstudiante(estudiante("1001", materia("IS101", "Otro nombre", "A")), TOKEN);
 
-        verify(asignaturaGateway, never()).guardar(any());
         Asignatura usada = creado.getAsignaturasMatriculadas().get(0).getAsignatura();
         assertEquals("asig-1", usada.getUuidAsignatura());
         assertEquals("Introduccion a la Informatica", usada.getNombreAsignatura());
@@ -318,7 +386,6 @@ class EstudianteCUImplAdaptadorTest {
         assertThrows(ErrorMalFormatoExcepcion.class, () -> casoDeUso.crearEstudiantes(lote, TOKEN));
 
         verificarQueNoSeCreoNada();
-        verifyNoInteractions(asignaturaGateway);
     }
 
     @Test
@@ -331,7 +398,6 @@ class EstudianteCUImplAdaptadorTest {
                 List.of(estudiante("1001", materia("IS101", "Introduccion", "A")), segundo), TOKEN));
 
         verificarQueNoSeCreoNada();
-        verifyNoInteractions(asignaturaGateway);
     }
 
     @Test
@@ -344,7 +410,6 @@ class EstudianteCUImplAdaptadorTest {
                 List.of(estudiante("1001", materia("IS101", "Introduccion", "A")), segundo), TOKEN));
 
         verificarQueNoSeCreoNada();
-        verifyNoInteractions(asignaturaGateway);
     }
 
     @Test
@@ -357,7 +422,6 @@ class EstudianteCUImplAdaptadorTest {
                 List.of(estudiante("1001", materia("IS101", "Introduccion", "A")), segundo), TOKEN));
 
         verificarQueNoSeCreoNada();
-        verifyNoInteractions(asignaturaGateway);
     }
 
     @Test
@@ -517,7 +581,7 @@ class EstudianteCUImplAdaptadorTest {
         when(gateway.guardar(any(Estudiante.class))).thenAnswer(invocacion -> invocacion.getArgument(0));
 
         Estudiante cambios = estudiante("2002", materia("IS999", "Otra", "Z"));
-        cambios.setProgramaAcademico("Ingenieria Electronica");
+        cambios.setProgramaAcademico(ELECTRONICA);
         cambios.setSemestre("6");
         cambios.setFacultad("FIET Popayan");
         cambios.getUsuario().setNombres("Otro nombre");
@@ -525,13 +589,13 @@ class EstudianteCUImplAdaptadorTest {
         Estudiante actualizado = casoDeUso.actualizarEstudiante(UUID_ESTUDIANTE, cambios, TOKEN);
 
         assertEquals("2002", actualizado.getCodigoEstudiantil());
-        assertEquals("Ingenieria Electronica", actualizado.getProgramaAcademico());
+        assertSame(SISTEMAS, actualizado.getProgramaAcademico());
         assertEquals("6", actualizado.getSemestre());
         assertEquals("FIET Popayan", actualizado.getFacultad());
         assertSame(usuarioActual, actualizado.getUsuario());
         assertEquals("Ana", actualizado.getUsuario().getNombres());
         assertEquals(List.of(materiaActual), actualizado.getAsignaturasMatriculadas());
-        verifyNoInteractions(usuarioCU, usuarioGateway, asignaturaGateway);
+        verifyNoInteractions(usuarioCU, usuarioGateway, programaGateway);
         verify(log).crearLog(eq("Actualizar estudiante"), anyString(), eq(TOKEN));
     }
 
@@ -570,7 +634,7 @@ class EstudianteCUImplAdaptadorTest {
 
     @Test
     void agregarAsignaturaMatriculadaConAsignaturaExistenteLaDejaActivaYRegistraLog() {
-        when(gateway.existePorUuid(UUID_ESTUDIANTE)).thenReturn(true);
+        when(gateway.getPorUuid(UUID_ESTUDIANTE)).thenReturn(registrado("1001"));
         when(gateway.getAsignaturasMatriculadas(UUID_ESTUDIANTE)).thenReturn(List.of());
         when(asignaturaGateway.getPorCodigo("IS101")).thenReturn(existente("asig-1", "IS101", "Introduccion"));
         when(gateway.guardarAsignaturaMatriculada(eq(UUID_ESTUDIANTE), any(AsignaturaMatriculada.class)))
@@ -588,25 +652,36 @@ class EstudianteCUImplAdaptadorTest {
     }
 
     @Test
-    void agregarAsignaturaMatriculadaConAsignaturaNuevaLaCreaEnElCatalogo() {
-        when(gateway.existePorUuid(UUID_ESTUDIANTE)).thenReturn(true);
+    void agregarAsignaturaMatriculadaInexistenteLanzaEntidadNoExisteYNoGuarda() {
+        when(gateway.getPorUuid(UUID_ESTUDIANTE)).thenReturn(registrado("1001"));
         when(gateway.getAsignaturasMatriculadas(UUID_ESTUDIANTE)).thenReturn(List.of());
-        when(asignaturaGateway.getPorCodigo("IS999")).thenReturn(null);
-        when(asignaturaGateway.guardar(any(Asignatura.class))).thenAnswer(invocacion -> invocacion.getArgument(0));
-        when(gateway.guardarAsignaturaMatriculada(eq(UUID_ESTUDIANTE), any(AsignaturaMatriculada.class)))
-                .thenAnswer(invocacion -> invocacion.getArgument(1));
+        when(asignaturaGateway.getPorCodigo("ISI-999")).thenReturn(null);
 
-        AsignaturaMatriculada agregada = casoDeUso.agregarAsignaturaMatriculada(
-                UUID_ESTUDIANTE, materia("IS999", "Materia Nueva", "A"), TOKEN);
+        assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso.agregarAsignaturaMatriculada(
+                UUID_ESTUDIANTE, materia("ISI-999", null, "A"), TOKEN));
 
-        assertNotNull(agregada.getAsignatura().getUuidAsignatura());
-        assertEquals("Materia Nueva", agregada.getAsignatura().getNombreAsignatura());
-        verify(asignaturaGateway).guardar(any(Asignatura.class));
+        verify(gateway, never()).guardarAsignaturaMatriculada(anyString(), any());
+        verifyNoInteractions(log);
+    }
+
+    @Test
+    void agregarAsignaturaMatriculadaDeOtroProgramaLanzaReglaNegocioYNoGuarda() {
+        when(gateway.getPorUuid(UUID_ESTUDIANTE)).thenReturn(registrado("1001"));
+        when(gateway.getAsignaturasMatriculadas(UUID_ESTUDIANTE)).thenReturn(List.of());
+        Asignatura ajena = existente("asig-iet", "IET-001", "Circuitos I");
+        ajena.setProgramaAcademico(ELECTRONICA);
+        when(asignaturaGateway.getPorCodigo("IET-001")).thenReturn(ajena);
+
+        assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> casoDeUso.agregarAsignaturaMatriculada(
+                UUID_ESTUDIANTE, materia("iet-001", null, "A"), TOKEN));
+
+        verify(gateway, never()).guardarAsignaturaMatriculada(anyString(), any());
+        verifyNoInteractions(log);
     }
 
     @Test
     void agregarAsignaturaMatriculadaYaActivaEnElMismoGrupoLanzaMalFormato() {
-        when(gateway.existePorUuid(UUID_ESTUDIANTE)).thenReturn(true);
+        when(gateway.getPorUuid(UUID_ESTUDIANTE)).thenReturn(registrado("1001"));
         when(gateway.getAsignaturasMatriculadas(UUID_ESTUDIANTE)).thenReturn(List.of(
                 matriculada("m1", "IS101", "A", EstadoAsignaturaMatriculadaConstantes.ACTIVA)));
 
@@ -619,7 +694,7 @@ class EstudianteCUImplAdaptadorTest {
 
     @Test
     void agregarAsignaturaMatriculadaQueEstuvoCanceladaEnElMismoGrupoEsValida() {
-        when(gateway.existePorUuid(UUID_ESTUDIANTE)).thenReturn(true);
+        when(gateway.getPorUuid(UUID_ESTUDIANTE)).thenReturn(registrado("1001"));
         when(gateway.getAsignaturasMatriculadas(UUID_ESTUDIANTE)).thenReturn(List.of(
                 matriculada("m1", "IS101", "A", EstadoAsignaturaMatriculadaConstantes.CANCELADA)));
         when(asignaturaGateway.getPorCodigo("IS101")).thenReturn(existente("asig-IS101", "IS101", "Materia IS101"));
@@ -634,7 +709,7 @@ class EstudianteCUImplAdaptadorTest {
 
     @Test
     void agregarAsignaturaMatriculadaAEstudianteInexistenteLanzaEntidadNoExiste() {
-        when(gateway.existePorUuid("no-existe")).thenReturn(false);
+        when(gateway.getPorUuid("no-existe")).thenReturn(null);
 
         assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso.agregarAsignaturaMatriculada(
                 "no-existe", materia("IS101", "Introduccion", "A"), TOKEN));

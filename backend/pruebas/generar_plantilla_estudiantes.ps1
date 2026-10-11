@@ -1,14 +1,16 @@
 . "$PSScriptRoot\comun.ps1"
 
-$encabezado = @("nombres", "apellidos", "tipoDocumento", "numeroDocumento", "telefono", "correoElectronico", "username", "password", "codigoEstudiantil", "programaAcademico", "semestre", "facultad", "codigoAsignatura", "nombreAsignatura", "grupo")
-$ana = @("Ana Maria", "Gomez Ruiz", $Global:CedulaCiudadania, "1061000001", "3001234567", "anagomez@unicauca.edu.co", "anagomez", "Clave12345", "104619010001", "Ingenieria de Sistemas", "5", "FIET")
-$luis = @("Luis Carlos", "Perez Mora", $Global:CedulaCiudadania, "1061000002", "3007654321", "luisperez@unicauca.edu.co", "luisperez", "Clave12345", "104619010002", "Ingenieria Electronica", "3", "FIET")
+$sistemas = "Ingenier$([char]0x00ED)a de Sistemas"
+$electronica = "Ingenier$([char]0x00ED)a Electr$([char]0x00F3)nica y Telecomunicaciones"
+$encabezado = @("nombres", "apellidos", "tipoDocumento", "numeroDocumento", "telefono", "correoElectronico", "username", "password", "codigoEstudiantil", "programaAcademico", "semestre", "facultad", "codigoAsignatura", "grupo")
+$ana = @("Ana Maria", "Gomez Ruiz", $Global:CedulaCiudadania, "1061000001", "3001234567", "anagomez@unicauca.edu.co", "anagomez", "Clave12345", "104619010001", $sistemas, "5", "FIET")
+$luis = @("Luis Carlos", "Perez Mora", $Global:CedulaCiudadania, "1061000002", "3007654321", "luisperez@unicauca.edu.co", "luisperez", "Clave12345", "104619010002", $electronica, "3", "FIET")
 
 $filas = @(
     $encabezado,
-    ($ana + @("SIS101", "Introduccion a la Informatica", "A")),
-    ($ana + @("SIS102", "Programacion Orientada a Objetos", "B")),
-    ($luis + @("ELE201", "Circuitos Electricos", "A"))
+    ($ana + @("ISI-001", "A")),
+    ($ana + @("ISI-002", "B")),
+    ($luis + @("IET-001", "A"))
 )
 
 $ruta = Join-Path $PSScriptRoot "plantilla-estudiantes.xlsx"

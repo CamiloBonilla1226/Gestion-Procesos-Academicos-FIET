@@ -86,22 +86,29 @@ public class BeanConfiguracion {
 
     @Bean
     public AsignaturaCUImplAdaptador crearAsignaturaCU(AsignaturaGatewayIntPuerto gateway,
+                                                       ProgramaAcademicoGatewayIntPuerto programaGateway,
                                                        ExcepcionesFormateadorIntPuerto formateadorExcepciones,
                                                        LogCUIntPuerto log){
-        return new AsignaturaCUImplAdaptador(gateway, formateadorExcepciones, log);
+        return new AsignaturaCUImplAdaptador(gateway, programaGateway, formateadorExcepciones, log);
+    }
+
+    @Bean
+    public ProgramaAcademicoCUImplAdaptador crearProgramaAcademicoCU(ProgramaAcademicoGatewayIntPuerto gateway){
+        return new ProgramaAcademicoCUImplAdaptador(gateway);
     }
 
     @Bean
     public EstudianteCUImplAdaptador crearEstudianteCU(UsuarioCUIntPuerto usuarioCU,
                                                        EstudianteGatewayIntPuerto gateway,
                                                        AsignaturaGatewayIntPuerto asignaturaGateway,
+                                                       ProgramaAcademicoGatewayIntPuerto programaGateway,
                                                        RolGatewayIntPuerto rolGateway,
                                                        UsuarioGatewayIntPuerto usuarioGateway,
                                                        SesionGatewayIntPuerto sesionGateway,
                                                        IJwtServicio jwtServicio,
                                                        ExcepcionesFormateadorIntPuerto formateadorExcepciones,
                                                        LogCUIntPuerto log){
-        return new EstudianteCUImplAdaptador(usuarioCU, gateway, asignaturaGateway, rolGateway, usuarioGateway, sesionGateway, jwtServicio, formateadorExcepciones, log);
+        return new EstudianteCUImplAdaptador(usuarioCU, gateway, asignaturaGateway, programaGateway, rolGateway, usuarioGateway, sesionGateway, jwtServicio, formateadorExcepciones, log);
     }
 
     @Bean

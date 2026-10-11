@@ -28,7 +28,7 @@ en `/app/uploads`.
 
 `spring.sql.init.mode=never`: nada se siembra solo. Con una base vacía:
 
-1. `docker compose up --build`. Hibernate crea las tablas de Julián y las 18
+1. `docker compose up --build`. Hibernate crea las tablas de Julián y las 19
    de la extensión al arrancar.
 2. Correr `solicitudes/src/main/resources/data.sql` una sola vez (usa
    `INSERT` sin `IGNORE`), con `docker compose exec cfiet_database mysql -u
@@ -42,10 +42,20 @@ en `/app/uploads`.
    `POST funcionarios-academicos` como `rootfiet` o como Decano.
 4. Correr `docs/database/seed-procesos-academicos.sql` con
    `@funcionario_uuid` apuntando a ese funcionario (el archivo trae el
-   comando exacto para Docker). Siembra los tres tipos de solicitud, las 8
-   etapas, las 23 etiquetas por rol, los 11 tipos de anexo y las situaciones
-   R0 a R3. Usa `INSERT IGNORE` con UUID fijos y se puede repetir; sin
-   `@funcionario_uuid` no se insertan los tipos ni lo que depende de ellos.
+   comando exacto para Docker). Siembra los cinco programas académicos, los
+   tres tipos de solicitud, las 8 etapas, las 23 etiquetas por rol, los 11
+   tipos de anexo y las situaciones R0 a R3. Usa `INSERT IGNORE` con UUID
+   fijos y se puede repetir; sin `@funcionario_uuid` no se insertan los
+   tipos ni lo que depende de ellos (los programas sí).
+
+Sin programas no se pueden crear asignaturas ni estudiantes. Una base que ya
+tenía estudiantes y asignaturas antes de `PROGRAMA_ACADEMICO` se pone al día
+con `docs/database/migracion_programas_asignaturas.sql`, con el backend
+detenido y antes de levantar el backend nuevo; el diccionario de datos trae
+los comandos. Si el backend nuevo arranca sin la migración no falla al
+iniciar, pero Hibernate deja las columnas nuevas vacías y no puede crear sus
+llaves foráneas: el catálogo de programas sale vacío y los listados de
+estudiantes responden 500 hasta correr la migración.
 
 El Funcionario Académico usa el tipo `Empleado FIET - Funcionario` de
 Julián, que ya existe en `data.sql`.
@@ -91,7 +101,7 @@ infraestructura/
 │   ├── DTOPeticion/       *DTOPeticion (lo que llega en el body)
 │   ├── DTORespuesta/      *DTORespuesta (lo que se devuelve)
 │   └── mapeador/          Mapper*InfraestructuraDominio (DTO <-> modelo de dominio; con ModelMapper
-│                           en Julián y en asignaturas, a mano en el resto de la extensión)
+│                           en Julián, a mano en la extensión)
 └── output/
     ├── persistencia/
     │   ├── entidades/      *Entidad (JPA, @Entity)
@@ -289,10 +299,10 @@ Las reglas de los ocho prefijos de la extensión, en ese orden dentro de
 
 | Prefijo | Reglas |
 |---|---|
-| `asignaturas` | GET `asignaturas/**`: Secretario General, Decano, Funcionario Académico. POST `asignaturas` y PUT `asignaturas/**`: Secretario General, Decano |
+| `asignaturas` | GET `programa/{uuidPrograma}` y GET `asignaturas/**`: Secretario General, Decano, Funcionario Académico. POST `cargar/archivo`, POST `asignaturas` y PUT `asignaturas/**`: Secretario General, Decano |
 | `estudiantes` | GET `mis-asignaturas`: Estudiante. GET `paginado`, `filtro`, `{uuidEstudiante}`: Secretario General, Decano, Funcionario Académico. POST, PUT, POST de asignaturas, PATCH de estado y `cargar/archivo`: Secretario General, Decano |
 | `funcionarios-academicos` | GET `paginado`, `filtro`, `{uuidFuncionario}`: Secretario General, Decano, Funcionario Académico. POST, PUT y `cargar/archivo`: Secretario General, Decano |
-| `catalogos-academicos` | PUT `tipos-solicitud/{uuidTipo}/funcionario`: Secretario General, Decano. GET `catalogos-academicos/**`: cualquier autenticado |
+| `catalogos-academicos` | PUT `tipos-solicitud/{uuidTipo}/funcionario`: Secretario General, Decano. GET `programas` y GET `catalogos-academicos/**`: cualquier autenticado |
 | `solicitudes-academicas` | GET `estudiante`: Estudiante. GET `funcionario`: Funcionario Académico. GET `decano`: Decano. GET detalle, historial, descarga de anexo y de Resolución: Estudiante, Funcionario Académico, Decano. POST anexos: Estudiante, Funcionario Académico. POST Resolución: Funcionario Académico |
 | `cancelaciones-matricula`, `cancelaciones-asignatura`, `examenes-supletorios` | GET `formulario` y POST de radicación: Estudiante. POST `{uuid}/funcionario/**`: Funcionario Académico. POST `{uuid}/decano/**`: Decano. POST `{uuid}/estudiante/**` (solo supletorio): Estudiante. GET `{uuid}`: Estudiante, Funcionario Académico, Decano |
 
@@ -335,7 +345,7 @@ Las tablas nuevas de este trabajo de grado (`ESTUDIANTE`,
 `FUNCIONARIO_ACADEMICO`, `ASIGNATURA`, `SOLICITUD_ACADEMICA`,
 `RESOLUCION_ACADEMICA`, etc.) están documentadas en
 `docs/database/diccionario-datos-extension.md` y su DDL en
-`docs/database/script_bd_extension.sql` (18 tablas; referencia, no se ejecuta). Las únicas FK hacia
+`docs/database/script_bd_extension.sql` (19 tablas; referencia, no se ejecuta). Las únicas FK hacia
 las tablas de Julián apuntan a `usuarios (uuidUsuario)`, desde `ESTUDIANTE`,
 `FUNCIONARIO_ACADEMICO`, `HISTORIAL_SOLICITUD_ACADEMICA` y `ANEXO_ACADEMICO`; `usuariosLivianos`
 y `tiposUsuario` existen en camelCase pero las tablas nuevas no apuntan a
@@ -363,7 +373,7 @@ el contrato HTTP, en `docs/api/contrato-api-procesos-academicos.md`.
 | Área | Casos de uso (`dominio/casosdeuso`) |
 |---|---|
 | Catálogo y actores | `AsignaturaCUImplAdaptador`, `EstudianteCUImplAdaptador`, `FuncionarioAcademicoCUImplAdaptador`, `AsignacionFuncionarioAcademicoCUImplAdaptador` |
-| Catálogos académicos (solo lectura) | `TipoSolicitudAcademicaCUImplAdaptador`, `EtapaSolicitudAcademicaCUImplAdaptador`, `TipoAnexoAcademicoCUImplAdaptador`, `SituacionAcademicaAsignaturaCUImplAdaptador` |
+| Catálogos académicos (solo lectura) | `TipoSolicitudAcademicaCUImplAdaptador`, `EtapaSolicitudAcademicaCUImplAdaptador`, `TipoAnexoAcademicoCUImplAdaptador`, `SituacionAcademicaAsignaturaCUImplAdaptador`, `ProgramaAcademicoCUImplAdaptador` |
 | Motor común | `SolicitudAcademicaCUImplAdaptador` (crear y cambiar etapa), `AnexoAcademicoCUImplAdaptador`, `ResolucionAcademicaCUImplAdaptador`, `ConsultaSolicitudAcademicaCUImplAdaptador` (bandejas, detalle, historial, descargas y rol del actor) |
 | Cada proceso | Radicación (`CancelacionMatricula`, `CancelacionAsignatura`, `ExamenSupletorio`), trámite (`TramiteCancelacionMatricula`, `TramiteCancelacionAsignatura`, `TramiteExamenSupletorio`) y consulta (`ConsultaCancelacionMatricula`, `ConsultaCancelacionAsignatura`, `ConsultaExamenSupletorio`), todos con sufijo `CUImplAdaptador` |
 
@@ -929,6 +939,48 @@ Los crea el Secretario General o el Decano, por formulario y por carga
 masiva desde Excel; el estudiante se crea con su información de asignaturas
 matriculadas.
 
+## Programas académicos y código de asignatura
+
+Reglas P28 a P35 de `docs/database/etapas-por-proceso.md`:
+
+- `PROGRAMA_ACADEMICO` es un catálogo fijo de cinco programas (IET, ISI, IAI,
+  TTE, IAC) sembrado con UUID fijos. `ProgramaAcademicoCUImplAdaptador`
+  (bean `crearProgramaAcademicoCU`) solo los lista, en `GET
+  catalogos-academicos/programas`.
+- `ASIGNATURA` y `ESTUDIANTE` llevan `ProgramaAcademico_uuid` obligatorio
+  (`fk_asignatura_programa`, `fk_estudiante_programa`). Ninguno de los dos
+  cambia de programa después de creado: los `PUT` no lo reciben.
+- `AsignaturaCUImplAdaptador` (bean `crearAsignaturaCU`, recibe también
+  `ProgramaAcademicoGatewayIntPuerto`) genera el código con
+  `ReglasAsignatura.generarCodigo` (`dominio/servicios`): sigla, guion y
+  consecutivo con al menos tres dígitos. `crearAsignatura` y
+  `crearAsignaturas` (Excel) siguen el mismo camino:
+  1. Validan nombre (sin espacios sobrantes, hasta 150), programa existente
+     y nombres repetidos dentro de la lista.
+  2. Bloquean cada programa con `ProgramaAcademicoGatewayIntPuerto.bloquear`
+     (`SELECT ... FOR UPDATE`), en orden de sigla para no cruzar bloqueos.
+  3. Con el programa bloqueado revisan que el nombre no exista en él
+     (`ReglasAsignatura.claveNombre`: sin mayúsculas ni espacios sobrantes).
+  4. Asignan los consecutivos, guardan `ultimoConsecutivoAsignatura` con
+     `guardarUltimoConsecutivo` y guardan las asignaturas.
+
+  El bloqueo dura hasta el final de la transacción del controlador, así que
+  dos creaciones simultáneas en el mismo programa se atienden una detrás de
+  otra; `uk_asignatura_codigo` queda como última defensa. El contador nunca
+  baja: un código no se reutiliza aunque se borre la asignatura o se revierta
+  la creación. `actualizarAsignatura` solo cambia el nombre, también con el
+  programa bloqueado.
+- `EstudianteCUImplAdaptador` (recibe `ProgramaAcademicoGatewayIntPuerto`)
+  ya no crea asignaturas: al crear un estudiante, en la carga por Excel y en
+  `agregarAsignaturaMatriculada`, cada código se busca con
+  `ReglasAsignatura.normalizarCodigo` y debe existir (si no, código 3) y ser
+  del programa del estudiante (si no, código 4, `ASIGNATURA_OTRO_PROGRAMA`).
+  `actualizarEstudiante` no toca el programa.
+- Las asignaturas se listan por sigla y consecutivo (`LENGTH` y código, para
+  que `ISI-999` quede antes de `ISI-1000`); `GET asignaturas/programa/{uuid}`
+  devuelve las del programa sin paginar y `filtro` acepta
+  `uuidProgramaAcademico`.
+
 En Java el modelo del actor se llama `FuncionarioAcademico`. `Funcionario`
 (modelo, entidad y rol `Funcionario`) es del comité de Julián y no se
 reutiliza.
@@ -978,10 +1030,12 @@ trío (`ProcesadorArchivos`, `ValidadorPeticionesExcel`, endpoint
 `cargar/archivo`) en vez de crear un patrón distinto.
 
 La extensión lo sigue para estudiantes (`POST estudiantes/cargar/archivo`,
-`"archivos-estudiantes"` y `"validador-estudiantes"`) y funcionarios
-académicos (`POST funcionarios-academicos/cargar/archivo`,
-`"archivos-funcionarios-academicos"` y `"validador-funcionarios-academicos"`),
-con tres diferencias frente a Julián:
+`"archivos-estudiantes"` y `"validador-estudiantes"`), asignaturas (`POST
+asignaturas/cargar/archivo`, `"archivos-asignaturas"` y
+`"validador-asignaturas"`) y funcionarios académicos (`POST
+funcionarios-academicos/cargar/archivo`, `"archivos-funcionarios-academicos"`
+y `"validador-funcionarios-academicos"`), con tres diferencias frente a
+Julián:
 
 - Sus lectores no se tragan los errores: un archivo que no es `.xlsx`, vacío,
   ilegible, sin hojas, con un encabezado distinto al esperado o sin filas de
@@ -994,6 +1048,24 @@ con tres diferencias frente a Julián:
   repetidos dentro del archivo, también con fila y columna. Los conflictos
   con datos que ya están en la base los detecta el caso de uso y responden
   500 con código 2, sin número de fila.
+
+En los Excel de asignaturas y estudiantes, `programaAcademico` es el nombre
+exacto de un programa, sin distinguir mayúsculas. `CatalogoAcademicoExcel`
+(`infraestructura/configuracion/lectorArchivos`, usa los puertos de entrada
+de programas y asignaturas) trabaja en dos momentos del controlador:
+
+- Antes del validador traduce el nombre al uuid del programa (desconocido:
+  código 6 con fila y columna; vacío: lo reporta el validador en la columna
+  del programa).
+- Después del validador revisa, con fila y columna, los nombres de
+  asignatura repetidos en el archivo (código 6) o que ya existen en su
+  programa (código 2), y en estudiantes que cada `codigoAsignatura` exista y
+  sea del programa de la fila (código 6).
+
+El Excel de estudiantes ya no trae `nombreAsignatura` y sus columnas son
+`... programaAcademico, semestre, facultad, codigoAsignatura, grupo`; el de
+asignaturas, `nombreAsignatura, programaAcademico`. Las plantillas están en
+`backend/pruebas` y las generan los `generar_plantilla_*.ps1`.
 
 ## Tests
 
@@ -1055,10 +1127,18 @@ propia clase de prueba. Usan el `ExcepcionesFormateadorImplAdaptador` y la
   con `@TempDir`: nombre generado por el sistema y nombres maliciosos. La
   lectura, el borrado y el borrado tras commit o rollback están en
   `AlmacenamientoAnexosImplAdaptadorTest`.
+- `dominio/servicios/ReglasAsignaturaTest`: formato del código, nombre y
+  código normalizados.
+- `infraestructura/configuracion/lectorArchivos/CatalogoAcademicoExcelTest`:
+  programa desconocido, nombre repetido o existente y asignatura inexistente
+  o de otro programa, con fila y columna.
 - `infraestructura/configuracion/lectorArchivos/AgrupadorEstudiantesExcelTest`
   y `DuplicadosFuncionariosAcademicosExcelTest`.
 
-Hoy `.\mvnw.cmd test` corre 1091 pruebas.
+Hoy `.\mvnw.cmd test` corre 1136 pruebas. `AsignaturaCUImplAdaptadorTest`
+cubre el consecutivo, el paso de 999 a 1000, la no reutilización, el orden
+bloqueo y luego nombre, y 40 creaciones simultáneas sobre un gateway falso con
+bloqueo que no repiten código.
 
 `.\mvnw.cmd test` también ejecuta `SolicitudesApplicationTests`
 (`@SpringBootTest`), que levanta el contexto completo y necesita la base de
@@ -1093,13 +1173,13 @@ Scripts que hay hoy:
 | Script | Qué cubre |
 |---|---|
 | `t1_lectura_usuarios.ps1`, `t1_preauthorize.ps1` | Listados de usuarios de Julián cerrados a Secretario General y Decano; `@PreAuthorize` inerte |
-| `t2_asignaturas.ps1` | Catálogo de asignaturas |
+| `t2_asignaturas.ps1` | Catálogo de programas y de asignaturas: código generado, consecutivo, nombre repetido, filtro por programa, lista por programa, edición solo del nombre y carga por Excel |
 | `t3_estudiantes.ps1`, `t3_excel.ps1` | Estudiantes por formulario y por Excel |
 | `t4_funcionarios_academicos.ps1`, `t4_excel.ps1` | Funcionarios académicos por formulario y por Excel |
 | `t5_catalogos.ps1`, `t5_asignacion.ps1` | Catálogos sembrados y asignación de tipos a funcionarios |
 | `t5_solicitudes.ps1` | Bandejas, detalle, historial, anexos y Resolución de `solicitudes-academicas` |
 | `t6_cancelacion_matricula.ps1`, `t7_cancelacion_asignatura.ps1`, `t8_examen_supletorio.ps1` | Recorrido completo de cada proceso con usuarios reales |
-| `matriz-permisos.ps1` | Matriz de los 63 endpoints por rol |
+| `matriz-permisos.ps1` | Matriz de los 66 endpoints por rol |
 | `todo.ps1` | Corre todos los anteriores y verifica la limpieza |
 
 `comun.ps1` tiene las funciones compartidas y `generar_plantilla_*.ps1`
@@ -1119,7 +1199,7 @@ fila por endpoint de los controladores de la extensión (`asignaturas`,
 `solicitudes-academicas`, `cancelaciones-matricula`,
 `cancelaciones-asignatura` y `examenes-supletorios`) y una columna por
 actor: sin token, Secretario General, Decano, Funcionario Académico y
-Estudiante. Hoy son 63 filas. El script:
+Estudiante. Hoy son 66 filas. El script:
 
 - Prueba cada celda por HTTP. Una celda denegada exige 401 sin token y 403
   con token. Una permitida se llama con uuid inexistente, JSON malformado,
@@ -1173,8 +1253,12 @@ la API:
 - `Inicio-Corrida` toma `now()` de MySQL antes de crear nada.
 - `Foto-Base` resume los conteos que deben volver a su valor: usuarios,
   roles, `funcionarios` de Julián, estudiantes, funcionarios académicos,
-  asignaturas, matriculadas, solicitudes, anexos, logs de quien no es
-  rootfiet y responsables de los tipos.
+  programas, asignaturas, matriculadas, solicitudes, anexos, logs de quien
+  no es rootfiet y responsables de los tipos.
+- `Obtener-Programas`, `Programa-PorSigla` y `Crear-AsignaturaPrueba`
+  leen el catálogo de programas y crean asignaturas por la API. Todo script
+  que matricula estudiantes crea antes sus asignaturas (en ISI), guarda el
+  código generado para la limpieza y matricula por código.
 - `Limpiar-DatosPrueba -Desde -Usernames -CodigosAsignatura` borra, en una
   sola transacción:
   - los usuarios cuyo username exacto usó el script y que se crearon desde
@@ -1192,7 +1276,10 @@ la API:
 crearlo. En un `finally` limpian y exigen que `Foto-Base` coincida con la
 del inicio; esa es su última verificación. Los logs de rootfiet sí quedan.
 `ASIGNATURA` no tiene fecha de creación, así que una asignatura se borra solo
-por su código exacto (con sufijo único) y si ninguna matriculada la usa.
+por el código exacto que le asignó el backend en esa corrida y si ninguna
+matriculada la usa. El contador `ultimoConsecutivoAsignatura` de los
+programas no se devuelve: es la regla de no reutilizar códigos, y las fotos
+comparan conteos de filas, no ese valor.
 `t5_asignacion` primero devuelve cada tipo a su responsable original y
 después borra sus funcionarios académicos, porque `TIPO_SOLICITUD_ACADEMICA`
 los referencia. `t1` y `t5_catalogos` no crean asignaturas y no pasan

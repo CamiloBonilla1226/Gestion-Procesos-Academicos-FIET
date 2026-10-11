@@ -11,6 +11,7 @@ import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.mapead
 import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.repositorios.AsignaturaMatriculadaRepositorio;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.repositorios.AsignaturaRepositorio;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.repositorios.EstudianteRepositorio;
+import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.repositorios.ProgramaAcademicoRepositorio;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.repositorios.UsuarioRepositorio;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -28,6 +29,7 @@ public class EstudianteGatewayImplAdaptador implements EstudianteGatewayIntPuert
     private final AsignaturaMatriculadaRepositorio asignaturaMatriculadaRepositorio;
     private final UsuarioRepositorio usuarioRepositorio;
     private final AsignaturaRepositorio asignaturaRepositorio;
+    private final ProgramaAcademicoRepositorio programaRepositorio;
     private final EstudianteOwnMapper mapper;
     private final AsignaturaMatriculadaOwnMapper asignaturaMatriculadaMapper;
 
@@ -99,6 +101,8 @@ public class EstudianteGatewayImplAdaptador implements EstudianteGatewayIntPuert
         EstudianteEntidad entidad = mapper.toEntidad(estudiante);
         entidad.setNuevo(!repositorio.existsById(estudiante.getUuidUsuario()));
         entidad.setUsuario(usuarioRepositorio.getReferenceById(estudiante.getUuidUsuario()));
+        entidad.setProgramaAcademico(programaRepositorio.getReferenceById(
+                estudiante.getProgramaAcademico().getUuidProgramaAcademico()));
         for (AsignaturaMatriculadaEntidad asignatura : entidad.getAsignaturasMatriculadas())
             asignatura.setAsignatura(asignaturaRepositorio.getReferenceById(asignatura.getAsignatura().getUuidAsignatura()));
         return entidad;

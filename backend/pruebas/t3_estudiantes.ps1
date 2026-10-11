@@ -1,24 +1,30 @@
 . "$PSScriptRoot\comun.ps1"
 
 function Nuevo-CuerpoEstudiante {
-    param([string]$Sufijo, $Materias)
+    param([string]$Sufijo, $Materias, [string]$UuidPrograma = $script:isi.uuidProgramaAcademico)
     $script:usernames += "alu$Sufijo"
-    $script:codigos += @($Materias | ForEach-Object { $_.codigoAsignatura })
     return @{
-        nombres            = "Estudiante"
-        apellidos          = "Prueba $Sufijo"
-        tipoDocumento      = $Global:CedulaCiudadania
-        numeroDocumento    = "8$Sufijo"
-        telefono           = "+573000000000"
-        correoElectronico  = "est$Sufijo@unicauca.edu.co"
-        username           = "alu$Sufijo"
-        password           = "Clave12345"
-        codigoEstudiantil  = "C$Sufijo"
-        programaAcademico  = "Ingenieria de Sistemas"
-        semestre           = "5"
-        facultad           = "FIET"
-        asignaturas        = @($Materias)
+        nombres               = "Estudiante"
+        apellidos             = "Prueba $Sufijo"
+        tipoDocumento         = $Global:CedulaCiudadania
+        numeroDocumento       = "8$Sufijo"
+        telefono              = "+573000000000"
+        correoElectronico     = "est$Sufijo@unicauca.edu.co"
+        username              = "alu$Sufijo"
+        password              = "Clave12345"
+        codigoEstudiantil     = "C$Sufijo"
+        uuidProgramaAcademico = $UuidPrograma
+        semestre              = "5"
+        facultad              = "FIET"
+        asignaturas           = @($Materias)
     }
+}
+
+function Nueva-Asignatura {
+    param($Programa, [string]$Nombre)
+    $asignatura = Crear-AsignaturaPrueba -Token $script:tokenRoot -UuidPrograma $Programa.uuidProgramaAcademico -Nombre $Nombre
+    $script:codigos += $asignatura.codigoAsignatura
+    return $asignatura
 }
 
 function Contar-Lista {
@@ -28,6 +34,10 @@ function Contar-Lista {
     return @($lista).Count
 }
 
+function Total-Asignaturas {
+    return [int](Consultar-Base "select count(*) from ASIGNATURA")
+}
+
 $tokenRoot = Iniciar-Sesion -Usuario "rootfiet" -Clave "rootfiet1234"
 $inicio = Inicio-Corrida
 $fotoInicial = Foto-Base
@@ -35,24 +45,31 @@ $usernames = @()
 $codigos = @()
 
 try {
+    $isi = Programa-PorSigla -Token $tokenRoot -Sigla "ISI"
+    $iet = Programa-PorSigla -Token $tokenRoot -Sigla "IET"
     $funcAcad = Crear-UsuarioPrueba -Perfil "FuncionarioAcademico" -TokenAdmin $tokenRoot -Prefijo "facad"
     $usernames += $funcAcad.Username
     $funcionario = Crear-UsuarioPrueba -Perfil "Funcionario" -TokenAdmin $tokenRoot -Prefijo "func"
     $usernames += $funcionario.Username
 
     $sufijoA = Nuevo-Sufijo
-    $codigos += @("MC$sufijoA", "MZ$sufijoA")
-    $materiaA = @{ codigoAsignatura = "MA$sufijoA"; nombreAsignatura = "Materia A $sufijoA"; grupo = "A" }
-    $materiaB = @{ codigoAsignatura = "MB$sufijoA"; nombreAsignatura = "Materia B $sufijoA"; grupo = "B" }
+    $asigA = Nueva-Asignatura -Programa $isi -Nombre "Materia A $sufijoA"
+    $asigB = Nueva-Asignatura -Programa $isi -Nombre "Materia B $sufijoA"
+    $asigC = Nueva-Asignatura -Programa $isi -Nombre "Materia C $sufijoA"
+    $asigOtra = Nueva-Asignatura -Programa $iet -Nombre "Materia IET $sufijoA"
+    $materiaA = @{ codigoAsignatura = $asigA.codigoAsignatura; grupo = "A" }
+    $materiaB = @{ codigoAsignatura = $asigB.codigoAsignatura; grupo = "B" }
     $cuerpoA = Nuevo-CuerpoEstudiante -Sufijo $sufijoA -Materias @($materiaA, $materiaB)
 
     $r = Invoke-Api -Metodo POST -Ruta "estudiantes" -Token $tokenRoot -Cuerpo $cuerpoA
-    Escribir-Resultado "root crea estudiante con dos materias (200, obtuvo $($r.Status))" ($r.Status -eq 200)
+    Escribir-Resultado "root crea estudiante con dos materias del catalogo de su programa (200, obtuvo $($r.Status))" ($r.Status -eq 200)
     if ($r.Status -ne 200) { Write-Host $r.Body; exit 1 }
-    $estudianteA = $r.Body | ConvertFrom-Json
+    $estudianteA = Leer-Json $r
     $uuidA = $estudianteA.uuidUsuario
     $matriculas = @($estudianteA.asignaturasMatriculadas)
     Escribir-Resultado "la respuesta trae dos materias activas" (($matriculas.Count -eq 2) -and (@($matriculas | Where-Object { $_.estado -eq "activa" }).Count -eq 2))
+    Escribir-Resultado "la respuesta trae el programa del estudiante (uuid y nombre)" (($estudianteA.uuidProgramaAcademico -eq $isi.uuidProgramaAcademico) -and ($estudianteA.programaAcademico -eq $isi.nombre))
+    Escribir-Resultado "cada materia usa la asignatura del catalogo con su nombre" (@($matriculas | Where-Object { ($_.uuidAsignatura -eq $asigA.uuidAsignatura -and $_.nombreAsignatura -eq $asigA.nombreAsignatura) -or ($_.uuidAsignatura -eq $asigB.uuidAsignatura) }).Count -eq 2)
     Escribir-Resultado "la respuesta del estudiante no contiene password" ($r.Body -notmatch '"password"')
 
     $tokenA = Iniciar-Sesion -Usuario $cuerpoA.username -Clave $cuerpoA.password
@@ -82,45 +99,69 @@ try {
     Escribir-Resultado "root con estado vacio (400, obtuvo $($r.Status))" ($r.Status -eq 400)
 
     $sufijoB = Nuevo-Sufijo
-    $cuerpoB = Nuevo-CuerpoEstudiante -Sufijo $sufijoB -Materias @(@{ codigoAsignatura = $materiaA.codigoAsignatura; nombreAsignatura = "Nombre que no debe cambiar"; grupo = "A" })
+    $cuerpoB = Nuevo-CuerpoEstudiante -Sufijo $sufijoB -Materias @(@{ codigoAsignatura = " $($asigA.codigoAsignatura.ToLower()) "; grupo = "A" })
     $r = Invoke-Api -Metodo POST -Ruta "estudiantes" -Token $tokenRoot -Cuerpo $cuerpoB
-    Escribir-Resultado "root crea un segundo estudiante con una materia existente (200, obtuvo $($r.Status))" ($r.Status -eq 200)
-    $estudianteB = $r.Body | ConvertFrom-Json
+    Escribir-Resultado "root crea un segundo estudiante con el codigo en minusculas y espacios (200, obtuvo $($r.Status))" ($r.Status -eq 200)
+    $estudianteB = Leer-Json $r
     $uuidB = $estudianteB.uuidUsuario
-    $nombreMateria = @($estudianteB.asignaturasMatriculadas)[0].nombreAsignatura
-    Escribir-Resultado "la materia existente conserva su nombre del catalogo" ($nombreMateria -eq $materiaA.nombreAsignatura)
+    Escribir-Resultado "la materia del segundo estudiante es la misma asignatura del catalogo" (@($estudianteB.asignaturasMatriculadas)[0].uuidAsignatura -eq $asigA.uuidAsignatura)
 
     $r = Invoke-Api -Metodo PATCH -Ruta "estudiantes/$uuidB/asignaturas/$($matriculas[1].uuidAsignaturaMatriculada)/estado" -Token $tokenRoot -Cuerpo @{ estado = "aprobada" }
     $cod = Obtener-CodigoError $r
     Escribir-Resultado "root cambia estado de materia de otro estudiante (500 codigoError 3, obtuvo $($r.Status) codigoError $cod)" (($r.Status -eq 500) -and ($cod -eq "3"))
 
-    $r = Invoke-Api -Metodo POST -Ruta "estudiantes/$uuidA/asignaturas" -Token $tokenRoot -Cuerpo @{ codigoAsignatura = "MC$sufijoA"; nombreAsignatura = "Materia C $sufijoA"; grupo = "A" }
+    $r = Invoke-Api -Metodo POST -Ruta "estudiantes/$uuidA/asignaturas" -Token $tokenRoot -Cuerpo @{ codigoAsignatura = $asigC.codigoAsignatura; grupo = "A" }
     $estado = if ($r.Status -eq 200) { ($r.Body | ConvertFrom-Json).estado } else { "" }
-    Escribir-Resultado "root agrega materia nueva al estudiante (200 y activa, obtuvo $($r.Status) y $estado)" (($r.Status -eq 200) -and ($estado -eq "activa"))
+    Escribir-Resultado "root matricula otra asignatura del programa (200 y activa, obtuvo $($r.Status) y $estado)" (($r.Status -eq 200) -and ($estado -eq "activa"))
 
     $r = Invoke-Api -Metodo POST -Ruta "estudiantes/$uuidA/asignaturas" -Token $tokenRoot -Cuerpo $materiaB
     $cod = Obtener-CodigoError $r
     Escribir-Resultado "root agrega materia ya activa en el mismo grupo (500 codigoError 6, obtuvo $($r.Status) codigoError $cod)" (($r.Status -eq 500) -and ($cod -eq "6"))
 
-    $r = Invoke-Api -Metodo PUT -Ruta "estudiantes/$uuidA" -Token $tokenRoot -Cuerpo @{ semestre = "6"; programaAcademico = "Ingenieria Electronica" }
-    $semestre = if ($r.Status -eq 200) { ($r.Body | ConvertFrom-Json).semestre } else { "" }
-    Escribir-Resultado "root actualiza datos academicos (200 y semestre 6, obtuvo $($r.Status) y $semestre)" (($r.Status -eq 200) -and ($semestre -eq "6"))
+    $antes = Total-Asignaturas
+    $r = Invoke-Api -Metodo POST -Ruta "estudiantes/$uuidA/asignaturas" -Token $tokenRoot -Cuerpo @{ codigoAsignatura = $asigOtra.codigoAsignatura; grupo = "A" }
+    $cod = Obtener-CodigoError $r
+    Escribir-Resultado "root matricula una asignatura de otro programa (500 codigoError 4, obtuvo $($r.Status) codigoError $cod)" (($r.Status -eq 500) -and ($cod -eq "4"))
+
+    $r = Invoke-Api -Metodo POST -Ruta "estudiantes/$uuidA/asignaturas" -Token $tokenRoot -Cuerpo @{ codigoAsignatura = "NOEXISTE-$sufijoA"; grupo = "A" }
+    $cod = Obtener-CodigoError $r
+    Escribir-Resultado "root matricula una asignatura inexistente (500 codigoError 3, obtuvo $($r.Status) codigoError $cod)" (($r.Status -eq 500) -and ($cod -eq "3"))
+    Escribir-Resultado "matricular no creo asignaturas en el catalogo" ((Total-Asignaturas) -eq $antes)
+
+    $r = Invoke-Api -Metodo PUT -Ruta "estudiantes/$uuidA" -Token $tokenRoot -Cuerpo @{ semestre = "6"; uuidProgramaAcademico = $iet.uuidProgramaAcademico; programaAcademico = $iet.nombre }
+    $actualizado = if ($r.Status -eq 200) { Leer-Json $r } else { $null }
+    Escribir-Resultado "root actualiza datos academicos (200 y semestre 6, obtuvo $($r.Status) y $($actualizado.semestre))" (($r.Status -eq 200) -and ($actualizado.semestre -eq "6"))
+    Escribir-Resultado "el programa del estudiante no cambia al actualizar" ($actualizado.uuidProgramaAcademico -eq $isi.uuidProgramaAcademico)
 
     $r = Invoke-Api -Metodo PUT -Ruta "estudiantes/$uuidA" -Token $tokenRoot -Cuerpo @{ codigoEstudiantil = $cuerpoB.codigoEstudiantil }
     $cod = Obtener-CodigoError $r
     Escribir-Resultado "root actualiza con codigo de otro estudiante (500 codigoError 2, obtuvo $($r.Status) codigoError $cod)" (($r.Status -eq 500) -and ($cod -eq "2"))
 
     $sufijoX = Nuevo-Sufijo
-    $repetido = Nuevo-CuerpoEstudiante -Sufijo $sufijoX -Materias @(@{ codigoAsignatura = "MX$sufijoX"; nombreAsignatura = "No debe crearse"; grupo = "A" })
+    $repetido = Nuevo-CuerpoEstudiante -Sufijo $sufijoX -Materias @($materiaA)
     $repetido.codigoEstudiantil = $cuerpoA.codigoEstudiantil
     $r = Invoke-Api -Metodo POST -Ruta "estudiantes" -Token $tokenRoot -Cuerpo $repetido
     $cod = Obtener-CodigoError $r
     Escribir-Resultado "codigo estudiantil repetido (500 codigoError 2, obtuvo $($r.Status) codigoError $cod)" (($r.Status -eq 500) -and ($cod -eq "2"))
     $login = Invoke-Api -Metodo POST -Ruta "sesiones" -Cuerpo @{ username = $repetido.username; password = $repetido.password }
     Escribir-Resultado "el username del intento fallido no puede iniciar sesion (obtuvo $($login.Status))" ($login.Status -ne 200)
-    $r = Invoke-Api -Metodo GET -Ruta "asignaturas/filtro?texto=MX$sufijoX&pagina=0&tamanio=5" -Token $tokenRoot
-    $total = if ($r.Status -eq 200) { ($r.Body | ConvertFrom-Json).totalElements } else { -1 }
-    Escribir-Resultado "la materia del intento fallido no quedo en el catalogo (0, obtuvo $total)" ($total -eq 0)
+
+    $antes = Total-Asignaturas
+    $casos = @(
+        @{ Nombre = "asignatura de otro programa"; Materias = @(@{ codigoAsignatura = $asigOtra.codigoAsignatura; grupo = "A" }); Programa = $isi.uuidProgramaAcademico; Codigo = "4" },
+        @{ Nombre = "asignatura inexistente"; Materias = @(@{ codigoAsignatura = "NOEXISTE-$sufijoX"; grupo = "A" }); Programa = $isi.uuidProgramaAcademico; Codigo = "3" },
+        @{ Nombre = "una valida y otra de otro programa"; Materias = @($materiaA, @{ codigoAsignatura = $asigOtra.codigoAsignatura; grupo = "B" }); Programa = $isi.uuidProgramaAcademico; Codigo = "4" },
+        @{ Nombre = "programa inexistente"; Materias = @($materiaA); Programa = [guid]::NewGuid().ToString(); Codigo = "3" }
+    )
+    foreach ($caso in $casos) {
+        $cuerpo = Nuevo-CuerpoEstudiante -Sufijo (Nuevo-Sufijo) -Materias $caso.Materias -UuidPrograma $caso.Programa
+        $r = Invoke-Api -Metodo POST -Ruta "estudiantes" -Token $tokenRoot -Cuerpo $cuerpo
+        $cod = Obtener-CodigoError $r
+        Escribir-Resultado "crear estudiante con $($caso.Nombre) (500 codigoError $($caso.Codigo), obtuvo $($r.Status) codigoError $cod)" (($r.Status -eq 500) -and ($cod -eq $caso.Codigo))
+        $login = Invoke-Api -Metodo POST -Ruta "sesiones" -Cuerpo @{ username = $cuerpo.username; password = $cuerpo.password }
+        Escribir-Resultado "el estudiante con $($caso.Nombre) no quedo creado (login $($login.Status))" ($login.Status -ne 200)
+    }
+    Escribir-Resultado "crear estudiantes no creo asignaturas en el catalogo" ((Total-Asignaturas) -eq $antes)
 
     $campos = @(
         @{ Campo = "numeroDocumento"; Descripcion = "documento" },
@@ -128,27 +169,27 @@ try {
         @{ Campo = "username"; Descripcion = "username" }
     )
     foreach ($c in $campos) {
-        $s = Nuevo-Sufijo
-        $cuerpo = Nuevo-CuerpoEstudiante -Sufijo $s -Materias @(@{ codigoAsignatura = "MX$s"; nombreAsignatura = "No debe crearse"; grupo = "A" })
+        $cuerpo = Nuevo-CuerpoEstudiante -Sufijo (Nuevo-Sufijo) -Materias @($materiaA)
         $cuerpo[$c.Campo] = $cuerpoA[$c.Campo]
         $r = Invoke-Api -Metodo POST -Ruta "estudiantes" -Token $tokenRoot -Cuerpo $cuerpo
         $cod = Obtener-CodigoError $r
         Escribir-Resultado "$($c.Descripcion) repetido (500 codigoError 2, obtuvo $($r.Status) codigoError $cod)" (($r.Status -eq 500) -and ($cod -eq "2"))
     }
 
-    $s = Nuevo-Sufijo
-    $cuerpo = Nuevo-CuerpoEstudiante -Sufijo $s -Materias @(
-        @{ codigoAsignatura = "MD$s"; nombreAsignatura = "Duplicada"; grupo = "A" },
-        @{ codigoAsignatura = "MD$s"; nombreAsignatura = "Duplicada"; grupo = "A" }
-    )
+    $cuerpo = Nuevo-CuerpoEstudiante -Sufijo (Nuevo-Sufijo) -Materias @($materiaA, @{ codigoAsignatura = $asigA.codigoAsignatura; grupo = "a" })
     $r = Invoke-Api -Metodo POST -Ruta "estudiantes" -Token $tokenRoot -Cuerpo $cuerpo
     $cod = Obtener-CodigoError $r
     Escribir-Resultado "materia duplicada en la peticion (500 codigoError 6, obtuvo $($r.Status) codigoError $cod)" (($r.Status -eq 500) -and ($cod -eq "6"))
 
     $vacio = Nuevo-CuerpoEstudiante -Sufijo (Nuevo-Sufijo) -Materias @()
-    foreach ($k in @("nombres", "numeroDocumento", "codigoEstudiantil", "programaAcademico")) { $vacio[$k] = "" }
+    foreach ($k in @("nombres", "numeroDocumento", "codigoEstudiantil", "uuidProgramaAcademico")) { $vacio[$k] = "" }
     $r = Invoke-Api -Metodo POST -Ruta "estudiantes" -Token $tokenRoot -Cuerpo $vacio
     Escribir-Resultado "campos vacios (400, obtuvo $($r.Status))" ($r.Status -eq 400)
+
+    $sinPrograma = Nuevo-CuerpoEstudiante -Sufijo (Nuevo-Sufijo) -Materias @($materiaA)
+    $sinPrograma.Remove("uuidProgramaAcademico")
+    $r = Invoke-Api -Metodo POST -Ruta "estudiantes" -Token $tokenRoot -Cuerpo $sinPrograma
+    Escribir-Resultado "estudiante sin programa (400, obtuvo $($r.Status))" ($r.Status -eq 400)
 
     $sinMaterias = Nuevo-CuerpoEstudiante -Sufijo (Nuevo-Sufijo) -Materias @()
     $r = Invoke-Api -Metodo POST -Ruta "estudiantes" -Token $tokenRoot -Cuerpo $sinMaterias
@@ -182,7 +223,7 @@ try {
     $escrituras = @(
         @{ Metodo = "POST"; Ruta = "estudiantes"; Cuerpo = (Nuevo-CuerpoEstudiante -Sufijo (Nuevo-Sufijo) -Materias @($materiaA)) },
         @{ Metodo = "PUT"; Ruta = "estudiantes/$uuidA"; Cuerpo = @{ semestre = "9" } },
-        @{ Metodo = "POST"; Ruta = "estudiantes/$uuidA/asignaturas"; Cuerpo = @{ codigoAsignatura = "MZ$sufijoA"; nombreAsignatura = "No"; grupo = "Z" } },
+        @{ Metodo = "POST"; Ruta = "estudiantes/$uuidA/asignaturas"; Cuerpo = @{ codigoAsignatura = $asigC.codigoAsignatura; grupo = "Z" } },
         @{ Metodo = "PATCH"; Ruta = "estudiantes/$uuidA/asignaturas/$($matriculas[1].uuidAsignaturaMatriculada)/estado"; Cuerpo = @{ estado = "perdida" } }
     )
 
@@ -223,5 +264,5 @@ try {
 finally {
     $borrados = Limpiar-DatosPrueba -Desde $inicio -Usernames $usernames -CodigosAsignatura $codigos
     $fotoFinal = Foto-Base
-    Escribir-Resultado "la base quedo como al inicio salvo los logs de rootfiet (usuarios borrados $borrados; $fotoFinal)" ($fotoFinal -eq $fotoInicial)
+    Escribir-Resultado "la base quedo como al inicio salvo los logs de rootfiet y los contadores de programa (usuarios borrados $borrados; $fotoFinal)" ($fotoFinal -eq $fotoInicial)
 }

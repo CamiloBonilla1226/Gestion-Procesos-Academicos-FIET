@@ -179,9 +179,10 @@ Solo para Cancelación de Matrícula y Cancelación de Asignatura. La Resolució
 
 ## 7. Cambios al modelo de datos que se desprenden de este documento
 
-El diccionario no tiene esta columna y el prototipo la usa:
+El diccionario original no tenía estos elementos y el prototipo los usa:
 
 - Identificador legible de la solicitud, que funciona como radicado. Se agrega `radicado` (varchar, único) a `SOLICITUD_ACADEMICA`, con formato `AAAA-CM-0001`, `AAAA-CA-0001` o `AAAA-ES-0001` (año, tipo y consecutivo; un contador por año y tipo). El `uuid` sigue siendo la llave primaria interna.
+- Programas académicos: se agrega `PROGRAMA_ACADEMICO` y la llave foránea obligatoria al programa en `ASIGNATURA` y en `ESTUDIANTE`, que reemplaza la columna de texto `programaAcademico` (P28 a P34).
 
 No se agrega fecha de expedición a los anexos ni fechas límite del periodo.
 
@@ -224,6 +225,14 @@ Decisiones de implementación, tomadas al construir el backend y registradas en 
 | P25 | Conteo del plazo del supletorio | Con la hora de Colombia, se cuentan los días lunes a viernes posteriores al examen hasta hoy inclusive. El mismo día cuenta 0 y un examen en fin de semana empieza a contar el lunes. La fecha del examen no puede ser posterior a hoy. |
 | P26 | Límites de texto | Motivo de cancelación: 255 caracteres. Observación de una acción: 500. Observación de evaluación y de decisión por asignatura: 255. Hora del examen cruzado: formato HH:mm. |
 | P27 | Remitir el supletorio al Decano | El Funcionario debe confirmar `requisitosVerificados`; sin esa confirmación se rechaza la acción y se le indica que rechace la solicitud. La confirmación se revisa después del actor y la etapa. |
+| P28 | Programas académicos | Catálogo fijo de cinco programas, cada uno con su sigla: Ingeniería Electrónica y Telecomunicaciones (IET), Ingeniería de Sistemas (ISI), Ingeniería en Automática Industrial (IAI), Tecnología en Telemática (TTE) e Ingeniería en Inteligencia Artificial y Ciencia de Datos (IAC). Viven en `PROGRAMA_ACADEMICO`, se siembran con UUID fijos y no hay endpoint para crearlos ni editarlos; cualquier usuario autenticado los lista con `GET catalogos-academicos/programas`. |
+| P29 | Programa de una asignatura | Cada asignatura pertenece a un solo programa, obligatorio al crearla y que no se cambia después. `PUT asignaturas/{uuid}` solo cambia el nombre. |
+| P30 | Código de la asignatura | Lo genera el backend: sigla del programa, guion y consecutivo del programa con al menos tres dígitos (`ISI-001`, ..., `ISI-999`, `ISI-1000`). No se edita ni se reutiliza: el contador `ultimoConsecutivoAsignatura` del programa solo sube, aunque una asignatura se borre o una creación se revierta antes de confirmarse. Para que dos creaciones simultáneas no tomen el mismo número, el contador se lee con bloqueo de fila (`SELECT ... FOR UPDATE`) dentro de la transacción del controlador, y `uk_asignatura_codigo` queda como última defensa. Una carga por Excel con varios programas los bloquea en orden de sigla. |
+| P31 | Nombre de la asignatura | Obligatorio, de hasta 150 caracteres, y se guarda sin espacios sobrantes. No se repite dentro del mismo programa sin distinguir mayúsculas ni espacios; el mismo nombre en otro programa sí se permite. La regla se revisa con el programa bloqueado, así que dos creaciones simultáneas con el mismo nombre no pasan ambas. |
+| P32 | Programa del estudiante | Obligatorio, se elige al crearlo (por formulario con `uuidProgramaAcademico`, por Excel con el nombre exacto del programa) y no se edita: `PUT estudiantes/{uuid}` ya no lo recibe. |
+| P33 | Asignaturas que matricula un estudiante | Solo asignaturas que ya existen en el catálogo y que son de su programa, al crearlo, al agregarle una matrícula y en la carga por Excel. Se buscan por código, sin distinguir mayúsculas ni espacios. Ningún flujo de estudiantes crea asignaturas. Por formulario, un código inexistente responde código 3 y uno de otro programa código 4; en el Excel ambos son código 6 con fila y columna. |
+| P34 | Datos anteriores a los programas | `migracion_programas_asignaturas.sql` asigna a cada estudiante el programa cuyo nombre coincide con su texto anterior (sin distinguir mayúsculas ni tildes) y a los demás Ingeniería de Sistemas; pasa todas las asignaturas existentes a Ingeniería de Sistemas con códigos `ISI-001` en adelante, en el orden de su código anterior. Las matrículas que ya existían se conservan aunque no cumplan P33; la regla aplica a las matrículas nuevas. |
+| P35 | Programas y procesos | Los programas no cambian ninguna regla de los tres procesos: radicación, etapas y bandejas siguen igual y solo usan las matrículas activas del estudiante. |
 
 ## 9. Funcionalidad opcional, al final del proyecto
 

@@ -25,9 +25,11 @@ $Global:Perfiles["SecretarioGeneral"] = @{
 
 $Global:MatrizTexto = @'
 METODO RUTA                                                                     CUERPO    SIN_TOKEN SECRETARIO DECANO    FUNC_ACADEMICO ESTUDIANTE
+POST   asignaturas/cargar/archivo                                               multipart denegado  permitido  permitido denegado       denegado
 POST   asignaturas                                                              json      denegado  permitido  permitido denegado       denegado
 GET    asignaturas/paginado                                                     ninguno   denegado  permitido  permitido permitido      denegado
 GET    asignaturas/filtro                                                       ninguno   denegado  permitido  permitido permitido      denegado
+GET    asignaturas/programa/{uuidPrograma}                                      ninguno   denegado  permitido  permitido permitido      denegado
 GET    asignaturas/{uuidAsignatura}                                             ninguno   denegado  permitido  permitido permitido      denegado
 PUT    asignaturas/{uuidAsignatura}                                             json      denegado  permitido  permitido denegado       denegado
 POST   estudiantes/cargar/archivo                                               multipart denegado  permitido  permitido denegado       denegado
@@ -50,6 +52,7 @@ GET    catalogos-academicos/tipos-solicitud/{uuidTipo}/etapas                   
 GET    catalogos-academicos/tipos-solicitud/{uuidTipo}/tipos-anexo              ninguno   denegado  permitido  permitido permitido      permitido
 GET    catalogos-academicos/etiquetas                                           ninguno   denegado  permitido  permitido permitido      permitido
 GET    catalogos-academicos/situaciones                                         ninguno   denegado  permitido  permitido permitido      permitido
+GET    catalogos-academicos/programas                                           ninguno   denegado  permitido  permitido permitido      permitido
 PUT    catalogos-academicos/tipos-solicitud/{uuidTipo}/funcionario              json      denegado  permitido  permitido denegado       denegado
 GET    solicitudes-academicas/estudiante                                        ninguno   denegado  denegado   denegado  denegado       permitido
 GET    solicitudes-academicas/funcionario                                       ninguno   denegado  denegado   denegado  permitido      denegado
@@ -209,14 +212,17 @@ function Conteos-Tramite {
 }
 
 function Conteos-Datos {
-    $sql = "select concat_ws(' ', (select count(*) from usuarios), (select count(*) from ASIGNATURA), (select count(*) from ASIGNATURA_MATRICULADA), (select count(*) from ESTUDIANTE), (select count(*) from FUNCIONARIO_ACADEMICO), " +
+    $sql = "select concat_ws(' ', (select count(*) from usuarios), (select count(*) from PROGRAMA_ACADEMICO), (select count(*) from ASIGNATURA), (select count(*) from ASIGNATURA_MATRICULADA), (select count(*) from ESTUDIANTE), (select count(*) from FUNCIONARIO_ACADEMICO), " +
             "(select coalesce(group_concat(coalesce(FuncionarioAcademico_uuid, '-') order by uuidTipoSolicitudAcademica), '') from TIPO_SOLICITUD_ACADEMICA))"
-    return "usuarios/asignaturas/matriculadas/estudiantes/funcionarios/responsables=" + (Ejecutar-Sql $sql)
+    return "usuarios/programas/asignaturas/matriculadas/estudiantes/funcionarios/responsables=" + (Ejecutar-Sql $sql)
 }
 
 function Nuevo-Estudiante {
     param([string]$Token)
     $s = Nuevo-Sufijo
+    $programa = Programa-PorSigla -Token $Token -Sigla "ISI"
+    $asignatura = Crear-AsignaturaPrueba -Token $Token -UuidPrograma $programa.uuidProgramaAcademico -Nombre "Materia matriz $s"
+    $script:codigos += $asignatura.codigoAsignatura
     $cuerpo = @{
         nombres           = "Matriz"
         apellidos         = "Permisos $s"
@@ -227,16 +233,16 @@ function Nuevo-Estudiante {
         username          = "mpe$s"
         password          = "Clave12345"
         codigoEstudiantil = "M$s"
-        programaAcademico = "Ingenieria de Sistemas"
+        uuidProgramaAcademico = $programa.uuidProgramaAcademico
         semestre          = "5"
         facultad          = "FIET"
-        asignaturas       = @(@{ codigoAsignatura = "MP$s"; nombreAsignatura = "Materia matriz $s"; grupo = "A" })
+        asignaturas       = @(@{ codigoAsignatura = $asignatura.codigoAsignatura; grupo = "A" })
     }
     $r = Invoke-Api -Metodo POST -Ruta "estudiantes" -Token $Token -Cuerpo $cuerpo
     if ($r.Status -ne 200) { throw "No se pudo crear el estudiante ($($r.Status)): $($r.Body)" }
     return [pscustomobject]@{
         Uuid   = (Leer-Json $r).uuidUsuario
-        Codigo = "MP$s"
+        Codigo = $asignatura.codigoAsignatura
         Token  = Iniciar-Sesion -Usuario "mpe$s" -Clave "Clave12345"
     }
 }
@@ -310,7 +316,7 @@ try {
     $funcionario = Nuevo-Funcionario -Token $tokenRoot
     $usuarios += $funcionario.Uuid; $funcionarios += $funcionario.Uuid
     $estudiante = Nuevo-Estudiante -Token $tokenRoot
-    $usuarios += $estudiante.Uuid; $estudiantes += $estudiante.Uuid; $codigos += $estudiante.Codigo
+    $usuarios += $estudiante.Uuid; $estudiantes += $estudiante.Uuid
 
     $tokens = @{ SIN_TOKEN = ""; SECRETARIO = $secretario.Token; DECANO = $decano.Token; FUNC_ACADEMICO = $funcionario.Token; ESTUDIANTE = $estudiante.Token }
 
@@ -366,12 +372,12 @@ finally {
     if ($usu) {
         $sentencias += "delete from logs where uuidUsuario in ($usu)"
         if ($est) { $sentencias += "delete from ASIGNATURA_MATRICULADA where Estudiante_uuid in ($est)"; $sentencias += "delete from ESTUDIANTE where Usuario_uuid in ($est)" }
-        if ($cod) { $sentencias += "delete from ASIGNATURA where codigoAsignatura in ($cod)" }
         if ($fun) { $sentencias += "delete from FUNCIONARIO_ACADEMICO where Usuario_uuid in ($fun)" }
         $sentencias += "delete from Usuario_has_Roles where uuidUsuario in ($usu)"
         $sentencias += "delete from usuarios where uuidUsuario in ($usu)"
         $sentencias += "delete from usuariosLivianos where uuidUsuario in ($usu)"
     }
+    if ($cod) { $sentencias += "delete from ASIGNATURA where codigoAsignatura in ($cod) and uuidAsignatura not in (select Asignatura_uuid from ASIGNATURA_MATRICULADA)" }
     if ($sentencias.Count -gt 0) { Ejecutar-Sql (($sentencias -join "; ") + ";") | Out-Null }
     $carpetaAnexos = Join-Path $Global:CarpetaUploads "anexos"
     foreach ($uuid in $solicitudes) {

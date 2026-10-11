@@ -2,6 +2,7 @@ package com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCatalogo
 
 import com.unicauca.cfiet.solicitudes.aplicacion.input.AsignacionFuncionarioAcademicoCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.EtapaSolicitudAcademicaCUIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.input.ProgramaAcademicoCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.SituacionAcademicaAsignaturaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.TipoAnexoAcademicoCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.TipoSolicitudAcademicaCUIntPuerto;
@@ -10,6 +11,7 @@ import com.unicauca.cfiet.solicitudes.dominio.modelos.TipoSolicitudAcademica;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCatalogosAcademicos.DTOPeticion.AsignacionFuncionarioAcademicoDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCatalogosAcademicos.DTORespuesta.EtapaEtiquetaRolDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCatalogosAcademicos.DTORespuesta.EtapaSolicitudAcademicaDTORespuesta;
+import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCatalogosAcademicos.DTORespuesta.ProgramaAcademicoDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCatalogosAcademicos.DTORespuesta.SituacionAcademicaAsignaturaDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCatalogosAcademicos.DTORespuesta.TipoAnexoAcademicoDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCatalogosAcademicos.DTORespuesta.TipoSolicitudAcademicaDTORespuesta;
@@ -32,7 +34,7 @@ import java.util.Map;
 @RequestMapping("${url.application}catalogos-academicos")
 @CrossOrigin(origins = "${url.frontend}")
 @RequiredArgsConstructor
-@Tag(name = "Catálogos académicos", description = "Consulta de tipos de solicitud académica, etapas, etiquetas por rol, tipos de anexo y situaciones académicas.")
+@Tag(name = "Catálogos académicos", description = "Consulta de tipos de solicitud académica, etapas, etiquetas por rol, tipos de anexo, situaciones académicas y programas académicos.")
 public class CatalogoAcademicoRestController {
     private static final String UUID_TIPO = "/{uuidTipo:[0-9a-fA-F\\-]{36}}";
 
@@ -41,6 +43,7 @@ public class CatalogoAcademicoRestController {
     private final TipoAnexoAcademicoCUIntPuerto tipoAnexoCU;
     private final SituacionAcademicaAsignaturaCUIntPuerto situacionCU;
     private final AsignacionFuncionarioAcademicoCUIntPuerto asignacionCU;
+    private final ProgramaAcademicoCUIntPuerto programaCU;
     private final MapperCatalogoAcademicoInfraestructuraDominio mapper;
 
     @PreAuthorize(ApplicationConstantes.AUTHENTICATED)
@@ -71,6 +74,12 @@ public class CatalogoAcademicoRestController {
     @GetMapping("/situaciones")
     public ResponseEntity<List<SituacionAcademicaAsignaturaDTORespuesta>> getSituaciones() {
         return new ResponseEntity<>(mapper.mapearSituaciones(situacionCU.getSituaciones()), HttpStatus.OK);
+    }
+
+    @PreAuthorize(ApplicationConstantes.AUTHENTICATED)
+    @GetMapping("/programas")
+    public ResponseEntity<List<ProgramaAcademicoDTORespuesta>> getProgramas() {
+        return new ResponseEntity<>(mapper.mapearProgramas(programaCU.getProgramasAcademicos()), HttpStatus.OK);
     }
 
     @PreAuthorize(ApplicationConstantes.SECRETARIO_DECANO_ACCESO)

@@ -11,4 +11,5 @@ public class Asignatura {
     private String uuidAsignatura;
     private String codigoAsignatura;
     private String nombreAsignatura;
+    private ProgramaAcademico programaAcademico;
 }

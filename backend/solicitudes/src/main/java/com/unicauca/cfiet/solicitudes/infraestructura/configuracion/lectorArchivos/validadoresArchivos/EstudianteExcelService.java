@@ -18,6 +18,9 @@ import java.util.Set;
 @Service("validador-estudiantes")
 @RequiredArgsConstructor
 public class EstudianteExcelService implements ValidadorPeticionesExcel<FilaEstudianteExcelDTOPeticion> {
+    private static final String UUID_PROGRAMA = "uuidProgramaAcademico";
+    private static final String PROGRAMA = "programaAcademico";
+
     private final Validator validator;
 
     @Override
@@ -44,6 +47,7 @@ public class EstudianteExcelService implements ValidadorPeticionesExcel<FilaEstu
 
     private String columna(ConstraintViolation<EstudianteDTOPeticion> violacion) {
         String ruta = violacion.getPropertyPath().toString();
-        return ruta.substring(ruta.lastIndexOf('.') + 1);
+        String campo = ruta.substring(ruta.lastIndexOf('.') + 1);
+        return UUID_PROGRAMA.equals(campo) ? PROGRAMA : campo;
     }
 }

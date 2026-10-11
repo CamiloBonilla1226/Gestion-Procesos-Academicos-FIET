@@ -16,6 +16,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class AgrupadorEstudiantesExcelTest {
 
+    private static final String UUID_SISTEMAS = "uuid-programa-isi";
+
     private final AgrupadorEstudiantesExcel agrupador = new AgrupadorEstudiantesExcel(new ExcepcionesFormateadorImplAdaptador());
 
     private FilaEstudianteExcelDTOPeticion fila(int numero, String documento, String codigoAsignatura, String grupo) {
@@ -27,10 +29,10 @@ class AgrupadorEstudiantesExcelTest {
                                                 Consumer<EstudianteDTOPeticion> ajuste) {
         EstudianteDTOPeticion peticion = new EstudianteDTOPeticion("Ana", "Pérez", "Cédula de ciudadanía", documento, "3001234567",
                 "est" + documento + "@unicauca.edu.co", "est" + documento, "Clave12345", "COD" + documento,
-                "Ingeniería de Sistemas", "5", "FIET",
-                new ArrayList<>(List.of(new AsignaturaMatriculadaDTOPeticion(codigoAsignatura, "Asignatura " + codigoAsignatura, grupo))));
+                UUID_SISTEMAS, "5", "FIET",
+                new ArrayList<>(List.of(new AsignaturaMatriculadaDTOPeticion(codigoAsignatura, grupo))));
         ajuste.accept(peticion);
-        return new FilaEstudianteExcelDTOPeticion(numero, peticion);
+        return new FilaEstudianteExcelDTOPeticion(numero, "Ingeniería de Sistemas", peticion);
     }
 
     private List<String> materias(EstudianteDTOPeticion estudiante) {
@@ -67,6 +69,13 @@ class AgrupadorEstudiantesExcelTest {
     void comparaTambienLosDatosAcademicosDelEstudiante() {
         assertEquals(String.format(MensajesError.EXCEL_FILA_DATO_DISTINTO, 3, "K", "semestre", "1001", 2),
                 error(List.of(fila(2, "1001", "MAT1", "A"), fila(3, "1001", "FIS1", "A", p -> p.setSemestre("6")))));
+    }
+
+    @Test
+    void rechazaLasFilasDelMismoEstudianteConOtroPrograma() {
+        assertEquals(String.format(MensajesError.EXCEL_FILA_DATO_DISTINTO, 3, "J", "programaAcademico", "1001", 2),
+                error(List.of(fila(2, "1001", "MAT1", "A"), fila(3, "1001", "FIS1", "A",
+                        p -> p.setUuidProgramaAcademico("uuid-programa-iet")))));
     }
 
     @Test

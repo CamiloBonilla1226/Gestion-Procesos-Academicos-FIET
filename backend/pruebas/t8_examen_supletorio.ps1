@@ -26,7 +26,12 @@ function Nuevo-Estudiante {
     param([string]$Token, [int]$Materias)
     $s = Nuevo-Sufijo
     $asignaturas = @()
-    for ($i = 1; $i -le $Materias; $i++) { $asignaturas += @{ codigoAsignatura = "T8$s$i"; nombreAsignatura = "Materia T8 $i $s"; grupo = "A" } }
+    if (-not $script:programaIsi) { $script:programaIsi = Programa-PorSigla -Token $Token -Sigla "ISI" }
+    for ($i = 1; $i -le $Materias; $i++) {
+        $asignatura = Crear-AsignaturaPrueba -Token $Token -UuidPrograma $script:programaIsi.uuidProgramaAcademico -Nombre "Materia T8 $i $s"
+        $script:codigos += $asignatura.codigoAsignatura
+        $asignaturas += @{ codigoAsignatura = $asignatura.codigoAsignatura; grupo = "A" }
+    }
     $cuerpo = @{
         nombres           = "Supletorio"
         apellidos         = "Prueba $s"
@@ -37,7 +42,7 @@ function Nuevo-Estudiante {
         username          = "sup$s"
         password          = "Clave12345"
         codigoEstudiantil = "S$s"
-        programaAcademico = "Ingenieria de Sistemas"
+        uuidProgramaAcademico = $script:programaIsi.uuidProgramaAcademico
         semestre          = "5"
         facultad          = "FIET"
         asignaturas       = $asignaturas

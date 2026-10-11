@@ -81,7 +81,7 @@ public class MapperSolicitudAcademicaInfraestructuraDominio {
         EstudianteSolicitudDTORespuesta respuesta = EstudianteSolicitudDTORespuesta.builder()
                 .uuidUsuario(estudiante.getUuidUsuario())
                 .codigoEstudiantil(estudiante.getCodigoEstudiantil())
-                .programaAcademico(estudiante.getProgramaAcademico())
+                .programaAcademico(estudiante.getProgramaAcademico() == null ? null : estudiante.getProgramaAcademico().getNombre())
                 .semestre(estudiante.getSemestre())
                 .build();
         Usuario usuario = estudiante.getUsuario();

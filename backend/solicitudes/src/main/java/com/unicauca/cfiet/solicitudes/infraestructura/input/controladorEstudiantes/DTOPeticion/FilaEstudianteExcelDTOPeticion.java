@@ -9,5 +9,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class FilaEstudianteExcelDTOPeticion {
     private int numeroFila;
+    private String programaAcademico;
     private EstudianteDTOPeticion peticion;
 }

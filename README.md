@@ -41,13 +41,14 @@ Julián (ver `docs/database/`).
 ├── frontend/   Angular 20 + PrimeNG — SPA
 └── docs/
     ├── api/
-    │   └── contrato-api-procesos-academicos.md   Contrato de los 63 endpoints académicos
+    │   └── contrato-api-procesos-academicos.md   Contrato de los 66 endpoints académicos
     ├── database/
-    │   ├── script_bd_extension.sql          DDL de referencia de las 18 tablas nuevas (no se ejecuta)
+    │   ├── script_bd_extension.sql          DDL de referencia de las 19 tablas nuevas (no se ejecuta)
     │   ├── diccionario-datos-extension.md   Diccionario de datos de la extensión
     │   ├── etapas-por-proceso.md            Etapas, transiciones, anexos, plazos y decisiones
     │   ├── seed-roles-extension.sql         Roles y tipo de usuario de la extensión
-    │   └── seed-procesos-academicos.sql     Tipos de solicitud, etapas, etiquetas, anexos y situaciones
+    │   ├── seed-procesos-academicos.sql     Programas, tipos de solicitud, etapas, etiquetas, anexos y situaciones
+    │   └── migracion_programas_asignaturas.sql  Pone al día una base con datos anteriores a los programas
     └── informe-discrepancias-documentacion.md   Correcciones hechas a la documentación
 ```
 
@@ -100,12 +101,18 @@ este orden:
    como `rootfiet`.
 3. Correr `docs/database/seed-procesos-academicos.sql` con la variable
    `@funcionario_uuid` apuntando a ese funcionario; el encabezado del
-   archivo trae el comando para Docker. Siembra los tres tipos de solicitud,
-   sus etapas, etiquetas por rol, tipos de anexo y el catálogo de situaciones
-   académicas. Se puede correr más de una vez.
+   archivo trae el comando para Docker. Siembra los cinco programas
+   académicos, los tres tipos de solicitud, sus etapas, etiquetas por rol,
+   tipos de anexo y el catálogo de situaciones académicas. Se puede correr
+   más de una vez.
 
 Si la base ya tenía el `data.sql` original de Julián, los roles y el tipo de
 usuario de la extensión se agregan con `docs/database/seed-roles-extension.sql`.
+
+Si la base ya tenía estudiantes y asignaturas de antes de los programas
+académicos, hay que aplicar `docs/database/migracion_programas_asignaturas.sql`
+con el backend detenido y antes de levantar la versión nueva. Los comandos
+están al final de `docs/database/diccionario-datos-extension.md`.
 
 Los archivos subidos quedan en `backend/uploads`, que `docker-compose.yml`
 monta en el contenedor como `/app/uploads`.

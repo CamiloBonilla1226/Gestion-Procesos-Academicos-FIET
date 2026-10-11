@@ -18,19 +18,47 @@
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- ---------------------------------------------------------------------
--- 1. Usuarios especializados
+-- 1. Programas académicos
 -- ---------------------------------------------------------------------
 
+-- Catálogo fijo de los cinco programas de la FIET, sembrado en
+-- docs/database/seed-procesos-academicos.sql con UUID fijos. La sigla
+-- forma el código de las asignaturas del programa (ISI-001, IET-014, ...).
+-- ultimoConsecutivoAsignatura es el contador de ese código: el backend lo
+-- lee con bloqueo de fila (SELECT ... FOR UPDATE), le suma uno por cada
+-- asignatura nueva y lo guarda en la misma transacción. Nunca baja, así
+-- que un código no se reutiliza aunque se borre la asignatura.
+-- Una base con estudiantes y asignaturas anteriores a esta tabla se pone
+-- al día con docs/database/migracion_programas_asignaturas.sql (ver el
+-- diccionario de datos).
+CREATE TABLE IF NOT EXISTS PROGRAMA_ACADEMICO (
+    uuidProgramaAcademico        VARCHAR(100) NOT NULL,
+    nombre                       VARCHAR(100) NOT NULL,
+    sigla                        VARCHAR(10)  NOT NULL,
+    ultimoConsecutivoAsignatura  INT          NOT NULL DEFAULT 0,
+    PRIMARY KEY (uuidProgramaAcademico),
+    UNIQUE KEY uk_programa_nombre (nombre),
+    UNIQUE KEY uk_programa_sigla (sigla)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ---------------------------------------------------------------------
+-- 2. Usuarios especializados
+-- ---------------------------------------------------------------------
+
+-- El programa del estudiante se elige al crearlo y no se edita después.
+-- Solo puede matricular asignaturas de ese mismo programa.
 CREATE TABLE IF NOT EXISTS ESTUDIANTE (
-    Usuario_uuid        VARCHAR(100) NOT NULL,
-    codigoEstudiantil   VARCHAR(45)  NOT NULL,
-    programaAcademico   VARCHAR(100) NOT NULL,
-    semestre            VARCHAR(10)  NOT NULL,
-    facultad            VARCHAR(100) NOT NULL,
+    Usuario_uuid            VARCHAR(100) NOT NULL,
+    codigoEstudiantil       VARCHAR(45)  NOT NULL,
+    ProgramaAcademico_uuid  VARCHAR(100) NOT NULL,
+    semestre                VARCHAR(10)  NOT NULL,
+    facultad                VARCHAR(100) NOT NULL,
     PRIMARY KEY (Usuario_uuid),
     UNIQUE KEY uk_estudiante_codigo (codigoEstudiantil),
     CONSTRAINT fk_estudiante_usuario
-        FOREIGN KEY (Usuario_uuid) REFERENCES usuarios (uuidUsuario)
+        FOREIGN KEY (Usuario_uuid) REFERENCES usuarios (uuidUsuario),
+    CONSTRAINT fk_estudiante_programa
+        FOREIGN KEY (ProgramaAcademico_uuid) REFERENCES PROGRAMA_ACADEMICO (uuidProgramaAcademico)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- FUNCIONARIO_ACADEMICO es una extensión propia de este trabajo de grado,
@@ -55,15 +83,24 @@ CREATE TABLE IF NOT EXISTS FUNCIONARIO_ACADEMICO (
 -- insertarlos). Se identifica por ese rol.
 
 -- ---------------------------------------------------------------------
--- 2. Asignaturas y matrícula
+-- 3. Asignaturas y matrícula
 -- ---------------------------------------------------------------------
 
+-- Cada asignatura pertenece a un solo programa, fijo desde su creación.
+-- codigoAsignatura lo genera el backend (sigla, guion y consecutivo de al
+-- menos tres dígitos) y no se edita; uk_asignatura_codigo es la última
+-- defensa ante dos creaciones simultáneas. El nombre no se repite dentro
+-- del mismo programa sin distinguir mayúsculas ni espacios sobrantes; esa
+-- regla la valida el backend con el programa bloqueado, no hay índice.
 CREATE TABLE IF NOT EXISTS ASIGNATURA (
-    uuidAsignatura      VARCHAR(100) NOT NULL,
-    codigoAsignatura    VARCHAR(45)  NOT NULL,
-    nombreAsignatura    VARCHAR(150) NOT NULL,
+    uuidAsignatura          VARCHAR(100) NOT NULL,
+    codigoAsignatura        VARCHAR(45)  NOT NULL,
+    nombreAsignatura        VARCHAR(150) NOT NULL,
+    ProgramaAcademico_uuid  VARCHAR(100) NOT NULL,
     PRIMARY KEY (uuidAsignatura),
-    UNIQUE KEY uk_asignatura_codigo (codigoAsignatura)
+    UNIQUE KEY uk_asignatura_codigo (codigoAsignatura),
+    CONSTRAINT fk_asignatura_programa
+        FOREIGN KEY (ProgramaAcademico_uuid) REFERENCES PROGRAMA_ACADEMICO (uuidProgramaAcademico)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS ASIGNATURA_MATRICULADA (
@@ -80,7 +117,7 @@ CREATE TABLE IF NOT EXISTS ASIGNATURA_MATRICULADA (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ---------------------------------------------------------------------
--- 3. Tipo de Solicitud Académica
+-- 4. Tipo de Solicitud Académica
 -- ---------------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS TIPO_SOLICITUD_ACADEMICA (
@@ -94,7 +131,7 @@ CREATE TABLE IF NOT EXISTS TIPO_SOLICITUD_ACADEMICA (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ---------------------------------------------------------------------
--- 4. Máquina de etapas
+-- 5. Máquina de etapas
 -- ---------------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS ETAPA_SOLICITUD_ACADEMICA (
@@ -116,7 +153,7 @@ CREATE TABLE IF NOT EXISTS ETAPA_ETIQUETA_ROL (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ---------------------------------------------------------------------
--- 5. Solicitud Académica y su especialización
+-- 6. Solicitud Académica y su especialización
 -- ---------------------------------------------------------------------
 
 -- radicado: identificador legible de la solicitud (AAAA-CM-0001,
@@ -182,7 +219,7 @@ CREATE TABLE IF NOT EXISTS SOLICITUD_SUPLETORIO_CRUCE_ASIGNATURA (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ---------------------------------------------------------------------
--- 6. Catálogo de situación académica (formato oficial PA-GA-4.2-FOR-9)
+-- 7. Catálogo de situación académica (formato oficial PA-GA-4.2-FOR-9)
 -- ---------------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS SITUACION_ACADEMICA_ASIGNATURA (
@@ -193,7 +230,7 @@ CREATE TABLE IF NOT EXISTS SITUACION_ACADEMICA_ASIGNATURA (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ---------------------------------------------------------------------
--- 7. Vinculación con asignaturas matriculadas (cancelaciones)
+-- 8. Vinculación con asignaturas matriculadas (cancelaciones)
 -- ---------------------------------------------------------------------
 
 -- cumpleCondiciones, observacionEvaluacion, aprobadaPorDecano y
@@ -225,7 +262,7 @@ CREATE TABLE IF NOT EXISTS ASIGNATURA_SOLICITUD_ACADEMICA (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ---------------------------------------------------------------------
--- 8. Anexos
+-- 9. Anexos
 -- ---------------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS TIPO_ANEXO_ACADEMICO (
@@ -264,7 +301,7 @@ CREATE TABLE IF NOT EXISTS ANEXO_ACADEMICO (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ---------------------------------------------------------------------
--- 9. Resolución académica (escaneo del documento firmado físicamente)
+-- 10. Resolución académica (escaneo del documento firmado físicamente)
 -- ---------------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS RESOLUCION_ACADEMICA (
@@ -281,7 +318,7 @@ CREATE TABLE IF NOT EXISTS RESOLUCION_ACADEMICA (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ---------------------------------------------------------------------
--- 10. Historial de auditoría
+-- 11. Historial de auditoría
 -- ---------------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS HISTORIAL_SOLICITUD_ACADEMICA (
@@ -301,8 +338,9 @@ CREATE TABLE IF NOT EXISTS HISTORIAL_SOLICITUD_ACADEMICA (
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- =====================================================================
--- Fin del script. Son 18 tablas nuevas en total. Orden de creación ya
--- resuelto para respetar FKs: Estudiante/FuncionarioAcademico ->
+-- Fin del script. Son 19 tablas nuevas en total. Orden de creación ya
+-- resuelto para respetar FKs: ProgramaAcademico ->
+-- Estudiante/FuncionarioAcademico ->
 -- Asignatura/AsignaturaMatriculada -> TipoSolicitud -> Etapa/EtapaEtiqueta
 -- -> SolicitudAcademica -> especializaciones -> SituacionAcademica ->
 -- AsignaturaSolicitud -> Anexos -> Resolución -> Historial.

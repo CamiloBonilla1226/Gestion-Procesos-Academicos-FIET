@@ -7,6 +7,7 @@ import com.unicauca.cfiet.solicitudes.aplicacion.output.AsignaturaGatewayIntPuer
 import com.unicauca.cfiet.solicitudes.aplicacion.output.EstudianteGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.ExcepcionesFormateadorIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.IJwtServicio;
+import com.unicauca.cfiet.solicitudes.aplicacion.output.ProgramaAcademicoGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.RolGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.SesionGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.UsuarioGatewayIntPuerto;
@@ -16,16 +17,16 @@ import com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EstadoAsignatura
 import com.unicauca.cfiet.solicitudes.dominio.modelos.Asignatura;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.AsignaturaMatriculada;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.Estudiante;
+import com.unicauca.cfiet.solicitudes.dominio.modelos.ProgramaAcademico;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.Rol;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.TipoUsuario;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.Usuario;
+import com.unicauca.cfiet.solicitudes.dominio.servicios.ReglasAsignatura;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.MensajesError;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -34,6 +35,7 @@ public class EstudianteCUImplAdaptador implements EstudianteCUIntPuerto {
     private final UsuarioCUIntPuerto usuarioCU;
     private final EstudianteGatewayIntPuerto gateway;
     private final AsignaturaGatewayIntPuerto asignaturaGateway;
+    private final ProgramaAcademicoGatewayIntPuerto programaGateway;
     private final RolGatewayIntPuerto rolGateway;
     private final UsuarioGatewayIntPuerto usuarioGateway;
     private final SesionGatewayIntPuerto sesionGateway;
@@ -45,7 +47,10 @@ public class EstudianteCUImplAdaptador implements EstudianteCUIntPuerto {
     private static final String USUARIO = "Usuario";
     private static final String ROL = "Rol";
     private static final String TIPO_USUARIO = "Tipo de usuario";
+    private static final String ASIGNATURA = "Asignatura";
     private static final String ASIGNATURA_MATRICULADA = "Asignatura matriculada";
+    private static final String PROGRAMA_ACADEMICO = "Programa académico";
+    private static final String CODIGO = "codigo";
     private static final String NOMBRE = "nombre";
     private static final String USERNAME = "username";
     private static final String CODIGO_ESTUDIANTIL = "codigo estudiantil";
@@ -58,6 +63,7 @@ public class EstudianteCUImplAdaptador implements EstudianteCUIntPuerto {
     public EstudianteCUImplAdaptador(UsuarioCUIntPuerto usuarioCU,
                                      EstudianteGatewayIntPuerto gateway,
                                      AsignaturaGatewayIntPuerto asignaturaGateway,
+                                     ProgramaAcademicoGatewayIntPuerto programaGateway,
                                      RolGatewayIntPuerto rolGateway,
                                      UsuarioGatewayIntPuerto usuarioGateway,
                                      SesionGatewayIntPuerto sesionGateway,
@@ -67,6 +73,7 @@ public class EstudianteCUImplAdaptador implements EstudianteCUIntPuerto {
         this.usuarioCU = usuarioCU;
         this.gateway = gateway;
         this.asignaturaGateway = asignaturaGateway;
+        this.programaGateway = programaGateway;
         this.rolGateway = rolGateway;
         this.usuarioGateway = usuarioGateway;
         this.sesionGateway = sesionGateway;
@@ -152,8 +159,6 @@ public class EstudianteCUImplAdaptador implements EstudianteCUIntPuerto {
         }
         if (tieneTexto(nuevoCodigo))
             actual.setCodigoEstudiantil(nuevoCodigo.trim());
-        if (tieneTexto(estudiante.getProgramaAcademico()))
-            actual.setProgramaAcademico(estudiante.getProgramaAcademico());
         if (tieneTexto(estudiante.getSemestre()))
             actual.setSemestre(estudiante.getSemestre());
         if (tieneTexto(estudiante.getFacultad()))
@@ -168,11 +173,9 @@ public class EstudianteCUImplAdaptador implements EstudianteCUIntPuerto {
 
     @Override
     public AsignaturaMatriculada agregarAsignaturaMatriculada(String uuidUsuario, AsignaturaMatriculada asignaturaMatriculada, String token) {
-        if (!gateway.existePorUuid(uuidUsuario))
-            formateadorExcepciones.lanzarEntidadNoExiste(
-                    String.format(MensajesError.ENTIDAD_NO_ENCONTRADA, ESTUDIANTE, uuidUsuario));
+        Estudiante estudiante = getEstudiante(uuidUsuario);
 
-        String codigo = asignaturaMatriculada.getAsignatura().getCodigoAsignatura();
+        String codigo = ReglasAsignatura.normalizarCodigo(asignaturaMatriculada.getAsignatura().getCodigoAsignatura());
         String grupo = asignaturaMatriculada.getGrupo();
         boolean yaActiva = gateway.getAsignaturasMatriculadas(uuidUsuario).stream()
                 .anyMatch(materia -> EstadoAsignaturaMatriculadaConstantes.ACTIVA.equals(materia.getEstado())
@@ -181,7 +184,7 @@ public class EstudianteCUImplAdaptador implements EstudianteCUIntPuerto {
         if (yaActiva)
             formateadorExcepciones.lanzarMalFormato(String.format(MensajesError.ASIGNATURA_YA_MATRICULADA, codigo, grupo));
 
-        asignaturaMatriculada.setAsignatura(resolverAsignatura(asignaturaMatriculada.getAsignatura(), token));
+        asignaturaMatriculada.setAsignatura(asignaturaDelPrograma(codigo, estudiante.getProgramaAcademico()));
         asignaturaMatriculada.setUuidAsignaturaMatriculada(UUID.randomUUID().toString());
         asignaturaMatriculada.setEstado(EstadoAsignaturaMatriculadaConstantes.ACTIVA);
         AsignaturaMatriculada guardada = gateway.guardarAsignaturaMatriculada(uuidUsuario, asignaturaMatriculada);
@@ -242,6 +245,36 @@ public class EstudianteCUImplAdaptador implements EstudianteCUIntPuerto {
                 formateadorExcepciones.lanzarMalFormato(String.format(
                         MensajesError.VALOR_REPETIDO_PETICION, ASIGNATURA_Y_GRUPO, codigo + " - " + materia.getGrupo()));
         }
+
+        ProgramaAcademico programa = programaExistente(estudiante.getProgramaAcademico());
+        estudiante.setProgramaAcademico(programa);
+        for (AsignaturaMatriculada materia : estudiante.getAsignaturasMatriculadas())
+            materia.setAsignatura(asignaturaDelPrograma(
+                    ReglasAsignatura.normalizarCodigo(materia.getAsignatura().getCodigoAsignatura()), programa));
+    }
+
+    private ProgramaAcademico programaExistente(ProgramaAcademico recibido) {
+        String uuid = recibido == null ? null : recibido.getUuidProgramaAcademico();
+        if (!tieneTexto(uuid))
+            formateadorExcepciones.lanzarMalFormato(MensajesError.PROGRAMA_ACADEMICO_REQUERIDO);
+        ProgramaAcademico programa = programaGateway.getPorUuid(uuid.trim());
+        if (programa == null)
+            formateadorExcepciones.lanzarEntidadNoExiste(
+                    String.format(MensajesError.ENTIDAD_NO_ENCONTRADA, PROGRAMA_ACADEMICO, uuid));
+        return programa;
+    }
+
+    private Asignatura asignaturaDelPrograma(String codigo, ProgramaAcademico programa) {
+        Asignatura asignatura = asignaturaGateway.getPorCodigo(codigo);
+        if (asignatura == null)
+            formateadorExcepciones.lanzarEntidadNoExiste(
+                    String.format(MensajesError.ENTIDAD_NO_ENCONTRADA_FILTRO, ASIGNATURA, CODIGO, codigo));
+        ProgramaAcademico programaAsignatura = asignatura.getProgramaAcademico();
+        if (programaAsignatura == null || !programa.getUuidProgramaAcademico().equals(programaAsignatura.getUuidProgramaAcademico()))
+            formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.ASIGNATURA_OTRO_PROGRAMA,
+                    asignatura.getCodigoAsignatura(), asignatura.getNombreAsignatura(),
+                    programaAsignatura == null ? "" : programaAsignatura.getNombre(), programa.getNombre()));
+        return asignatura;
     }
 
     private void validarRepetidosEnLote(List<Estudiante> estudiantes, Function<Estudiante, String> valor, String campo) {
@@ -273,13 +306,6 @@ public class EstudianteCUImplAdaptador implements EstudianteCUIntPuerto {
     }
 
     private Estudiante registrar(Estudiante estudiante, Rol rol, TipoUsuario tipoUsuario, String token) {
-        Map<String, Asignatura> resueltas = new HashMap<>();
-        for (AsignaturaMatriculada materia : estudiante.getAsignaturasMatriculadas()) {
-            Asignatura recibida = materia.getAsignatura();
-            materia.setAsignatura(resueltas.computeIfAbsent(
-                    normalizar(recibida.getCodigoAsignatura()), clave -> resolverAsignatura(recibida, token)));
-        }
-
         Usuario usuario = estudiante.getUsuario();
         usuario.setRoles(new ArrayList<>(List.of(rol)));
         usuario.setObjTipoUsuario(tipoUsuario);
@@ -298,24 +324,6 @@ public class EstudianteCUImplAdaptador implements EstudianteCUIntPuerto {
                         guardado.getUuidUsuario(), estudiante.getAsignaturasMatriculadas().size()),
                 token);
         return guardado;
-    }
-
-    private Asignatura resolverAsignatura(Asignatura recibida, String token) {
-        Asignatura existente = asignaturaGateway.getPorCodigo(recibida.getCodigoAsignatura().trim());
-        if (existente != null)
-            return existente;
-
-        Asignatura nueva = Asignatura.builder()
-                .uuidAsignatura(UUID.randomUUID().toString())
-                .codigoAsignatura(recibida.getCodigoAsignatura().trim())
-                .nombreAsignatura(recibida.getNombreAsignatura())
-                .build();
-        Asignatura guardada = asignaturaGateway.guardar(nueva);
-        log.crearLog("Crear asignatura",
-                String.format("Asignatura %s - %s creada con uuid %s",
-                        guardada.getCodigoAsignatura(), guardada.getNombreAsignatura(), guardada.getUuidAsignatura()),
-                token);
-        return guardada;
     }
 
     private void validarPaginacion(int pagina, int tamanio) {

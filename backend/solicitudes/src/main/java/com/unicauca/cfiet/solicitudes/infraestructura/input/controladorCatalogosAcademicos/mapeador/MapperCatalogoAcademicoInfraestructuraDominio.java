@@ -3,11 +3,13 @@ package com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCatalogo
 import com.unicauca.cfiet.solicitudes.dominio.modelos.EtapaEtiquetaRol;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.EtapaSolicitudAcademica;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.FuncionarioAcademico;
+import com.unicauca.cfiet.solicitudes.dominio.modelos.ProgramaAcademico;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.SituacionAcademicaAsignatura;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.TipoAnexoAcademico;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.TipoSolicitudAcademica;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCatalogosAcademicos.DTORespuesta.EtapaEtiquetaRolDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCatalogosAcademicos.DTORespuesta.EtapaSolicitudAcademicaDTORespuesta;
+import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCatalogosAcademicos.DTORespuesta.ProgramaAcademicoDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCatalogosAcademicos.DTORespuesta.SituacionAcademicaAsignaturaDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCatalogosAcademicos.DTORespuesta.TipoAnexoAcademicoDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCatalogosAcademicos.DTORespuesta.TipoSolicitudAcademicaDTORespuesta;
@@ -51,6 +53,16 @@ public class MapperCatalogoAcademicoInfraestructuraDominio {
                         .nombre(tipoAnexo.getNombre())
                         .formatosPermitidos(tipoAnexo.getFormatosPermitidos())
                         .obligatorio(tipoAnexo.getObligatorio())
+                        .build())
+                .toList();
+    }
+
+    public List<ProgramaAcademicoDTORespuesta> mapearProgramas(List<ProgramaAcademico> programas) {
+        return programas.stream()
+                .map(programa -> ProgramaAcademicoDTORespuesta.builder()
+                        .uuidProgramaAcademico(programa.getUuidProgramaAcademico())
+                        .nombre(programa.getNombre())
+                        .sigla(programa.getSigla())
                         .build())
                 .toList();
     }

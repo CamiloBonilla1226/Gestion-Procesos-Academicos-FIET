@@ -4,6 +4,7 @@ import com.unicauca.cfiet.solicitudes.dominio.helper.PaginacionRespuestaDTO;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.Asignatura;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.AsignaturaMatriculada;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.Estudiante;
+import com.unicauca.cfiet.solicitudes.dominio.modelos.ProgramaAcademico;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.Usuario;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorEstudiantes.DTOPeticion.AsignaturaMatriculadaDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorEstudiantes.DTOPeticion.EstudianteActualizarDTOPeticion;
@@ -37,7 +38,9 @@ public class MapperEstudianteInfraestructuraDominio {
         return Estudiante.builder()
                 .usuario(usuario)
                 .codigoEstudiantil(peticion.getCodigoEstudiantil())
-                .programaAcademico(peticion.getProgramaAcademico())
+                .programaAcademico(ProgramaAcademico.builder()
+                        .uuidProgramaAcademico(peticion.getUuidProgramaAcademico())
+                        .build())
                 .semestre(peticion.getSemestre())
                 .facultad(peticion.getFacultad())
                 .asignaturasMatriculadas(materias)
@@ -47,7 +50,6 @@ public class MapperEstudianteInfraestructuraDominio {
     public Estudiante mapearActualizacionAModelo(EstudianteActualizarDTOPeticion peticion) {
         return Estudiante.builder()
                 .codigoEstudiantil(peticion.getCodigoEstudiantil())
-                .programaAcademico(peticion.getProgramaAcademico())
                 .semestre(peticion.getSemestre())
                 .facultad(peticion.getFacultad())
                 .build();
@@ -57,7 +59,6 @@ public class MapperEstudianteInfraestructuraDominio {
         return AsignaturaMatriculada.builder()
                 .asignatura(Asignatura.builder()
                         .codigoAsignatura(peticion.getCodigoAsignatura())
-                        .nombreAsignatura(peticion.getNombreAsignatura())
                         .build())
                 .grupo(peticion.getGrupo())
                 .build();
@@ -67,11 +68,15 @@ public class MapperEstudianteInfraestructuraDominio {
         EstudianteDTORespuesta respuesta = EstudianteDTORespuesta.builder()
                 .uuidUsuario(modelo.getUuidUsuario())
                 .codigoEstudiantil(modelo.getCodigoEstudiantil())
-                .programaAcademico(modelo.getProgramaAcademico())
                 .semestre(modelo.getSemestre())
                 .facultad(modelo.getFacultad())
                 .asignaturasMatriculadas(mapearMateriasARespuesta(modelo.getAsignaturasMatriculadas()))
                 .build();
+        ProgramaAcademico programa = modelo.getProgramaAcademico();
+        if (programa != null) {
+            respuesta.setUuidProgramaAcademico(programa.getUuidProgramaAcademico());
+            respuesta.setProgramaAcademico(programa.getNombre());
+        }
         Usuario usuario = modelo.getUsuario();
         if (usuario != null) {
             respuesta.setNombres(usuario.getNombres());

@@ -7,6 +7,13 @@
 --   docker compose cp ../docs/database/seed-procesos-academicos.sql cfiet_database:/tmp/seed.sql
 --   docker compose exec -T cfiet_database mysql -u root -pmysql --default-character-set=utf8mb4 cfiet -e "SET @funcionario_uuid='<uuid>'; source /tmp/seed.sql"
 
+INSERT IGNORE INTO PROGRAMA_ACADEMICO (uuidProgramaAcademico, nombre, sigla, ultimoConsecutivoAsignatura) VALUES
+('14299e0f-8da8-4c73-ad2b-b61e0c52b7f5', 'Ingeniería Electrónica y Telecomunicaciones', 'IET', 0),
+('5d73d656-2504-44cc-ab6e-5cd10b500abf', 'Ingeniería de Sistemas', 'ISI', 0),
+('8606cf01-c111-4aef-92cd-a111cb7b7a38', 'Ingeniería en Automática Industrial', 'IAI', 0),
+('7ebedec6-aeab-403b-8a97-9312061bd4b7', 'Tecnología en Telemática', 'TTE', 0),
+('d21ec0bf-cee1-4a06-8ae7-00477e88cfe6', 'Ingeniería en Inteligencia Artificial y Ciencia de Datos', 'IAC', 0);
+
 INSERT IGNORE INTO TIPO_SOLICITUD_ACADEMICA (uuidTipoSolicitudAcademica, nombre, descripcion, FuncionarioAcademico_uuid) VALUES
 ('3b6dccc9-ff78-48ef-8e66-05fb9932e302', 'Cancelación de Matrícula', 'Cancelación de todas las asignaturas matriculadas en el periodo académico', @funcionario_uuid),
 ('7b3d4347-3525-4ab7-a2b4-723b1ced80c8', 'Cancelación de Asignatura', 'Cancelación de una o más asignaturas matriculadas en el periodo académico', @funcionario_uuid),

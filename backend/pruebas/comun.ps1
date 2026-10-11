@@ -167,6 +167,27 @@ function Subir-Archivo {
     return [pscustomobject]@{ Status = [int]$codigo; Body = $cuerpo }
 }
 
+function Obtener-Programas {
+    param([string]$Token)
+    $r = Invoke-Api -Metodo GET -Ruta "catalogos-academicos/programas" -Token $Token
+    if ($r.Status -ne 200) { throw "No se pudo leer el catalogo de programas ($($r.Status)): $($r.Body)" }
+    return @(Leer-Json $r)
+}
+
+function Programa-PorSigla {
+    param([string]$Token, [string]$Sigla = "ISI")
+    $programa = @(Obtener-Programas -Token $Token | Where-Object { $_.sigla -eq $Sigla })[0]
+    if ($null -eq $programa) { throw "El catalogo no tiene el programa $Sigla; corre docs/database/seed-procesos-academicos.sql" }
+    return $programa
+}
+
+function Crear-AsignaturaPrueba {
+    param([string]$Token, [string]$UuidPrograma, [string]$Nombre)
+    $r = Invoke-Api -Metodo POST -Ruta "asignaturas" -Token $Token -Cuerpo @{ nombreAsignatura = $Nombre; uuidProgramaAcademico = $UuidPrograma }
+    if ($r.Status -ne 200) { throw "No se pudo crear la asignatura $Nombre ($($r.Status)): $($r.Body)" }
+    return (Leer-Json $r)
+}
+
 function Escribir-Resultado {
     param([string]$Descripcion, [bool]$Ok)
     if ($Ok) { Write-Host "PASS $Descripcion" } else { Write-Host "FAIL $Descripcion" }
@@ -189,7 +210,7 @@ function Valores-Sql {
 }
 
 function Foto-Base {
-    $tablas = @("usuariosLivianos", "usuarios", "Usuario_has_Roles", "funcionarios", "ESTUDIANTE", "FUNCIONARIO_ACADEMICO", "ASIGNATURA", "ASIGNATURA_MATRICULADA", "SOLICITUD_ACADEMICA", "ANEXO_ACADEMICO")
+    $tablas = @("usuariosLivianos", "usuarios", "Usuario_has_Roles", "funcionarios", "ESTUDIANTE", "FUNCIONARIO_ACADEMICO", "PROGRAMA_ACADEMICO", "ASIGNATURA", "ASIGNATURA_MATRICULADA", "SOLICITUD_ACADEMICA", "ANEXO_ACADEMICO")
     $conteos = @($tablas | ForEach-Object { "(select count(*) from $_)" }) + @(
         "(select count(*) from logs where uuidUsuario <> 'uuid-root-0001')",
         "(select md5(group_concat(concat(uuidTipoSolicitudAcademica, coalesce(FuncionarioAcademico_uuid, '-')) order by uuidTipoSolicitudAcademica)) from TIPO_SOLICITUD_ACADEMICA)")

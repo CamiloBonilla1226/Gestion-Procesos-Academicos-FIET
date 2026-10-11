@@ -14,7 +14,7 @@ public class Estudiante {
     private String uuidUsuario;
     private Usuario usuario;
     private String codigoEstudiantil;
-    private String programaAcademico;
+    private ProgramaAcademico programaAcademico;
     private String semestre;
     private String facultad;
     @Builder.Default

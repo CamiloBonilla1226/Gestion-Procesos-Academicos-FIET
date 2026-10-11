@@ -31,8 +31,13 @@ public class EstudianteEntidad implements Persistable<String> {
     private UsuarioEntidad usuario;
     @Column(name = "codigoEstudiantil", length = 45, nullable = false)
     private String codigoEstudiantil;
-    @Column(name = "programaAcademico", length = 100, nullable = false)
-    private String programaAcademico;
+    @ManyToOne(optional = false)
+    @JoinColumn(
+            name = "ProgramaAcademico_uuid",
+            nullable = false,
+            foreignKey = @ForeignKey(name = "fk_estudiante_programa")
+    )
+    private ProgramaAcademicoEntidad programaAcademico;
     @Column(name = "semestre", length = 10, nullable = false)
     private String semestre;
     @Column(name = "facultad", length = 100, nullable = false)

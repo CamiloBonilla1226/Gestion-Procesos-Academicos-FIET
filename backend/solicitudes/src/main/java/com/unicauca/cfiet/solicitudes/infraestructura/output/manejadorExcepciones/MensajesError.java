@@ -109,4 +109,14 @@ public class MensajesError {
     public static final String REQUISITOS_NO_CONFIRMADOS = "Para remitir la solicitud %s al Decano debe confirmar que verificó los requisitos; si no se cumplen, debe rechazar la solicitud en lugar de remitirla...";
     public static final String FECHA_ACORDADA_ANTERIOR = "La fecha acordada para el supletorio (%s) no puede ser anterior a la fecha del examen no presentado (%s)...";
     public static final String FECHA_MAL_FORMADA = "El valor %s de %s no es una fecha con el formato AAAA-MM-DD...";
+    public static final String PROGRAMA_ACADEMICO_REQUERIDO = "Debe indicar el programa académico...";
+    public static final String NOMBRE_ASIGNATURA_REQUERIDO = "El nombre de la asignatura no puede estar vacío...";
+    public static final String NOMBRE_ASIGNATURA_MUY_LARGO = "El nombre de la asignatura supera los %d caracteres permitidos...";
+    public static final String ASIGNATURA_NOMBRE_EXISTE = "La asignatura %s ya existe en el programa %s con el código %s...";
+    public static final String ASIGNATURA_OTRO_PROGRAMA = "La asignatura %s (%s) es del programa %s y el estudiante es del programa %s...";
+    public static final String EXCEL_FILA_PROGRAMA_DESCONOCIDO = "Fila %d, columna %s (%s): el programa '%s' no existe, los programas permitidos son %s...";
+    public static final String EXCEL_FILA_ASIGNATURA_REPETIDA = "Fila %d, columna %s (%s): la asignatura %s ya aparece en la fila %d para el programa %s...";
+    public static final String EXCEL_FILA_ASIGNATURA_EXISTE = "Fila %d, columna %s (%s): la asignatura %s ya existe en el programa %s con el código %s...";
+    public static final String EXCEL_FILA_ASIGNATURA_NO_EXISTE = "Fila %d, columna %s (%s): la asignatura con código %s no existe en el catálogo...";
+    public static final String EXCEL_FILA_ASIGNATURA_OTRO_PROGRAMA = "Fila %d, columna %s (%s): la asignatura %s es del programa %s y el estudiante es del programa %s...";
 }

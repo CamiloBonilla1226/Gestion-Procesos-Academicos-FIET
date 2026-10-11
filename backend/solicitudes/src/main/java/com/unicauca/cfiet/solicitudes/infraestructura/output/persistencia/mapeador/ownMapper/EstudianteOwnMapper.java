@@ -16,6 +16,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class EstudianteOwnMapper implements OwnMapper<Estudiante, EstudianteEntidad> {
     private final AsignaturaMatriculadaOwnMapper asignaturaMatriculadaMapper;
+    private final ProgramaAcademicoOwnMapper programaMapper;
 
     @Override
     public Estudiante toDominio(EstudianteEntidad source) {
@@ -23,7 +24,7 @@ public class EstudianteOwnMapper implements OwnMapper<Estudiante, EstudianteEnti
                 .uuidUsuario(source.getUuidUsuario())
                 .usuario(usuarioDominio(source.getUsuario()))
                 .codigoEstudiantil(source.getCodigoEstudiantil())
-                .programaAcademico(source.getProgramaAcademico())
+                .programaAcademico(source.getProgramaAcademico() == null ? null : programaMapper.toDominio(source.getProgramaAcademico()))
                 .semestre(source.getSemestre())
                 .facultad(source.getFacultad())
                 .asignaturasMatriculadas(asignaturasDominio(source.getAsignaturasMatriculadas()))
@@ -35,7 +36,7 @@ public class EstudianteOwnMapper implements OwnMapper<Estudiante, EstudianteEnti
         EstudianteEntidad entidad = EstudianteEntidad.builder()
                 .uuidUsuario(source.getUuidUsuario())
                 .codigoEstudiantil(source.getCodigoEstudiantil())
-                .programaAcademico(source.getProgramaAcademico())
+                .programaAcademico(source.getProgramaAcademico() == null ? null : programaMapper.toEntidad(source.getProgramaAcademico()))
                 .semestre(source.getSemestre())
                 .facultad(source.getFacultad())
                 .build();

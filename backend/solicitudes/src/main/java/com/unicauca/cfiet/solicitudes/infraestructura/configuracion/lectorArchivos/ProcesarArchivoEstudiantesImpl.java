@@ -47,7 +47,7 @@ public class ProcesarArchivoEstudiantesImpl implements ProcesadorArchivos<FilaEs
             for (int i = 1; i <= hoja.getLastRowNum(); i++) {
                 Row fila = hoja.getRow(i);
                 if (filaVacia(fila)) break;
-                filas.add(new FilaEstudianteExcelDTOPeticion(i + 1, leerFila(fila)));
+                filas.add(new FilaEstudianteExcelDTOPeticion(i + 1, valor(fila, 9), leerFila(fila)));
             }
             if (filas.isEmpty())
                 formateadorExcepciones.lanzarMalFormato(MensajesError.EXCEL_SIN_FILAS);
@@ -77,7 +77,7 @@ public class ProcesarArchivoEstudiantesImpl implements ProcesadorArchivos<FilaEs
 
     private EstudianteDTOPeticion leerFila(Row fila) {
         List<AsignaturaMatriculadaDTOPeticion> asignaturas = new ArrayList<>();
-        asignaturas.add(new AsignaturaMatriculadaDTOPeticion(valor(fila, 12), valor(fila, 13), valor(fila, 14)));
+        asignaturas.add(new AsignaturaMatriculadaDTOPeticion(valor(fila, 12), valor(fila, 13)));
 
         EstudianteDTOPeticion peticion = new EstudianteDTOPeticion();
         peticion.setNombres(valor(fila, 0));
@@ -89,7 +89,6 @@ public class ProcesarArchivoEstudiantesImpl implements ProcesadorArchivos<FilaEs
         peticion.setUsername(valor(fila, 6));
         peticion.setPassword(valor(fila, 7));
         peticion.setCodigoEstudiantil(valor(fila, 8));
-        peticion.setProgramaAcademico(valor(fila, 9));
         peticion.setSemestre(valor(fila, 10));
         peticion.setFacultad(valor(fila, 11));
         peticion.setAsignaturas(asignaturas);

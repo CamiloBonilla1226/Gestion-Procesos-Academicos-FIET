@@ -10,11 +10,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AsignaturaDTOPeticion {
-    @NotBlank(message = "El código de la asignatura no puede estar vacío")
-    @Size(max = 45, message = "El código de la asignatura debe tener máximo 45 caracteres")
-    private String codigoAsignatura;
-
     @NotBlank(message = "El nombre de la asignatura no puede estar vacío")
     @Size(max = 150, message = "El nombre de la asignatura debe tener máximo 150 caracteres")
     private String nombreAsignatura;
+
+    @NotBlank(message = "El programa académico no puede estar vacío")
+    @Size(max = 100, message = "El programa académico debe tener máximo 100 caracteres")
+    private String uuidProgramaAcademico;
 }

@@ -23,6 +23,9 @@ function Lista-Sql {
 function Nuevo-Estudiante {
     param([string]$Token)
     $s = Nuevo-Sufijo
+    if (-not $script:programaIsi) { $script:programaIsi = Programa-PorSigla -Token $Token -Sigla "ISI" }
+    $asignatura = Crear-AsignaturaPrueba -Token $Token -UuidPrograma $script:programaIsi.uuidProgramaAcademico -Nombre "Materia T5 $s"
+    $script:codigos += $asignatura.codigoAsignatura
     $cuerpo = @{
         nombres           = "Solicitante"
         apellidos         = "Prueba $s"
@@ -33,17 +36,17 @@ function Nuevo-Estudiante {
         username          = "sol$s"
         password          = "Clave12345"
         codigoEstudiantil = "S$s"
-        programaAcademico = "Ingenieria de Sistemas"
+        uuidProgramaAcademico = $script:programaIsi.uuidProgramaAcademico
         semestre          = "5"
         facultad          = "FIET"
-        asignaturas       = @(@{ codigoAsignatura = "T5$s"; nombreAsignatura = "Materia T5 $s"; grupo = "A" })
+        asignaturas       = @(@{ codigoAsignatura = $asignatura.codigoAsignatura; grupo = "A" })
     }
     $r = Invoke-Api -Metodo POST -Ruta "estudiantes" -Token $Token -Cuerpo $cuerpo
     if ($r.Status -ne 200) { throw "No se pudo crear el estudiante ($($r.Status)): $($r.Body)" }
     $creado = Leer-Json $r
     return [pscustomobject]@{
         Uuid    = $creado.uuidUsuario
-        Codigo  = "T5$s"
+        Codigo  = $asignatura.codigoAsignatura
         Token   = Iniciar-Sesion -Usuario "sol$s" -Clave "Clave12345"
     }
 }

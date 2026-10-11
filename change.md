@@ -2,6 +2,49 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-11 - Programas académicos y asignaturas con código autogenerado (Tarea T11.1)
+- Qué se hizo:
+  - Tabla nueva `PROGRAMA_ACADEMICO` con los cinco programas (IET, ISI, IAI, TTE, IAC) y su contador `ultimoConsecutivoAsignatura`. `ASIGNATURA` y `ESTUDIANTE` llevan `ProgramaAcademico_uuid` obligatorio; la columna de texto `ESTUDIANTE.programaAcademico` desaparece.
+  - El código de la asignatura lo genera el backend: sigla, guion y consecutivo del programa con al menos tres dígitos (`ISI-001`, `ISI-1000`). El contador se lee con `SELECT ... FOR UPDATE` dentro de la transacción del controlador, nunca baja y `uk_asignatura_codigo` queda como última defensa. El nombre no se repite dentro del programa sin distinguir mayúsculas ni espacios y se guarda sin espacios sobrantes.
+  - Endpoints nuevos: `GET catalogos-academicos/programas`, `GET asignaturas/programa/{uuidPrograma}` y `POST asignaturas/cargar/archivo` (todo o nada, errores con fila y columna). `POST asignaturas` recibe `{nombreAsignatura, uuidProgramaAcademico}`, `PUT asignaturas/{uuid}` solo `{nombreAsignatura}`, `filtro` acepta `uuidProgramaAcademico` y las respuestas traen `uuidProgramaAcademico` y `programaAcademico`.
+  - Estudiantes: `uuidProgramaAcademico` obligatorio al crear y no editable; las asignaturas se matriculan por `{codigoAsignatura, grupo}` y deben existir y ser del programa del estudiante (código 3 si no existe, 4 si es de otro programa; en el Excel, código 6 con fila y columna). Ningún flujo de estudiantes crea asignaturas. El Excel de estudiantes pierde `nombreAsignatura`.
+  - Reglas de seguridad para las tres rutas nuevas; la matriz de permisos pasa de 63 a 66 filas.
+  - Migración idempotente `docs/database/migracion_programas_asignaturas.sql` para bases con datos, probada sobre dos copias de `cfiet` (antes y después de arrancar el backend nuevo) y corrida dos veces en cada una.
+  - Pruebas unitarias nuevas y actualizadas: `AsignaturaCUImplAdaptadorTest` (consecutivo, 999 a 1000, no reutilización, bloqueo antes de revisar el nombre, 40 creaciones simultáneas), `EstudianteCUImplAdaptadorTest`, `ReglasAsignaturaTest`, `CatalogoAcademicoExcelTest` y `AgrupadorEstudiantesExcelTest`. `mvnw test`: 1136 pruebas, todas en verde.
+  - Scripts de `backend/pruebas`: crean asignaturas por la API antes de matricular, toman los programas del catálogo y limpian lo que crean; `Foto-Base` y la matriz cuentan `PROGRAMA_ACADEMICO`. `todo.ps1` corrió contra el jar nuevo (puerto 8082, JVM en UTC) sobre una copia migrada de `cfiet`: 1199 PASS, 0 FAIL, 0 diferencias. No se corrió contra `cfiet` ni contra el contenedor, que siguen sin migrar.
+- Archivos:
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/modelos/ProgramaAcademico.java` (creado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/modelos/Asignatura.java`, `Estudiante.java` (modificados)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/servicios/ReglasAsignatura.java` (creado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/ProgramaAcademicoCUImplAdaptador.java` (creado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/AsignaturaCUImplAdaptador.java`, `EstudianteCUImplAdaptador.java` (modificados)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/aplicacion/input/ProgramaAcademicoCUIntPuerto.java` y `aplicacion/output/ProgramaAcademicoGatewayIntPuerto.java` (creados)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/aplicacion/input/AsignaturaCUIntPuerto.java` y `aplicacion/output/AsignaturaGatewayIntPuerto.java` (modificados)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/output/persistencia/entidades/ProgramaAcademicoEntidad.java`, `repositorios/ProgramaAcademicoRepositorio.java`, `mapeador/ownMapper/ProgramaAcademicoOwnMapper.java`, `gateway/ProgramaAcademicoGatewayImplAdaptador.java` (creados)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/output/persistencia/entidades/AsignaturaEntidad.java`, `EstudianteEntidad.java`, `repositorios/AsignaturaRepositorio.java`, `mapeador/ownMapper/AsignaturaOwnMapper.java`, `EstudianteOwnMapper.java`, `gateway/AsignaturaGatewayImplAdaptador.java`, `EstudianteGatewayImplAdaptador.java` (modificados)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorAsignaturas/` (modificados: controlador, mapeador, `AsignaturaDTOPeticion`, `AsignaturaDTORespuesta`; creados: `AsignaturaActualizarDTOPeticion`, `FilaAsignaturaExcelDTOPeticion`)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorCatalogosAcademicos/` (modificados: controlador y mapeador; creado: `ProgramaAcademicoDTORespuesta`)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorEstudiantes/` (modificados: controlador, mapeador, `EstudianteDTOPeticion`, `EstudianteActualizarDTOPeticion`, `AsignaturaMatriculadaDTOPeticion`, `FilaEstudianteExcelDTOPeticion`, `EstudianteDTORespuesta`)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorSolicitudesAcademicas/mapeador/MapperSolicitudAcademicaInfraestructuraDominio.java` (modificado: nombre del programa en el detalle)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/configuracion/lectorArchivos/CatalogoAcademicoExcel.java`, `ColumnasExcelAsignaturas.java`, `ProcesarArchivoAsignaturasImpl.java`, `validadoresArchivos/AsignaturaExcelService.java` (creados)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/configuracion/lectorArchivos/AgrupadorEstudiantesExcel.java`, `ColumnasExcelEstudiantes.java`, `ProcesarArchivoEstudiantesImpl.java`, `validadoresArchivos/EstudianteExcelService.java` (modificados)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/configuracion/BeanConfiguracion.java` (modificado: beans de asignaturas y estudiantes reciben el gateway de programas; bean nuevo `crearProgramaAcademicoCU`)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/configuracion/seguridad/configuracion/ConfiguracionSeguridad.java` (modificado: tres reglas agregadas)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/output/manejadorExcepciones/MensajesError.java` (modificado: diez mensajes agregados)
+  - `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/AsignaturaCUImplAdaptadorTest.java`, `EstudianteCUImplAdaptadorTest.java`, `infraestructura/configuracion/lectorArchivos/AgrupadorEstudiantesExcelTest.java` (modificados)
+  - `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/dominio/servicios/ReglasAsignaturaTest.java`, `infraestructura/configuracion/lectorArchivos/CatalogoAcademicoExcelTest.java` (creados)
+  - `backend/pruebas/comun.ps1`, `t2_asignaturas.ps1`, `t3_estudiantes.ps1`, `t3_excel.ps1`, `t5_solicitudes.ps1`, `t6_cancelacion_matricula.ps1`, `t7_cancelacion_asignatura.ps1`, `t8_examen_supletorio.ps1`, `matriz-permisos.ps1`, `generar_plantilla_estudiantes.ps1`, `plantilla-estudiantes.xlsx` (modificados)
+  - `backend/pruebas/generar_plantilla_asignaturas.ps1`, `plantilla-asignaturas.xlsx` (creados)
+  - `docs/database/migracion_programas_asignaturas.sql` (creado)
+  - `docs/database/script_bd_extension.sql`, `diccionario-datos-extension.md`, `seed-procesos-academicos.sql`, `etapas-por-proceso.md` (modificados: P28 a P35)
+  - `docs/api/contrato-api-procesos-academicos.md` (modificado: 66 endpoints)
+  - `backend/CLAUDE.md`, `.claude/skills/extender-backend-fiet/SKILL.md`, `CLAUDE.md`, `README.md` (modificados)
+- Notas:
+  - En una base con datos hay que correr la migración con el backend detenido y antes de levantar la versión nueva. Si el backend nuevo arranca sin ella no falla al iniciar, pero los programas salen vacíos y los listados de estudiantes responden 500 hasta migrar; la migración corrige también ese estado.
+  - La migración compara el texto viejo del programa con la collation de la base (sin mayúsculas ni tildes). En la base local los estudiantes con `Ingenieria Electronica` no coinciden con `Ingeniería Electrónica y Telecomunicaciones` y quedan en Ingeniería de Sistemas, como pide la regla. Las matrículas viejas se conservan aunque no cumplan la regla de programa, que aplica a las nuevas.
+  - Los scripts de humo no devuelven el contador `ultimoConsecutivoAsignatura`: es la regla de no reutilizar códigos y las fotos comparan conteos de filas.
+  - El frontend sigue con el modelo anterior (código y nombre al crear asignaturas, `programaAcademico` de texto y `nombreAsignatura` al matricular); `frontend/CLAUDE.md` y su skill todavía hablan de 63 endpoints. Queda para la tarea del frontend.
+
 ## 2026-10-11 - Pulido y cierre del frontend (Tarea T10.8)
 - Qué se hizo:
   - 401 fuera del login: `authInterceptor` pasa los errores a `SesionVencidaService`, que cierra la sesión con `AuthService.logout()`, muestra "Tu sesión venció, inicia sesión de nuevo" y redirige a `/login`. Solo actúa si la petición llevaba el token vigente, así varios 401 simultáneos dan un solo aviso y una sola redirección. Un 403 o un 500 no cierran la sesión.

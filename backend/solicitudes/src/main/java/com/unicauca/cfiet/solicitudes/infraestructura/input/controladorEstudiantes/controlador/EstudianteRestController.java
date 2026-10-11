@@ -13,6 +13,7 @@ import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorEstudiant
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorEstudiantes.DTORespuesta.EstudianteDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorEstudiantes.mapeador.MapperEstudianteInfraestructuraDominio;
 import com.unicauca.cfiet.solicitudes.infraestructura.configuracion.lectorArchivos.AgrupadorEstudiantesExcel;
+import com.unicauca.cfiet.solicitudes.infraestructura.configuracion.lectorArchivos.CatalogoAcademicoExcel;
 import com.unicauca.cfiet.solicitudes.infraestructura.configuracion.lectorArchivos.ProcesadorArchivos;
 import com.unicauca.cfiet.solicitudes.infraestructura.configuracion.lectorArchivos.validadoresArchivos.ValidadorPeticionesExcel;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorEstudiantes.DTOPeticion.FilaEstudianteExcelDTOPeticion;
@@ -46,17 +47,20 @@ public class EstudianteRestController {
     private final ProcesadorArchivos<FilaEstudianteExcelDTOPeticion> procesadorArchivos;
     private final ValidadorPeticionesExcel<FilaEstudianteExcelDTOPeticion> validadorPeticion;
     private final AgrupadorEstudiantesExcel agrupador;
+    private final CatalogoAcademicoExcel catalogoExcel;
 
     public EstudianteRestController(EstudianteCUIntPuerto casoDeUso,
                                     MapperEstudianteInfraestructuraDominio mapper,
                                     @Qualifier("archivos-estudiantes") ProcesadorArchivos<FilaEstudianteExcelDTOPeticion> procesadorArchivos,
                                     @Qualifier("validador-estudiantes") ValidadorPeticionesExcel<FilaEstudianteExcelDTOPeticion> validadorPeticion,
-                                    AgrupadorEstudiantesExcel agrupador) {
+                                    AgrupadorEstudiantesExcel agrupador,
+                                    CatalogoAcademicoExcel catalogoExcel) {
         this.casoDeUso = casoDeUso;
         this.mapper = mapper;
         this.procesadorArchivos = procesadorArchivos;
         this.validadorPeticion = validadorPeticion;
         this.agrupador = agrupador;
+        this.catalogoExcel = catalogoExcel;
     }
 
     @PreAuthorize(ApplicationConstantes.SECRETARIO_DECANO_ACCESO)
@@ -65,11 +69,13 @@ public class EstudianteRestController {
     public ResponseEntity<?> crearEstudiantes(@RequestParam("file") MultipartFile file,
                                               @RequestHeader("Authorization") String token) {
         List<FilaEstudianteExcelDTOPeticion> filas = procesadorArchivos.procesarArchivo(file);
+        catalogoExcel.resolverProgramasEstudiantes(filas);
         for (FilaEstudianteExcelDTOPeticion fila : filas) {
             Map<String, String> errores = validadorPeticion.validar(fila);
             if (errores != null)
                 return new ResponseEntity<Map<String, String>>(errores, HttpStatus.BAD_REQUEST);
         }
+        catalogoExcel.verificarAsignaturasEstudiantes(filas);
 
         List<Estudiante> estudiantes = agrupador.agrupar(filas).stream()
                 .map(mapper::mapearPeticionAModelo)

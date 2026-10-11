@@ -1,6 +1,6 @@
 # Diccionario de Datos
 
-Detalle campo por campo de las 18 tablas nuevas de la extensión. `usuarios`,
+Detalle campo por campo de las 19 tablas nuevas de la extensión. `usuarios`,
 `usuariosLivianos` y `tiposUsuario` son de Julián Camacho (nombres reales,
 verificados contra el código de `back-fiet-sc`, no un supuesto) y no se
 listan aquí porque no se modifican.
@@ -12,13 +12,36 @@ cfiet`). Las llaves foráneas llevan el nombre que se indica entre paréntesis.
 Las reglas de negocio que usan estas columnas (etapas, transiciones, anexos y
 plazos) están en `etapas-por-proceso.md`.
 
+## PROGRAMA\_ACADEMICO
+
+Catálogo fijo de los cinco programas de la FIET. Se siembra con
+`seed-procesos-academicos.sql` (y con `migracion_programas_asignaturas.sql`
+en una base que ya tenía datos), con UUID fijos e `INSERT IGNORE`. No hay
+endpoint para crearlos ni editarlos; se leen con `GET
+catalogos-academicos/programas`.
+
+| Campo | Tipo | Llave | Nulo | Descripción |
+| --- | --- | --- | --- | --- |
+| uuidProgramaAcademico | varchar(100) | PK | No | Identificador del programa |
+| nombre | varchar(100) | UK (uk\_programa\_nombre) | No | Nombre oficial. En los Excel se escribe exacto, sin distinguir mayúsculas |
+| sigla | varchar(10) | UK (uk\_programa\_sigla) | No | Prefijo del código de sus asignaturas |
+| ultimoConsecutivoAsignatura | int |  | No | Último consecutivo usado en el código de sus asignaturas. Valor por defecto 0. El backend lo lee con bloqueo de fila y lo sube en la misma transacción que crea la asignatura; nunca baja, así que un código no se reutiliza |
+
+| Programa | Sigla | uuid |
+| --- | --- | --- |
+| Ingeniería Electrónica y Telecomunicaciones | IET | `14299e0f-8da8-4c73-ad2b-b61e0c52b7f5` |
+| Ingeniería de Sistemas | ISI | `5d73d656-2504-44cc-ab6e-5cd10b500abf` |
+| Ingeniería en Automática Industrial | IAI | `8606cf01-c111-4aef-92cd-a111cb7b7a38` |
+| Tecnología en Telemática | TTE | `7ebedec6-aeab-403b-8a97-9312061bd4b7` |
+| Ingeniería en Inteligencia Artificial y Ciencia de Datos | IAC | `d21ec0bf-cee1-4a06-8ae7-00477e88cfe6` |
+
 ## ESTUDIANTE
 
 | Campo | Tipo | Llave | Nulo | Descripción |
 | --- | --- | --- | --- | --- |
 | Usuario\_uuid | varchar(100) | PK, FK -> usuarios (uuidUsuario) (fk\_estudiante\_usuario) | No | Comparte identificador con Usuario |
 | codigoEstudiantil | varchar(45) | UK (uk\_estudiante\_codigo) | No | Código estudiantil, único entre estudiantes |
-| programaAcademico | varchar(100) |  | No | Programa académico que cursa |
+| ProgramaAcademico\_uuid | varchar(100) | FK -> PROGRAMA\_ACADEMICO (fk\_estudiante\_programa) | No | Programa que cursa. Se elige al crearlo y no se edita. Solo puede matricular asignaturas de este programa |
 | semestre | varchar(10) |  | No | Semestre actual |
 | facultad | varchar(100) |  | No | Facultad a la que pertenece |
 
@@ -46,8 +69,9 @@ historial apunta a `usuarios`.
 | Campo | Tipo | Llave | Nulo | Descripción |
 | --- | --- | --- | --- | --- |
 | uuidAsignatura | varchar(100) | PK | No | Identificador de la materia |
-| codigoAsignatura | varchar(45) | UK (uk\_asignatura\_codigo) | No | Código de la materia, único en el catálogo |
-| nombreAsignatura | varchar(150) |  | No | Nombre de la materia |
+| codigoAsignatura | varchar(45) | UK (uk\_asignatura\_codigo) | No | Lo genera el backend: sigla del programa, guion y consecutivo del programa con al menos tres dígitos (`ISI-001`, `ISI-1000`). No se edita ni se reutiliza |
+| nombreAsignatura | varchar(150) |  | No | Nombre de la materia, sin espacios sobrantes. No se repite dentro del mismo programa sin distinguir mayúsculas ni espacios (regla del backend, no hay índice) |
+| ProgramaAcademico\_uuid | varchar(100) | FK -> PROGRAMA\_ACADEMICO (fk\_asignatura\_programa) | No | Programa al que pertenece. Obligatorio y fijo desde la creación |
 
 ## ASIGNATURA\_MATRICULADA
 
@@ -200,3 +224,51 @@ como "situación al cancelar" en `ASIGNATURA_SOLICITUD_ACADEMICA`.
 | nombreArchivo | varchar(255) |  | No | Nombre del archivo subido |
 | fechaSubida | datetime |  | No | Fecha en que se subió el escaneo. Valor por defecto CURRENT\_TIMESTAMP |
 | FuncionarioAcademico\_uuid | varchar(100) | FK -> FUNCIONARIO\_ACADEMICO (fk\_resolucion\_funcionario) | No | Funcionario que subió el escaneo |
+
+## Migración de una base con datos anteriores a PROGRAMA\_ACADEMICO
+
+`docs/database/migracion_programas_asignaturas.sql` pone al día una base que
+ya tiene estudiantes y asignaturas sin programa. Es idempotente: se puede
+correr varias veces y también sobre una base donde el backend nuevo ya
+arrancó y Hibernate agregó las columnas vacías. Hace, en este orden:
+
+1. Crea `PROGRAMA_ACADEMICO` si no existe y siembra los cinco programas.
+2. Agrega `ESTUDIANTE.ProgramaAcademico_uuid` y asigna a cada estudiante el
+   programa cuyo nombre coincide con su texto `programaAcademico` (con la
+   collation de la base, sin distinguir mayúsculas ni tildes). Los que no
+   coinciden quedan en Ingeniería de Sistemas. La deja obligatoria, crea
+   `fk_estudiante_programa` y borra la columna de texto `programaAcademico`.
+3. Agrega `ASIGNATURA.ProgramaAcademico_uuid`, pasa a Ingeniería de Sistemas
+   todas las asignaturas que aún no tienen programa válido y les da los
+   códigos `ISI-001`, `ISI-002`, ... en el orden de su código anterior. Las
+   matrículas y solicitudes apuntan por uuid, así que no se pierden. La deja
+   obligatoria y crea `fk_asignatura_programa`.
+4. Deja `ultimoConsecutivoAsignatura` de cada programa en el mayor
+   consecutivo usado por sus asignaturas.
+
+Cómo aplicarla con Docker, desde `backend/` (PowerShell), con el backend
+detenido y la base arriba:
+
+```
+docker compose stop solicitudes-consejo-de-facultad
+docker compose exec -T cfiet_database sh -c "mysqldump -u root -pmysql --default-character-set=utf8mb4 --single-transaction cfiet > /tmp/respaldo_cfiet.sql"
+docker compose cp cfiet_database:/tmp/respaldo_cfiet.sql ./respaldo_cfiet.sql
+docker compose cp ../docs/database/migracion_programas_asignaturas.sql cfiet_database:/tmp/migracion.sql
+docker compose exec -T cfiet_database mysql -u root -pmysql --default-character-set=utf8mb4 cfiet -e "source /tmp/migracion.sql"
+```
+
+Sin Docker, contra MySQL en `localhost:3307` (usuario `root`, clave
+`mysql`): `mysql -h 127.0.0.1 -P 3307 -u root -pmysql
+--default-character-set=utf8mb4 cfiet < docs/database/migracion_programas_asignaturas.sql`.
+
+Después se reconstruye y se levanta el backend (`./mvnw clean install
+-DskipTests` en `backend/solicitudes` y `docker compose up --build` en
+`backend/`). Si el backend nuevo arranca sin la migración, no falla al
+iniciar: Hibernate crea `PROGRAMA_ACADEMICO` vacía, agrega las dos columnas
+con texto vacío y deja en el log dos WARN porque no puede crear las llaves
+foráneas. Mientras tanto la lista de programas sale vacía, las asignaturas
+viejas no aparecen y los listados de estudiantes responden 500. Correr la
+migración después corrige ese estado.
+
+Una base nueva no necesita la migración: Hibernate crea las tablas y los
+programas se siembran con `seed-procesos-academicos.sql`.

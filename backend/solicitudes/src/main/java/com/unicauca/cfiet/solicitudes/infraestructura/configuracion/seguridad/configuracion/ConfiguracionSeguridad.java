@@ -73,6 +73,8 @@ public class ConfiguracionSeguridad {
                                 ApplicationConstantes.DECANO,
                                 ApplicationConstantes.FUNCIONARIO_ROL
                         )
+                        .requestMatchers(HttpMethod.GET, baseUrl + "asignaturas/programa/{uuidPrograma}").hasAnyAuthority(ApplicationConstantes.SECRETARIO_GENERAL, ApplicationConstantes.DECANO, ApplicationConstantes.FUNCIONARIO_ACADEMICO_ROL)
+                        .requestMatchers(HttpMethod.POST, baseUrl + "asignaturas/cargar/archivo").hasAnyAuthority(ApplicationConstantes.SECRETARIO_GENERAL, ApplicationConstantes.DECANO)
                         .requestMatchers(HttpMethod.GET, baseUrl + "asignaturas/**").hasAnyAuthority(ApplicationConstantes.SECRETARIO_GENERAL, ApplicationConstantes.DECANO, ApplicationConstantes.FUNCIONARIO_ACADEMICO_ROL)
                         .requestMatchers(HttpMethod.POST, baseUrl + "asignaturas").hasAnyAuthority(ApplicationConstantes.SECRETARIO_GENERAL, ApplicationConstantes.DECANO)
                         .requestMatchers(HttpMethod.PUT, baseUrl + "asignaturas/**").hasAnyAuthority(ApplicationConstantes.SECRETARIO_GENERAL, ApplicationConstantes.DECANO)
@@ -95,6 +97,7 @@ public class ConfiguracionSeguridad {
                         .requestMatchers(HttpMethod.PUT, baseUrl + "funcionarios-academicos/{uuidFuncionario}").hasAnyAuthority(ApplicationConstantes.SECRETARIO_GENERAL, ApplicationConstantes.DECANO)
                         .requestMatchers(baseUrl + "funcionarios-academicos/**").denyAll()
                         .requestMatchers(HttpMethod.PUT, baseUrl + "catalogos-academicos/tipos-solicitud/{uuidTipo}/funcionario").hasAnyAuthority(ApplicationConstantes.SECRETARIO_GENERAL, ApplicationConstantes.DECANO)
+                        .requestMatchers(HttpMethod.GET, baseUrl + "catalogos-academicos/programas").authenticated()
                         .requestMatchers(HttpMethod.GET, baseUrl + "catalogos-academicos/**").authenticated()
                         .requestMatchers(baseUrl + "catalogos-academicos/**").denyAll()
                         .requestMatchers(HttpMethod.GET, baseUrl + "solicitudes-academicas/estudiante").hasAnyAuthority(ApplicationConstantes.ESTUDIANTE_ROL)
