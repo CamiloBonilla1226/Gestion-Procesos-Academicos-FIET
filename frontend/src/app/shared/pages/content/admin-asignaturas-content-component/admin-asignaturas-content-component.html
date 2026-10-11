@@ -1,10 +1,21 @@
 <div class="d-flex flex-column gap-3">
-  <div class="d-flex flex-wrap gap-2 align-items-center">
-    <div class="flex-grow-1">
+  <div class="row g-2 align-items-center" data-filtros>
+    <div class="col-md-5">
       <app-barra-busqueda-component placeholder="Buscar por código o nombre" [(value)]="texto">
       </app-barra-busqueda-component>
     </div>
-    <app-simple-button-component data-boton-buscar label="Buscar" width="100px" height="36px" (clicked)="buscar()">
+    <div class="col-md-4" data-filtro-programa>
+      <app-input-select-component label="Programa" [options]="opcionesFiltro" [(value)]="programaFiltro">
+      </app-input-select-component>
+    </div>
+    <div class="col-md-3">
+      <app-simple-button-component data-boton-buscar label="Buscar" width="100px" height="36px" (clicked)="buscar()">
+      </app-simple-button-component>
+    </div>
+  </div>
+  <div class="d-flex flex-wrap gap-2 justify-content-end">
+    <app-simple-button-component data-boton-excel label="Cargar Excel" width="150px" height="36px" color="#6c757d"
+      (clicked)="abrirExcel()">
     </app-simple-button-component>
     <app-simple-button-component data-boton-nueva label="Nueva asignatura" width="170px" height="36px"
       (clicked)="abrirNueva()">
@@ -44,8 +55,23 @@
 <app-generic-dialog-form-component [visible]="dialogoVisible" [title]="tituloDialogo" [textoBoton]="editando ? 'Guardar cambios' : 'Crear'" (visibleChange)="cerrar($event)"
   (save)="guardar()">
   <div class="d-flex flex-column" data-dialogo-asignatura>
-    <app-input-text-component label="Código" [required]="true" [(value)]="codigo"></app-input-text-component>
-    <small class="text-danger" data-error="codigo">{{ errores['codigo'] || '' }}</small>
+    @if (editando) {
+    <dl class="row small mb-0" data-solo-lectura>
+      <dt class="col-4">Código</dt>
+      <dd class="col-8 mb-1" data-codigo>{{ editando.codigoAsignatura }}</dd>
+      <dt class="col-4">Programa</dt>
+      <dd class="col-8 mb-1" data-programa>{{ editando.programaAcademico }}</dd>
+    </dl>
+    <small class="text-secondary">El código y el programa no se pueden cambiar.</small>
+    } @else {
+    <div data-campo-programa>
+      <app-input-select-component label="Programa académico" [required]="true" [options]="opcionesPrograma"
+        [(value)]="uuidPrograma">
+      </app-input-select-component>
+      <small class="text-danger" data-error="programa">{{ errores['programa'] || '' }}</small>
+    </div>
+    <small class="text-secondary" data-aviso-codigo>El código se genera solo con la sigla del programa y el siguiente consecutivo.</small>
+    }
     <app-input-text-component label="Nombre" [required]="true" [(value)]="nombre"></app-input-text-component>
     <small class="text-danger" data-error="nombre">{{ errores['nombre'] || '' }}</small>
     @if (erroresServidor.length > 0) {
@@ -57,3 +83,9 @@
     }
   </div>
 </app-generic-dialog-form-component>
+
+<app-carga-excel-academica-component [visible]="dialogoExcel" (visibleChange)="dialogoExcel = $event"
+  titulo="Cargar asignaturas desde Excel" [encabezados]="encabezadosExcel" nombrePlural="asignaturas"
+  [reglas]="reglasExcel" tituloValores="Programas válidos para programaAcademico:" [valores]="nombresPrograma"
+  [cargar]="cargarExcel" (cargado)="alCargarExcel()">
+</app-carga-excel-academica-component>

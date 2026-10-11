@@ -58,6 +58,25 @@ describe('CargaExcelAcademicaComponent', () => {
     expect(document.querySelector('[data-regla]')?.textContent).toContain('Una fila por asignatura');
   });
 
+  it('sin reglas ni valores no pinta esas listas, como en los usos anteriores', () => {
+    crear();
+    expect(document.querySelector('[data-reglas]')).toBeNull();
+    expect(document.querySelector('[data-valores]')).toBeNull();
+  });
+
+  it('pinta la lista de reglas y la de valores permitidos con su titulo', () => {
+    const fixture = crear();
+    fixture.componentRef.setInput('reglas', ['El código se genera solo.', 'La lectura termina en la primera fila vacía.']);
+    fixture.componentRef.setInput('tituloValores', 'Programas válidos para programaAcademico:');
+    fixture.componentRef.setInput('valores', ['Ingeniería de Sistemas', 'Tecnología en Telemática']);
+    fixture.detectChanges();
+    const reglas = Array.from(document.querySelectorAll('[data-reglas] li')).map(li => li.textContent?.trim());
+    expect(reglas).toEqual(['El código se genera solo.', 'La lectura termina en la primera fila vacía.']);
+    expect(document.querySelector('[data-valores]')?.textContent).toContain('Programas válidos para programaAcademico:');
+    const valores = Array.from(document.querySelectorAll('[data-valores] li')).map(li => li.textContent?.trim());
+    expect(valores).toEqual(['Ingeniería de Sistemas', 'Tecnología en Telemática']);
+  });
+
   it('solo acepta .xlsx y exige el archivo antes de enviar', () => {
     const componente = crear().componentInstance;
     componente.confirmar();

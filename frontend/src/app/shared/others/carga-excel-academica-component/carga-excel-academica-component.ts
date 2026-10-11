@@ -18,6 +18,9 @@ export class CargaExcelAcademicaComponent {
   @Input({ required: true }) titulo!: string;
   @Input({ required: true }) encabezados!: string[];
   @Input() regla = '';
+  @Input() reglas: string[] = [];
+  @Input() tituloValores = '';
+  @Input() valores: string[] = [];
   @Input() nombrePlural = 'registros';
   @Input({ required: true }) cargar!: (archivo: File) => Observable<unknown[]>;
   @Output() visibleChange = new EventEmitter<boolean>();

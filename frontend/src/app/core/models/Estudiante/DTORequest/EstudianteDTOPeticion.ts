@@ -10,7 +10,7 @@ export interface EstudianteDTOPeticion {
   username: string;
   password: string;
   codigoEstudiantil: string;
-  programaAcademico: string;
+  uuidProgramaAcademico: string;
   semestre: string;
   facultad: string;
   asignaturas: AsignaturaMatriculadaDTOPeticion[];

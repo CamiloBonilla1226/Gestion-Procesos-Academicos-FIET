@@ -160,8 +160,10 @@ export const TAMANIO_PAGINA_ADMINISTRACION = 10;
 
 export const ENCABEZADOS_EXCEL_ESTUDIANTES = [
   'nombres', 'apellidos', 'tipoDocumento', 'numeroDocumento', 'telefono', 'correoElectronico', 'username', 'password',
-  'codigoEstudiantil', 'programaAcademico', 'semestre', 'facultad', 'codigoAsignatura', 'nombreAsignatura', 'grupo'
+  'codigoEstudiantil', 'programaAcademico', 'semestre', 'facultad', 'codigoAsignatura', 'grupo'
 ];
+
+export const ENCABEZADOS_EXCEL_ASIGNATURAS = ['nombreAsignatura', 'programaAcademico'];
 
 export const ENCABEZADOS_EXCEL_FUNCIONARIOS = [
   'nombres', 'apellidos', 'tipoDocumento', 'numeroDocumento', 'telefono', 'correoElectronico', 'username', 'password',

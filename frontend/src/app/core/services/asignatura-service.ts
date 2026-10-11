@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../enviroments/environment';
 import { PaginacionRespuestaDTO } from '../models/PaginacionRespuestaDTO';
 import { AsignaturaDTOPeticion } from '../models/Asignatura/DTORequest/AsignaturaDTOPeticion';
+import { AsignaturaActualizarDTOPeticion } from '../models/Asignatura/DTORequest/AsignaturaActualizarDTOPeticion';
 import { AsignaturaDTORespuesta } from '../models/Asignatura/DTOResponse/AsignaturaDTORespuesta';
 import { armarParametros } from '../utils/parametros-http';
 
@@ -19,6 +20,12 @@ export class AsignaturaService {
     return this.http.post<AsignaturaDTORespuesta>(`${this.url}`, peticion);
   }
 
+  crearAsignaturasDesdeArchivo(file: File): Observable<AsignaturaDTORespuesta[]> {
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+    return this.http.post<AsignaturaDTORespuesta[]>(`${this.url}/cargar/archivo`, formData);
+  }
+
   getAsignaturasPaginado(pagina: number, tamanio: number): Observable<PaginacionRespuestaDTO<AsignaturaDTORespuesta>> {
     return this.http.get<PaginacionRespuestaDTO<AsignaturaDTORespuesta>>(`${this.url}/paginado`, {
       params: armarParametros({ pagina, tamanio })
@@ -26,20 +33,24 @@ export class AsignaturaService {
   }
 
   getAsignaturasFiltradas(
-    texto: string | null,
+    filtro: { texto?: string | null; uuidProgramaAcademico?: string | null },
     pagina: number,
     tamanio: number
   ): Observable<PaginacionRespuestaDTO<AsignaturaDTORespuesta>> {
     return this.http.get<PaginacionRespuestaDTO<AsignaturaDTORespuesta>>(`${this.url}/filtro`, {
-      params: armarParametros({ texto, pagina, tamanio })
+      params: armarParametros({ texto: filtro.texto, uuidProgramaAcademico: filtro.uuidProgramaAcademico, pagina, tamanio })
     });
+  }
+
+  getAsignaturasPorPrograma(uuidPrograma: string): Observable<AsignaturaDTORespuesta[]> {
+    return this.http.get<AsignaturaDTORespuesta[]>(`${this.url}/programa/${uuidPrograma}`);
   }
 
   getAsignatura(uuidAsignatura: string): Observable<AsignaturaDTORespuesta> {
     return this.http.get<AsignaturaDTORespuesta>(`${this.url}/${uuidAsignatura}`);
   }
 
-  actualizarAsignatura(uuidAsignatura: string, peticion: AsignaturaDTOPeticion): Observable<AsignaturaDTORespuesta> {
+  actualizarAsignatura(uuidAsignatura: string, peticion: AsignaturaActualizarDTOPeticion): Observable<AsignaturaDTORespuesta> {
     return this.http.put<AsignaturaDTORespuesta>(`${this.url}/${uuidAsignatura}`, peticion);
   }
 }

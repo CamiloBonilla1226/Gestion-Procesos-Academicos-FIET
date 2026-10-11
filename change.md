@@ -2,6 +2,32 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-11 - Programas académicos y asignaturas con código autogenerado en el frontend (Tarea T11.2)
+- Qué se hizo:
+  - Capa API: modelo `ProgramaAcademicoDTORespuesta` y `CatalogoAcademicoService.getProgramas`; `AsignaturaService` con `getAsignaturasPorPrograma`, `crearAsignaturasDesdeArchivo` y filtro por `uuidProgramaAcademico`. Modelos de asignatura y estudiante al contrato nuevo: alta `{nombreAsignatura, uuidProgramaAcademico}`, edición `{nombreAsignatura}` (`AsignaturaActualizarDTOPeticion` nuevo), respuestas con `uuidProgramaAcademico` y `programaAcademico`, estudiante con `uuidProgramaAcademico`, matrícula `{codigoAsignatura, grupo}` y edición sin programa.
+  - Pestaña Asignaturas: columnas código, nombre y programa; filtros de texto y programa ("Todos") con "Buscar"; alta con programa y nombre, sin código, y toast "Asignatura creada con el código <código>"; edición solo del nombre con código y programa de solo lectura; carga por Excel con los encabezados, los nombres de programa del catálogo y la regla del código.
+  - Pestaña Estudiantes: alta con el programa primero y la sección de asignaturas deshabilitada hasta elegirlo; select de asignatura por fila (código - nombre) con las del programa, sin repetidas; aviso cuando el programa no tiene asignaturas; confirmación en línea al cambiar el programa con filas llenas. Edición sin programa (solo lectura). En el detalle, la matrícula se elige entre las asignaturas del programa del estudiante. El Excel muestra los 14 encabezados, los programas válidos y la regla de asignaturas del programa.
+  - `CargaExcelAcademicaComponent` recibe `reglas`, `tituloValores` y `valores` opcionales; el uso de funcionarios académicos no cambia.
+  - Pruebas: `ng test` con 352 specs; fallan los mismos 58 de Julián (NG0201) y la lista es idéntica a la de antes del cambio (diff vacío). `npm run build` con código 0; bundle inicial 832.32 kB.
+- Archivos:
+  - `frontend/src/app/core/models/CatalogoAcademico/DTOResponse/ProgramaAcademicoDTORespuesta.ts` (creado)
+  - `frontend/src/app/core/models/Asignatura/DTORequest/AsignaturaActualizarDTOPeticion.ts` (creado)
+  - `frontend/src/app/core/models/Asignatura/DTORequest/AsignaturaDTOPeticion.ts`, `DTOResponse/AsignaturaDTORespuesta.ts` (modificados)
+  - `frontend/src/app/core/models/Estudiante/DTORequest/EstudianteDTOPeticion.ts`, `EstudianteActualizarDTOPeticion.ts`, `AsignaturaMatriculadaDTOPeticion.ts`, `DTOResponse/EstudianteDTORespuesta.ts` (modificados)
+  - `frontend/src/app/core/services/asignatura-service.ts`, `catalogo-academico-service.ts` (modificados)
+  - `frontend/src/app/core/services/asignatura-service.spec.ts`, `catalogo-academico-service.spec.ts` (creados)
+  - `frontend/src/app/core/utils/programas-academicos.ts` (creado)
+  - `frontend/src/app/core/constantes/procesos-academicos.ts` (modificado: `ENCABEZADOS_EXCEL_ESTUDIANTES` sin `nombreAsignatura` y `ENCABEZADOS_EXCEL_ASIGNATURAS` nuevo)
+  - `frontend/src/app/shared/others/carga-excel-academica-component/` (modificados: ts, html, spec)
+  - `frontend/src/app/shared/pages/content/admin-asignaturas-content-component/` (modificados: ts, html, spec)
+  - `frontend/src/app/shared/pages/content/admin-estudiantes-content-component/` (modificados: ts, html, spec)
+  - `frontend/CLAUDE.md`, `.claude/skills/extender-frontend-fiet/SKILL.md`, `docs/frontend/checklist-recorrido-completo.md` (modificados: D-F15 a D-F19)
+- Notas:
+  - No se probó contra el backend (D-F14) ni se agregaron rutas.
+  - La confirmación al cambiar el programa es un aviso con dos botones dentro del diálogo de alta, no un segundo diálogo: `ToastService` no tiene confirmaciones y el alta ya es un `p-dialog` abierto.
+  - `InputSelectComponent` de Julián no tiene entrada `disabled`; la sección de asignaturas se deshabilita con un `<fieldset disabled>` alrededor, sin tocar ese componente.
+  - Los programas se piden al abrir la pestaña Asignaturas (para el filtro) y, en Estudiantes, al abrir el alta o el Excel.
+
 ## 2026-10-11 - Programas académicos y asignaturas con código autogenerado (Tarea T11.1)
 - Qué se hizo:
   - Tabla nueva `PROGRAMA_ACADEMICO` con los cinco programas (IET, ISI, IAI, TTE, IAC) y su contador `ultimoConsecutivoAsignatura`. `ASIGNATURA` y `ESTUDIANTE` llevan `ProgramaAcademico_uuid` obligatorio; la columna de texto `ESTUDIANTE.programaAcademico` desaparece.

@@ -1,4 +1,4 @@
 export interface AsignaturaDTOPeticion {
-  codigoAsignatura: string;
   nombreAsignatura: string;
+  uuidProgramaAcademico: string;
 }

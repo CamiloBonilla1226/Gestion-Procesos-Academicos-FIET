@@ -6,6 +6,7 @@ import { RolEtiqueta } from '../constantes/procesos-academicos';
 import { AsignacionFuncionarioAcademicoDTOPeticion } from '../models/CatalogoAcademico/DTORequest/AsignacionFuncionarioAcademicoDTOPeticion';
 import { EtapaEtiquetaRolDTORespuesta } from '../models/CatalogoAcademico/DTOResponse/EtapaEtiquetaRolDTORespuesta';
 import { EtapaSolicitudAcademicaDTORespuesta } from '../models/CatalogoAcademico/DTOResponse/EtapaSolicitudAcademicaDTORespuesta';
+import { ProgramaAcademicoDTORespuesta } from '../models/CatalogoAcademico/DTOResponse/ProgramaAcademicoDTORespuesta';
 import { SituacionAcademicaAsignaturaDTORespuesta } from '../models/CatalogoAcademico/DTOResponse/SituacionAcademicaAsignaturaDTORespuesta';
 import { TipoAnexoAcademicoDTORespuesta } from '../models/CatalogoAcademico/DTOResponse/TipoAnexoAcademicoDTORespuesta';
 import { TipoSolicitudAcademicaDTORespuesta } from '../models/CatalogoAcademico/DTOResponse/TipoSolicitudAcademicaDTORespuesta';
@@ -39,6 +40,10 @@ export class CatalogoAcademicoService {
 
   getSituaciones(): Observable<SituacionAcademicaAsignaturaDTORespuesta[]> {
     return this.http.get<SituacionAcademicaAsignaturaDTORespuesta[]>(`${this.url}/situaciones`);
+  }
+
+  getProgramas(): Observable<ProgramaAcademicoDTORespuesta[]> {
+    return this.http.get<ProgramaAcademicoDTORespuesta[]>(`${this.url}/programas`);
   }
 
   asignarFuncionarioAcademico(

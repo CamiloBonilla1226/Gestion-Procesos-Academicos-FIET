@@ -294,7 +294,7 @@ Un servicio por recurso en `core/services`: `asignatura-service`,
 `estudiante-service`, `funcionario-academico-service`,
 `catalogo-academico-service`, `solicitud-academica-service`,
 `cancelacion-matricula-service`, `cancelacion-asignatura-service` y
-`examen-supletorio-service`. Cubren los 63 endpoints del contrato. Los
+`examen-supletorio-service`. Cubren los 66 endpoints del contrato. Los
 modelos son `interface` con el mismo nombre del DTO Java, en
 `core/models/<Recurso>/DTORequest|DTOResponse` (D-F1).
 
@@ -432,6 +432,11 @@ Las reglas que no son "obligatorio" viven en
 | D-F12 | Texto del botón de los diálogos por acción, con `Guardar` por defecto. Resuelta en T10.8 con el input `textoBoton` de `GenericDialogFormComponent` |
 | D-F13 | Sin aviso previo de solicitud en curso; se muestra el error del backend |
 | D-F14 | Las pruebas del frontend no llaman al backend real: specs con `HttpTestingController` o espías |
+| D-F15 | Los programas salen siempre del catálogo `GET catalogos-academicos/programas`, sin lista fija; el select muestra "Nombre (SIGLA)" y los diálogos de Excel listan los nombres tal como los trae el catálogo |
+| D-F16 | El código de la asignatura no se pide ni se edita: lo genera el backend y el toast de alta lo muestra. La edición manda solo `{nombreAsignatura}` |
+| D-F17 | Alta de estudiante: programa primero; asignaturas en un `<fieldset>` deshabilitado hasta tener programa con asignaturas; select por fila sin repetidas. Cambiar el programa con filas llenas pide confirmación en línea dentro del diálogo (no un segundo diálogo) y limpia las filas al confirmar |
+| D-F18 | El programa del estudiante no se edita en ninguna pantalla. La matrícula desde el detalle elige entre las asignaturas del programa del estudiante; si ya la tiene activa lo decide el backend |
+| D-F19 | `CargaExcelAcademicaComponent` se generaliza con entradas opcionales (`reglas`, `tituloValores`, `valores`); los usos que no las pasan se ven igual que antes |
 
 Otras decisiones tomadas en las tareas, sin número:
 
@@ -453,13 +458,58 @@ Otras decisiones tomadas en las tareas, sin número:
 - Administración académica:
   - Una página con cuatro pestañas (Asignaturas, Estudiantes, Funcionarios
     académicos, Responsable por proceso) para el Decano y para el Secretario
-    General, en rutas separadas por rol.
+    General, en rutas separadas por rol. Programas y asignaturas: ver la
+    sección siguiente.
   - Los filtros se aplican con un botón "Buscar", no al escribir.
   - El paginador de Julián es de base 1; se convierte a base 0 al llamar al
     backend, y la tabla recibe solo la página actual.
   - El responsable de un proceso se elige entre los primeros 100 funcionarios
     académicos (`paginado` con tamaño 100); el diálogo avisa si hay más.
   - No hay borrado: el contrato no tiene endpoints para eso.
+
+### Programas académicos y asignaturas
+
+Hay cinco programas fijos (IET, ISI, IAI, TTE, IAC). El frontend los toma
+siempre de `GET catalogos-academicos/programas`
+(`CatalogoAcademicoService.getProgramas`); no hay una lista fija en el código.
+Las opciones del select se arman con `opcionesDePrograma` y las de asignaturas
+con `opcionesDeAsignatura` (`core/utils/programas-academicos.ts`).
+
+- Asignaturas: la tabla muestra código, nombre y programa. Filtros de texto y
+  de programa (opción "Todos", que no manda el parámetro) con "Buscar". Al crear
+  se piden nombre y programa; el código lo genera el backend (`ISI-001`) y el
+  toast lo avisa: "Asignatura creada con el código ISI-001". Al editar solo se
+  envía `{nombreAsignatura}`; código y programa se ven de solo lectura.
+- Carga Excel de asignaturas con `CargaExcelAcademicaComponent`: encabezados
+  `nombreAsignatura, programaAcademico`, los nombres válidos del catálogo y la
+  regla de que el código se genera solo.
+- Estudiantes, alta: el select de programa va primero. La sección de
+  asignaturas es un `<fieldset>` deshabilitado hasta que hay programa y este
+  tiene asignaturas (`GET asignaturas/programa/{uuid}`). Cada fila es un select
+  "código - nombre" más el grupo; una asignatura elegida en una fila no aparece
+  en las demás y la validación también rechaza repetidas. Si el programa no
+  tiene asignaturas se avisa que deben crearse primero en la pestaña
+  Asignaturas. Cambiar el programa con filas llenas pide confirmación dentro del
+  diálogo ("Cambiar programa" o "Conservar el anterior") y, si se confirma,
+  limpia las filas. Se envía `uuidProgramaAcademico` y `asignaturas` como
+  `{codigoAsignatura, grupo}`.
+- Estudiantes, edición: el programa se ve de solo lectura; solo se editan
+  `codigoEstudiantil`, `semestre` y `facultad`.
+- Estudiantes, detalle: "Agregar asignatura" elige entre las asignaturas del
+  programa del estudiante y el grupo. Si ya la tiene activa, lo dice el backend.
+- Excel de estudiantes: 14 encabezados (sin `nombreAsignatura`), los nombres
+  válidos de programa y la regla de que cada `codigoAsignatura` existe y es del
+  programa.
+- Las pantallas que muestran el programa de un estudiante (tabla de
+  estudiantes, detalle de una solicitud) usan `programaAcademico`, que sigue
+  siendo el nombre.
+- Los catálogos que abren un formulario (programas para el alta y el Excel) se
+  piden al abrir si todavía no están; si fallan o vienen vacíos, error por
+  `ErrorHandlerService` y el diálogo no abre.
+
+`CargaExcelAcademicaComponent` recibe además, opcionales, `reglas` (lista de
+textos), `tituloValores` y `valores` (lista de valores permitidos). Los
+funcionarios académicos lo siguen usando solo con `regla`.
 
 ### Pruebas
 

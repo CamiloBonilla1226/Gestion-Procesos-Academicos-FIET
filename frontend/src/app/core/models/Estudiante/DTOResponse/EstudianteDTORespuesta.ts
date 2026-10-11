@@ -11,6 +11,7 @@ export interface EstudianteDTORespuesta {
   correoElectronico: string;
   username: string;
   codigoEstudiantil: string;
+  uuidProgramaAcademico: string;
   programaAcademico: string;
   semestre: string;
   facultad: string;

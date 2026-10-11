@@ -10,7 +10,25 @@
       @if (regla) {
       <p class="small text-secondary mb-0" data-regla>{{ regla }}</p>
       }
+      @if (reglas.length > 0) {
+      <ul class="small text-secondary mb-0 mt-1" data-reglas>
+        @for (texto of reglas; track $index) {
+        <li>{{ texto }}</li>
+        }
+      </ul>
+      }
     </div>
+
+    @if (valores.length > 0) {
+    <div data-valores>
+      <p class="mb-1 small fw-semibold">{{ tituloValores }}</p>
+      <ul class="small mb-0">
+        @for (valor of valores; track valor) {
+        <li><code>{{ valor }}</code></li>
+        }
+      </ul>
+    </div>
+    }
 
     <app-input-anexo-upload-component #entradaExcel [tipoAnexo]="tipoArchivo" [uploadedFile]="archivo"
       (fileSelected)="alSeleccionar($event, entradaExcel)" (fileRemoved)="alQuitar()">

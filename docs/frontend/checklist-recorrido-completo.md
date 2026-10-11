@@ -9,7 +9,10 @@ etapas al final).
 ## Antes de empezar
 
 - Backend y base arriba, con `data.sql` y `docs/database/seed-procesos-academicos.sql`
-  cargados (ver `README.md`).
+  cargados (ver `README.md`). La base tiene los cinco programas académicos (del
+  seed o de `docs/database/migracion_programas_asignaturas.sql` si ya tenía
+  datos). Las asignaturas se crean antes que los estudiantes: un estudiante
+  solo matricula asignaturas que ya existen en su programa.
 - Frontend con `npm start` en `http://localhost:4200`.
 - Usuarios: el Secretario General `rootfiet`, un Decano, al menos dos
   Funcionarios Académicos (uno responsable de los tres procesos) y dos
@@ -37,30 +40,38 @@ Las dos muestran las mismas cuatro pestañas.
 
 | Paso | Rol | Pantalla o ruta | Acción | Resultado esperado | Etapa resultante |
 | --- | --- | --- | --- | --- | --- |
-| 2.1 | Secretario General | Pestaña Asignaturas | Abrir la pestaña | Tabla con Código y Nombre, paginador y total de asignaturas | |
-| 2.2 | Secretario General | Asignaturas | Escribir parte de un código o nombre y pulsar "Buscar" | La tabla se filtra y vuelve a la página 1 | |
-| 2.3 | Secretario General | Asignaturas | "Nueva asignatura", llenar código y nombre, botón "Crear" | Toast "La asignatura quedó creada."; aparece en la tabla | |
-| 2.4 | Secretario General | Asignaturas | Crear otra con el mismo código | El diálogo sigue abierto y muestra "Asignatura con codigo: ... existe en el sistema..." | |
-| 2.5 | Decano | Asignaturas | "Editar" en una fila, cambiar el nombre, "Guardar cambios" | Toast "La asignatura quedó actualizada." | |
-| 2.6 | Secretario General | Pestaña Estudiantes | Filtrar por nombre, apellido o código con "Buscar" | La tabla muestra Código estudiantil, Nombres, Apellidos, Programa, Semestre | |
-| 2.7 | Secretario General | Estudiantes | "Nuevo estudiante", llenar datos personales, de acceso, académicos y dos asignaturas con "Agregar asignatura", botón "Crear" | Toast "El estudiante quedó creado."; aparece en la tabla | |
-| 2.8 | Secretario General | Estudiantes | Repetir con contraseña de 4 caracteres y correo sin arroba | Errores bajo cada campo; no se envía nada | |
-| 2.9 | Secretario General | Estudiantes | "Cargar Excel" | El diálogo lista los 15 encabezados en orden y la regla de una fila por asignatura matriculada | |
-| 2.10 | Secretario General | Estudiantes | Cargar la plantilla llena con "Cargar archivo" | "Se crearon N estudiantes."; la tabla se recarga | |
-| 2.11 | Secretario General | Estudiantes | Cargar un Excel con un correo inválido o un encabezado cambiado | Lista de errores dentro del diálogo, con fila y columna; "No se creó ningún registro" | |
-| 2.12 | Decano | Estudiantes | "Editar", escribir solo el semestre, "Guardar cambios" | Solo cambia el semestre; los campos vacíos se conservan | |
-| 2.13 | Decano | Estudiantes | "Asignaturas" de un estudiante | Lista de matrículas con su estado; solo las activas tienen "Nuevo estado" y "Cambiar" | |
-| 2.14 | Decano | Estudiantes, diálogo de asignaturas | Elegir "cancelada" en una activa y "Cambiar" | Toast "La asignatura ... quedó cancelada."; la fila ya no se puede cambiar | |
-| 2.15 | Decano | Estudiantes, diálogo de asignaturas | Agregar código, nombre y grupo con "Agregar" | Toast "La asignatura quedó matriculada."; aparece activa | |
-| 2.16 | Secretario General | Pestaña Funcionarios académicos | Filtrar por nombre, apellido o dependencia | La tabla muestra la columna "Procesos a cargo" | |
-| 2.17 | Secretario General | Funcionarios | "Nuevo funcionario" con dependencia, botón "Crear" | Toast "El funcionario académico quedó creado." | |
-| 2.18 | Secretario General | Funcionarios | "Cargar Excel" con la plantilla de funcionarios | El diálogo lista los 9 encabezados; "Se crearon N funcionarios académicos." | |
-| 2.19 | Decano | Funcionarios | "Editar dependencia", "Guardar cambios" | Toast "La dependencia quedó actualizada." | |
-| 2.20 | Decano | Pestaña Responsable por proceso | Abrir la pestaña | Los tres procesos con su responsable actual o "Sin responsable" | |
-| 2.21 | Decano | Responsable por proceso | "Cambiar responsable" en un proceso | Aviso de que las solicitudes pasan a la bandeja del nuevo funcionario; select con "Apellidos Nombres - dependencia" | |
-| 2.22 | Decano | Responsable por proceso | Elegir al mismo responsable y "Cambiar responsable" | Error "Ese funcionario ya es el responsable de este proceso." | |
-| 2.23 | Decano | Responsable por proceso | Elegir otro y "Cambiar responsable" | Toast "<proceso> quedó a cargo de <nombre>."; la tabla se recarga | |
-| 2.24 | Funcionario Académico | `/funcionario-academico/solicitudes` | Entrar con el responsable anterior y luego con el nuevo | El anterior ya no ve las solicitudes de ese proceso; el nuevo sí | |
+| 2.1 | Secretario General | Pestaña Asignaturas | Abrir la pestaña | Tabla con Código, Nombre y Programa, paginador y total; filtros de texto y de programa (con "Todos") y botón "Buscar" | |
+| 2.2 | Secretario General | Asignaturas | Escribir parte de un código o nombre, elegir un programa y pulsar "Buscar" | La tabla se filtra por los dos criterios y vuelve a la página 1; con "Todos" se ven los cinco programas | |
+| 2.3 | Secretario General | Asignaturas | "Nueva asignatura" | El diálogo pide programa (select con los cinco programas) y nombre; no hay campo de código | |
+| 2.4 | Secretario General | Asignaturas | Elegir Ingeniería de Sistemas, escribir el nombre y "Crear" | Toast "Asignatura creada con el código ISI-<n>"; aparece en la tabla con ese código | |
+| 2.5 | Secretario General | Asignaturas | Crear otra con el mismo nombre (en otras mayúsculas) en el mismo programa | El diálogo sigue abierto y muestra "La asignatura ... ya existe en el programa ... con el código ...". Con el mismo nombre en otro programa sí se crea | |
+| 2.6 | Decano | Asignaturas | "Editar" en una fila, cambiar el nombre, "Guardar cambios" | Código y programa se ven de solo lectura; toast "La asignatura quedó actualizada." y el código no cambia | |
+| 2.7 | Secretario General | Asignaturas | "Cargar Excel" | El diálogo lista los encabezados `nombreAsignatura` y `programaAcademico`, los cinco nombres válidos de programa y la regla de que el código se genera solo | |
+| 2.8 | Secretario General | Asignaturas | Cargar `plantilla-asignaturas.xlsx` llena con "Cargar archivo" | "Se crearon N asignaturas."; la tabla se recarga con los códigos nuevos | |
+| 2.9 | Secretario General | Asignaturas | Cargar un Excel con un programa que no existe o un nombre repetido | Lista de errores dentro del diálogo con fila y columna; "No se creó ningún registro" | |
+| 2.10 | Secretario General | Pestaña Estudiantes | Filtrar por nombre, apellido o código con "Buscar" | La tabla muestra Código estudiantil, Nombres, Apellidos, Programa (nombre), Semestre | |
+| 2.11 | Secretario General | Estudiantes | "Nuevo estudiante" | El primer campo es el select de programa; la sección de asignaturas está deshabilitada con el aviso "Elige primero el programa..." | |
+| 2.12 | Secretario General | Estudiantes, alta | Elegir un programa sin asignaturas | Aviso "No hay asignaturas registradas para el programa ... Deben crearse primero en la pestaña Asignaturas."; "Crear" no envía nada | |
+| 2.13 | Secretario General | Estudiantes, alta | Elegir Ingeniería de Sistemas | Cada fila trae un select "código - nombre" con las asignaturas de ese programa y el grupo; una asignatura elegida en una fila no aparece en las demás | |
+| 2.14 | Secretario General | Estudiantes, alta | Con filas llenas, cambiar a otro programa | Aviso de confirmación: "Conservar el anterior" deja todo igual; "Cambiar programa" limpia las filas y carga las asignaturas del nuevo | |
+| 2.15 | Secretario General | Estudiantes, alta | Llenar datos personales, de acceso, académicos y dos asignaturas, "Crear" | Toast "El estudiante quedó creado."; aparece en la tabla con su programa | |
+| 2.16 | Secretario General | Estudiantes | Repetir con contraseña de 4 caracteres y correo sin arroba | Errores bajo cada campo; no se envía nada | |
+| 2.17 | Secretario General | Estudiantes | "Cargar Excel" | El diálogo lista los 14 encabezados en orden (sin `nombreAsignatura`), los cinco programas válidos y la regla de que cada `codigoAsignatura` debe existir y ser del programa | |
+| 2.18 | Secretario General | Estudiantes | Cargar `plantilla-estudiantes.xlsx` llena con "Cargar archivo" | "Se crearon N estudiantes."; la tabla se recarga | |
+| 2.19 | Secretario General | Estudiantes | Cargar un Excel con un código de asignatura de otro programa o un encabezado cambiado | Lista de errores dentro del diálogo, con fila y columna (columna M para la asignatura); "No se creó ningún registro" | |
+| 2.20 | Decano | Estudiantes | "Editar", escribir solo el semestre, "Guardar cambios" | El programa se ve de solo lectura; solo cambia el semestre y los campos vacíos se conservan | |
+| 2.21 | Decano | Estudiantes | "Asignaturas" de un estudiante | Lista de matrículas con su estado; solo las activas tienen "Nuevo estado" y "Cambiar" | |
+| 2.22 | Decano | Estudiantes, diálogo de asignaturas | Elegir "cancelada" en una activa y "Cambiar" | Toast "La asignatura ... quedó cancelada."; la fila ya no se puede cambiar | |
+| 2.23 | Decano | Estudiantes, diálogo de asignaturas | Elegir una asignatura del select (solo las del programa del estudiante), escribir el grupo y "Agregar" | Toast "La asignatura quedó matriculada."; aparece activa. Si ya la tiene activa, el error del backend sale dentro del diálogo | |
+| 2.24 | Secretario General | Pestaña Funcionarios académicos | Filtrar por nombre, apellido o dependencia | La tabla muestra la columna "Procesos a cargo" | |
+| 2.25 | Secretario General | Funcionarios | "Nuevo funcionario" con dependencia, botón "Crear" | Toast "El funcionario académico quedó creado." | |
+| 2.26 | Secretario General | Funcionarios | "Cargar Excel" con la plantilla de funcionarios | El diálogo lista los 9 encabezados; "Se crearon N funcionarios académicos." | |
+| 2.27 | Decano | Funcionarios | "Editar dependencia", "Guardar cambios" | Toast "La dependencia quedó actualizada." | |
+| 2.28 | Decano | Pestaña Responsable por proceso | Abrir la pestaña | Los tres procesos con su responsable actual o "Sin responsable" | |
+| 2.29 | Decano | Responsable por proceso | "Cambiar responsable" en un proceso | Aviso de que las solicitudes pasan a la bandeja del nuevo funcionario; select con "Apellidos Nombres - dependencia" | |
+| 2.30 | Decano | Responsable por proceso | Elegir al mismo responsable y "Cambiar responsable" | Error "Ese funcionario ya es el responsable de este proceso." | |
+| 2.31 | Decano | Responsable por proceso | Elegir otro y "Cambiar responsable" | Toast "<proceso> quedó a cargo de <nombre>."; la tabla se recarga | |
+| 2.32 | Funcionario Académico | `/funcionario-academico/solicitudes` | Entrar con el responsable anterior y luego con el nuevo | El anterior ya no ve las solicitudes de ese proceso; el nuevo sí | |
 
 Antes de seguir, deja un solo Funcionario Académico como responsable de los
 tres procesos.
