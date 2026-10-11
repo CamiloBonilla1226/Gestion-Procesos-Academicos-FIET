@@ -117,4 +117,9 @@ describe('AdminResponsablesContentComponent', () => {
     expect(fixture.componentInstance.dialogoVisible).toBeFalse();
     expect(errores.handleError).toHaveBeenCalled();
   });
+
+  it('el boton del dialogo dice Cambiar responsable', () => {
+    abrir(crear(), 0);
+    expect((document.querySelector('[data-boton-dialogo] button')?.textContent ?? '').trim()).toBe('Cambiar responsable');
+  });
 });

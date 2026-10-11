@@ -2,6 +2,25 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-11 - Pulido y cierre del frontend (Tarea T10.8)
+- Qué se hizo:
+  - 401 fuera del login: `authInterceptor` pasa los errores a `SesionVencidaService`, que cierra la sesión con `AuthService.logout()`, muestra "Tu sesión venció, inicia sesión de nuevo" y redirige a `/login`. Solo actúa si la petición llevaba el token vigente, así varios 401 simultáneos dan un solo aviso y una sola redirección. Un 403 o un 500 no cierran la sesión.
+  - `GenericDialogFormComponent` recibe `textoBoton` (por defecto "Guardar", con el ancho de siempre). Los diez diálogos de la extensión usan un texto por acción; los ocho de Julián siguen con "Guardar".
+  - Documentación: `frontend/CLAUDE.md` (estructura, rutas y menús, capa API, `COMPONENTES_PROCESO`, decisiones, errores, 401, diálogos, pruebas y limitaciones conocidas), la skill `extender-frontend-fiet` y un checklist de recorrido completo.
+- Archivos:
+  - `frontend/src/app/core/auth/interceptor/sesion-vencida-service.ts` (creado)
+  - `frontend/src/app/core/auth/interceptor/auth-interceptor.spec.ts` (creado)
+  - `frontend/src/app/core/auth/interceptor/auth-interceptor.ts` (modificado: tres imports y dos líneas; la línea `return next(authReq)` ahora pasa por `tap`)
+  - `frontend/src/app/shared/generic-dialog-form-component/generic-dialog-form-component.ts` y `.html` (modificados: input `textoBoton` y el botón enlazado a él)
+  - `frontend/src/app/shared/generic-dialog-form-component/generic-dialog-form-texto-boton.spec.ts` (creado)
+  - Plantillas y componentes de los tres procesos, de las cuatro pestañas de administración y de la carga por Excel, con sus specs (modificados: texto del botón)
+  - `frontend/CLAUDE.md` (modificado)
+  - `.claude/skills/extender-frontend-fiet/SKILL.md` (modificado)
+  - `docs/frontend/checklist-recorrido-completo.md` (creado)
+- Notas:
+  - El README raíz no cambió: la forma de correr el frontend sigue igual.
+  - El texto completo de D-F2 a D-F4, D-F6, D-F10 y D-F11 no está en el repositorio; `frontend/CLAUDE.md` documenta esas decisiones por su contenido, sin número.
+
 ## 2026-10-09 - Administración académica en el frontend (Tarea T10.7)
 - Qué se hizo:
   - Página "Administración académica" para el Decano (`/decano/administracion-academica`) y el Secretario General (`/sec-general/administracion-academica`), cada una con su guardia de rol y su ítem de menú.

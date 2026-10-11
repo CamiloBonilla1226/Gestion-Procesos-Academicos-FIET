@@ -41,7 +41,7 @@
   </app-simple-button-component>
 </ng-template>
 
-<app-generic-dialog-form-component [visible]="dialogoVisible" [title]="tituloDialogo" (visibleChange)="cerrar($event)"
+<app-generic-dialog-form-component [visible]="dialogoVisible" [title]="tituloDialogo" [textoBoton]="editando ? 'Guardar cambios' : 'Crear'" (visibleChange)="cerrar($event)"
   (save)="guardar()">
   <div class="d-flex flex-column" data-dialogo-asignatura>
     <app-input-text-component label="Código" [required]="true" [(value)]="codigo"></app-input-text-component>

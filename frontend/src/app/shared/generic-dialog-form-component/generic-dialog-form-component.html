@@ -11,7 +11,7 @@
     <ng-content></ng-content>
   </div>
   <ng-template pTemplate="footer">
-    <app-simple-button-component label="Guardar" width="70px" height="30px" (clicked)="onSave()">
+    <app-simple-button-component data-boton-dialogo [label]="textoBoton" [width]="anchoBoton" height="30px" (clicked)="onSave()">
     </app-simple-button-component>
   </ng-template>
 </p-dialog>

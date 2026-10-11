@@ -58,7 +58,7 @@
   </div>
 </ng-template>
 
-<app-generic-dialog-form-component [visible]="dialogoCrear" title="Nuevo estudiante" (visibleChange)="cerrarCrear($event)"
+<app-generic-dialog-form-component [visible]="dialogoCrear" title="Nuevo estudiante" textoBoton="Crear" (visibleChange)="cerrarCrear($event)"
   (save)="crear()">
   <div class="d-flex flex-column gap-2" data-dialogo-crear>
     <h6 class="mb-0">Datos personales y de acceso</h6>
@@ -128,7 +128,7 @@
   </div>
 </app-generic-dialog-form-component>
 
-<app-generic-dialog-form-component [visible]="dialogoEditar" title="Editar datos académicos"
+<app-generic-dialog-form-component [visible]="dialogoEditar" title="Editar datos académicos" textoBoton="Guardar cambios"
   (visibleChange)="cerrarEditar($event)" (save)="editar()">
   <div class="d-flex flex-column gap-2" data-dialogo-editar>
     <p class="mb-0 small text-secondary">

@@ -29,7 +29,7 @@
   </app-simple-button-component>
 </ng-template>
 
-<app-generic-dialog-form-component [visible]="dialogoVisible" [title]="'Responsable de ' + (seleccionado?.nombre ?? '')"
+<app-generic-dialog-form-component [visible]="dialogoVisible" [title]="'Responsable de ' + (seleccionado?.nombre ?? '')" textoBoton="Cambiar responsable"
   (visibleChange)="cerrar($event)" (save)="guardar()">
   <div class="d-flex flex-column gap-2" data-dialogo-responsable>
     <div class="alert alert-warning mb-0 py-2" data-aviso-bandeja>

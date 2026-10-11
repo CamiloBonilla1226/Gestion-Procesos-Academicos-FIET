@@ -64,6 +64,14 @@ const TITULOS_DIALOGO: Partial<Record<AccionAcademica, string>> = {
   [ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA]: 'Enviar la respuesta al estudiante'
 };
 
+const TEXTOS_BOTON_DIALOGO: Partial<Record<AccionAcademica, string>> = {
+  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'Rechazar solicitud',
+  [ACCIONES_ACADEMICAS.REMITIR_DECANO]: 'Remitir al Decano',
+  [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: 'Rechazar solicitud',
+  [ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA]: 'Enviar respuesta',
+  [ACCIONES_ACADEMICAS.APROBAR_DECANO]: 'Aprobar solicitud'
+};
+
 const MENSAJES_EXITO: Partial<Record<AccionAcademica, string>> = {
   [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'La solicitud quedó rechazada.',
   [ACCIONES_ACADEMICAS.REMITIR_DECANO]: 'La solicitud fue remitida al Decano.',
@@ -146,6 +154,10 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
 
   get tituloDialogo(): string {
     return this.accionActiva ? TITULOS_DIALOGO[this.accionActiva] ?? '' : '';
+  }
+
+  get textoBotonDialogo(): string {
+    return this.accionActiva ? TEXTOS_BOTON_DIALOGO[this.accionActiva] ?? 'Confirmar' : 'Confirmar';
   }
 
   get hayResolucion(): boolean {

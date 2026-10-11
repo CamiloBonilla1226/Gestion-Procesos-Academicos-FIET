@@ -53,7 +53,7 @@
   </app-simple-button-component>
 </ng-template>
 
-<app-generic-dialog-form-component [visible]="dialogoCrear" title="Nuevo funcionario académico"
+<app-generic-dialog-form-component [visible]="dialogoCrear" title="Nuevo funcionario académico" textoBoton="Crear"
   (visibleChange)="cerrarCrear($event)" (save)="crear()">
   <div class="d-flex flex-column gap-2" data-dialogo-crear>
     <app-datos-usuario-academico-component [datos]="datosUsuario" [errores]="errores">
@@ -70,7 +70,7 @@
   </div>
 </app-generic-dialog-form-component>
 
-<app-generic-dialog-form-component [visible]="dialogoEditar" title="Editar dependencia" (visibleChange)="cerrarEditar($event)"
+<app-generic-dialog-form-component [visible]="dialogoEditar" title="Editar dependencia" textoBoton="Guardar cambios" (visibleChange)="cerrarEditar($event)"
   (save)="editar()">
   <div class="d-flex flex-column gap-2" data-dialogo-editar>
     <p class="mb-0 small text-secondary">{{ seleccionado?.nombres }} {{ seleccionado?.apellidos }}</p>

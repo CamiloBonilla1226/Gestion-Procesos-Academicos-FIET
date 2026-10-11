@@ -1,4 +1,7 @@
 import { HttpInterceptorFn } from '@angular/common/http';
+import { inject } from '@angular/core';
+import { tap } from 'rxjs';
+import { SesionVencidaService } from './sesion-vencida-service';
 
 /**
  * Interceptor HTTP para agregar el token de autenticación a las peticiones.
@@ -19,5 +22,6 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   if (token)
     headers = headers.set('Authorization', `Bearer ${token}`);
   const authReq = req.clone({ headers });
-  return next(authReq);
+  const sesionVencida = inject(SesionVencidaService);
+  return next(authReq).pipe(tap({ error: error => sesionVencida.atender(authReq, error) }));
 };

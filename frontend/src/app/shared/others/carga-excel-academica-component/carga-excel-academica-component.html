@@ -1,4 +1,4 @@
-<app-generic-dialog-form-component [visible]="visible" [title]="titulo" (visibleChange)="cerrar($event)" (save)="confirmar()">
+<app-generic-dialog-form-component [visible]="visible" [title]="titulo" textoBoton="Cargar archivo" (visibleChange)="cerrar($event)" (save)="confirmar()">
   <div class="d-flex flex-column gap-3" data-carga-excel>
     <div>
       <p class="mb-1">La primera fila de la primera hoja debe tener estos encabezados, en este orden:</p>

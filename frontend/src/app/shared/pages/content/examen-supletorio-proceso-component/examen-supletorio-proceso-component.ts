@@ -80,6 +80,18 @@ const TITULOS_DIALOGO: Partial<Record<AccionAcademica, string>> = {
   [ACCIONES_ACADEMICAS.RECHAZAR_COMPROBANTE]: 'Rechazar el comprobante de pago'
 };
 
+const TEXTOS_BOTON_DIALOGO: Partial<Record<AccionAcademica, string>> = {
+  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'Rechazar solicitud',
+  [ACCIONES_ACADEMICAS.REMITIR_DECANO]: 'Remitir al Decano',
+  [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: 'Rechazar solicitud',
+  [ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA]: 'Enviar respuesta',
+  [ACCIONES_ACADEMICAS.APROBAR_DECANO]: 'Aprobar solicitud',
+  [ACCIONES_ACADEMICAS.ENVIAR_RECIBO]: 'Enviar recibo',
+  [ACCIONES_ACADEMICAS.SUBIR_COMPROBANTE]: 'Subir comprobante',
+  [ACCIONES_ACADEMICAS.APROBAR_COMPROBANTE]: 'Aprobar comprobante',
+  [ACCIONES_ACADEMICAS.RECHAZAR_COMPROBANTE]: 'Rechazar comprobante'
+};
+
 const MENSAJES_EXITO: Partial<Record<AccionAcademica, string>> = {
   [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'La solicitud quedó rechazada.',
   [ACCIONES_ACADEMICAS.REMITIR_DECANO]: 'La solicitud fue remitida al Decano.',
@@ -158,6 +170,10 @@ export class ExamenSupletorioProcesoComponent implements OnChanges {
 
   get tituloDialogo(): string {
     return this.accionActiva ? TITULOS_DIALOGO[this.accionActiva] ?? '' : '';
+  }
+
+  get textoBotonDialogo(): string {
+    return this.accionActiva ? TEXTOS_BOTON_DIALOGO[this.accionActiva] ?? 'Confirmar' : 'Confirmar';
   }
 
   get esEstudiante(): boolean {

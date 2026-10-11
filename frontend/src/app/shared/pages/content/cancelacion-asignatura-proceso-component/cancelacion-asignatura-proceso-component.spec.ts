@@ -359,6 +359,17 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
     expect(componente.enviando).toBeFalse();
     expect(recargar).not.toHaveBeenCalled();
   });
+
+  it('el dialogo del Decano usa Registrar decisiones y el rechazo Rechazar solicitud', () => {
+    const fixture = crear(solicitud(['APROBAR_DECANO', 'RECHAZAR_DECANO'], 'EN_REVISION_DECANO'), EVALUADAS, 'DECANO');
+    fixture.componentInstance.abrir('APROBAR_DECANO');
+    fixture.detectChanges();
+    expect((document.querySelector('[data-boton-dialogo] button')?.textContent ?? '').trim()).toBe('Registrar decisiones');
+    fixture.componentInstance.cerrar(false);
+    fixture.componentInstance.abrir('RECHAZAR_DECANO');
+    fixture.detectChanges();
+    expect((document.querySelector('[data-boton-dialogo] button')?.textContent ?? '').trim()).toBe('Rechazar solicitud');
+  });
 });
 
 describe('CancelacionAsignaturaProcesoComponent con el catalogo real', () => {

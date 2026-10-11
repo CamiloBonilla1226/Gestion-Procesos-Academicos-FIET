@@ -339,4 +339,24 @@ describe('ExamenSupletorioProcesoComponent', () => {
     const sinComprobante = crear(solicitud([], 'RECHAZADA'), 'ESTUDIANTE');
     expect(sinComprobante.nativeElement.querySelector('[data-aviso-etapa]')).toBeNull();
   });
+
+  it('cada accion del supletorio usa su texto en el boton del dialogo', () => {
+    const fixture = crear(solicitud(['APROBAR_COMPROBANTE', 'RECHAZAR_COMPROBANTE'], 'EN_VERIFICACION_PAGO'));
+    const componente = fixture.componentInstance;
+    componente.abrir('APROBAR_COMPROBANTE');
+    fixture.detectChanges();
+    expect((document.querySelector('[data-boton-dialogo] button')?.textContent ?? '').trim()).toBe('Aprobar comprobante');
+    componente.cerrar(false);
+    componente.abrir('RECHAZAR_COMPROBANTE');
+    fixture.detectChanges();
+    expect((document.querySelector('[data-boton-dialogo] button')?.textContent ?? '').trim()).toBe('Rechazar comprobante');
+    const textos: Record<string, string> = {
+      ENVIAR_RECIBO: 'Enviar recibo', SUBIR_COMPROBANTE: 'Subir comprobante', APROBAR_DECANO: 'Aprobar solicitud',
+      RECHAZAR_DECANO: 'Rechazar solicitud', REMITIR_DECANO: 'Remitir al Decano', ENVIAR_RESPUESTA: 'Enviar respuesta'
+    };
+    for (const [accion, texto] of Object.entries(textos)) {
+      componente.accionActiva = accion as typeof componente.accionActiva;
+      expect(componente.textoBotonDialogo).toBe(texto);
+    }
+  });
 });

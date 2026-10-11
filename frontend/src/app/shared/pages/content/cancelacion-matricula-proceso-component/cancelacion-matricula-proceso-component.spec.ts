@@ -296,6 +296,18 @@ describe('CancelacionMatriculaProcesoComponent', () => {
     const fixture = crear(solicitud([]));
     expect(fixture.nativeElement.querySelectorAll('thead th').length).toBe(6);
   });
+
+  it('cada dialogo usa el texto de su accion en el boton', () => {
+    const fixture = crear(solicitud(['RECHAZAR_FUNCIONARIO', 'REMITIR_DECANO']));
+    fixture.componentInstance.abrir('RECHAZAR_FUNCIONARIO');
+    fixture.detectChanges();
+    expect((document.querySelector('[data-boton-dialogo] button')?.textContent ?? '').trim()).toBe('Rechazar solicitud');
+    fixture.componentInstance.cerrar(false);
+    fixture.componentInstance.abrir('REMITIR_DECANO');
+    fixture.detectChanges();
+    expect((document.querySelector('[data-boton-dialogo] button')?.textContent ?? '').trim()).toBe('Remitir al Decano');
+    expect(fixture.componentInstance.textoBotonDialogo).toBe('Remitir al Decano');
+  });
 });
 
 describe('CancelacionMatriculaProcesoComponent con el catalogo real', () => {

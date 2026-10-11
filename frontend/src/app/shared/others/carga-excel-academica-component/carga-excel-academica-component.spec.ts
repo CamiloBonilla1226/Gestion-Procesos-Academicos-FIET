@@ -120,4 +120,9 @@ describe('CargaExcelAcademicaComponent', () => {
     expect(document.querySelector('[data-errores-carga]')?.textContent).toContain('Fila 1, columna C');
     expect(fixture.componentInstance.enviando).toBeFalse();
   });
+
+  it('el boton del dialogo dice Cargar archivo', () => {
+    crear();
+    expect((document.querySelector('[data-boton-dialogo] button')?.textContent ?? '').trim()).toBe('Cargar archivo');
+  });
 });

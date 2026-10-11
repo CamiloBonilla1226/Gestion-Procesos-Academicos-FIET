@@ -140,4 +140,15 @@ describe('AdminAsignaturasContentComponent', () => {
     expect(document.querySelector('[data-error="servidor"]')?.textContent).toContain('existe en el sistema');
     expect(componente.dialogoVisible).toBeTrue();
   });
+
+  it('el boton del dialogo dice Crear al crear y Guardar cambios al editar', () => {
+    const fixture = crear();
+    fixture.componentInstance.abrirNueva();
+    fixture.detectChanges();
+    expect((document.querySelector('[data-boton-dialogo] button')?.textContent ?? '').trim()).toBe('Crear');
+    fixture.componentInstance.cerrar(false);
+    fixture.componentInstance.abrirEdicion(fixture.componentInstance.filas[0]);
+    fixture.detectChanges();
+    expect((document.querySelector('[data-boton-dialogo] button')?.textContent ?? '').trim()).toBe('Guardar cambios');
+  });
 });

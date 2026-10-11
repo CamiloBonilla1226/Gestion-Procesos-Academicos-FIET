@@ -34,7 +34,7 @@
   </div>
 </section>
 
-<app-generic-dialog-form-component [visible]="dialogoVisible" [title]="tituloDialogo" (visibleChange)="cerrar($event)"
+<app-generic-dialog-form-component [visible]="dialogoVisible" [title]="tituloDialogo" [textoBoton]="textoBotonDialogo" (visibleChange)="cerrar($event)"
   (save)="confirmar()">
   <div class="d-flex flex-column gap-3" data-dialogo>
     @switch (accionActiva) {
