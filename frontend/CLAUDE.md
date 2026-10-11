@@ -416,25 +416,26 @@ Las reglas que no son "obligatorio" viven en
 
 ### Decisiones del frontend
 
-Los números D-F que se conocen en el repositorio:
-
 | Decisión | Contenido |
 | --- | --- |
 | D-F1 | Modelos como `interface` con el nombre exacto del DTO del backend |
+| D-F2 | Ramas nuevas en el login, solo agregando líneas. Orden: Secretario General, Funcionario, Secretaria Decanatura FIET, Decano a `/decano`, Funcionario Académico a `/funcionario-academico`, Estudiante a `/estudiante`, el resto a `usuariosFiet` |
+| D-F3 | Carpetas de rol nuevas `core/estudiante`, `core/funcionario-academico` y `core/decano`, con el patrón de tres niveles (página, wrapper, contenido) |
+| D-F4 | La Resolución se descarga como `Resolucion-<radicado>.pdf`; los anexos, con el `nombreArchivo` del DTO |
 | D-F5 | El tamaño de los archivos se valida en nuestros componentes, porque el componente de Julián no lo hace |
+| D-F6 | `InputAnexoUploadComponent` se reutiliza con un adaptador (`comoTipoAnexo`); jpg y jpeg son equivalentes; 5 MB por archivo y 20 MB por envío se validan en nuestro componente. Su mensaje "Este anexo es obligatorio" es de Julián y se deja como está |
 | D-F7 | Doble envío bloqueado con una bandera propia en cada componente |
-| D-F8 | 401 fuera del login: cerrar sesión, avisar una vez y redirigir a `/login` |
+| D-F8 | 401 fuera del login: cerrar sesión, avisar una vez y redirigir a `/login`. Resuelta en T10.8 con `SesionVencidaService` |
 | D-F9 | PENDIENTE_PAGO y EN_VERIFICACION_PAGO con insignia amarilla |
-| D-F12 | Texto del botón de los diálogos por acción, con `Guardar` por defecto |
+| D-F10 | Punto de extensión del detalle: `COMPONENTES_PROCESO`, una línea por proceso, carga diferida y cuatro inputs (`uuidSolicitud`, `solicitud`, `rol`, `recargar`). Registrados los tres procesos |
+| D-F11 | Cancelación de Matrícula: advertencia de primer periodo visible para todos, con casilla obligatoria, solo de interfaz (no se envía al backend). Cancelación de Asignatura no la tiene |
+| D-F12 | Texto del botón de los diálogos por acción, con `Guardar` por defecto. Resuelta en T10.8 con el input `textoBoton` de `GenericDialogFormComponent` |
 | D-F13 | Sin aviso previo de solicitud en curso; se muestra el error del backend |
 | D-F14 | Las pruebas del frontend no llaman al backend real: specs con `HttpTestingController` o espías |
 
-Otras decisiones tomadas en las tareas (el texto numerado de D-F2 a D-F4,
-D-F6, D-F10 y D-F11 no está registrado en el repositorio):
+Otras decisiones tomadas en las tareas, sin número:
 
 - La columna Estado de las bandejas es texto plano, sin insignia.
-- Cancelación de Matrícula: advertencia de primer periodo con casilla
-  obligatoria. Cancelación de Asignatura no la tiene.
 - Tras radicar, la pantalla reemplaza el formulario por el radicado y un botón
   "Ver solicitud", y además navega al detalle.
 - Examen Supletorio:

@@ -20,6 +20,7 @@ La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 - Notas:
   - El README raíz no cambió: la forma de correr el frontend sigue igual.
   - El texto completo de D-F2 a D-F4, D-F6, D-F10 y D-F11 no está en el repositorio; `frontend/CLAUDE.md` documenta esas decisiones por su contenido, sin número.
+  - T10.8.1: se completó la numeración de decisiones D-F1 a D-F14 en `frontend/CLAUDE.md` y en la skill `extender-frontend-fiet` (tabla nueva en la skill); D-F8 y D-F12 quedan marcadas como resueltas en T10.8.
 
 ## 2026-10-09 - Administración académica en el frontend (Tarea T10.7)
 - Qué se hizo:
