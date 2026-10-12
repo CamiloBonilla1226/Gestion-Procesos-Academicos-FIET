@@ -166,7 +166,9 @@ function Verificar-EtapaHttp {
         $historial = @(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$Solicitud/historial" -Token $token))
         $codigos = @($historial | ForEach-Object { $_.etapaCodigo })
         $sinCodigo = @($historial | Where-Object { -not $_.etapaCodigo }).Count
-        if (($proceso -ne $Esperada) -or ($comun -ne $Esperada) -or ($bandeja -ne $Esperada) -or ($sinCodigo -gt 0) -or ($codigos -notcontains $Esperada)) {
+        $decisionOculta = ($rol -eq "estudiante") -and ($Esperada -like "*_POR_DECANO")
+        $historialOk = if ($decisionOculta) { ($codigos -notcontains $Esperada) -and (@($historial | Where-Object { $_.accion -like "*_DECANO" -and $_.accion -ne "REMITIR_DECANO" }).Count -eq 0) } else { $codigos -contains $Esperada }
+        if (($proceso -ne $Esperada) -or ($comun -ne $Esperada) -or ($bandeja -ne $Esperada) -or ($sinCodigo -gt 0) -or (-not $historialOk)) {
             $fallos += "$rol=$proceso/$comun/$bandeja/historial $($codigos -join ' ')"
         }
     }
@@ -451,7 +453,9 @@ try {
     $d = Descargar -Ruta "solicitudes-academicas/$sol1/anexos/$anexoRecibo" -Token $est1.Token
     Escribir-Resultado "en APROBADA el estudiante sigue descargando el recibo (200, obtuvo $($d.Status))" (($d.Status -eq 200) -and (Mismos-Bytes $pdfRecibo $d.Bytes))
     $historial = Historial-De $sol1 $est1.Token
-    Escribir-Resultado "el historial trae las seis acciones del recorrido (obtuvo $historial)" ($historial -eq "APROBAR_COMPROBANTE,APROBAR_DECANO,ENVIAR_RECIBO,RADICAR,REMITIR_DECANO,SUBIR_COMPROBANTE")
+    Escribir-Resultado "el historial del estudiante trae el recorrido sin la fila del Decano (obtuvo $historial)" ($historial -eq "APROBAR_COMPROBANTE,ENVIAR_RECIBO,RADICAR,REMITIR_DECANO,SUBIR_COMPROBANTE")
+    $historialFa = Historial-De $sol1 $fa1.Token
+    Escribir-Resultado "el historial del funcionario trae las seis acciones del recorrido (obtuvo $historialFa)" ($historialFa -eq "APROBAR_COMPROBANTE,APROBAR_DECANO,ENVIAR_RECIBO,RADICAR,REMITIR_DECANO,SUBIR_COMPROBANTE")
     $etapasHistorial = (@(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol1/historial" -Token $fa1.Token)) | ForEach-Object { "$($_.accion):$($_.etapaCodigo)" } | Sort-Object) -join ","; Escribir-Resultado "cada accion del historial trae la etapa a la que llevo (obtuvo $etapasHistorial)" ($etapasHistorial -eq "APROBAR_COMPROBANTE:APROBADA,APROBAR_DECANO:APROBADA_POR_DECANO,ENVIAR_RECIBO:PENDIENTE_PAGO,RADICAR:RADICADA,REMITIR_DECANO:EN_REVISION_DECANO,SUBIR_COMPROBANTE:EN_VERIFICACION_PAGO")
     $estadosEst1 = "$(Ejecutar-Sql "select estado from ASIGNATURA_MATRICULADA where uuidAsignaturaMatriculada = '$a1'"),$(Ejecutar-Sql "select estado from ASIGNATURA_MATRICULADA where uuidAsignaturaMatriculada = '$a2'"),$(Ejecutar-Sql "select estado from ASIGNATURA_MATRICULADA where uuidAsignaturaMatriculada = '$noActiva'")"
     Escribir-Resultado "la aprobacion no cambio el estado de ninguna asignatura (obtuvo $estadosEst1)" ($estadosEst1 -eq "activa,activa,cancelada")
@@ -482,7 +486,7 @@ try {
     $historialEst = @(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol3/historial" -Token $est3.Token))
     $filaDecano = $historialEst | Where-Object { $_.accion -eq "RECHAZAR_DECANO" }
     $filaRespuesta = $historialEst | Where-Object { $_.accion -eq "ENVIAR_RESPUESTA" }
-    Escribir-Resultado "el estudiante 3 ve vacia la observacion del Decano, ve el mensaje del funcionario y su asignatura sigue activa" ($filaDecano -and (-not $filaDecano.observaciones) -and ($filaRespuesta.observaciones -eq $mensajeEstudiante) -and ((Estados @($est3.Uuid)) -eq "activa"))
+    Escribir-Resultado "el estudiante 3 no ve la fila del Decano, ve el mensaje del funcionario y su asignatura sigue activa" ((-not $filaDecano) -and ($filaRespuesta.observaciones -eq $mensajeEstudiante) -and ((Estados @($est3.Uuid)) -eq "activa"))
     $filaDecanoFa = @(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol3/historial" -Token $fa1.Token)) | Where-Object { $_.accion -eq "RECHAZAR_DECANO" }
     Escribir-Resultado "el funcionario ve la observacion del Decano (obtuvo $($filaDecanoFa.observaciones))" ($filaDecanoFa.observaciones -eq $motivoDecano)
 
@@ -505,7 +509,7 @@ try {
     Escribir-Resultado "el comprobante rechazado deja la solicitud RECHAZADA sin fecha acordada (obtuvo $($r.Status), etapa $(Etapa-De $sol4))" (($r.Status -eq 200) -and ((Etapa-De $sol4) -eq "RECHAZADA") -and ($null -eq (Leer-Json $r).fechaAcordadaExamen))
     Verificar-EtapaHttp -Solicitud $sol4 -Esperada "RECHAZADA" -Estudiante $est4.Token -Funcionario $fa1.Token -Decano $decano.Token
     $historial = Historial-De $sol4 $est4.Token
-    Escribir-Resultado "el historial del comprobante rechazado esta completo (obtuvo $historial)" ($historial -eq "APROBAR_DECANO,ENVIAR_RECIBO,RADICAR,RECHAZAR_COMPROBANTE,REMITIR_DECANO,SUBIR_COMPROBANTE")
+    Escribir-Resultado "el historial del comprobante rechazado esta completo para el estudiante sin la fila del Decano (obtuvo $historial)" ($historial -eq "ENVIAR_RECIBO,RADICAR,RECHAZAR_COMPROBANTE,REMITIR_DECANO,SUBIR_COMPROBANTE")
     $etapasHistorial = (@(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol4/historial" -Token $fa1.Token)) | ForEach-Object { "$($_.accion):$($_.etapaCodigo)" } | Sort-Object) -join ","; Escribir-Resultado "cada accion del historial trae la etapa a la que llevo (obtuvo $etapasHistorial)" ($etapasHistorial -eq "APROBAR_DECANO:APROBADA_POR_DECANO,ENVIAR_RECIBO:PENDIENTE_PAGO,RADICAR:RADICADA,RECHAZAR_COMPROBANTE:RECHAZADA,REMITIR_DECANO:EN_REVISION_DECANO,SUBIR_COMPROBANTE:EN_VERIFICACION_PAGO")
 
     $f1 = @(Activas $est5)[0]

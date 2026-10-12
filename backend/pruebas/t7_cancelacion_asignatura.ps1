@@ -161,7 +161,9 @@ function Verificar-EtapaHttp {
         $historial = @(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$Solicitud/historial" -Token $token))
         $codigos = @($historial | ForEach-Object { $_.etapaCodigo })
         $sinCodigo = @($historial | Where-Object { -not $_.etapaCodigo }).Count
-        if (($proceso -ne $Esperada) -or ($comun -ne $Esperada) -or ($bandeja -ne $Esperada) -or ($sinCodigo -gt 0) -or ($codigos -notcontains $Esperada)) {
+        $decisionOculta = ($rol -eq "estudiante") -and ($Esperada -like "*_POR_DECANO")
+        $historialOk = if ($decisionOculta) { ($codigos -notcontains $Esperada) -and (@($historial | Where-Object { $_.accion -like "*_DECANO" -and $_.accion -ne "REMITIR_DECANO" }).Count -eq 0) } else { $codigos -contains $Esperada }
+        if (($proceso -ne $Esperada) -or ($comun -ne $Esperada) -or ($bandeja -ne $Esperada) -or ($sinCodigo -gt 0) -or (-not $historialOk)) {
             $fallos += "$rol=$proceso/$comun/$bandeja/historial $($codigos -join ' ')"
         }
     }
@@ -435,7 +437,7 @@ try {
     Escribir-Resultado "en APROBADA el estudiante ve que asignaturas se aprobaron pero no la observacion del Decano" (($detalle.solicitud.etiqueta -eq "Aprobada") -and ((Asignatura-De $detalle $f1).aprobadaPorDecano -eq $true) -and ((Asignatura-De $detalle $f2).aprobadaPorDecano -eq $true) -and ((Asignatura-De $detalle $f3).aprobadaPorDecano -eq $false) -and ($null -eq (Asignatura-De $detalle $f3).observacionDecision) -and ($r.Body -notmatch "No procede para T7"))
     Escribir-Resultado "el estudiante nunca ve la observacion de la evaluacion ni los datos del funcionario" (($r.Body -notmatch $secreto) -and (@($detalle.asignaturas | Where-Object { $_.observacionEvaluacion -or ($null -ne $_.cumpleCondiciones) -or ($null -ne $_.nota) }).Count -eq 0))
     $historial = @(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol1/historial" -Token $est1.Token)) | ForEach-Object { $_.accion }
-    Escribir-Resultado "el historial trae RADICAR, REMITIR_DECANO, APROBAR_DECANO y ENVIAR_RESPUESTA (obtuvo $($historial -join ','))" (($historial -join ',') -eq "RADICAR,REMITIR_DECANO,APROBAR_DECANO,ENVIAR_RESPUESTA")
+    Escribir-Resultado "el historial del estudiante trae RADICAR, REMITIR_DECANO y ENVIAR_RESPUESTA sin la fila del Decano (obtuvo $($historial -join ','))" (($historial -join ',') -eq "RADICAR,REMITIR_DECANO,ENVIAR_RESPUESTA")
     $etapasHistorial = (@(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol1/historial" -Token $fa1.Token)) | ForEach-Object { "$($_.accion):$($_.etapaCodigo)" } | Sort-Object) -join ","; Escribir-Resultado "cada accion del historial trae la etapa a la que llevo (obtuvo $etapasHistorial)" ($etapasHistorial -eq "APROBAR_DECANO:APROBADA_POR_DECANO,ENVIAR_RESPUESTA:APROBADA,RADICAR:RADICADA,REMITIR_DECANO:EN_REVISION_DECANO")
 
     $activas2 = Activas $est2
@@ -485,7 +487,8 @@ try {
     $filaDecano = @(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol3/historial" -Token $est3.Token)) | Where-Object { $_.accion -eq "RECHAZAR_DECANO" }
     $r = Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$sol3" -Token $est3.Token
     $filaRespuesta = @(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol3/historial" -Token $est3.Token)) | Where-Object { $_.accion -eq "ENVIAR_RESPUESTA" }
-    Escribir-Resultado "el Decano rechazo sin observacion y el estudiante 3 no ve la observacion de la evaluacion" ($filaDecano -and (-not $filaDecano.observaciones) -and ($r.Body -notmatch "Nota insuficiente") -and (Sin-Resultado (Leer-Json $r)))
+    $filaDecanoFa = @(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol3/historial" -Token $fa1.Token)) | Where-Object { $_.accion -eq "RECHAZAR_DECANO" }
+    Escribir-Resultado "el estudiante 3 no ve la fila del rechazo del Decano ni la observacion de la evaluacion; el funcionario si ve la fila" ((-not $filaDecano) -and $filaDecanoFa -and ($r.Body -notmatch "Nota insuficiente") -and (Sin-Resultado (Leer-Json $r)))
     Escribir-Resultado "el estudiante 3 ve el mensaje del funcionario (obtuvo $($filaRespuesta.observaciones))" ($filaRespuesta.observaciones -eq $mensajeEstudiante)
     $etapasHistorial = (@(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol3/historial" -Token $fa1.Token)) | ForEach-Object { "$($_.accion):$($_.etapaCodigo)" } | Sort-Object) -join ","; Escribir-Resultado "cada accion del historial trae la etapa a la que llevo (obtuvo $etapasHistorial)" ($etapasHistorial -eq "ENVIAR_RESPUESTA:RECHAZADA,RADICAR:RADICADA,RECHAZAR_DECANO:RECHAZADA_POR_DECANO,REMITIR_DECANO:EN_REVISION_DECANO")
 

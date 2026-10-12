@@ -26,6 +26,7 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
             RolEtiquetaEtapa.DECANO, ApplicationConstantes.DECANO);
     private static final Set<AccionEtapa> OCULTAS_ESTUDIANTE =
             EnumSet.of(AccionEtapa.REMITIR_DECANO, AccionEtapa.APROBAR_DECANO, AccionEtapa.RECHAZAR_DECANO);
+    private static final Set<AccionEtapa> FILAS_OCULTAS_ESTUDIANTE = EnumSet.of(AccionEtapa.APROBAR_DECANO, AccionEtapa.RECHAZAR_DECANO);
 
     private final SolicitudAcademicaGatewayIntPuerto gateway;
     private final EtapaEtiquetaRolGatewayIntPuerto etiquetaGateway;
@@ -105,11 +106,14 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
         TipoProcesoAcademico proceso = tipo == null ? null : TipoProcesoAcademico.porNombre(tipo.getNombre());
         if (historial != null && proceso != null)
             asignarEtapas(historial, proceso);
-        if (historial != null && acceso.rol() == RolEtiquetaEtapa.ESTUDIANTE)
-            historial.stream()
-                    .filter(fila -> OCULTAS_ESTUDIANTE.contains(accionDe(fila.getAccion())))
-                    .forEach(fila -> fila.setObservaciones(null));
-        return historial;
+        if (historial == null || acceso.rol() != RolEtiquetaEtapa.ESTUDIANTE)
+            return historial;
+        historial.stream()
+                .filter(fila -> OCULTAS_ESTUDIANTE.contains(accionDe(fila.getAccion())))
+                .forEach(fila -> fila.setObservaciones(null));
+        return historial.stream()
+                .filter(fila -> !FILAS_OCULTAS_ESTUDIANTE.contains(accionDe(fila.getAccion())))
+                .toList();
     }
 
     private void asignarEtapas(List<HistorialSolicitudAcademica> historial, TipoProcesoAcademico proceso) {

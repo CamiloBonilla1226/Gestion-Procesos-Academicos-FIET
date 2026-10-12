@@ -161,8 +161,10 @@ código se ejecuta con este endpoint (`<proceso>` es `cancelaciones-matricula`,
 La observación de una acción admite hasta 500 caracteres. Las observaciones
 de `REMITIR_DECANO`, `APROBAR_DECANO` y `RECHAZAR_DECANO` son opcionales y
 solo las ven el Funcionario Académico y el Decano: al Estudiante el historial
-le entrega esas filas con `observaciones` nulo. La de `ENVIAR_RESPUESTA` es el
-mensaje opcional del Funcionario al Estudiante y él sí la ve.
+le entrega la fila `REMITIR_DECANO` con `observaciones` nulo y no le entrega
+las filas `APROBAR_DECANO` ni `RECHAZAR_DECANO`, en ninguno de los tres
+procesos. La de `ENVIAR_RESPUESTA` es el mensaje opcional del Funcionario al
+Estudiante y él sí la ve.
 
 Los endpoints cuyo cuerpo es opcional (`funcionario/responder`,
 `decano/rechazar` y `decano/aprobar` del supletorio, `comprobante/aprobar`)
@@ -242,8 +244,11 @@ trae la ruta en disco.
 1.6 o `RADICAR`), `etapaCodigo` (etapa a la que llevó esa acción; nulo si no
 encaja en el recorrido), `observaciones`, `fecha` (fecha y hora),
 `nombresUsuario`, `apellidosUsuario`. Para el Estudiante, `observaciones`
-llega nulo en las filas `REMITIR_DECANO`, `APROBAR_DECANO` y
-`RECHAZAR_DECANO`; las filas siguen apareciendo con su acción y etapa.
+llega nulo en la fila `REMITIR_DECANO` y las filas `APROBAR_DECANO` y
+`RECHAZAR_DECANO` no vienen en la lista; las demás filas conservan su
+`etapaCodigo`. El Estudiante se entera de la decisión del Decano por la fila
+`ENVIAR_RESPUESTA` (en el supletorio aprobado, por `ENVIAR_RECIBO`). El
+Funcionario Académico y el Decano reciben todas las filas.
 
 **SituacionAsignaturaDTORespuesta**: `uuidSituacionAcademica`, `codigo`
 (R0 a R3), `nombre`: R0 No cursada, R1 Cursada por primera vez, R2 Cursada

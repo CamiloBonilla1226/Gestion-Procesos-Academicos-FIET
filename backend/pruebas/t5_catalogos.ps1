@@ -116,8 +116,13 @@ try {
         $ok = ($t.Count -eq 1) -and ($t[0].nombre -ceq $TiposSembrados[$uuidTipo]) -and [bool]$t[0].uuidFuncionarioAcademico
         Escribir-Resultado "tipo sembrado $uuidTipo existe una vez con su nombre y funcionario (obtuvo $($t.Count))" $ok
     }
-    $funcionarios = @($tipos | Where-Object { $TiposSembrados.Contains($_.uuidTipoSolicitudAcademica) } | ForEach-Object { $_.uuidFuncionarioAcademico } | Sort-Object -Unique)
-    Escribir-Resultado "los tres tipos sembrados tienen el mismo funcionario academico (obtuvo $($funcionarios.Count))" ($funcionarios.Count -eq 1)
+    foreach ($uuidTipo in $TiposSembrados.Keys) {
+        $t = @($tipos | Where-Object { $_.uuidTipoSolicitudAcademica -eq $uuidTipo })
+        $responsable = if ($t.Count -eq 1) { $t[0].uuidFuncionarioAcademico } else { $null }
+        $estado = 0
+        if ($responsable) { $estado = (Invoke-Api -Metodo GET -Ruta "funcionarios-academicos/$responsable" -Token $tokenRoot).Status }
+        Escribir-Resultado "tipo sembrado $uuidTipo tiene un funcionario academico responsable (GET 200, obtuvo $estado)" ($estado -eq 200)
+    }
 
     foreach ($caso in @(@{ Uuid = $TipoMatricula; Esperadas = $EtapasUniversales; Nombre = "matricula" }, @{ Uuid = $TipoAsignatura; Esperadas = $EtapasUniversales; Nombre = "asignatura" }, @{ Uuid = $TipoSupletorio; Esperadas = $EtapasSupletorio; Nombre = "supletorio" })) {
         $r = Invoke-Api -Metodo GET -Ruta "catalogos-academicos/tipos-solicitud/$($caso.Uuid)/etapas" -Token $tokenRoot

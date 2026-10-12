@@ -2,6 +2,15 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-12 - Decisión del Decano oculta al Estudiante y ajuste de t5_catalogos (Tarea T12.3)
+- Qué se hizo:
+  - `ConsultaSolicitudAcademicaCUImplAdaptador.getHistorial` quita para el Estudiante las filas `APROBAR_DECANO` y `RECHAZAR_DECANO` en los tres procesos (`FILAS_OCULTAS_ESTUDIANTE`). Las etapas se reconstruyen con el historial completo antes de filtrar. Funcionario y Decano siguen recibiendo todas las filas. La observación de `REMITIR_DECANO` sigue llegando nula al Estudiante.
+  - t5_catalogos: la comprobación "los tres tipos tienen el mismo funcionario" pasa a "cada tipo tiene un funcionario académico responsable" (uuid presente y `GET funcionarios-academicos/{uuid}` 200).
+  - Scripts t6, t7 y t8: `Verificar-EtapaHttp` exige que, en `APROBADA_POR_DECANO` y `RECHAZADA_POR_DECANO`, el historial del Estudiante no traiga la etapa ni filas del Decano; las comprobaciones puntuales de historial se ajustan y se agregan las del Funcionario.
+  - `docs/database/migracion_cargo_situaciones_notas.sql` revisado: no tiene comentarios ni emojis, cumple la regla de estilo; no se cambió.
+- Archivos: `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/ConsultaSolicitudAcademicaCUImplAdaptador.java` (modificado), `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/ConsultaSolicitudAcademicaCUImplAdaptadorTest.java` (modificado), `backend/pruebas/t5_catalogos.ps1` (modificado), `backend/pruebas/t6_cancelacion_matricula.ps1` (modificado), `backend/pruebas/t7_cancelacion_asignatura.ps1` (modificado), `backend/pruebas/t8_examen_supletorio.ps1` (modificado), `docs/database/etapas-por-proceso.md` (modificado: P16 y P40 nueva), `docs/api/contrato-api-procesos-academicos.md` (modificado), `backend/CLAUDE.md` (modificado: historial, P4 a P40, 1199 pruebas), `change.md` (modificado)
+- Notas: en el supletorio aprobado no hay `ENVIAR_RESPUESTA`; el Estudiante se entera por la fila `ENVIAR_RECIBO`. Sin cambios de esquema ni de datos, así que no hubo migración ni respaldo.
+
 ## 2026-10-12 - Ajustes de funcionarios, estudiantes, situaciones, observaciones y etiquetas (Tarea T12.1)
 - Qué se hizo:
   - Facultad fija: el backend asigna `FIET` a todo estudiante al crear y al editar. `facultad` sale de `EstudianteDTOPeticion`, del `PUT` y del Excel de estudiantes (13 columnas). La columna `ESTUDIANTE.facultad` se conserva.
