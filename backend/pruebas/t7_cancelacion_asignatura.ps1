@@ -162,8 +162,10 @@ function Verificar-EtapaHttp {
         $codigos = @($historial | ForEach-Object { $_.etapaCodigo })
         $sinCodigo = @($historial | Where-Object { -not $_.etapaCodigo }).Count
         $decisionOculta = ($rol -eq "estudiante") -and ($Esperada -like "*_POR_DECANO")
-        $historialOk = if ($decisionOculta) { ($codigos -notcontains $Esperada) -and (@($historial | Where-Object { $_.accion -like "*_DECANO" -and $_.accion -ne "REMITIR_DECANO" }).Count -eq 0) } else { $codigos -contains $Esperada }
-        if (($proceso -ne $Esperada) -or ($comun -ne $Esperada) -or ($bandeja -ne $Esperada) -or ($sinCodigo -gt 0) -or (-not $historialOk)) {
+        $visible = if ($decisionOculta) { "EN_REVISION_DECANO" } else { $Esperada }
+        $historialOk = if ($decisionOculta) { ($codigos -notcontains $Esperada) -and ($codigos -contains $visible) -and (@($historial | Where-Object { $_.accion -like "*_DECANO" -and $_.accion -ne "REMITIR_DECANO" }).Count -eq 0) } else { $codigos -contains $Esperada }
+        if (($rol -eq "estudiante") -and (@($codigos | Where-Object { $_ -like "*_POR_DECANO" }).Count -gt 0)) { $historialOk = $false }
+        if (($proceso -ne $visible) -or ($comun -ne $visible) -or ($bandeja -ne $visible) -or ($sinCodigo -gt 0) -or (-not $historialOk)) {
             $fallos += "$rol=$proceso/$comun/$bandeja/historial $($codigos -join ' ')"
         }
     }

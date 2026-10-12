@@ -125,6 +125,14 @@ Los uuid de los tipos de anexo los entregan los formularios de radicación y
 texto para mostrar al rol que consulta. Un rol no ve las solicitudes de una
 etapa sin etiqueta para él.
 
+Al Estudiante, en `APROBADA_POR_DECANO` y `RECHAZADA_POR_DECANO`, la bandeja,
+el detalle común y el detalle de cada proceso le devuelven `etapaCodigo`
+`EN_REVISION_DECANO`, con la etiqueta "En trámite": no se entera de la
+decisión hasta la respuesta del Funcionario (o el recibo de pago en el
+supletorio aprobado). Funcionario Académico y Decano reciben el código real.
+`PENDIENTE_PAGO`, `EN_VERIFICACION_PAGO`, `APROBADA` y `RECHAZADA` no se
+enmascaran.
+
 | etapaCodigo | Procesos | Etiqueta Estudiante | Etiqueta Funcionario | Etiqueta Decano |
 | --- | --- | --- | --- | --- |
 | RADICADA | los tres | En trámite | Pendiente | (no la ve) |
@@ -227,7 +235,7 @@ por ejemplo `ISI-001`), `nombreAsignatura`, `uuidProgramaAcademico` y
 | `uuidSolicitudAcademica`, `radicado`, `uuidTipoSolicitudAcademica`, `tipoSolicitud` | texto | |
 | `fechaCreacion` | fecha y hora | |
 | `etiqueta` | texto | Etiqueta de la etapa para el rol que consulta |
-| `etapaCodigo` | texto | Código de la etapa (sección 1.5) |
+| `etapaCodigo` | texto | Código de la etapa (sección 1.5); al Estudiante, `EN_REVISION_DECANO` en lugar de la decisión del Decano |
 | `estudiante` | objeto | `uuidUsuario`, `nombres`, `apellidos`, `codigoEstudiantil`, `programaAcademico`, `semestre`, `correoElectronico` |
 | `anexos` | lista | AnexoAcademicoDTORespuesta, de la subida más antigua a la más reciente |
 | `tieneResolucion` | booleano | Hay escaneo de la Resolución |
@@ -246,7 +254,8 @@ encaja en el recorrido), `observaciones`, `fecha` (fecha y hora),
 `nombresUsuario`, `apellidosUsuario`. Para el Estudiante, `observaciones`
 llega nulo en la fila `REMITIR_DECANO` y las filas `APROBAR_DECANO` y
 `RECHAZAR_DECANO` no vienen en la lista; las demás filas conservan su
-`etapaCodigo`. El Estudiante se entera de la decisión del Decano por la fila
+`etapaCodigo` y ninguna trae `APROBADA_POR_DECANO` ni `RECHAZADA_POR_DECANO`,
+así que la última fila coincide con el `etapaCodigo` del detalle. El Estudiante se entera de la decisión del Decano por la fila
 `ENVIAR_RESPUESTA` (en el supletorio aprobado, por `ENVIAR_RECIBO`). El
 Funcionario Académico y el Decano reciben todas las filas.
 

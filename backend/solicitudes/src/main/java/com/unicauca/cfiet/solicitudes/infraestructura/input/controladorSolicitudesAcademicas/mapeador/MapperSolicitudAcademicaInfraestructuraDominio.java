@@ -36,7 +36,7 @@ public class MapperSolicitudAcademicaInfraestructuraDominio {
                 .radicado(solicitud.getRadicado())
                 .fechaCreacion(solicitud.getFechaCreacion())
                 .etiqueta(resumen.getEtiqueta())
-                .etapaCodigo(codigoEtapa(solicitud))
+                .etapaCodigo(resumen.getEtapaCodigo() != null ? resumen.getEtapaCodigo() : codigoEtapa(solicitud))
                 .build();
         TipoSolicitudAcademica tipo = solicitud.getTipoSolicitudAcademica();
         if (tipo != null) {
@@ -60,7 +60,7 @@ public class MapperSolicitudAcademicaInfraestructuraDominio {
                 .radicado(solicitud.getRadicado())
                 .fechaCreacion(solicitud.getFechaCreacion())
                 .etiqueta(detalle.getEtiqueta())
-                .etapaCodigo(codigoEtapa(solicitud))
+                .etapaCodigo(detalle.getEtapaCodigo() != null ? detalle.getEtapaCodigo() : codigoEtapa(solicitud))
                 .estudiante(mapearEstudianteARespuesta(solicitud.getEstudiante()))
                 .anexos(detalle.getAnexos() == null ? new ArrayList<>() : detalle.getAnexos().stream().map(this::mapearAnexoARespuesta).toList())
                 .tieneResolucion(detalle.isTieneResolucion())

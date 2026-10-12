@@ -154,8 +154,10 @@ function Verificar-EtapaHttp {
         $codigos = @($historial | ForEach-Object { $_.etapaCodigo })
         $sinCodigo = @($historial | Where-Object { -not $_.etapaCodigo }).Count
         $decisionOculta = ($rol -eq "estudiante") -and ($Esperada -like "*_POR_DECANO")
-        $historialOk = if ($decisionOculta) { ($codigos -notcontains $Esperada) -and (@($historial | Where-Object { $_.accion -like "*_DECANO" -and $_.accion -ne "REMITIR_DECANO" }).Count -eq 0) } else { $codigos -contains $Esperada }
-        if (($proceso -ne $Esperada) -or ($comun -ne $Esperada) -or ($bandeja -ne $Esperada) -or ($sinCodigo -gt 0) -or (-not $historialOk)) {
+        $visible = if ($decisionOculta) { "EN_REVISION_DECANO" } else { $Esperada }
+        $historialOk = if ($decisionOculta) { ($codigos -notcontains $Esperada) -and ($codigos -contains $visible) -and (@($historial | Where-Object { $_.accion -like "*_DECANO" -and $_.accion -ne "REMITIR_DECANO" }).Count -eq 0) } else { $codigos -contains $Esperada }
+        if (($rol -eq "estudiante") -and (@($codigos | Where-Object { $_ -like "*_POR_DECANO" }).Count -gt 0)) { $historialOk = $false }
+        if (($proceso -ne $visible) -or ($comun -ne $visible) -or ($bandeja -ne $visible) -or ($sinCodigo -gt 0) -or (-not $historialOk)) {
             $fallos += "$rol=$proceso/$comun/$bandeja/historial $($codigos -join ' ')"
         }
     }
@@ -349,6 +351,9 @@ try {
     $conSituacion = Ejecutar-Sql "select count(*) from ASIGNATURA_SOLICITUD_ACADEMICA where SolicitudAcademica_uuid = '$sol1' and SituacionCancelar_uuid = '$($situaciones[1])' and numeroFaltas is not null"
     Escribir-Resultado "aprobar con situaciones pasa a APROBADA_POR_DECANO y las guarda (obtuvo $($r.Status), etapa $(Etapa-De $sol1), filas $conSituacion)" (($r.Status -eq 200) -and ((Etapa-De $sol1) -eq "APROBADA_POR_DECANO") -and ($conSituacion -eq "3"))
     Verificar-EtapaHttp -Solicitud $sol1 -Esperada "APROBADA_POR_DECANO" -Estudiante $est1.Token -Funcionario $fa1.Token -Decano $decano.Token
+    $vistaEst = Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol1" -Token $est1.Token)
+    $vistaFa = Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol1" -Token $fa1.Token)
+    Escribir-Resultado "tras aprobar, el estudiante ve EN_REVISION_DECANO con la etiqueta En tramite y el funcionario el codigo real (obtuvo $($vistaEst.etapaCodigo)/$($vistaFa.etapaCodigo))" (($vistaEst.etapaCodigo -eq "EN_REVISION_DECANO") -and ($vistaEst.etiqueta -eq "En tr$([char]0x00E1)mite") -and ($vistaFa.etapaCodigo -eq "APROBADA_POR_DECANO"))
     $detalleFa = Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol1" -Token $fa1.Token)
     Escribir-Resultado "el funcionario ve la etiqueta Aprobada por el Decano (obtuvo $($detalleFa.etiqueta))" ($detalleFa.etiqueta -eq "Aprobada por el Decano")
     $detalle = Leer-Json (Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$sol1" -Token $est1.Token)
@@ -404,6 +409,9 @@ try {
     $sinSituacion = Ejecutar-Sql "select count(*) from ASIGNATURA_SOLICITUD_ACADEMICA where SolicitudAcademica_uuid = '$sol3' and SituacionCancelar_uuid is null"
     Escribir-Resultado "el rechazo del Decano pasa a RECHAZADA_POR_DECANO sin situaciones al cancelar (obtuvo $($r.Status), etapa $(Etapa-De $sol3))" (($r.Status -eq 200) -and ((Etapa-De $sol3) -eq "RECHAZADA_POR_DECANO") -and ($sinSituacion -eq "2"))
     Verificar-EtapaHttp -Solicitud $sol3 -Esperada "RECHAZADA_POR_DECANO" -Estudiante $est3.Token -Funcionario $fa1.Token -Decano $decano.Token
+    $vistaEst = Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol3" -Token $est3.Token)
+    $vistaDe = Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol3" -Token $decano.Token)
+    Escribir-Resultado "tras rechazar, el estudiante ve EN_REVISION_DECANO con la etiqueta En tramite y el Decano el codigo real (obtuvo $($vistaEst.etapaCodigo)/$($vistaDe.etapaCodigo))" (($vistaEst.etapaCodigo -eq "EN_REVISION_DECANO") -and ($vistaEst.etiqueta -eq "En tr$([char]0x00E1)mite") -and ($vistaDe.etapaCodigo -eq "RECHAZADA_POR_DECANO"))
     $detalleFa = Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol3" -Token $fa1.Token)
     Escribir-Resultado "el funcionario ve la etiqueta Rechazada por el Decano (obtuvo $($detalleFa.etiqueta))" ($detalleFa.etiqueta -eq "Rechazada por el Decano")
     $historial = @(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol3/historial" -Token $est3.Token))
@@ -422,8 +430,8 @@ try {
     Escribir-Resultado "la respuesta final deja la solicitud RECHAZADA (obtuvo $($r.Status), etapa $(Etapa-De $sol3))" (($r.Status -eq 200) -and ((Etapa-De $sol3) -eq "RECHAZADA"))
     $filaRespuesta = @(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol3/historial" -Token $est3.Token)) | Where-Object { $_.accion -eq "ENVIAR_RESPUESTA" }
     Escribir-Resultado "el estudiante ve el mensaje del funcionario en el historial (obtuvo $($filaRespuesta.observaciones))" ($filaRespuesta.observaciones -eq $mensajeEstudiante)
-    $accionesEstudiante = (@(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol3/historial" -Token $est3.Token)) | ForEach-Object { "$($_.accion):$($_.etapaCodigo)" }) -join ","
-    Escribir-Resultado "tras la respuesta el estudiante ve la etapa final sin la fila del Decano (obtuvo $accionesEstudiante)" ($accionesEstudiante -eq "RADICAR:RADICADA,REMITIR_DECANO:EN_REVISION_DECANO,ENVIAR_RESPUESTA:RECHAZADA")
+    $accionesEstudiante = (@(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol3/historial" -Token $est3.Token)) | ForEach-Object { "$($_.accion):$($_.etapaCodigo)" } | Sort-Object) -join ","
+    Escribir-Resultado "tras la respuesta el estudiante ve la etapa final sin la fila del Decano (obtuvo $accionesEstudiante)" ($accionesEstudiante -eq "ENVIAR_RESPUESTA:RECHAZADA,RADICAR:RADICADA,REMITIR_DECANO:EN_REVISION_DECANO")
     Verificar-EtapaHttp -Solicitud $sol3 -Esperada "RECHAZADA" -Estudiante $est3.Token -Funcionario $fa1.Token -Decano $decano.Token
     Escribir-Resultado "tras el rechazo del Decano las asignaturas siguen activas (obtuvo $(Estados-Matricula $est3.Uuid))" ((Estados-Matricula $est3.Uuid) -eq "activa,activa")
     $detalle = Leer-Json (Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$sol3" -Token $est3.Token)

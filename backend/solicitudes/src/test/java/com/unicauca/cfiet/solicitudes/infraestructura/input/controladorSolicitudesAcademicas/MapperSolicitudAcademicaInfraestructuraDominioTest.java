@@ -64,6 +64,18 @@ class MapperSolicitudAcademicaInfraestructuraDominioTest {
     }
 
     @Test
+    void elCodigoVisibleDelCasoDeUsoTienePrioridadSobreElDeLaEtapa() {
+        SolicitudAcademicaDetalleDTORespuesta detalle = mapper.mapearDetalleARespuesta(DetalleSolicitudAcademica.builder()
+                .solicitudAcademica(solicitud("s1", "APROBADA_POR_DECANO")).etiqueta("En trámite").etapaCodigo("EN_REVISION_DECANO").build());
+        SolicitudAcademicaResumenDTORespuesta resumen = mapper.mapearResumenARespuesta(ResumenSolicitudAcademica.builder()
+                .solicitudAcademica(solicitud("s1", "RECHAZADA_POR_DECANO")).etiqueta("En trámite").etapaCodigo("EN_REVISION_DECANO").build());
+
+        assertEquals("EN_REVISION_DECANO", detalle.getEtapaCodigo());
+        assertEquals("EN_REVISION_DECANO", resumen.getEtapaCodigo());
+        assertEquals("En trámite", detalle.getEtiqueta());
+    }
+
+    @Test
     void cadaFilaDelHistorialTraeElCodigoDeLaEtapaALaQueLlevo() {
         List<HistorialSolicitudAcademicaDTORespuesta> historial = mapper.mapearHistorialARespuesta(List.of(
                 HistorialSolicitudAcademica.builder().accion("RADICAR").etapaCodigo("RADICADA").observaciones("Radicada").build(),

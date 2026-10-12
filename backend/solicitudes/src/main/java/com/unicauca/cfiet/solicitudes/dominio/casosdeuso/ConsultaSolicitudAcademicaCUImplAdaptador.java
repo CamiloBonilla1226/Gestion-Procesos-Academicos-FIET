@@ -4,6 +4,7 @@ import com.unicauca.cfiet.solicitudes.aplicacion.input.AnexoAcademicoCUIntPuerto
 import com.unicauca.cfiet.solicitudes.aplicacion.input.ConsultaSolicitudAcademicaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.*;
 import com.unicauca.cfiet.solicitudes.dominio.helper.constantes.ApplicationConstantes;
+import com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
 import com.unicauca.cfiet.solicitudes.dominio.servicios.MaquinaEtapas;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.MensajesError;
@@ -27,6 +28,8 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
     private static final Set<AccionEtapa> OCULTAS_ESTUDIANTE =
             EnumSet.of(AccionEtapa.REMITIR_DECANO, AccionEtapa.APROBAR_DECANO, AccionEtapa.RECHAZAR_DECANO);
     private static final Set<AccionEtapa> FILAS_OCULTAS_ESTUDIANTE = EnumSet.of(AccionEtapa.APROBAR_DECANO, AccionEtapa.RECHAZAR_DECANO);
+    private static final Set<String> DECISIONES_DECANO =
+            Set.of(EtapaSolicitudAcademicaConstantes.APROBADA_POR_DECANO, EtapaSolicitudAcademicaConstantes.RECHAZADA_POR_DECANO);
 
     private final SolicitudAcademicaGatewayIntPuerto gateway;
     private final EtapaEtiquetaRolGatewayIntPuerto etiquetaGateway;
@@ -91,6 +94,7 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
         return DetalleSolicitudAcademica.builder()
                 .solicitudAcademica(solicitud)
                 .etiqueta(acceso.etiqueta())
+                .etapaCodigo(etapaVisible(etapa, acceso.rol()))
                 .anexos(anexoGateway.getPorSolicitud(uuid))
                 .tieneResolucion(tieneResolucion)
                 .puedeDescargarResolucion(puedeDescargar)
@@ -111,9 +115,17 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
         historial.stream()
                 .filter(fila -> OCULTAS_ESTUDIANTE.contains(accionDe(fila.getAccion())))
                 .forEach(fila -> fila.setObservaciones(null));
-        return historial.stream()
+        List<HistorialSolicitudAcademica> visibles = historial.stream()
                 .filter(fila -> !FILAS_OCULTAS_ESTUDIANTE.contains(accionDe(fila.getAccion())))
                 .toList();
+        visibles.forEach(fila -> fila.setEtapaCodigo(etapaVisible(fila.getEtapaCodigo(), RolEtiquetaEtapa.ESTUDIANTE)));
+        return visibles;
+    }
+
+    private String etapaVisible(String codigo, RolEtiquetaEtapa rol) {
+        if (rol == RolEtiquetaEtapa.ESTUDIANTE && codigo != null && DECISIONES_DECANO.contains(codigo))
+            return EtapaSolicitudAcademicaConstantes.EN_REVISION_DECANO;
+        return codigo;
     }
 
     private void asignarEtapas(List<HistorialSolicitudAcademica> historial, TipoProcesoAcademico proceso) {
@@ -191,6 +203,7 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
                 .map(solicitud -> ResumenSolicitudAcademica.builder()
                         .solicitudAcademica(solicitud)
                         .etiqueta(etiquetas.get(solicitud.getEtapa().getUuidEtapa()))
+                        .etapaCodigo(etapaVisible(solicitud.getEtapa().getCodigo(), rol))
                         .build())
                 .toList();
     }

@@ -233,6 +233,52 @@ class ConsultaSolicitudAcademicaCUImplAdaptadorTest {
         assertEquals(List.of(AccionEtapa.APROBAR_DECANO, AccionEtapa.RECHAZAR_DECANO), detalle.getAccionesDisponibles());
     }
 
+    private List<SolicitudAcademica> unaPorEtapa(String... codigos) {
+        List<SolicitudAcademica> solicitudes = new ArrayList<>();
+        for (String codigo : codigos)
+            solicitudes.add(solicitud("s-" + codigo, ESTUDIANTE, codigo, LocalDateTime.of(2026, 3, 1, 8, 0)));
+        return solicitudes;
+    }
+
+    @Test
+    void enLaBandejaElEstudianteVeLaDecisionDelDecanoComoEnRevision() {
+        String[] etapas = {EN_REVISION_DECANO, APROBADA_POR_DECANO, RECHAZADA_POR_DECANO, PENDIENTE_PAGO, EN_VERIFICACION_PAGO, APROBADA, RECHAZADA};
+        when(gateway.getPorEstudiante(ESTUDIANTE)).thenReturn(unaPorEtapa(etapas));
+        when(gateway.getPorFuncionarioAcademico(FUNCIONARIO)).thenReturn(unaPorEtapa(etapas));
+        when(gateway.getTodas()).thenReturn(unaPorEtapa(etapas));
+
+        assertEquals(List.of(EN_REVISION_DECANO, EN_REVISION_DECANO, EN_REVISION_DECANO, PENDIENTE_PAGO, EN_VERIFICACION_PAGO, APROBADA, RECHAZADA),
+                casoDeUso.getBandejaEstudiante(token(ESTUDIANTE)).stream().map(ResumenSolicitudAcademica::getEtapaCodigo).toList());
+        assertEquals(List.of(etapas),
+                casoDeUso.getBandejaFuncionario(token(FUNCIONARIO)).stream().map(ResumenSolicitudAcademica::getEtapaCodigo).toList());
+        assertEquals(List.of(etapas),
+                casoDeUso.getBandejaDecano(token(DECANO)).stream().map(ResumenSolicitudAcademica::getEtapaCodigo).toList());
+    }
+
+    @Test
+    void enElDetalleElEstudianteVeLaDecisionDelDecanoComoEnRevisionYLosDemasElCodigoReal() {
+        for (String etapa : List.of(APROBADA_POR_DECANO, RECHAZADA_POR_DECANO)) {
+            when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(etapa));
+
+            DetalleSolicitudAcademica delEstudiante = casoDeUso.getDetalle(SOLICITUD, token(ESTUDIANTE));
+
+            assertEquals(EN_REVISION_DECANO, delEstudiante.getEtapaCodigo());
+            assertEquals("ESTUDIANTE:" + etapa, delEstudiante.getEtiqueta());
+            assertEquals(etapa, delEstudiante.getSolicitudAcademica().getEtapa().getCodigo());
+            assertEquals(etapa, casoDeUso.getDetalle(SOLICITUD, token(FUNCIONARIO)).getEtapaCodigo());
+            assertEquals(etapa, casoDeUso.getDetalle(SOLICITUD, token(DECANO)).getEtapaCodigo());
+        }
+    }
+
+    @Test
+    void lasEtapasPosterioresALaDecisionNoSeEnmascaranParaElEstudiante() {
+        for (String etapa : List.of(PENDIENTE_PAGO, EN_VERIFICACION_PAGO, APROBADA, RECHAZADA, EN_REVISION_DECANO, RADICADA)) {
+            when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(etapa));
+
+            assertEquals(etapa, casoDeUso.getDetalle(SOLICITUD, token(ESTUDIANTE)).getEtapaCodigo());
+        }
+    }
+
     @Test
     void elDecanoNoVeUnaSolicitudRadicadaYRecibeLaMismaRespuestaQueSiNoExistiera() {
         when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(RADICADA));
@@ -376,6 +422,17 @@ class ConsultaSolicitudAcademicaCUImplAdaptadorTest {
 
         assertEquals(List.of("RADICAR", "REMITIR_DECANO"), historial.stream().map(HistorialSolicitudAcademica::getAccion).toList());
         assertEquals(List.of(RADICADA, EN_REVISION_DECANO), historial.stream().map(HistorialSolicitudAcademica::getEtapaCodigo).toList());
+    }
+
+    @Test
+    void elHistorialDelEstudianteNoTraeCodigosDeDecisionDelDecanoYCoincideConSuDetalle() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(RECHAZADA_POR_DECANO));
+        when(historialGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(fila("RADICAR"), fila("REMITIR_DECANO"), fila("RECHAZAR_DECANO")));
+
+        List<String> codigos = casoDeUso.getHistorial(SOLICITUD, token(ESTUDIANTE)).stream().map(HistorialSolicitudAcademica::getEtapaCodigo).toList();
+
+        assertEquals(List.of(RADICADA, EN_REVISION_DECANO), codigos);
+        assertEquals(codigos.get(codigos.size() - 1), casoDeUso.getDetalle(SOLICITUD, token(ESTUDIANTE)).getEtapaCodigo());
     }
 
     @Test

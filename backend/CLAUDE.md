@@ -365,7 +365,7 @@ ninguna FK de la extensión apunta al Decano (el historial apunta a
 ## Procesos académicos: piezas y máquina de etapas
 
 Las reglas de negocio de los tres procesos (etapas, transiciones, anexos,
-plazos y decisiones P4 a P40) están en `docs/database/etapas-por-proceso.md`;
+plazos y decisiones P4 a P41) están en `docs/database/etapas-por-proceso.md`;
 el contrato HTTP, en `docs/api/contrato-api-procesos-academicos.md`.
 
 ### Casos de uso por área
@@ -414,6 +414,13 @@ filas `APROBAR_DECANO` y `RECHAZAR_DECANO` (`FILAS_OCULTAS_ESTUDIANTE`, P40).
 Filtra después de reconstruir las etapas con el historial completo, así que
 las filas que quedan conservan su `etapaCodigo`. Funcionario y Decano reciben
 todas las filas.
+
+Para el Estudiante, `etapaVisible` cambia `APROBADA_POR_DECANO` y
+`RECHAZADA_POR_DECANO` por `EN_REVISION_DECANO` (P41). El código visible va en
+`ResumenSolicitudAcademica.etapaCodigo` y `DetalleSolicitudAcademica.etapaCodigo`,
+y `MapperSolicitudAcademicaInfraestructuraDominio` lo prefiere al de la etapa.
+La `SolicitudAcademica` no se toca: las reglas que dependen de la etapa usan
+el código real.
 
 Los archivos los guarda `AlmacenamientoAnexosImplAdaptador`
 (`infraestructura/output/almacenamiento`) sobre el `AlmacenadorArchivos` de
@@ -1167,7 +1174,7 @@ propia clase de prueba. Usan el `ExcepcionesFormateadorImplAdaptador` y la
 - `infraestructura/configuracion/lectorArchivos/AgrupadorEstudiantesExcelTest`
   y `DuplicadosFuncionariosAcademicosExcelTest`.
 
-Hoy `.\mvnw.cmd test` corre 1199 pruebas. `AsignaturaCUImplAdaptadorTest`
+Hoy `.\mvnw.cmd test` corre 1204 pruebas. `AsignaturaCUImplAdaptadorTest`
 cubre el consecutivo, el paso de 999 a 1000, la no reutilización, el orden
 bloqueo y luego nombre, y 40 creaciones simultáneas sobre un gateway falso con
 bloqueo que no repiten código.
