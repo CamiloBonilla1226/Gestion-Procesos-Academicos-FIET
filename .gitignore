@@ -17,3 +17,4 @@ frontend/*.log
 .claude/settings.local.json
 .DS_Store
 Thumbs.db
+limpieza_local.sql

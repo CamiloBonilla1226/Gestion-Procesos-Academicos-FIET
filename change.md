@@ -2,6 +2,38 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-11 - Limpieza local de datos de prueba antes de la entrega
+- Qué se hizo: se borraron de la base local `cfiet` las solicitudes académicas, matrículas, asignaturas y los usuarios de prueba (quedan rootfiet, acbonilla y carlos), se pusieron en 0 los contadores de código de asignatura y se vació `backend/uploads/anexos`. Respaldo previo fuera del repositorio.
+- Archivos: `.gitignore` (modificado: ignora `limpieza_local.sql`); `limpieza_local.sql` (creado, no se versiona)
+- Notas: no cambia código de la aplicación. Los programas y catálogos sembrados quedan intactos.
+
+## 2026-10-11 - Pulido de sesión, login y observaciones de las pruebas en vivo (Tarea T10.9)
+- Qué se hizo:
+  - Cerrar sesión: el enlace `href="#"` del menú del avatar recargaba la raíz, que llevaba a `usuario-publico/solicitudes`; ahora se evita el `href` y se termina en `/login`, con token y usuario borrados.
+  - Raíz: `/` pasa por `inicioGuard` (a `/login` sin sesión, o al inicio del rol con sesión). La lógica de inicio por rol sale del login a `rutaDeInicio` y la usan los dos. `usuario-publico/solicitudes` sigue disponible.
+  - Login: `<form>` con `(ngSubmit)`, botón `type="submit"` (input `tipo` nuevo en `SimpleButtonComponent`), Enter envía y no hay doble envío.
+  - Menú de "Cerrar sesión" con `dropdown-menu-end`: dentro de un `.navbar` Bootstrap no usa Popper y el menú se abría hacia la derecha desde un botón pegado al borde.
+  - Administración: los errores de cada campo se recalculan al escribir, así desaparecen cuando el campo es válido.
+  - Carga Excel: tras el éxito el diálogo muestra solo el resultado (en asignaturas, los códigos generados), el botón dice "Cerrar" y la tabla se refresca al cerrar.
+  - Cancelación de Matrícula y Examen Supletorio: "Este anexo es obligatorio" ya no sale dos veces (el componente de Julián ya lo muestra).
+  - Detalle del estudiante: el selector de matrícula deja fuera las asignaturas activas; las canceladas se pueden volver a matricular según el backend.
+  - Pruebas: `ng test` con 373 specs; fallan los mismos 58 de Julián (diff vacío). `npm run build` con código 0; bundle inicial 835.42 kB.
+- Archivos:
+  - `frontend/src/app/core/auth/guards/inicio-guard.ts`, `inicio-guard.spec.ts` (creados)
+  - `frontend/src/app/core/utils/rutas-por-rol.ts` (creado)
+  - `frontend/src/app/app.routes.ts` (modificado: ruta vacía con `inicioGuard`), `app.routes.server.ts` (modificado: raíz en `RenderMode.Client`)
+  - `frontend/src/app/shared/avatar/avatar-sesion-component/avatar-sesion-component.ts`, `.html` (modificados), `avatar-sesion-cerrar-sesion.spec.ts` (creado)
+  - `frontend/src/app/shared/buttons/simple-button-component/simple-button-component.ts`, `.html` (modificados: input `tipo`)
+  - `frontend/src/app/shared/login-form-component/login-form-component.ts`, `.html` (modificados), `login-form-envio.spec.ts` (creado)
+  - `frontend/src/app/shared/others/carga-excel-academica-component/` (modificados: ts, html, spec)
+  - `frontend/src/app/shared/pages/content/admin-asignaturas-content-component/`, `admin-estudiantes-content-component/`, `admin-funcionarios-content-component/` (modificados: ts, html, spec)
+  - `frontend/src/app/shared/pages/content/est-cancelacion-matricula-content-component/` (modificados: html, spec), `est-examen-supletorio-content-component/est-examen-supletorio-content-component.html` (modificado)
+  - `frontend/CLAUDE.md`, `.claude/skills/extender-frontend-fiet/SKILL.md` (modificados: D-F20 a D-F22 y limitaciones)
+- Notas:
+  - `RoleGuard` de Julián sigue mandando a `/login` sin mensaje; lo usan todas las rutas protegidas y no se tocó.
+  - Por debajo de 992 px el encabezado de Julián oculta el avatar (no tiene botón para desplegar el `navbar-collapse`); no se cambió.
+  - El backend solo rechaza la misma asignatura activa en el mismo grupo; el frontend filtra las activas en cualquier grupo.
+
 ## 2026-10-11 - Programas académicos y asignaturas con código autogenerado en el frontend (Tarea T11.2)
 - Qué se hizo:
   - Capa API: modelo `ProgramaAcademicoDTORespuesta` y `CatalogoAcademicoService.getProgramas`; `AsignaturaService` con `getAsignaturasPorPrograma`, `crearAsignaturasDesdeArchivo` y filtro por `uuidProgramaAcademico`. Modelos de asignatura y estudiante al contrato nuevo: alta `{nombreAsignatura, uuidProgramaAcademico}`, edición `{nombreAsignatura}` (`AsignaturaActualizarDTOPeticion` nuevo), respuestas con `uuidProgramaAcademico` y `programaAcademico`, estudiante con `uuidProgramaAcademico`, matrícula `{codigoAsignatura, grupo}` y edición sin programa.
