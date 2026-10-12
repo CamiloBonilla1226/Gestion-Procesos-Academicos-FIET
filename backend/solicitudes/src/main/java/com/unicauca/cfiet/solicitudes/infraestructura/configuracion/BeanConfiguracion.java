@@ -104,11 +104,12 @@ public class BeanConfiguracion {
                                                        ProgramaAcademicoGatewayIntPuerto programaGateway,
                                                        RolGatewayIntPuerto rolGateway,
                                                        UsuarioGatewayIntPuerto usuarioGateway,
+                                                       DatosPersonalesGatewayIntPuerto datosPersonalesGateway,
                                                        SesionGatewayIntPuerto sesionGateway,
                                                        IJwtServicio jwtServicio,
                                                        ExcepcionesFormateadorIntPuerto formateadorExcepciones,
                                                        LogCUIntPuerto log){
-        return new EstudianteCUImplAdaptador(usuarioCU, gateway, asignaturaGateway, programaGateway, rolGateway, usuarioGateway, sesionGateway, jwtServicio, formateadorExcepciones, log);
+        return new EstudianteCUImplAdaptador(usuarioCU, gateway, asignaturaGateway, programaGateway, rolGateway, usuarioGateway, datosPersonalesGateway, sesionGateway, jwtServicio, formateadorExcepciones, log);
     }
 
     @Bean
@@ -116,9 +117,10 @@ public class BeanConfiguracion {
                                                                          FuncionarioAcademicoGatewayIntPuerto gateway,
                                                                          RolGatewayIntPuerto rolGateway,
                                                                          UsuarioGatewayIntPuerto usuarioGateway,
+                                                                         DatosPersonalesGatewayIntPuerto datosPersonalesGateway,
                                                                          ExcepcionesFormateadorIntPuerto formateadorExcepciones,
                                                                          LogCUIntPuerto log){
-        return new FuncionarioAcademicoCUImplAdaptador(usuarioCU, gateway, rolGateway, usuarioGateway, formateadorExcepciones, log);
+        return new FuncionarioAcademicoCUImplAdaptador(usuarioCU, gateway, rolGateway, usuarioGateway, datosPersonalesGateway, formateadorExcepciones, log);
     }
 
     @Bean

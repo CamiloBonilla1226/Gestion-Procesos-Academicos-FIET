@@ -21,6 +21,6 @@ public class FuncionarioAcademicoDTORespuesta {
     private String telefono;
     private String correoElectronico;
     private String username;
-    private String dependencia;
+    private String cargo;
     private List<TipoSolicitudAtendidaDTORespuesta> tiposSolicitud;
 }

@@ -13,12 +13,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -135,8 +135,8 @@ class TramiteCancelacionMatriculaCUImplAdaptadorTest {
     private EvaluacionAsignatura evaluacion(String uuid, Integer faltas, String nota, String situacion) {
         return EvaluacionAsignatura.builder()
                 .uuidAsignaturaSolicitud(uuid)
-                .numeroFaltas(faltas)
-                .nota(nota == null ? null : new BigDecimal(nota))
+                .numeroFaltas(faltas == null ? null : String.valueOf(faltas))
+                .nota(nota)
                 .uuidSituacionMatricula(situacion)
                 .build();
     }
@@ -188,6 +188,12 @@ class TramiteCancelacionMatriculaCUImplAdaptadorTest {
         ArgumentCaptor<SolicitudAcademica> captor = ArgumentCaptor.forClass(SolicitudAcademica.class);
         verify(solicitudGateway).actualizarEtapa(captor.capture(), any());
         return captor.getValue().getEtapa().getCodigo();
+    }
+
+    private HistorialSolicitudAcademica historialGuardado() {
+        ArgumentCaptor<HistorialSolicitudAcademica> captor = ArgumentCaptor.forClass(HistorialSolicitudAcademica.class);
+        verify(solicitudGateway).actualizarEtapa(any(), captor.capture());
+        return captor.getValue();
     }
 
     @SuppressWarnings("unchecked")
@@ -270,7 +276,7 @@ class TramiteCancelacionMatriculaCUImplAdaptadorTest {
         when(gateway.getPorSolicitud("otra")).thenReturn(null);
 
         assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso.rechazarPorFuncionario("otra", "No cumple", TOKEN_FUNCIONARIO));
-        assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso.enviarRespuesta(null, TOKEN_FUNCIONARIO));
+        assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso.enviarRespuesta(null, null, TOKEN_FUNCIONARIO));
 
         verificarQueNoSeEscribioNada();
     }
@@ -285,11 +291,11 @@ class TramiteCancelacionMatriculaCUImplAdaptadorTest {
         assertEquals(EN_REVISION_DECANO, etapaGuardada());
         List<AsignaturaSolicitudAcademica> guardadas = asignaturasGuardadas();
         assertEquals(2, guardadas.size());
-        assertEquals(0, guardadas.get(0).getNumeroFaltas());
-        assertEquals(new BigDecimal("5.0"), guardadas.get(0).getNota());
+        assertEquals("0", guardadas.get(0).getNumeroFaltas());
+        assertEquals("5.0", guardadas.get(0).getNota());
         assertEquals("sit-a", guardadas.get(0).getSituacionMatricula().getUuidSituacionAcademica());
-        assertEquals(3, guardadas.get(1).getNumeroFaltas());
-        assertEquals(new BigDecimal("2.0"), guardadas.get(1).getNota());
+        assertEquals("3", guardadas.get(1).getNumeroFaltas());
+        assertEquals("2.0", guardadas.get(1).getNota());
         assertEquals("sit-c", guardadas.get(1).getSituacionMatricula().getUuidSituacionAcademica());
         assertNull(guardadas.get(0).getSituacionCancelar());
         assertEquals(EN_REVISION_DECANO, resultado.getSolicitudAcademica().getEtapa().getCodigo());
@@ -457,7 +463,7 @@ class TramiteCancelacionMatriculaCUImplAdaptadorTest {
         enEtapa(EN_REVISION_DECANO);
 
         SolicitudCancelacionMatricula resultado = casoDeUso.aprobarPorDecano(SOLICITUD,
-                List.of(alCancelar("as-1", "sit-b"), alCancelar("as-2", "sit-c")), TOKEN_DECANO);
+                List.of(alCancelar("as-1", "sit-b"), alCancelar("as-2", "sit-c")), null, TOKEN_DECANO);
 
         assertEquals(APROBADA_POR_DECANO, etapaGuardada());
         List<AsignaturaSolicitudAcademica> guardadas = asignaturasGuardadas();
@@ -472,14 +478,14 @@ class TramiteCancelacionMatriculaCUImplAdaptadorTest {
         enEtapa(EN_REVISION_DECANO);
 
         assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
-                () -> casoDeUso.aprobarPorDecano(SOLICITUD, List.of(alCancelar("as-1", "sit-b")), TOKEN_DECANO));
+                () -> casoDeUso.aprobarPorDecano(SOLICITUD, List.of(alCancelar("as-1", "sit-b")), null, TOKEN_DECANO));
         assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> casoDeUso.aprobarPorDecano(SOLICITUD,
-                List.of(alCancelar("as-1", "sit-b"), alCancelar("as-1", "sit-b")), TOKEN_DECANO));
+                List.of(alCancelar("as-1", "sit-b"), alCancelar("as-1", "sit-b")), null, TOKEN_DECANO));
         assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> casoDeUso.aprobarPorDecano(SOLICITUD,
-                List.of(alCancelar("as-1", "sit-b"), alCancelar("as-2", "sit-b"), alCancelar("as-3", "sit-b")), TOKEN_DECANO));
+                List.of(alCancelar("as-1", "sit-b"), alCancelar("as-2", "sit-b"), alCancelar("as-3", "sit-b")), null, TOKEN_DECANO));
         assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> casoDeUso.aprobarPorDecano(SOLICITUD,
-                List.of(alCancelar("as-1", "sit-b"), alCancelar("as-2", null)), TOKEN_DECANO));
-        assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> casoDeUso.aprobarPorDecano(SOLICITUD, null, TOKEN_DECANO));
+                List.of(alCancelar("as-1", "sit-b"), alCancelar("as-2", null)), null, TOKEN_DECANO));
+        assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> casoDeUso.aprobarPorDecano(SOLICITUD, null, null, TOKEN_DECANO));
 
         verificarQueNoSeEscribioNada();
     }
@@ -489,7 +495,7 @@ class TramiteCancelacionMatriculaCUImplAdaptadorTest {
         enEtapa(EN_REVISION_DECANO);
 
         assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso.aprobarPorDecano(SOLICITUD,
-                List.of(alCancelar("as-1", "sit-b"), alCancelar("as-2", "sit-x")), TOKEN_DECANO));
+                List.of(alCancelar("as-1", "sit-b"), alCancelar("as-2", "sit-x")), null, TOKEN_DECANO));
 
         verificarQueNoSeEscribioNada();
     }
@@ -497,7 +503,7 @@ class TramiteCancelacionMatriculaCUImplAdaptadorTest {
     @Test
     void aprobarConRolDeFuncionarioSeRechaza() {
         assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> casoDeUso.aprobarPorDecano(SOLICITUD,
-                List.of(alCancelar("as-1", "sit-b"), alCancelar("as-2", "sit-c")), TOKEN_FUNCIONARIO));
+                List.of(alCancelar("as-1", "sit-b"), alCancelar("as-2", "sit-c")), null, TOKEN_FUNCIONARIO));
 
         verificarQueNoSeEscribioNada();
     }
@@ -507,7 +513,7 @@ class TramiteCancelacionMatriculaCUImplAdaptadorTest {
         enEtapa(RADICADA);
 
         assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> casoDeUso.aprobarPorDecano(SOLICITUD,
-                List.of(alCancelar("as-1", "sit-b"), alCancelar("as-2", "sit-c")), TOKEN_DECANO));
+                List.of(alCancelar("as-1", "sit-b"), alCancelar("as-2", "sit-c")), null, TOKEN_DECANO));
 
         verificarQueNoSeEscribioNada();
     }
@@ -523,11 +529,45 @@ class TramiteCancelacionMatriculaCUImplAdaptadorTest {
         verify(gateway, never()).cambiarEstadoAsignaturasMatriculadas(any(), any());
     }
 
-    @Test
-    void rechazarPorDecanoSinObservacionNoCambiaNada() {
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"   "})
+    void rechazarPorDecanoSinObservacionTambienPasaARechazadaPorDecano(String observacion) {
         enEtapa(EN_REVISION_DECANO);
 
-        assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> casoDeUso.rechazarPorDecano(SOLICITUD, " ", TOKEN_DECANO));
+        casoDeUso.rechazarPorDecano(SOLICITUD, observacion, TOKEN_DECANO);
+
+        assertEquals(RECHAZADA_POR_DECANO, etapaGuardada());
+        assertNull(historialGuardado().getObservaciones());
+    }
+
+    @Test
+    void aprobarPorDecanoGuardaLaObservacionOpcionalEnElHistorial() {
+        enEtapa(EN_REVISION_DECANO);
+
+        casoDeUso.aprobarPorDecano(SOLICITUD, List.of(alCancelar("as-1", "sit-b"), alCancelar("as-2", "sit-c")), " Procede ", TOKEN_DECANO);
+
+        assertEquals("Procede", historialGuardado().getObservaciones());
+        assertEquals("APROBAR_DECANO", historialGuardado().getAccion());
+    }
+
+    @Test
+    void enviarRespuestaGuardaElMensajeParaElEstudianteEnElHistorial() {
+        enEtapa(RECHAZADA_POR_DECANO);
+        conEscaneo();
+
+        casoDeUso.enviarRespuesta(SOLICITUD, "Puede radicar de nuevo el proximo semestre", TOKEN_FUNCIONARIO);
+
+        assertEquals("Puede radicar de nuevo el proximo semestre", historialGuardado().getObservaciones());
+        assertEquals("ENVIAR_RESPUESTA", historialGuardado().getAccion());
+    }
+
+    @Test
+    void enviarRespuestaConMensajeDeMasDeQuinientosCaracteresNoCambiaNada() {
+        enEtapa(RECHAZADA_POR_DECANO);
+        conEscaneo();
+
+        assertThrows(ErrorMalFormatoExcepcion.class, () -> casoDeUso.enviarRespuesta(SOLICITUD, "x".repeat(501), TOKEN_FUNCIONARIO));
 
         verificarQueNoSeEscribioNada();
     }
@@ -546,7 +586,7 @@ class TramiteCancelacionMatriculaCUImplAdaptadorTest {
         enEtapa(APROBADA_POR_DECANO);
         conEscaneo();
 
-        SolicitudCancelacionMatricula resultado = casoDeUso.enviarRespuesta(SOLICITUD, TOKEN_FUNCIONARIO);
+        SolicitudCancelacionMatricula resultado = casoDeUso.enviarRespuesta(SOLICITUD, null, TOKEN_FUNCIONARIO);
 
         assertEquals(APROBADA, etapaGuardada());
         verify(gateway).cambiarEstadoAsignaturasMatriculadas(List.of("am-1", "am-2"), "cancelada");
@@ -567,7 +607,7 @@ class TramiteCancelacionMatriculaCUImplAdaptadorTest {
         enEtapa(APROBADA_POR_DECANO);
         conEscaneo();
 
-        SolicitudCancelacionMatricula resultado = casoDeUso.enviarRespuesta(SOLICITUD, TOKEN_FUNCIONARIO);
+        SolicitudCancelacionMatricula resultado = casoDeUso.enviarRespuesta(SOLICITUD, null, TOKEN_FUNCIONARIO);
 
         verify(gateway).cambiarEstadoAsignaturasMatriculadas(List.of("am-1"), "cancelada");
         assertEquals(List.of("cancelada", "aprobada", "perdida"), resultado.getAsignaturas().stream()
@@ -586,7 +626,7 @@ class TramiteCancelacionMatriculaCUImplAdaptadorTest {
         enEtapa(APROBADA_POR_DECANO);
         conEscaneo();
 
-        casoDeUso.enviarRespuesta(SOLICITUD, TOKEN_FUNCIONARIO);
+        casoDeUso.enviarRespuesta(SOLICITUD, null, TOKEN_FUNCIONARIO);
 
         assertEquals(APROBADA, etapaGuardada());
         verify(gateway, never()).cambiarEstadoAsignaturasMatriculadas(any(), any());
@@ -597,7 +637,7 @@ class TramiteCancelacionMatriculaCUImplAdaptadorTest {
         enEtapa(RECHAZADA_POR_DECANO);
         conEscaneo();
 
-        SolicitudCancelacionMatricula resultado = casoDeUso.enviarRespuesta(SOLICITUD, TOKEN_FUNCIONARIO);
+        SolicitudCancelacionMatricula resultado = casoDeUso.enviarRespuesta(SOLICITUD, null, TOKEN_FUNCIONARIO);
 
         assertEquals(RECHAZADA, etapaGuardada());
         verify(gateway, never()).cambiarEstadoAsignaturasMatriculadas(any(), any());
@@ -609,7 +649,7 @@ class TramiteCancelacionMatriculaCUImplAdaptadorTest {
         enEtapa(APROBADA_POR_DECANO);
 
         ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
-                () -> casoDeUso.enviarRespuesta(SOLICITUD, TOKEN_FUNCIONARIO));
+                () -> casoDeUso.enviarRespuesta(SOLICITUD, null, TOKEN_FUNCIONARIO));
 
         assertTrue(error.getMessage().contains("escaneo de la Resolución"));
         verificarQueNoSeEscribioNada();
@@ -620,17 +660,17 @@ class TramiteCancelacionMatriculaCUImplAdaptadorTest {
         enEtapa(EN_REVISION_DECANO);
         conEscaneo();
 
-        assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> casoDeUso.enviarRespuesta(SOLICITUD, TOKEN_FUNCIONARIO));
+        assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> casoDeUso.enviarRespuesta(SOLICITUD, null, TOKEN_FUNCIONARIO));
 
         verificarQueNoSeEscribioNada();
     }
 
     @Test
     void enviarRespuestaConRolDeDecanoOFuncionarioNoAsignadoSeRechaza() {
-        assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> casoDeUso.enviarRespuesta(SOLICITUD, TOKEN_DECANO));
+        assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> casoDeUso.enviarRespuesta(SOLICITUD, null, TOKEN_DECANO));
         enEtapa(APROBADA_POR_DECANO);
         conEscaneo();
-        assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> casoDeUso.enviarRespuesta(SOLICITUD, TOKEN_OTRO_FUNCIONARIO));
+        assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> casoDeUso.enviarRespuesta(SOLICITUD, null, TOKEN_OTRO_FUNCIONARIO));
 
         verificarQueNoSeEscribioNada();
     }
@@ -641,7 +681,7 @@ class TramiteCancelacionMatriculaCUImplAdaptadorTest {
         conEscaneo();
         doThrow(new IllegalStateException("fallo")).when(gateway).cambiarEstadoAsignaturasMatriculadas(any(), any());
 
-        assertThrows(IllegalStateException.class, () -> casoDeUso.enviarRespuesta(SOLICITUD, TOKEN_FUNCIONARIO));
+        assertThrows(IllegalStateException.class, () -> casoDeUso.enviarRespuesta(SOLICITUD, null, TOKEN_FUNCIONARIO));
 
         verify(log, never()).crearLog(eq("Cancelar asignaturas matriculadas"), any(), any());
     }
@@ -651,12 +691,12 @@ class TramiteCancelacionMatriculaCUImplAdaptadorTest {
         enEtapa(RADICADA);
         casoDeUso.remitirADecano(SOLICITUD, evaluacionesCompletas(), null, TOKEN_FUNCIONARIO);
         enEtapa(EN_REVISION_DECANO);
-        casoDeUso.aprobarPorDecano(SOLICITUD, List.of(alCancelar("as-1", "sit-b"), alCancelar("as-2", "sit-c")), TOKEN_DECANO);
+        casoDeUso.aprobarPorDecano(SOLICITUD, List.of(alCancelar("as-1", "sit-b"), alCancelar("as-2", "sit-c")), null, TOKEN_DECANO);
         verify(gateway, never()).cambiarEstadoAsignaturasMatriculadas(any(), any());
 
         enEtapa(APROBADA_POR_DECANO);
         conEscaneo();
-        casoDeUso.enviarRespuesta(SOLICITUD, TOKEN_FUNCIONARIO);
+        casoDeUso.enviarRespuesta(SOLICITUD, null, TOKEN_FUNCIONARIO);
 
         verify(gateway, times(1)).cambiarEstadoAsignaturasMatriculadas(List.of("am-1", "am-2"), "cancelada");
     }

@@ -15,4 +15,5 @@ import java.util.List;
 public class AprobacionCancelacionAsignaturaDTOPeticion {
     @Valid
     private List<DecisionAsignaturaDTOPeticion> decisiones;
+    private String observacion;
 }

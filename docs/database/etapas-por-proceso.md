@@ -31,8 +31,8 @@ Cada solicitud tiene una etapa interna (`ETAPA_SOLICITUD_ACADEMICA`). De la etap
 | --- | --- | --- | --- | --- | --- |
 | RADICADA | Los 3 procesos | Funcionario | En trámite | Pendiente | no la ve |
 | EN_REVISION_DECANO | Los 3 procesos | Decano | En trámite | En Gestión | Pendiente |
-| APROBADA_POR_DECANO | Los 3 procesos | Funcionario | En trámite | Pendiente de Respuesta | Respondida |
-| RECHAZADA_POR_DECANO | Los 3 procesos | Funcionario | En trámite | Pendiente de Respuesta | Respondida |
+| APROBADA_POR_DECANO | Los 3 procesos | Funcionario | En trámite | Aprobada por el Decano | Respondida |
+| RECHAZADA_POR_DECANO | Los 3 procesos | Funcionario | En trámite | Rechazada por el Decano | Respondida |
 | PENDIENTE_PAGO | Solo Examen Supletorio | Estudiante | Pendiente de pago | En Gestión | Respondida |
 | EN_VERIFICACION_PAGO | Solo Examen Supletorio | Funcionario | En verificación de pago | Pendiente de Verificación | Respondida |
 | APROBADA | Los 3 procesos (final) | Ninguno | Aprobada | Respondida | Respondida |
@@ -40,7 +40,7 @@ Cada solicitud tiene una etapa interna (`ETAPA_SOLICITUD_ACADEMICA`). De la etap
 
 Notas sobre las etiquetas:
 
-- Las etiquetas del Estudiante y del Funcionario se tomaron de los prototipos `estudiante.html` y `funcionario.html`. Como son datos en `ETAPA_ETIQUETA_ROL`, cambiarlas no exige tocar código.
+- Las etiquetas del Estudiante y del Funcionario se tomaron de los prototipos `estudiante.html` y `funcionario.html`. Como son datos en `ETAPA_ETIQUETA_ROL`, cambiarlas no exige tocar código. En T12.1 las del Funcionario en APROBADA_POR_DECANO y RECHAZADA_POR_DECANO pasaron de "Pendiente de Respuesta" a "Aprobada por el Decano" y "Rechazada por el Decano", para que distinga la decisión sin abrir la solicitud.
 - Las etiquetas del Decano (Pendiente, En Gestión, Respondida) son una propuesta, porque no hay prototipo del Decano entre los documentos.
 - Las etapas con alcance "Los 3 procesos" tienen `TipoSolicitudAcademica_uuid` nulo. Las de solo supletorio se enlazan al tipo Examen Supletorio.
 - Etapas finales: APROBADA y RECHAZADA. Desde ellas no sale ninguna transición.
@@ -55,11 +55,11 @@ Toda transición exige que el usuario tenga el rol indicado, que la solicitud es
 | --- | --- | --- | --- | --- |
 | (nueva) | Radicar | RADICADA | Estudiante | Validaciones de la sección 4 y anexos de la sección 5. |
 | RADICADA | Rechazar | RECHAZADA | Funcionario | Observación obligatoria y escaneo de la Resolución (PDF). La Resolución la firma el Decano a mano. |
-| RADICADA | Remitir al Decano | EN_REVISION_DECANO | Funcionario | Cada asignatura evaluada: número de faltas, nota y situación en la matrícula; en Cancelación de Asignatura, además, si cumple las condiciones (P14). Observación opcional. Sin archivo de Resolución en este paso; si había un escaneo, se retira (P21). |
-| EN_REVISION_DECANO | Aprobar | APROBADA_POR_DECANO | Decano | Situación al cancelar de cada asignatura (P9). En Cancelación de Asignatura, la decisión por asignatura (P14). |
-| EN_REVISION_DECANO | Rechazar | RECHAZADA_POR_DECANO | Decano | Observación obligatoria. |
-| APROBADA_POR_DECANO | Enviar respuesta | APROBADA | Funcionario | Escaneo de la Resolución firmada (PDF). Queda descargable para el Estudiante. |
-| RECHAZADA_POR_DECANO | Enviar respuesta | RECHAZADA | Funcionario | Escaneo de la Resolución firmada (PDF). La observación del Decano llega al Estudiante. |
+| RADICADA | Remitir al Decano | EN_REVISION_DECANO | Funcionario | Cada asignatura evaluada: número de faltas, nota y situación en la matrícula; en Cancelación de Asignatura, además, si cumple las condiciones (P14). Faltas y nota pueden ser texto (P38). Una sola observación, opcional, para el Decano; el Estudiante no la ve (P16). Sin archivo de Resolución en este paso; si había un escaneo, se retira (P21). |
+| EN_REVISION_DECANO | Aprobar | APROBADA_POR_DECANO | Decano | Situación al cancelar de cada asignatura (P9). En Cancelación de Asignatura, la decisión por asignatura (P14). Observación opcional, que el Estudiante no ve (P16). |
+| EN_REVISION_DECANO | Rechazar | RECHAZADA_POR_DECANO | Decano | Observación opcional, que el Estudiante no ve (P16). |
+| APROBADA_POR_DECANO | Enviar respuesta | APROBADA | Funcionario | Escaneo de la Resolución firmada (PDF). Queda descargable para el Estudiante. Mensaje opcional al Estudiante (P39). |
+| RECHAZADA_POR_DECANO | Enviar respuesta | RECHAZADA | Funcionario | Escaneo de la Resolución firmada (PDF). Mensaje opcional al Estudiante (P39); la observación del Decano no le llega. |
 
 ### 3.2 Examen Supletorio
 
@@ -67,10 +67,10 @@ Toda transición exige que el usuario tenga el rol indicado, que la solicitud es
 | --- | --- | --- | --- | --- |
 | (nueva) | Radicar | RADICADA | Estudiante | Validaciones de la sección 4, plazo de 3 días hábiles y anexos de la sección 5. |
 | RADICADA | Rechazar | RECHAZADA | Funcionario | Observación obligatoria. No genera Resolución. |
-| RADICADA | Remitir al Decano | EN_REVISION_DECANO | Funcionario | Requisitos verificados. |
-| EN_REVISION_DECANO | Aprobar | APROBADA_POR_DECANO | Decano | Ninguno. |
-| EN_REVISION_DECANO | Rechazar | RECHAZADA_POR_DECANO | Decano | Observación obligatoria. |
-| RECHAZADA_POR_DECANO | Enviar respuesta | RECHAZADA | Funcionario | Ninguno más. No genera Resolución. |
+| RADICADA | Remitir al Decano | EN_REVISION_DECANO | Funcionario | Requisitos verificados. Observación opcional para el Decano (P16). |
+| EN_REVISION_DECANO | Aprobar | APROBADA_POR_DECANO | Decano | Observación opcional (P16). |
+| EN_REVISION_DECANO | Rechazar | RECHAZADA_POR_DECANO | Decano | Observación opcional (P16). |
+| RECHAZADA_POR_DECANO | Enviar respuesta | RECHAZADA | Funcionario | Mensaje opcional al Estudiante (P39). No genera Resolución. |
 | APROBADA_POR_DECANO | Enviar recibo de pago | PENDIENTE_PAGO | Funcionario | Archivo del recibo obligatorio. |
 | PENDIENTE_PAGO | Subir comprobante | EN_VERIFICACION_PAGO | Estudiante | Archivo del comprobante obligatorio. |
 | EN_VERIFICACION_PAGO | Aprobar comprobante | APROBADA | Funcionario | Ninguno más. |
@@ -206,14 +206,14 @@ Propuestas adoptadas por defecto (cambiables antes de implementar la tarea que l
 | P11 | Las cuatro condiciones de Cancelación de Asignatura | La lista de la sección 4.2. |
 | P12 | Tamaño del escaneo de la Resolución y del recibo | 5 MB, igual que los demás archivos. |
 | P13 | Soporte libre del motivo en matrícula y asignatura | Sigue siendo opcional. Solo los documentos oficiales son obligatorios. |
-| P14 | Decisión del Decano en Cancelación de Asignatura | Confirmada por el autor; supera cualquier texto anterior. Aprobación parcial: el Decano aprueba o rechaza cada asignatura por separado. Al remitir, el Funcionario confirma por asignatura si cumple las condiciones de la sección 4.2 (una nota menor a 3.0 no puede marcarse como que cumple; si no cumple, la observación es obligatoria) y al menos una debe cumplir. El Decano solo aprueba asignaturas que cumplen, registra la situación al cancelar de las aprobadas (P9) y debe dar observación de las rechazadas; con al menos una aprobada la solicitud pasa a APROBADA_POR_DECANO, y si no aprueba ninguna usa el rechazo de la solicitud completa. Al enviar la respuesta aprobada solo se cancelan las asignaturas aprobadas que sigan activas. Cancelación de Matrícula no cambia. Se guarda en `ASIGNATURA_SOLICITUD_ACADEMICA` (`cumpleCondiciones`, `observacionEvaluacion`, `aprobadaPorDecano`, `observacionDecision`). |
+| P14 | Decisión del Decano en Cancelación de Asignatura | Confirmada por el autor; supera cualquier texto anterior. Aprobación parcial: el Decano aprueba o rechaza cada asignatura por separado. Al remitir, el Funcionario confirma por asignatura si cumple las condiciones de la sección 4.2 (una nota numérica menor a 3.0 no puede marcarse como que cumple, y una nota de texto no tiene esa restricción (P38); si no cumple, la observación de la evaluación es obligatoria) y al menos una debe cumplir. El Decano solo aprueba asignaturas que cumplen, registra la situación al cancelar de las aprobadas (P9) y puede dejar una observación por asignatura, opcional también en las rechazadas (desde T12.1 ya no se exige); con al menos una aprobada la solicitud pasa a APROBADA_POR_DECANO, y si no aprueba ninguna usa el rechazo de la solicitud completa. Al enviar la respuesta aprobada solo se cancelan las asignaturas aprobadas que sigan activas. Cancelación de Matrícula no cambia. Se guarda en `ASIGNATURA_SOLICITUD_ACADEMICA` (`cumpleCondiciones`, `observacionEvaluacion`, `aprobadaPorDecano`, `observacionDecision`). |
 
 Decisiones de implementación, tomadas al construir el backend y registradas en `change.md`. Describen lo que hace el código hoy:
 
 | N | Tema | Se adopta |
 | --- | --- | --- |
-| P15 | Lo que ve el Estudiante en Cancelación de Asignatura | Antes de APROBADA o RECHAZADA ve de cada asignatura solo el uuid de la fila, el código y el nombre. En APROBADA o RECHAZADA ve además `aprobadaPorDecano` y `observacionDecision`. Nunca ve faltas, nota, situaciones, `cumpleCondiciones` ni `observacionEvaluacion`. El Funcionario asignado y el Decano ven todo. |
-| P16 | Observación del Decano al aprobar el supletorio | Opcional. Al rechazar sigue siendo obligatoria. En las cancelaciones la aprobación del Decano no lleva observación. |
+| P15 | Lo que ve el Estudiante en Cancelación de Asignatura | Antes de APROBADA o RECHAZADA ve de cada asignatura solo el uuid de la fila, el código y el nombre. En APROBADA o RECHAZADA ve además `aprobadaPorDecano`. `observacionDecision` le llega siempre nula (desde T12.1). Nunca ve faltas, nota, situaciones, `cumpleCondiciones` ni `observacionEvaluacion`. El Funcionario asignado y el Decano ven todo. |
+| P16 | Observaciones de la remisión y del Decano | Desde T12.1, en los tres procesos: al remitir, el cuerpo lleva una sola observación (`observacion`), opcional, para el Decano; al aprobar y al rechazar, la observación del Decano es opcional (en las cancelaciones la aprobación también acepta `observacion`). Esas observaciones solo las ven el Funcionario y el Decano: en el historial del Estudiante las filas `REMITIR_DECANO`, `APROBAR_DECANO` y `RECHAZAR_DECANO` aparecen con la observación vacía. Las filas siguen apareciendo, con su acción y etapa, también antes de la etapa final. |
 | P17 | Fecha acordada del supletorio | La registra el Funcionario asignado al aprobar el comprobante (EN_VERIFICACION_PAGO a APROBADA). Es opcional, no puede ser anterior a la fecha del examen no presentado y se guarda a las 00:00 en `fechaAcordadaExamen`. |
 | P18 | Código de etapa y reconstrucción del historial | Bandejas, detalles e historial devuelven, además de la etiqueta del rol, el código estable de la etapa (`etapaCodigo`). El historial no guarda la etapa y su fecha tiene precisión de segundos, así que la etapa de cada fila se reconstruye encadenando las transiciones de la sección 3 desde RADICAR, sin depender del orden por fecha. Una acción que no encaja en el recorrido queda sin código. |
 | P19 | Visibilidad por rol | El rol con que actúa un usuario lo decide el servidor: dueño con rol Estudiante, si no Funcionario asignado al tipo, si no Decano. Un rol solo ve las solicitudes cuya etapa tiene etiqueta para él en `ETAPA_ETIQUETA_ROL`, en bandejas, detalle, historial y descargas. Una solicitud ajena o sin etiqueta responde igual que una inexistente. |
@@ -223,7 +223,7 @@ Decisiones de implementación, tomadas al construir el backend y registradas en 
 | P23 | Asignaturas que se cancelan al aprobar | Al enviar la respuesta aprobada de Cancelación de Matrícula pasan a `cancelada` las asignaturas de la solicitud que sigan `activa`; las que tengan otro estado no se tocan. Ninguna acción del supletorio cambia asignaturas. |
 | P24 | Concurrencia al radicar | La regla de una solicitud en curso por tipo se valida con una consulta previa, sin bloqueo. El radicado se calcula como el último del año y tipo más uno; si dos radicaciones chocan, la segunda se rechaza con "No se pudo generar el radicado, intente de nuevo" y no deja nada escrito. |
 | P25 | Conteo del plazo del supletorio | Con la hora de Colombia, se cuentan los días lunes a viernes posteriores al examen hasta hoy inclusive. El mismo día cuenta 0 y un examen en fin de semana empieza a contar el lunes. La fecha del examen no puede ser posterior a hoy. |
-| P26 | Límites de texto | Motivo de cancelación: 255 caracteres. Observación de una acción: 500. Observación de evaluación y de decisión por asignatura: 255. Hora del examen cruzado: formato HH:mm. |
+| P26 | Límites de texto | Motivo de cancelación: 255 caracteres. Observación de una acción: 500. Observación de evaluación y de decisión por asignatura: 255. Faltas y nota: 20. Hora del examen cruzado: formato HH:mm. |
 | P27 | Remitir el supletorio al Decano | El Funcionario debe confirmar `requisitosVerificados`; sin esa confirmación se rechaza la acción y se le indica que rechace la solicitud. La confirmación se revisa después del actor y la etapa. |
 | P28 | Programas académicos | Catálogo fijo de cinco programas, cada uno con su sigla: Ingeniería Electrónica y Telecomunicaciones (IET), Ingeniería de Sistemas (ISI), Ingeniería en Automática Industrial (IAI), Tecnología en Telemática (TTE) e Ingeniería en Inteligencia Artificial y Ciencia de Datos (IAC). Viven en `PROGRAMA_ACADEMICO`, se siembran con UUID fijos y no hay endpoint para crearlos ni editarlos; cualquier usuario autenticado los lista con `GET catalogos-academicos/programas`. |
 | P29 | Programa de una asignatura | Cada asignatura pertenece a un solo programa, obligatorio al crearla y que no se cambia después. `PUT asignaturas/{uuid}` solo cambia el nombre. |
@@ -233,6 +233,10 @@ Decisiones de implementación, tomadas al construir el backend y registradas en 
 | P33 | Asignaturas que matricula un estudiante | Solo asignaturas que ya existen en el catálogo y que son de su programa, al crearlo, al agregarle una matrícula y en la carga por Excel. Se buscan por código, sin distinguir mayúsculas ni espacios. Ningún flujo de estudiantes crea asignaturas. Por formulario, un código inexistente responde código 3 y uno de otro programa código 4; en el Excel ambos son código 6 con fila y columna. |
 | P34 | Datos anteriores a los programas | `migracion_programas_asignaturas.sql` asigna a cada estudiante el programa cuyo nombre coincide con su texto anterior (sin distinguir mayúsculas ni tildes) y a los demás Ingeniería de Sistemas; pasa todas las asignaturas existentes a Ingeniería de Sistemas con códigos `ISI-001` en adelante, en el orden de su código anterior. Las matrículas que ya existían se conservan aunque no cumplan P33; la regla aplica a las matrículas nuevas. |
 | P35 | Programas y procesos | Los programas no cambian ninguna regla de los tres procesos: radicación, etapas y bandejas siguen igual y solo usan las matrículas activas del estudiante. |
+| P36 | Facultad del estudiante | Siempre FIET. El backend la asigna al crear y al editar; no se recibe en el formulario, en el `PUT` ni en el Excel de estudiantes, que queda con 13 columnas. La columna `ESTUDIANTE.facultad` se conserva con ese valor. |
+| P37 | Edición de estudiantes y funcionarios académicos | `PUT estudiantes/{uuid}` acepta nombres, apellidos, tipo y número de documento, teléfono, correo, código estudiantil y semestre; `PUT funcionarios-academicos/{uuid}` acepta los mismos datos personales y el cargo. Cada campo es opcional y uno vacío no cambia. Username, programa y facultad son de solo lectura. La unicidad de documento, correo y código estudiantil excluye al propio registro (código de error 2). Los datos personales se escriben en `usuarios` y `usuariosLivianos` con un gateway de la extensión, sin tocar el código de Julián. `dependencia` pasa a llamarse `cargo` en tabla, API, filtro y Excel. |
+| P38 | Faltas y nota como texto | `numeroFaltas` y `nota` son texto de hasta 20 caracteres. Si el valor es numérico se valida como antes (faltas entero mayor o igual a 0; nota de 0.0 a 5.0 con un decimal, con punto o coma) y se guarda normalizado; si no, se acepta el texto. La regla de la nota menor a 3.0 en Cancelación de Asignatura solo aplica a notas numéricas. |
+| P39 | Mensaje del Funcionario al Estudiante | `funcionario/responder` acepta un cuerpo opcional `{observacion}` de hasta 500 caracteres. Se guarda en la fila `ENVIAR_RESPUESTA` del historial y el Estudiante sí lo ve. |
 
 ## 9. Funcionalidad opcional, al final del proyecto
 

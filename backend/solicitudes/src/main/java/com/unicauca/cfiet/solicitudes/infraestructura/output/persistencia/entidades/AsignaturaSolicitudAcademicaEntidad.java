@@ -3,8 +3,6 @@ package com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.entid
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.math.BigDecimal;
-
 @Entity
 @Table(name = "ASIGNATURA_SOLICITUD_ACADEMICA")
 @Getter
@@ -32,10 +30,10 @@ public class AsignaturaSolicitudAcademicaEntidad {
             foreignKey = @ForeignKey(name = "fk_asigsol_asigmat")
     )
     private AsignaturaMatriculadaEntidad asignaturaMatriculada;
-    @Column(name = "numeroFaltas")
-    private Integer numeroFaltas;
-    @Column(name = "nota", columnDefinition = "decimal(3,1)")
-    private BigDecimal nota;
+    @Column(name = "numeroFaltas", length = 20)
+    private String numeroFaltas;
+    @Column(name = "nota", length = 20)
+    private String nota;
     @ManyToOne
     @JoinColumn(
             name = "SituacionMatricula_uuid",

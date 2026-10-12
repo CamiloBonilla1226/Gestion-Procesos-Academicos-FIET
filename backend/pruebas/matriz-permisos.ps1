@@ -235,7 +235,6 @@ function Nuevo-Estudiante {
         codigoEstudiantil = "M$s"
         uuidProgramaAcademico = $programa.uuidProgramaAcademico
         semestre          = "5"
-        facultad          = "FIET"
         asignaturas       = @(@{ codigoAsignatura = $asignatura.codigoAsignatura; grupo = "A" })
     }
     $r = Invoke-Api -Metodo POST -Ruta "estudiantes" -Token $Token -Cuerpo $cuerpo
@@ -259,7 +258,7 @@ function Nuevo-Funcionario {
         correoElectronico = "mpf$s@unicauca.edu.co"
         username          = "mpf$s"
         password          = "Clave12345"
-        dependencia       = "DepMatriz $s"
+        cargo             = "DepMatriz $s"
     }
     $r = Invoke-Api -Metodo POST -Ruta "funcionarios-academicos" -Token $Token -Cuerpo $cuerpo
     if ($r.Status -ne 200) { throw "No se pudo crear el funcionario academico ($($r.Status)): $($r.Body)" }

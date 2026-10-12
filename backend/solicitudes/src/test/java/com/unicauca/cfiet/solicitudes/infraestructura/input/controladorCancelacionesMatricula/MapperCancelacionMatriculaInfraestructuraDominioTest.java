@@ -14,7 +14,6 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
@@ -56,13 +55,13 @@ class MapperCancelacionMatriculaInfraestructuraDominioTest {
     @Test
     void lasEvaluacionesYSituacionesPasanTalCualAlDominio() {
         List<EvaluacionAsignatura> evaluaciones = mapper.mapearEvaluaciones(List.of(
-                EvaluacionAsignaturaDTOPeticion.builder().asignaturaSolicitudUuid("as-1").numeroFaltas(3).nota(new BigDecimal("4.5")).situacionMatriculaUuid("sit-1").build()));
+                EvaluacionAsignaturaDTOPeticion.builder().asignaturaSolicitudUuid("as-1").numeroFaltas("3").nota("4.5").situacionMatriculaUuid("sit-1").build()));
         List<SituacionCancelarAsignatura> situaciones = mapper.mapearSituaciones(List.of(
                 SituacionCancelarDTOPeticion.builder().asignaturaSolicitudUuid("as-1").situacionCancelarUuid("sit-2").build()));
 
         assertEquals("as-1", evaluaciones.get(0).getUuidAsignaturaSolicitud());
-        assertEquals(3, evaluaciones.get(0).getNumeroFaltas());
-        assertEquals(new BigDecimal("4.5"), evaluaciones.get(0).getNota());
+        assertEquals("3", evaluaciones.get(0).getNumeroFaltas());
+        assertEquals("4.5", evaluaciones.get(0).getNota());
         assertEquals("sit-1", evaluaciones.get(0).getUuidSituacionMatricula());
         assertEquals("sit-2", situaciones.get(0).getUuidSituacionCancelar());
         assertNull(mapper.mapearEvaluaciones(null));
@@ -97,8 +96,8 @@ class MapperCancelacionMatriculaInfraestructuraDominioTest {
                         .uuidAsignaturaSolicitud("as-1")
                         .asignaturaMatriculada(AsignaturaMatriculada.builder()
                                 .asignatura(Asignatura.builder().codigoAsignatura("SIS101").nombreAsignatura("Cálculo I").build()).build())
-                        .numeroFaltas(1)
-                        .nota(new BigDecimal("3.5"))
+                        .numeroFaltas("1")
+                        .nota("3.5")
                         .situacionMatricula(r0)
                         .build()))
                 .build());
@@ -110,8 +109,8 @@ class MapperCancelacionMatriculaInfraestructuraDominioTest {
         assertEquals("as-1", asignatura.getUuidAsignaturaSolicitud());
         assertEquals("SIS101", asignatura.getCodigoAsignatura());
         assertEquals("Cálculo I", asignatura.getNombreAsignatura());
-        assertEquals(1, asignatura.getNumeroFaltas());
-        assertEquals(new BigDecimal("3.5"), asignatura.getNota());
+        assertEquals("1", asignatura.getNumeroFaltas());
+        assertEquals("3.5", asignatura.getNota());
         assertEquals("R0", asignatura.getSituacionMatricula().getCodigo());
         assertNull(asignatura.getSituacionCancelar());
     }

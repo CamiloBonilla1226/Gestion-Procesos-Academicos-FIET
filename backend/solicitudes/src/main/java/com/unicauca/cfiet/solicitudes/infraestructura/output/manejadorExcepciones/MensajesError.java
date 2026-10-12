@@ -78,8 +78,8 @@ public class MensajesError {
     public static final String ASIGNATURA_REPETIDA = "La asignatura %s viene más de una vez...";
     public static final String ASIGNATURA_AJENA = "La asignatura %s no pertenece a la solicitud %s...";
     public static final String DATO_ASIGNATURA_FALTANTE = "Falta %s de la asignatura %s...";
-    public static final String NUMERO_FALTAS_NO_VALIDO = "El número de faltas de la asignatura %s debe ser un entero mayor o igual a 0...";
-    public static final String NOTA_NO_VALIDA = "La nota de la asignatura %s debe estar entre 0.0 y 5.0 con un decimal...";
+    public static final String NUMERO_FALTAS_NO_VALIDO = "El número de faltas de la asignatura %s es numérico y debe ser un entero mayor o igual a 0; si no es un número se guarda como texto...";
+    public static final String NOTA_NO_VALIDA = "La nota de la asignatura %s es numérica y debe estar entre 0.0 y 5.0 con un decimal, con punto o coma; si no es un número se guarda como texto...";
     public static final String SIN_ASIGNATURAS_ELEGIDAS = "Debe elegir al menos una asignatura para cancelar...";
     public static final String ASIGNATURA_NO_MATRICULADA = "La asignatura %s no es una asignatura matriculada del estudiante %s...";
     public static final String ASIGNATURA_NO_ACTIVA = "La asignatura %s está %s y solo se pueden cancelar asignaturas activas...";
@@ -88,8 +88,8 @@ public class MensajesError {
     public static final String OBSERVACION_EVALUACION_REQUERIDA = "La asignatura %s no cumple las condiciones y requiere una observación de la evaluación...";
     public static final String NINGUNA_ASIGNATURA_CUMPLE = "Ninguna asignatura cumple las condiciones: en lugar de remitir la solicitud al Decano debe rechazarla...";
     public static final String ASIGNATURA_NO_APROBABLE = "La asignatura %s no cumple las condiciones y su cancelación no se puede aprobar...";
-    public static final String OBSERVACION_DECISION_REQUERIDA = "Rechazar la cancelación de la asignatura %s exige una observación de la decisión...";
     public static final String NINGUNA_ASIGNATURA_APROBADA = "No se aprobó ninguna asignatura: para negar la solicitud completa use el rechazo del Decano...";
+    public static final String VALOR_ASIGNATURA_MUY_LARGO = "En la asignatura %s, %s supera los %d caracteres permitidos...";
     public static final String OBSERVACION_ASIGNATURA_MUY_LARGA = "%s de la asignatura %s supera los %d caracteres permitidos...";
     public static final String ASIGNATURA_SUPLETORIO_REQUERIDA = "Debe elegir la asignatura del examen no presentado...";
     public static final String ASIGNATURA_SUPLETORIO_NO_ACTIVA = "La asignatura %s está %s y solo se aceptan asignaturas activas...";

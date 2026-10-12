@@ -40,11 +40,11 @@ public class FuncionarioAcademicoDTOPeticion {
     @Size(min = 5, max = 255, message = "El nombre de usuario debe tener entre 5 y 255 caracteres")
     private String username;
 
-    @NotBlank(message = "La contraseña no puede estar vacía")
+    @NotBlank(message = "La contraseña no puede estar vacío")
     @Size(min = 5, max = 255, message = "La contraseña debe tener entre 5 y 255 caracteres")
     private String password;
 
-    @NotBlank(message = "La dependencia no puede estar vacía")
-    @Size(max = 100, message = "La dependencia debe tener máximo 100 caracteres")
-    private String dependencia;
+    @NotBlank(message = "El cargo no puede estar vacío")
+    @Size(max = 100, message = "El cargo debe tener máximo 100 caracteres")
+    private String cargo;
 }

@@ -6,8 +6,10 @@ import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.MensajesError;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 
 public class TramiteCancelacion {
     private static final String SITUACION_ACADEMICA = "Situación académica de asignatura";
@@ -15,6 +17,8 @@ public class TramiteCancelacion {
     private static final String NOTA = "la nota";
     private static final BigDecimal NOTA_MINIMA = BigDecimal.ZERO;
     private static final BigDecimal NOTA_MAXIMA = new BigDecimal("5.0");
+    private static final int MAXIMO_VALOR_ASIGNATURA = 20;
+    private static final Pattern NUMERO = Pattern.compile("[+-]?\\d+([.,]\\d+)?");
 
     private final SolicitudCancelacionMatriculaGatewayIntPuerto asignaturaGateway;
     private final SituacionAcademicaAsignaturaGatewayIntPuerto situacionGateway;
@@ -75,20 +79,40 @@ public class TramiteCancelacion {
         return porAsignatura;
     }
 
-    public Integer faltasDe(Integer numeroFaltas, String asignatura) {
-        if (numeroFaltas == null)
-            formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.DATO_ASIGNATURA_FALTANTE, NUMERO_FALTAS, asignatura));
-        if (numeroFaltas < 0)
+    public String faltasDe(String numeroFaltas, String asignatura) {
+        String texto = valorAsignatura(numeroFaltas, NUMERO_FALTAS, asignatura);
+        BigDecimal faltas = numero(texto);
+        if (faltas == null)
+            return texto;
+        if (faltas.signum() < 0 || faltas.stripTrailingZeros().scale() > 0)
             formateadorExcepciones.lanzarMalFormato(String.format(MensajesError.NUMERO_FALTAS_NO_VALIDO, asignatura));
-        return numeroFaltas;
+        return faltas.toBigInteger().toString();
     }
 
-    public BigDecimal notaDe(BigDecimal nota, String asignatura) {
-        if (nota == null)
-            formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.DATO_ASIGNATURA_FALTANTE, NOTA, asignatura));
-        if (nota.compareTo(NOTA_MINIMA) < 0 || nota.compareTo(NOTA_MAXIMA) > 0 || nota.stripTrailingZeros().scale() > 1)
+    public String notaDe(String nota, String asignatura) {
+        String texto = valorAsignatura(nota, NOTA, asignatura);
+        BigDecimal valor = numero(texto);
+        if (valor == null)
+            return texto;
+        if (valor.compareTo(NOTA_MINIMA) < 0 || valor.compareTo(NOTA_MAXIMA) > 0 || valor.stripTrailingZeros().scale() > 1)
             formateadorExcepciones.lanzarMalFormato(String.format(MensajesError.NOTA_NO_VALIDA, asignatura));
-        return nota.setScale(1);
+        return valor.setScale(1, RoundingMode.UNNECESSARY).toPlainString();
+    }
+
+    public BigDecimal numero(String valor) {
+        if (valor == null || !NUMERO.matcher(valor.trim()).matches())
+            return null;
+        return new BigDecimal(valor.trim().replace(',', '.'));
+    }
+
+    private String valorAsignatura(String valor, String dato, String asignatura) {
+        if (!tieneTexto(valor))
+            formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.DATO_ASIGNATURA_FALTANTE, dato, asignatura));
+        String texto = valor.trim();
+        if (texto.length() > MAXIMO_VALOR_ASIGNATURA)
+            formateadorExcepciones.lanzarMalFormato(String.format(MensajesError.VALOR_ASIGNATURA_MUY_LARGO, asignatura, dato,
+                    MAXIMO_VALOR_ASIGNATURA));
+        return texto;
     }
 
     public SituacionAcademicaAsignatura situacionDe(Map<String, SituacionAcademicaAsignatura> catalogo, String uuidSituacion,

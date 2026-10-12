@@ -43,7 +43,7 @@ catalogos-academicos/programas`.
 | codigoEstudiantil | varchar(45) | UK (uk\_estudiante\_codigo) | No | Código estudiantil, único entre estudiantes |
 | ProgramaAcademico\_uuid | varchar(100) | FK -> PROGRAMA\_ACADEMICO (fk\_estudiante\_programa) | No | Programa que cursa. Se elige al crearlo y no se edita. Solo puede matricular asignaturas de este programa |
 | semestre | varchar(10) |  | No | Semestre actual |
-| facultad | varchar(100) |  | No | Facultad a la que pertenece |
+| facultad | varchar(100) |  | No | Siempre `FIET`. La asigna el backend al crear y al editar; no se recibe en el formulario, en el `PUT` ni en el Excel |
 
 ## FUNCIONARIO\_ACADEMICO
 
@@ -62,7 +62,7 @@ historial apunta a `usuarios`.
 | Campo | Tipo | Llave | Nulo | Descripción |
 | --- | --- | --- | --- | --- |
 | Usuario\_uuid | varchar(100) | PK, FK -> usuarios (uuidUsuario) (fk\_funcionarioacademico\_usuario) | No | Comparte identificador con Usuario |
-| dependencia | varchar(100) |  | No | Dependencia u oficina a la que pertenece el Técnico Administrativo de Procesos Académicos; no distingue roles |
+| cargo | varchar(100) |  | No | Cargo que ocupa el Técnico Administrativo de Procesos Académicos (antes `dependencia`); no distingue roles. Editable por `PUT funcionarios-academicos/{uuid}` |
 
 ## ASIGNATURA
 
@@ -162,7 +162,7 @@ como "situación al cancelar" en `ASIGNATURA_SOLICITUD_ACADEMICA`.
 | --- | --- | --- | --- | --- |
 | uuidSituacionAcademica | varchar(100) | PK | No | Identificador de la situación |
 | codigo | varchar(10) |  | No | R0, R1, R2 o R3 |
-| nombre | varchar(100) |  | No | Cursada por primera / segunda / tercera / cuarta vez |
+| nombre | varchar(100) |  | No | R0 No cursada, R1 Cursada por primera vez, R2 Cursada por segunda vez, R3 Cursada por tercera vez |
 
 ## ASIGNATURA\_SOLICITUD\_ACADEMICA
 
@@ -171,14 +171,14 @@ como "situación al cancelar" en `ASIGNATURA_SOLICITUD_ACADEMICA`.
 | uuidAsignaturaSolicitud | varchar(100) | PK | No | Identificador de la fila |
 | SolicitudAcademica\_uuid | varchar(100) | FK -> SOLICITUD\_ACADEMICA (fk\_asigsol\_solacad) | No | Solicitud a la que pertenece |
 | AsignaturaMatriculada\_uuid | varchar(100) | FK -> ASIGNATURA\_MATRICULADA (fk\_asigsol\_asigmat) | No | Asignatura incluida |
-| numeroFaltas | int |  | Sí | Nulo hasta que el funcionario evalúa; entero mayor o igual a 0 |
-| nota | decimal(3,1) |  | Sí | Nulo hasta evaluación; de 0.0 a 5.0 con un decimal |
+| numeroFaltas | varchar(20) |  | Sí | Nulo hasta que el funcionario evalúa. Si es numérico debe ser un entero mayor o igual a 0 y se guarda normalizado (`03` queda `3`); si no es numérico se guarda el texto sin espacios sobrantes |
+| nota | varchar(20) |  | Sí | Nulo hasta evaluación. Si es numérica (con punto o coma) debe estar entre 0.0 y 5.0 con un decimal y se guarda con punto y un decimal (`3,5` queda `3.5`); si no es numérica se guarda el texto. La regla "nota menor a 3.0 no puede cumplir" solo aplica a notas numéricas |
 | SituacionMatricula\_uuid | varchar(100) | FK -> SITUACION\_ACADEMICA\_ASIGNATURA (fk\_asigsol\_situmatricula) | Sí | Nulo hasta evaluación |
 | SituacionCancelar\_uuid | varchar(100) | FK -> SITUACION\_ACADEMICA\_ASIGNATURA (fk\_asigsol\_situcancelar) | Sí | Nulo hasta resolución del Decano; en Cancelación de Asignatura solo en las aprobadas |
 | cumpleCondiciones | tinyint(1) |  | Sí | Solo Cancelación de Asignatura: el Funcionario confirma que verificó las condiciones de la sección 4.2 de `etapas-por-proceso.md`. Nulo hasta evaluación |
-| observacionEvaluacion | varchar(255) |  | Sí | Solo Cancelación de Asignatura: obligatoria si la asignatura no cumple las condiciones |
+| observacionEvaluacion | varchar(255) |  | Sí | Solo Cancelación de Asignatura: obligatoria si la asignatura no cumple las condiciones. La ven el Funcionario y el Decano, nunca el Estudiante |
 | aprobadaPorDecano | tinyint(1) |  | Sí | Solo Cancelación de Asignatura: decisión del Decano sobre esa asignatura (P14). Nulo hasta su decisión |
-| observacionDecision | varchar(255) |  | Sí | Solo Cancelación de Asignatura: obligatoria si el Decano rechaza la asignatura |
+| observacionDecision | varchar(255) |  | Sí | Solo Cancelación de Asignatura: opcional, también al rechazar la asignatura. La ven el Funcionario y el Decano; al Estudiante le llega nula |
 
 ## TIPO\_ANEXO\_ACADEMICO
 
@@ -212,7 +212,7 @@ como "situación al cancelar" en `ASIGNATURA_SOLICITUD_ACADEMICA`.
 | SolicitudAcademica\_uuid | varchar(100) | FK -> SOLICITUD\_ACADEMICA (fk\_historial\_solacad) | No | Solicitud sobre la que ocurrió la acción |
 | Usuario\_uuid | varchar(100) | FK -> usuarios (uuidUsuario) (fk\_historial\_usuario) | No | Quién ejecutó la acción |
 | accion | varchar(150) |  | No | Código de la acción de la máquina de etapas: RADICAR, RECHAZAR\_FUNCIONARIO, REMITIR\_DECANO, APROBAR\_DECANO, RECHAZAR\_DECANO, ENVIAR\_RESPUESTA, ENVIAR\_RECIBO, SUBIR\_COMPROBANTE, APROBAR\_COMPROBANTE o RECHAZAR\_COMPROBANTE. La tabla no guarda la etapa: la API la reconstruye (decisión P18) |
-| observaciones | varchar(500) |  | Sí | Observación de la acción, cuando aplica (máximo 500 caracteres) |
+| observaciones | varchar(500) |  | Sí | Observación de la acción, cuando aplica (máximo 500 caracteres). En `REMITIR_DECANO`, `APROBAR_DECANO` y `RECHAZAR_DECANO` es opcional y solo la ven el Funcionario y el Decano: la API se la entrega vacía al Estudiante. En `ENVIAR_RESPUESTA` es el mensaje opcional del Funcionario al Estudiante, que sí lo ve |
 | fecha | datetime |  | No | Fecha y hora del evento, con precisión de segundos. Valor por defecto CURRENT\_TIMESTAMP |
 
 ## RESOLUCION\_ACADEMICA
@@ -272,3 +272,32 @@ migración después corrige ese estado.
 
 Una base nueva no necesita la migración: Hibernate crea las tablas y los
 programas se siembran con `seed-procesos-academicos.sql`.
+
+## Migración de cargo, situaciones, faltas y nota (T12.1)
+
+`docs/database/migracion_cargo_situaciones_notas.sql` pone al día una base
+anterior a T12.1. Es idempotente y no borra datos. Hace, en este orden:
+
+1. Renombra `FUNCIONARIO_ACADEMICO.dependencia` a `cargo`. Si el backend
+   nuevo ya arrancó y Hibernate creó `cargo` vacía, copia `dependencia` en
+   las filas sin cargo y borra `dependencia`.
+2. Deja la `facultad` de todos los estudiantes en `FIET`.
+3. Cambia `ASIGNATURA_SOLICITUD_ACADEMICA.numeroFaltas` y `nota` a
+   `varchar(20)`. Los valores existentes se conservan como texto (`4.0`,
+   `0`). Hibernate no cambia el tipo de una columna existente, por eso la
+   migración es obligatoria en bases con datos.
+4. Renombra las situaciones por código: R0 No cursada, R1 Cursada por
+   primera vez, R2 Cursada por segunda vez, R3 Cursada por tercera vez. Los
+   uuid no cambian, así que una fila que ya apuntaba a R1 pasa a mostrarse
+   como "Cursada por primera vez".
+5. Cambia las etiquetas del rol `FUNCIONARIO` en `APROBADA_POR_DECANO`
+   ("Aprobada por el Decano") y `RECHAZADA_POR_DECANO` ("Rechazada por el
+   Decano").
+
+Se aplica igual que la anterior, antes de levantar el backend nuevo y después
+de sacar un respaldo:
+
+```
+docker compose cp ../docs/database/migracion_cargo_situaciones_notas.sql cfiet_database:/tmp/migracion_t12.sql
+docker compose exec -T cfiet_database mysql -u root -pmysql --default-character-set=utf8mb4 cfiet -e "source /tmp/migracion_t12.sql"
+```

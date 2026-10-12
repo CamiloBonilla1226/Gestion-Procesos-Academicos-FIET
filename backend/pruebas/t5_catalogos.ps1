@@ -83,7 +83,7 @@ try {
             PENDIENTE_PAGO = "Pendiente de pago"; EN_VERIFICACION_PAGO = Texto "En verificaci\u00f3n de pago"; APROBADA = "Aprobada"; RECHAZADA = "Rechazada"
         }
         FUNCIONARIO = @{
-            RADICADA = "Pendiente"; EN_REVISION_DECANO = Texto "En Gesti\u00f3n"; APROBADA_POR_DECANO = "Pendiente de Respuesta"; RECHAZADA_POR_DECANO = "Pendiente de Respuesta"
+            RADICADA = "Pendiente"; EN_REVISION_DECANO = Texto "En Gesti\u00f3n"; APROBADA_POR_DECANO = "Aprobada por el Decano"; RECHAZADA_POR_DECANO = "Rechazada por el Decano"
             PENDIENTE_PAGO = Texto "En Gesti\u00f3n"; EN_VERIFICACION_PAGO = Texto "Pendiente de Verificaci\u00f3n"; APROBADA = "Respondida"; RECHAZADA = "Respondida"
         }
         DECANO      = @{
@@ -106,7 +106,7 @@ try {
         "Recibo de pago"                                                                = @{ Formatos = "pdf"; Obligatorio = $false }
         "Comprobante de pago"                                                           = @{ Formatos = "pdf,jpg,png"; Obligatorio = $false }
     }
-    $Situaciones = [ordered]@{ R0 = "Cursada por primera vez"; R1 = "Cursada por segunda vez"; R2 = "Cursada por tercera vez"; R3 = "Cursada por cuarta vez" }
+    $Situaciones = [ordered]@{ R0 = "No cursada"; R1 = "Cursada por primera vez"; R2 = "Cursada por segunda vez"; R3 = "Cursada por tercera vez" }
 
     $r = Invoke-Api -Metodo GET -Ruta "catalogos-academicos/tipos-solicitud" -Token $tokenRoot
     $lista = Leer-Json $r

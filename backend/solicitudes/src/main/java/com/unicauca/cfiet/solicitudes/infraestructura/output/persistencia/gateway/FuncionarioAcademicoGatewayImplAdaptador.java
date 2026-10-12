@@ -51,8 +51,8 @@ public class FuncionarioAcademicoGatewayImplAdaptador implements FuncionarioAcad
     }
 
     @Override
-    public PaginacionRespuestaDTO<FuncionarioAcademico> getPorFiltro(String nombre, String apellido, String dependencia, int pagina, int tamanio) {
-        return aRespuesta(repositorio.findByFiltro(limpiar(nombre), limpiar(apellido), limpiar(dependencia), paginado(pagina, tamanio)));
+    public PaginacionRespuestaDTO<FuncionarioAcademico> getPorFiltro(String nombre, String apellido, String cargo, int pagina, int tamanio) {
+        return aRespuesta(repositorio.findByFiltro(limpiar(nombre), limpiar(apellido), limpiar(cargo), paginado(pagina, tamanio)));
     }
 
     @Override

@@ -14,7 +14,7 @@ public class FuncionarioAcademicoOwnMapper implements OwnMapper<FuncionarioAcade
         return FuncionarioAcademico.builder()
                 .uuidUsuario(source.getUuidUsuario())
                 .usuario(usuarioDominio(source.getUsuario()))
-                .dependencia(source.getDependencia())
+                .cargo(source.getCargo())
                 .build();
     }
 
@@ -22,7 +22,7 @@ public class FuncionarioAcademicoOwnMapper implements OwnMapper<FuncionarioAcade
     public FuncionarioAcademicoEntidad toEntidad(FuncionarioAcademico source) {
         return FuncionarioAcademicoEntidad.builder()
                 .uuidUsuario(source.getUuidUsuario())
-                .dependencia(source.getDependencia())
+                .cargo(source.getCargo())
                 .build();
     }
 

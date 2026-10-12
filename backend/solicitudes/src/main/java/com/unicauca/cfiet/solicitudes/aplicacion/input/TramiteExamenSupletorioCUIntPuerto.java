@@ -14,7 +14,7 @@ public interface TramiteExamenSupletorioCUIntPuerto {
 
     SolicitudExamenSupletorio rechazarPorDecano(String uuidSolicitudAcademica, String observacion, String token);
 
-    SolicitudExamenSupletorio enviarRespuesta(String uuidSolicitudAcademica, String token);
+    SolicitudExamenSupletorio enviarRespuesta(String uuidSolicitudAcademica, String observacion, String token);
 
     SolicitudExamenSupletorio enviarRecibo(String uuidSolicitudAcademica, String token);
 

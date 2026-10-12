@@ -5,7 +5,7 @@ import java.util.List;
 public final class ColumnasExcelFuncionariosAcademicos {
     public static final List<String> COLUMNAS = List.of(
             "nombres", "apellidos", "tipoDocumento", "numeroDocumento", "telefono",
-            "correoElectronico", "username", "password", "dependencia");
+            "correoElectronico", "username", "password", "cargo");
 
     private ColumnasExcelFuncionariosAcademicos() {
     }

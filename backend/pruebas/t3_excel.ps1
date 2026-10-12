@@ -1,13 +1,13 @@
 . "$PSScriptRoot\comun.ps1"
 
-$Encabezado = @("nombres", "apellidos", "tipoDocumento", "numeroDocumento", "telefono", "correoElectronico", "username", "password", "codigoEstudiantil", "programaAcademico", "semestre", "facultad", "codigoAsignatura", "grupo")
+$Encabezado = @("nombres", "apellidos", "tipoDocumento", "numeroDocumento", "telefono", "correoElectronico", "username", "password", "codigoEstudiantil", "programaAcademico", "semestre", "codigoAsignatura", "grupo")
 $Carpeta = Join-Path ([System.IO.Path]::GetTempPath()) ("t3_excel_" + (Nuevo-Sufijo))
 New-Item -ItemType Directory -Path $Carpeta | Out-Null
 
 function Datos-Estudiante {
     param([string]$Sufijo, [string]$Programa = $script:isi.nombre)
     $script:usernames += "xl$Sufijo"
-    return @("Excel", "Prueba $Sufijo", $Global:CedulaCiudadania, "7$Sufijo", "3000000000", "xl$Sufijo@unicauca.edu.co", "xl$Sufijo", "Clave12345", "X$Sufijo", $Programa, "4", "FIET")
+    return @("Excel", "Prueba $Sufijo", $Global:CedulaCiudadania, "7$Sufijo", "3000000000", "xl$Sufijo@unicauca.edu.co", "xl$Sufijo", "Clave12345", "X$Sufijo", $Programa, "4")
 }
 
 function Nuevo-Excel {
@@ -103,9 +103,9 @@ try {
     $casos = @(
         @{ Nombre = "programa desconocido"; Filas = @(, ((Datos-Estudiante ($t = Nuevo-Sufijo)) + @($xa, "A"))) + @(, ((Datos-Estudiante (Nuevo-Sufijo) "Medicina") + @($xa, "A"))); Status = 500; Codigo = "6"; Texto = "Fila 3, columna J (programaAcademico)"; Sufijo = $t },
         @{ Nombre = "programa vacio"; Filas = @(, ((Datos-Estudiante ($t = Nuevo-Sufijo) "") + @($xa, "A"))); Status = 400; Codigo = $null; Texto = "Fila 2, columna J (programaAcademico)"; Sufijo = $t },
-        @{ Nombre = "asignatura inexistente"; Filas = @(, ((Datos-Estudiante ($t = Nuevo-Sufijo)) + @($xa, "A"))) + @(, ((Datos-Estudiante (Nuevo-Sufijo)) + @("NOEXISTE-$s0", "A"))); Status = 500; Codigo = "6"; Texto = "Fila 3, columna M (codigoAsignatura)"; Sufijo = $t },
-        @{ Nombre = "asignatura de otro programa"; Filas = @(, ((Datos-Estudiante ($t = Nuevo-Sufijo)) + @($xo, "A"))); Status = 500; Codigo = "6"; Texto = "Fila 2, columna M (codigoAsignatura)"; Sufijo = $t },
-        @{ Nombre = "asignatura vacia"; Filas = @(, ((Datos-Estudiante ($t = Nuevo-Sufijo)) + @("", "A"))); Status = 400; Codigo = $null; Texto = "columna M (codigoAsignatura)"; Sufijo = $t }
+        @{ Nombre = "asignatura inexistente"; Filas = @(, ((Datos-Estudiante ($t = Nuevo-Sufijo)) + @($xa, "A"))) + @(, ((Datos-Estudiante (Nuevo-Sufijo)) + @("NOEXISTE-$s0", "A"))); Status = 500; Codigo = "6"; Texto = "Fila 3, columna L (codigoAsignatura)"; Sufijo = $t },
+        @{ Nombre = "asignatura de otro programa"; Filas = @(, ((Datos-Estudiante ($t = Nuevo-Sufijo)) + @($xo, "A"))); Status = 500; Codigo = "6"; Texto = "Fila 2, columna L (codigoAsignatura)"; Sufijo = $t },
+        @{ Nombre = "asignatura vacia"; Filas = @(, ((Datos-Estudiante ($t = Nuevo-Sufijo)) + @("", "A"))); Status = 400; Codigo = $null; Texto = "columna L (codigoAsignatura)"; Sufijo = $t }
     )
     foreach ($caso in $casos) {
         $ruta = Nuevo-Excel "caso.xlsx" $caso.Filas
@@ -155,11 +155,18 @@ try {
     Escribir-Resultado "encabezado distinto (500 codigoError 6 con fila 1 y columna E, obtuvo $($r.Status) codigoError $cod)" (($r.Status -eq 500) -and ($cod -eq "6") -and ($r.Body -match "Fila 1, columna E"))
 
     $encabezadoViejo = Join-Path $Carpeta "encabezado_viejo.xlsx"
-    $viejo = @($Encabezado[0..12]) + @("nombreAsignatura", "grupo")
+    $viejo = @($Encabezado[0..11]) + @("nombreAsignatura", "grupo")
     Nuevo-ArchivoXlsx -Ruta $encabezadoViejo -Filas @($viejo, ((Datos-Estudiante (Nuevo-Sufijo)) + @($xa, "Materia", "A")))
     $r = Subir-Archivo -Ruta "estudiantes/cargar/archivo" -Archivo $encabezadoViejo -Token $tokenRoot
     $cod = Obtener-CodigoError $r
-    Escribir-Resultado "plantilla anterior con nombreAsignatura (500 codigoError 6 con fila 1 y columna N, obtuvo $($r.Status) codigoError $cod)" (($r.Status -eq 500) -and ($cod -eq "6") -and ($r.Body -match "Fila 1, columna N"))
+    Escribir-Resultado "plantilla anterior con nombreAsignatura (500 codigoError 6 con fila 1 y columna M, obtuvo $($r.Status) codigoError $cod)" (($r.Status -eq 500) -and ($cod -eq "6") -and ($r.Body -match "Fila 1, columna M"))
+
+    $encabezadoFacultad = Join-Path $Carpeta "encabezado_facultad.xlsx"
+    $conFacultad = @($Encabezado[0..10]) + @("facultad", "codigoAsignatura", "grupo")
+    Nuevo-ArchivoXlsx -Ruta $encabezadoFacultad -Filas @($conFacultad, ((Datos-Estudiante (Nuevo-Sufijo)) + @("FIET", $xa, "A")))
+    $r = Subir-Archivo -Ruta "estudiantes/cargar/archivo" -Archivo $encabezadoFacultad -Token $tokenRoot
+    $cod = Obtener-CodigoError $r
+    Escribir-Resultado "plantilla anterior con facultad (500 codigoError 6 con fila 1 y columna L, obtuvo $($r.Status) codigoError $cod)" (($r.Status -eq 500) -and ($cod -eq "6") -and ($r.Body -match "Fila 1, columna L"))
 
     $s8 = Nuevo-Sufijo
     $base = Datos-Estudiante $s8

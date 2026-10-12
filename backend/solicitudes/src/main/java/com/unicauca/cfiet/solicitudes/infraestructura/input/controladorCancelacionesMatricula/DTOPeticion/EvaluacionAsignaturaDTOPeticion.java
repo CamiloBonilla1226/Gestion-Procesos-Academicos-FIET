@@ -5,15 +5,13 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
-
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 public class EvaluacionAsignaturaDTOPeticion {
     private String asignaturaSolicitudUuid;
-    private Integer numeroFaltas;
-    private BigDecimal nota;
+    private String numeroFaltas;
+    private String nota;
     private String situacionMatriculaUuid;
 }

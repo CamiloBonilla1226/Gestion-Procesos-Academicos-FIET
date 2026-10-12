@@ -65,8 +65,8 @@ public class TramiteExamenSupletorioCUImplAdaptador implements TramiteExamenSupl
     }
 
     @Override
-    public SolicitudExamenSupletorio enviarRespuesta(String uuidSolicitudAcademica, String token) {
-        return accion(uuidSolicitudAcademica, AccionEtapa.ENVIAR_RESPUESTA, RolEtiquetaEtapa.FUNCIONARIO, null, token);
+    public SolicitudExamenSupletorio enviarRespuesta(String uuidSolicitudAcademica, String observacion, String token) {
+        return accion(uuidSolicitudAcademica, AccionEtapa.ENVIAR_RESPUESTA, RolEtiquetaEtapa.FUNCIONARIO, observacion, token);
     }
 
     @Override

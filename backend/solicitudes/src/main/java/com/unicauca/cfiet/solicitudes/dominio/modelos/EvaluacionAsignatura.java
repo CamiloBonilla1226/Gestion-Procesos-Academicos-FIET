@@ -2,8 +2,6 @@ package com.unicauca.cfiet.solicitudes.dominio.modelos;
 
 import lombok.*;
 
-import java.math.BigDecimal;
-
 @Getter
 @Setter
 @NoArgsConstructor
@@ -11,8 +9,8 @@ import java.math.BigDecimal;
 @Builder
 public class EvaluacionAsignatura {
     private String uuidAsignaturaSolicitud;
-    private Integer numeroFaltas;
-    private BigDecimal nota;
+    private String numeroFaltas;
+    private String nota;
     private String uuidSituacionMatricula;
     private Boolean cumpleCondiciones;
     private String observacionEvaluacion;

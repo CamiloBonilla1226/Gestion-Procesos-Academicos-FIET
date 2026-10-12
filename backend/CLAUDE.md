@@ -365,7 +365,7 @@ ninguna FK de la extensión apunta al Decano (el historial apunta a
 ## Procesos académicos: piezas y máquina de etapas
 
 Las reglas de negocio de los tres procesos (etapas, transiciones, anexos,
-plazos y decisiones P4 a P27) están en `docs/database/etapas-por-proceso.md`;
+plazos y decisiones P4 a P39) están en `docs/database/etapas-por-proceso.md`;
 el contrato HTTP, en `docs/api/contrato-api-procesos-academicos.md`.
 
 ### Casos de uso por área
@@ -404,6 +404,13 @@ constructor del caso de uso o del servicio que los usa (por ejemplo,
   Funcionario asignado al tipo.
 - `ValidadorArchivoAdjunto`: archivo vacío, 5 MB, extensión permitida por el
   tipo de anexo y firma del contenido (pdf, png, jpg).
+- `DatosPersonales`: valida y aplica los cambios de datos personales al
+  editar un estudiante o un funcionario académico (ver "Crear Estudiante y
+  Funcionario Académico").
+
+Además, `ConsultaSolicitudAcademicaCUImplAdaptador.getHistorial` deja nulas
+para el Estudiante las observaciones de `REMITIR_DECANO`, `APROBAR_DECANO` y
+`RECHAZAR_DECANO` (P16); las filas siguen apareciendo con su etapa.
 
 Los archivos los guarda `AlmacenamientoAnexosImplAdaptador`
 (`infraestructura/output/almacenamiento`) sobre el `AlmacenadorArchivos` de
@@ -417,7 +424,7 @@ Julián (ver "Solicitudes académicas, historial, anexos y Resolución").
 | `RECHAZAR_FUNCIONARIO` | RADICADA | RECHAZADA | Funcionario | los tres | observación; escaneo en las cancelaciones |
 | `REMITIR_DECANO` | RADICADA | EN_REVISION_DECANO | Funcionario | los tres | |
 | `APROBAR_DECANO` | EN_REVISION_DECANO | APROBADA_POR_DECANO | Decano | los tres | |
-| `RECHAZAR_DECANO` | EN_REVISION_DECANO | RECHAZADA_POR_DECANO | Decano | los tres | observación |
+| `RECHAZAR_DECANO` | EN_REVISION_DECANO | RECHAZADA_POR_DECANO | Decano | los tres | |
 | `ENVIAR_RESPUESTA` | APROBADA_POR_DECANO | APROBADA | Funcionario | cancelaciones | escaneo |
 | `ENVIAR_RESPUESTA` | RECHAZADA_POR_DECANO | RECHAZADA | Funcionario | los tres | escaneo en las cancelaciones |
 | `ENVIAR_RECIBO` | APROBADA_POR_DECANO | PENDIENTE_PAGO | Funcionario | supletorio | recibo de pago |
@@ -616,16 +623,22 @@ El resto de `solicitudes-academicas/**` es `denyAll()`.
   - `remitirADecano(uuid, evaluaciones, observacion, token)`: RADICADA a
     EN_REVISION_DECANO. Cada `EvaluacionAsignatura` trae
     `uuidAsignaturaSolicitud` (fila de `ASIGNATURA_SOLICITUD_ACADEMICA`),
-    `numeroFaltas` (>= 0), `nota` (0.0 a 5.0 con un decimal) y
-    `uuidSituacionMatricula`. `cambiarEtapa` borra el escaneo viejo (T5.7a).
-  - `aprobarPorDecano(uuid, situacionesAlCancelar, token)`:
+    `numeroFaltas` y `nota` (texto de hasta 20; si son numéricos, faltas
+    entero >= 0 y nota de 0.0 a 5.0 con un decimal, con punto o coma, y se
+    guardan normalizados; si no, se guarda el texto; lo valida
+    `TramiteCancelacion.faltasDe` y `notaDe`) y `uuidSituacionMatricula`.
+    `cambiarEtapa` borra el escaneo viejo (T5.7a).
+  - `aprobarPorDecano(uuid, situacionesAlCancelar, observacion, token)`:
     EN_REVISION_DECANO a APROBADA_POR_DECANO. Cada
     `SituacionCancelarAsignatura` trae `uuidAsignaturaSolicitud` y
     `uuidSituacionCancelar` (P9: la registra el Decano).
   - `rechazarPorDecano(uuid, observacion, token)`: EN_REVISION_DECANO a
-    RECHAZADA_POR_DECANO, sin tocar las situaciones.
-  - `enviarRespuesta(uuid, token)`: APROBADA_POR_DECANO a APROBADA o
-    RECHAZADA_POR_DECANO a RECHAZADA, con escaneo. Solo en APROBADA las
+    RECHAZADA_POR_DECANO, sin tocar las situaciones. La observación es
+    opcional.
+  - `enviarRespuesta(uuid, observacion, token)`: APROBADA_POR_DECANO a
+    APROBADA o RECHAZADA_POR_DECANO a RECHAZADA, con escaneo. La observación
+    es el mensaje opcional al Estudiante (máximo 500, lo valida
+    `cambiarEtapa`). Solo en APROBADA las
     `ASIGNATURA_MATRICULADA` de la solicitud que sigan `activa` pasan a
     `cancelada`, en la misma transacción; las que ya tengan otro estado no se
     tocan.
@@ -652,9 +665,9 @@ ni tipo de usuario.
 | `GET /{uuid}` | los tres | Detalle de `solicitudes-academicas` más motivo y asignaturas (uuid de la fila de `ASIGNATURA_SOLICITUD_ACADEMICA`, código, nombre, faltas, nota y las dos situaciones) |
 | `POST /{uuid}/funcionario/rechazar` | Funcionario Académico | Cuerpo `observacion` |
 | `POST /{uuid}/funcionario/remitir` | Funcionario Académico | Cuerpo `observacion` opcional y `evaluaciones` (`asignaturaSolicitudUuid`, `numeroFaltas`, `nota`, `situacionMatriculaUuid`) |
-| `POST /{uuid}/funcionario/responder` | Funcionario Académico | Sin cuerpo |
-| `POST /{uuid}/decano/aprobar` | Decano | Cuerpo `situaciones` (`asignaturaSolicitudUuid`, `situacionCancelarUuid`) |
-| `POST /{uuid}/decano/rechazar` | Decano | Cuerpo `observacion` |
+| `POST /{uuid}/funcionario/responder` | Funcionario Académico | Cuerpo opcional `observacion` (`@RequestBody(required = false)`) |
+| `POST /{uuid}/decano/aprobar` | Decano | Cuerpo `situaciones` (`asignaturaSolicitudUuid`, `situacionCancelarUuid`) y `observacion` opcional |
+| `POST /{uuid}/decano/rechazar` | Decano | Cuerpo opcional `observacion` |
 
 El resto de `cancelaciones-matricula/**` es `denyAll()`.
 
@@ -720,14 +733,16 @@ El resto de `cancelaciones-matricula/**` es `denyAll()`.
   `observacionEvaluacion`, `aprobadaPorDecano` y `observacionDecision`, todas
   nulas; en matrícula quedan en `null`.
 - `remitirADecano`: cada `EvaluacionAsignatura` trae además
-  `cumpleCondiciones` (obligatorio) y `observacionEvaluacion`. Una nota menor
-  a 3.0 no puede venir con `cumpleCondiciones` verdadero; si no cumple, la
+  `cumpleCondiciones` (obligatorio) y `observacionEvaluacion`. Una nota
+  numérica menor a 3.0 no puede venir con `cumpleCondiciones` verdadero (una
+  nota de texto no tiene esa restricción); si no cumple, la
   observación es obligatoria (máximo 255); al menos una debe cumplir, si no
   el error pide rechazar la solicitud.
-- `aprobarPorDecano(uuid, decisiones, token)`: cada `DecisionAsignatura` trae
-  `aprobada`, `uuidSituacionCancelar` y `observacionDecision`. Solo se
-  aprueba una asignatura que cumple; rechazar exige observación; la
-  situación al cancelar se guarda solo en las aprobadas; al menos una
+- `aprobarPorDecano(uuid, decisiones, observacion, token)`: cada
+  `DecisionAsignatura` trae `aprobada`, `uuidSituacionCancelar` y
+  `observacionDecision` (opcional, también al rechazar). Solo se aprueba una
+  asignatura que cumple; la situación al cancelar se guarda solo en las
+  aprobadas; al menos una
   aprobada, si no el error pide usar `rechazarPorDecano`. La etapa pasa por
   APROBAR_DECANO como en matrícula.
 - `rechazarPorFuncionario` y `rechazarPorDecano` actúan sobre la solicitud
@@ -750,9 +765,9 @@ usuario.
 | `GET /{uuid}` | los tres | Detalle de `solicitudes-academicas` más motivo y asignaturas, según rol y etapa |
 | `POST /{uuid}/funcionario/rechazar` | Funcionario Académico | Cuerpo `observacion` |
 | `POST /{uuid}/funcionario/remitir` | Funcionario Académico | Cuerpo `observacion` opcional y `evaluaciones` (`asignaturaSolicitudUuid`, `numeroFaltas`, `nota`, `situacionMatriculaUuid`, `cumpleCondiciones`, `observacionEvaluacion`) |
-| `POST /{uuid}/funcionario/responder` | Funcionario Académico | Sin cuerpo |
-| `POST /{uuid}/decano/aprobar` | Decano | Cuerpo `decisiones` (`asignaturaSolicitudUuid`, `aprobada`, `situacionCancelarUuid`, `observacionDecision`) |
-| `POST /{uuid}/decano/rechazar` | Decano | Cuerpo `observacion` |
+| `POST /{uuid}/funcionario/responder` | Funcionario Académico | Cuerpo opcional `observacion` |
+| `POST /{uuid}/decano/aprobar` | Decano | Cuerpo `decisiones` (`asignaturaSolicitudUuid`, `aprobada`, `situacionCancelarUuid`, `observacionDecision`) y `observacion` opcional |
+| `POST /{uuid}/decano/rechazar` | Decano | Cuerpo opcional `observacion` |
 
 El resto de `cancelaciones-asignatura/**` es `denyAll()`.
 
@@ -766,8 +781,9 @@ El resto de `cancelaciones-asignatura/**` es `denyAll()`.
   situación en la matrícula, `cumpleCondiciones`, `observacionEvaluacion` y,
   cuando existen, `aprobadaPorDecano`, `observacionDecision` y la situación al
   cancelar. El Estudiante ve solo uuid de la fila, código y nombre; en
-  `APROBADA` o `RECHAZADA` ve además `aprobadaPorDecano` y
-  `observacionDecision`. Nunca ve `observacionEvaluacion`. La vista del
+  `APROBADA` o `RECHAZADA` ve además `aprobadaPorDecano`.
+  `observacionDecision` le llega siempre nula y nunca ve
+  `observacionEvaluacion`. La vista del
   Estudiante es una copia: no modifica las filas leídas.
 - No hay filas de `TIPO_ANEXO_ACADEMICO` para este proceso; el soporte libre
   del formulario sale de `AnexoAcademicoConstantes`
@@ -842,10 +858,10 @@ El resto de `cancelaciones-asignatura/**` es `denyAll()`.
     rechaza (después de validar actor y etapa) pidiendo rechazar la solicitud
     en lugar de remitirla.
   - `aprobarPorDecano(uuid, observacion, token)`: observación opcional, a
-    APROBADA_POR_DECANO. `rechazarPorDecano`: observación obligatoria, a
+    APROBADA_POR_DECANO. `rechazarPorDecano`: observación opcional, a
     RECHAZADA_POR_DECANO.
-  - `enviarRespuesta(uuid, token)`: RECHAZADA_POR_DECANO a RECHAZADA, sin
-    escaneo.
+  - `enviarRespuesta(uuid, observacion, token)`: RECHAZADA_POR_DECANO a
+    RECHAZADA, sin escaneo, con el mensaje opcional al Estudiante.
   - `enviarRecibo(uuid, token)`: APROBADA_POR_DECANO a PENDIENTE_PAGO.
     `subirComprobante(uuid, token)`: PENDIENTE_PAGO a EN_VERIFICACION_PAGO,
     solo el Estudiante dueño. Los archivos se suben antes con
@@ -873,12 +889,12 @@ formato.
 | `GET /{uuid}` | los tres | Detalle de `solicitudes-academicas` (radicado, etiqueta, anexos con su tipo, acciones) más asignatura, causa, fecha del examen, cruce si lo hay y `fechaAcordadaExamen` si existe |
 | `POST /{uuid}/funcionario/rechazar` | Funcionario Académico | Cuerpo `observacion` |
 | `POST /{uuid}/funcionario/remitir` | Funcionario Académico | Cuerpo `requisitosVerificados` y `observacion` opcional |
-| `POST /{uuid}/funcionario/responder` | Funcionario Académico | Sin cuerpo |
+| `POST /{uuid}/funcionario/responder` | Funcionario Académico | Cuerpo opcional `observacion` |
 | `POST /{uuid}/funcionario/recibo` | Funcionario Académico | Sin cuerpo; usa `enviarRecibo` |
 | `POST /{uuid}/funcionario/comprobante/aprobar` | Funcionario Académico | Cuerpo `fechaAcordadaExamen` opcional |
 | `POST /{uuid}/funcionario/comprobante/rechazar` | Funcionario Académico | Cuerpo `observacion` |
 | `POST /{uuid}/decano/aprobar` | Decano | Cuerpo `observacion` opcional |
-| `POST /{uuid}/decano/rechazar` | Decano | Cuerpo `observacion` |
+| `POST /{uuid}/decano/rechazar` | Decano | Cuerpo opcional `observacion` |
 | `POST /{uuid}/estudiante/comprobante` | Estudiante | Sin cuerpo; usa `subirComprobante` |
 
 El resto de `examenes-supletorios/**` es `denyAll()`.
@@ -937,7 +953,20 @@ por herencia, y tienen su propio caso de uso y su propio gateway:
 
 Los crea el Secretario General o el Decano, por formulario y por carga
 masiva desde Excel; el estudiante se crea con su información de asignaturas
-matriculadas.
+matriculadas. La facultad del estudiante siempre es `FIET`: la asigna
+`EstudianteCUImplAdaptador` al crear y al editar y no llega del cliente.
+
+La edición (`actualizarEstudiante`, `actualizarFuncionarioAcademico`) cambia
+también los datos personales, que viven en `usuarios` y `usuariosLivianos`.
+No pasa por `UsuarioCUIntPuerto.actualizarUsuario` de Julián (exige roles y,
+si no llegan, deja al usuario sin roles): usa el servicio de dominio
+`DatosPersonales` (`dominio/servicios`), que valida con el puerto
+`DatosPersonalesGatewayIntPuerto` (documento y correo únicos sin contar al
+propio usuario; tipo de documento con `Usuario.revisarTipoDocumento`) y
+escribe con `DatosPersonalesGatewayImplAdaptador` sobre un repositorio propio
+de `UsuarioEntidad` (`DatosPersonalesRepositorio`). Un campo vacío no cambia;
+el username no se edita. El código estudiantil se revisa con
+`existePorCodigoEstudiantilEnOtro`. Todo se valida antes de escribir.
 
 ## Programas académicos y código de asignatura
 
@@ -1063,7 +1092,7 @@ de programas y asignaturas) trabaja en dos momentos del controlador:
   sea del programa de la fila (código 6).
 
 El Excel de estudiantes ya no trae `nombreAsignatura` y sus columnas son
-`... programaAcademico, semestre, facultad, codigoAsignatura, grupo`; el de
+`... programaAcademico, semestre, codigoAsignatura, grupo` (13 columnas, sin `facultad`); el de
 asignaturas, `nombreAsignatura, programaAcademico`. Las plantillas están en
 `backend/pruebas` y las generan los `generar_plantilla_*.ps1`.
 
@@ -1135,7 +1164,7 @@ propia clase de prueba. Usan el `ExcepcionesFormateadorImplAdaptador` y la
 - `infraestructura/configuracion/lectorArchivos/AgrupadorEstudiantesExcelTest`
   y `DuplicadosFuncionariosAcademicosExcelTest`.
 
-Hoy `.\mvnw.cmd test` corre 1136 pruebas. `AsignaturaCUImplAdaptadorTest`
+Hoy `.\mvnw.cmd test` corre 1197 pruebas. `AsignaturaCUImplAdaptadorTest`
 cubre el consecutivo, el paso de 999 a 1000, la no reutilización, el orden
 bloqueo y luego nombre, y 40 creaciones simultáneas sobre un gateway falso con
 bloqueo que no repiten código.

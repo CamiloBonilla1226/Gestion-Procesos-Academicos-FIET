@@ -6,8 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
-
 @Data
 @Builder
 @AllArgsConstructor
@@ -16,8 +14,8 @@ public class AsignaturaSolicitadaDTORespuesta {
     private String uuidAsignaturaSolicitud;
     private String codigoAsignatura;
     private String nombreAsignatura;
-    private Integer numeroFaltas;
-    private BigDecimal nota;
+    private String numeroFaltas;
+    private String nota;
     private SituacionAsignaturaDTORespuesta situacionMatricula;
     private Boolean cumpleCondiciones;
     private String observacionEvaluacion;

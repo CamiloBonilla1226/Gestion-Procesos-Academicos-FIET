@@ -12,7 +12,7 @@ function Nuevo-FuncionarioAcademico {
         correoElectronico = "asig$s@unicauca.edu.co"
         username          = "asig$s"
         password          = "Clave12345"
-        dependencia       = "DepAsig $s"
+        cargo             = "DepAsig $s"
     }
     $script:usernames += $cuerpo.username
     $r = Invoke-Api -Metodo POST -Ruta "funcionarios-academicos" -Token $Token -Cuerpo $cuerpo
@@ -75,7 +75,7 @@ try {
     Escribir-Resultado "A ya no lista el tipo" (-not ((Tipos-DeFuncionario $faA.uuidUsuario $tokenRoot) -contains $uuidTipo))
     Escribir-Resultado "el catalogo muestra a B como responsable" ((Responsables-Actuales -Token $tokenRoot)[$uuidTipo] -eq $faB.uuidUsuario)
 
-    $r = Invoke-Api -Metodo GET -Ruta "funcionarios-academicos/filtro?dependencia=$($faB.dependencia)&pagina=0&tamanio=5" -Token $tokenRoot
+    $r = Invoke-Api -Metodo GET -Ruta "funcionarios-academicos/filtro?cargo=$($faB.cargo)&pagina=0&tamanio=5" -Token $tokenRoot
     $pagina = Leer-Json $r
     $enFiltro = @($pagina.content | Where-Object { $_.uuidUsuario -eq $faB.uuidUsuario })
     $tiposFiltro = @($enFiltro | ForEach-Object { $_.tiposSolicitud } | ForEach-Object { $_.uuidTipoSolicitudAcademica })

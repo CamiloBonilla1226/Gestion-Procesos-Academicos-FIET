@@ -63,7 +63,7 @@ class CatalogoAcademicoExcelTest {
 
     private FilaEstudianteExcelDTOPeticion filaEstudiante(int numero, String programa, String codigoAsignatura) {
         EstudianteDTOPeticion peticion = new EstudianteDTOPeticion("Ana", "Perez", "Cedula", "1001", "3001234567",
-                "a@unicauca.edu.co", "ana1001", "Clave12345", "COD1001", null, "5", "FIET",
+                "a@unicauca.edu.co", "ana1001", "Clave12345", "COD1001", null, "5",
                 new ArrayList<>(List.of(new AsignaturaMatriculadaDTOPeticion(codigoAsignatura, "A"))));
         return new FilaEstudianteExcelDTOPeticion(numero, programa, peticion);
     }
@@ -139,24 +139,24 @@ class CatalogoAcademicoExcelTest {
     }
 
     @Test
-    void unaAsignaturaInexistenteEnEstudiantesDaErrorEnLaColumnaM() {
+    void unaAsignaturaInexistenteEnEstudiantesDaErrorEnLaColumnaL() {
         List<FilaEstudianteExcelDTOPeticion> filas = List.of(filaEstudiante(2, "Ingeniería de Sistemas", "ISI-001"),
                 filaEstudiante(3, "Ingeniería de Sistemas", "ISI-404"));
         catalogo.resolverProgramasEstudiantes(filas);
 
         ErrorMalFormatoExcepcion error = assertThrows(ErrorMalFormatoExcepcion.class, () -> catalogo.verificarAsignaturasEstudiantes(filas));
 
-        assertEquals(String.format(MensajesError.EXCEL_FILA_ASIGNATURA_NO_EXISTE, 3, "M", "codigoAsignatura", "ISI-404"), error.getMessage());
+        assertEquals(String.format(MensajesError.EXCEL_FILA_ASIGNATURA_NO_EXISTE, 3, "L", "codigoAsignatura", "ISI-404"), error.getMessage());
     }
 
     @Test
-    void unaAsignaturaDeOtroProgramaEnEstudiantesDaErrorEnLaColumnaM() {
+    void unaAsignaturaDeOtroProgramaEnEstudiantesDaErrorEnLaColumnaL() {
         List<FilaEstudianteExcelDTOPeticion> filas = List.of(filaEstudiante(2, "Ingeniería de Sistemas", "tte-001"));
         catalogo.resolverProgramasEstudiantes(filas);
 
         ErrorMalFormatoExcepcion error = assertThrows(ErrorMalFormatoExcepcion.class, () -> catalogo.verificarAsignaturasEstudiantes(filas));
 
-        assertEquals(String.format(MensajesError.EXCEL_FILA_ASIGNATURA_OTRO_PROGRAMA, 2, "M", "codigoAsignatura", "TTE-001",
+        assertEquals(String.format(MensajesError.EXCEL_FILA_ASIGNATURA_OTRO_PROGRAMA, 2, "L", "codigoAsignatura", "TTE-001",
                 "Tecnología en Telemática", "Ingeniería de Sistemas"), error.getMessage());
     }
 

@@ -73,7 +73,7 @@ class DuplicadosFuncionariosAcademicosExcelTest {
     }
 
     @Test
-    void permiteDatosNoUnicosRepetidosComoNombreODependencia() {
+    void permiteDatosNoUnicosRepetidosComoNombreOCargo() {
         assertDoesNotThrow(() -> duplicados.verificar(List.of(fila(2, "001"), fila(3, "002"))));
     }
 }

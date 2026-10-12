@@ -6,7 +6,7 @@ public final class ColumnasExcelEstudiantes {
     public static final List<String> COLUMNAS = List.of(
             "nombres", "apellidos", "tipoDocumento", "numeroDocumento", "telefono",
             "correoElectronico", "username", "password", "codigoEstudiantil", "programaAcademico",
-            "semestre", "facultad", "codigoAsignatura", "grupo");
+            "semestre", "codigoAsignatura", "grupo");
 
     private ColumnasExcelEstudiantes() {
     }

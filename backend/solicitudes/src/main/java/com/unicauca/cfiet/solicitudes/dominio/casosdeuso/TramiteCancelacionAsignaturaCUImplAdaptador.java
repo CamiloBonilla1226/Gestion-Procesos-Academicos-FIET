@@ -99,7 +99,8 @@ public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCance
     }
 
     @Override
-    public SolicitudCancelacionAsignatura aprobarPorDecano(String uuidSolicitudAcademica, List<DecisionAsignatura> decisiones, String token) {
+    public SolicitudCancelacionAsignatura aprobarPorDecano(String uuidSolicitudAcademica, List<DecisionAsignatura> decisiones,
+                                                           String observacion, String token) {
         ActorSolicitud actor = tramite.actorDe(token, RolEtiquetaEtapa.DECANO);
         SolicitudCancelacionAsignatura cancelacion = cancelacionDe(uuidSolicitudAcademica);
         SolicitudAcademica solicitud = tramite.solicitudValidada(TipoProcesoAcademico.CANCELACION_ASIGNATURA, uuidSolicitudAcademica,
@@ -121,8 +122,6 @@ public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCance
                 asignatura.setSituacionCancelar(tramite.situacionDe(catalogo, decision.getUuidSituacionCancelar(), SITUACION_CANCELAR, nombre));
                 aprobadas++;
             } else {
-                if (observacionDecision == null)
-                    formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.OBSERVACION_DECISION_REQUERIDA, nombre));
                 asignatura.setSituacionCancelar(null);
             }
             asignatura.setAprobadaPorDecano(decision.getAprobada());
@@ -131,7 +130,7 @@ public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCance
         if (aprobadas == 0)
             formateadorExcepciones.lanzarReglaNegocioViolada(MensajesError.NINGUNA_ASIGNATURA_APROBADA);
 
-        SolicitudAcademica actualizada = solicitudCU.cambiarEtapa(uuidSolicitudAcademica, AccionEtapa.APROBAR_DECANO, actor, null, token);
+        SolicitudAcademica actualizada = solicitudCU.cambiarEtapa(uuidSolicitudAcademica, AccionEtapa.APROBAR_DECANO, actor, observacion, token);
         cancelacion.setAsignaturas(tramite.guardarAsignaturas(cancelacion.getAsignaturas()));
         log.crearLog("Registrar decisión del Decano por asignatura",
                 String.format("Solicitud académica %s, acción %s: %d asignaturas aprobadas y %d rechazadas", actualizada.getRadicado(),
@@ -149,10 +148,10 @@ public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCance
     }
 
     @Override
-    public SolicitudCancelacionAsignatura enviarRespuesta(String uuidSolicitudAcademica, String token) {
+    public SolicitudCancelacionAsignatura enviarRespuesta(String uuidSolicitudAcademica, String observacion, String token) {
         ActorSolicitud actor = tramite.actorDe(token, RolEtiquetaEtapa.FUNCIONARIO);
         SolicitudCancelacionAsignatura cancelacion = cancelacionDe(uuidSolicitudAcademica);
-        SolicitudAcademica actualizada = solicitudCU.cambiarEtapa(uuidSolicitudAcademica, AccionEtapa.ENVIAR_RESPUESTA, actor, null, token);
+        SolicitudAcademica actualizada = solicitudCU.cambiarEtapa(uuidSolicitudAcademica, AccionEtapa.ENVIAR_RESPUESTA, actor, observacion, token);
         if (APROBADA.equals(actualizada.getEtapa().getCodigo())) {
             int canceladas = tramite.cancelarActivas(cancelacion.getAsignaturas().stream()
                     .filter(asignatura -> Boolean.TRUE.equals(asignatura.getAprobadaPorDecano()))
@@ -165,12 +164,13 @@ public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCance
         return conSolicitud(cancelacion, actualizada);
     }
 
-    private Boolean cumpleDe(EvaluacionAsignatura evaluacion, BigDecimal nota, String nombre) {
+    private Boolean cumpleDe(EvaluacionAsignatura evaluacion, String nota, String nombre) {
         Boolean cumple = evaluacion.getCumpleCondiciones();
         if (cumple == null)
             formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.DATO_ASIGNATURA_FALTANTE, CUMPLE_CONDICIONES, nombre));
-        if (cumple && nota.compareTo(NOTA_MINIMA_CUMPLE) < 0)
-            formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.NOTA_INSUFICIENTE_CUMPLE, nombre, nota.toPlainString()));
+        BigDecimal notaNumerica = tramite.numero(nota);
+        if (cumple && notaNumerica != null && notaNumerica.compareTo(NOTA_MINIMA_CUMPLE) < 0)
+            formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.NOTA_INSUFICIENTE_CUMPLE, nombre, nota));
         return cumple;
     }
 

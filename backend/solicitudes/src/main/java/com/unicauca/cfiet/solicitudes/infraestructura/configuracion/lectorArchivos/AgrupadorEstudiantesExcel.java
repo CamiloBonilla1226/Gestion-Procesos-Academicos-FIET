@@ -33,8 +33,7 @@ public class AgrupadorEstudiantesExcel {
             EstudianteDTOPeticion::getPassword,
             EstudianteDTOPeticion::getCodigoEstudiantil,
             EstudianteDTOPeticion::getUuidProgramaAcademico,
-            EstudianteDTOPeticion::getSemestre,
-            EstudianteDTOPeticion::getFacultad);
+            EstudianteDTOPeticion::getSemestre);
     private static final List<Integer> COLUMNAS_UNICAS = List.of(
             COLUMNAS.indexOf("codigoEstudiantil"),
             COLUMNAS.indexOf("correoElectronico"),

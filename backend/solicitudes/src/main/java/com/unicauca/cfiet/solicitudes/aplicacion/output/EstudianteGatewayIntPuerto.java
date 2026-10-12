@@ -10,6 +10,8 @@ public interface EstudianteGatewayIntPuerto {
 
     boolean existePorCodigoEstudiantil(String codigoEstudiantil);
 
+    boolean existePorCodigoEstudiantilEnOtro(String codigoEstudiantil, String uuidUsuario);
+
     boolean existePorUuid(String uuidUsuario);
 
     Estudiante guardar(Estudiante estudiante);

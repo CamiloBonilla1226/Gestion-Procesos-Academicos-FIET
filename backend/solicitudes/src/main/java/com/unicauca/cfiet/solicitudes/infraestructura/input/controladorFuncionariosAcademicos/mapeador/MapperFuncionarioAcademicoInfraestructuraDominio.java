@@ -28,20 +28,28 @@ public class MapperFuncionarioAcademicoInfraestructuraDominio {
         usuario.setPassword(peticion.getPassword());
         return FuncionarioAcademico.builder()
                 .usuario(usuario)
-                .dependencia(peticion.getDependencia())
+                .cargo(peticion.getCargo())
                 .build();
     }
 
     public FuncionarioAcademico mapearActualizacionAModelo(FuncionarioAcademicoActualizarDTOPeticion peticion) {
+        Usuario usuario = new Usuario();
+        usuario.setNombres(peticion.getNombres());
+        usuario.setApellidos(peticion.getApellidos());
+        usuario.setTipoDocumento(peticion.getTipoDocumento());
+        usuario.setNumeroDocumento(peticion.getNumeroDocumento());
+        usuario.setTelefono(peticion.getTelefono());
+        usuario.setCorreoElectronico(peticion.getCorreoElectronico());
         return FuncionarioAcademico.builder()
-                .dependencia(peticion.getDependencia())
+                .usuario(usuario)
+                .cargo(peticion.getCargo())
                 .build();
     }
 
     public FuncionarioAcademicoDTORespuesta mapearModeloARespuesta(FuncionarioAcademico modelo) {
         FuncionarioAcademicoDTORespuesta respuesta = FuncionarioAcademicoDTORespuesta.builder()
                 .uuidUsuario(modelo.getUuidUsuario())
-                .dependencia(modelo.getDependencia())
+                .cargo(modelo.getCargo())
                 .tiposSolicitud(mapearTiposSolicitud(modelo.getTiposSolicitud()))
                 .build();
         Usuario usuario = modelo.getUsuario();

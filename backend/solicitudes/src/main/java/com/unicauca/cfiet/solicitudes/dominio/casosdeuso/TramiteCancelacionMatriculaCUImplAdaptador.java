@@ -82,7 +82,7 @@ public class TramiteCancelacionMatriculaCUImplAdaptador implements TramiteCancel
 
     @Override
     public SolicitudCancelacionMatricula aprobarPorDecano(String uuidSolicitudAcademica, List<SituacionCancelarAsignatura> situacionesAlCancelar,
-                                                          String token) {
+                                                          String observacion, String token) {
         ActorSolicitud actor = tramite.actorDe(token, RolEtiquetaEtapa.DECANO);
         SolicitudCancelacionMatricula cancelacion = cancelacionDe(uuidSolicitudAcademica);
         SolicitudAcademica solicitud = tramite.solicitudValidada(TipoProcesoAcademico.CANCELACION_MATRICULA, uuidSolicitudAcademica,
@@ -97,7 +97,7 @@ public class TramiteCancelacionMatriculaCUImplAdaptador implements TramiteCancel
                     tramite.nombreDe(asignatura)));
         }
 
-        SolicitudAcademica actualizada = solicitudCU.cambiarEtapa(uuidSolicitudAcademica, AccionEtapa.APROBAR_DECANO, actor, null, token);
+        SolicitudAcademica actualizada = solicitudCU.cambiarEtapa(uuidSolicitudAcademica, AccionEtapa.APROBAR_DECANO, actor, observacion, token);
         cancelacion.setAsignaturas(tramite.guardarAsignaturas(cancelacion.getAsignaturas()));
         log.crearLog("Registrar situación al cancelar",
                 String.format("Solicitud académica %s, acción %s: situación al cancelar de %d asignaturas", actualizada.getRadicado(),
@@ -115,10 +115,10 @@ public class TramiteCancelacionMatriculaCUImplAdaptador implements TramiteCancel
     }
 
     @Override
-    public SolicitudCancelacionMatricula enviarRespuesta(String uuidSolicitudAcademica, String token) {
+    public SolicitudCancelacionMatricula enviarRespuesta(String uuidSolicitudAcademica, String observacion, String token) {
         ActorSolicitud actor = tramite.actorDe(token, RolEtiquetaEtapa.FUNCIONARIO);
         SolicitudCancelacionMatricula cancelacion = cancelacionDe(uuidSolicitudAcademica);
-        SolicitudAcademica actualizada = solicitudCU.cambiarEtapa(uuidSolicitudAcademica, AccionEtapa.ENVIAR_RESPUESTA, actor, null, token);
+        SolicitudAcademica actualizada = solicitudCU.cambiarEtapa(uuidSolicitudAcademica, AccionEtapa.ENVIAR_RESPUESTA, actor, observacion, token);
         if (APROBADA.equals(actualizada.getEtapa().getCodigo())) {
             int canceladas = tramite.cancelarActivas(cancelacion.getAsignaturas());
             log.crearLog("Cancelar asignaturas matriculadas",

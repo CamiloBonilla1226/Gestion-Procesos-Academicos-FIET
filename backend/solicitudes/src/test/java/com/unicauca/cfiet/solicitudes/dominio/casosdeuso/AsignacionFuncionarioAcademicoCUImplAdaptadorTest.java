@@ -44,7 +44,7 @@ class AsignacionFuncionarioAcademicoCUImplAdaptadorTest {
     }
 
     private FuncionarioAcademico funcionario(String uuid) {
-        return FuncionarioAcademico.builder().uuidUsuario(uuid).dependencia("Dependencia").build();
+        return FuncionarioAcademico.builder().uuidUsuario(uuid).cargo("Cargo").build();
     }
 
     private TipoSolicitudAcademica tipo(String uuidFuncionario) {

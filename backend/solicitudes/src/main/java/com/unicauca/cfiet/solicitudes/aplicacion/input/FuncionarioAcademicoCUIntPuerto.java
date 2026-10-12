@@ -13,7 +13,7 @@ public interface FuncionarioAcademicoCUIntPuerto {
 
     PaginacionRespuestaDTO<FuncionarioAcademico> getFuncionariosAcademicosPaginado(int pagina, int tamanio);
 
-    PaginacionRespuestaDTO<FuncionarioAcademico> getFuncionariosAcademicosPorFiltro(String nombre, String apellido, String dependencia, int pagina, int tamanio);
+    PaginacionRespuestaDTO<FuncionarioAcademico> getFuncionariosAcademicosPorFiltro(String nombre, String apellido, String cargo, int pagina, int tamanio);
 
     FuncionarioAcademico getFuncionarioAcademico(String uuidUsuario);
 

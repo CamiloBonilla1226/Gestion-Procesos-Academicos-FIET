@@ -42,16 +42,22 @@ public class MapperEstudianteInfraestructuraDominio {
                         .uuidProgramaAcademico(peticion.getUuidProgramaAcademico())
                         .build())
                 .semestre(peticion.getSemestre())
-                .facultad(peticion.getFacultad())
                 .asignaturasMatriculadas(materias)
                 .build();
     }
 
     public Estudiante mapearActualizacionAModelo(EstudianteActualizarDTOPeticion peticion) {
+        Usuario usuario = new Usuario();
+        usuario.setNombres(peticion.getNombres());
+        usuario.setApellidos(peticion.getApellidos());
+        usuario.setTipoDocumento(peticion.getTipoDocumento());
+        usuario.setNumeroDocumento(peticion.getNumeroDocumento());
+        usuario.setTelefono(peticion.getTelefono());
+        usuario.setCorreoElectronico(peticion.getCorreoElectronico());
         return Estudiante.builder()
+                .usuario(usuario)
                 .codigoEstudiantil(peticion.getCodigoEstudiantil())
                 .semestre(peticion.getSemestre())
-                .facultad(peticion.getFacultad())
                 .build();
     }
 

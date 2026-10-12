@@ -117,7 +117,7 @@ class TramiteExamenSupletorioCUImplAdaptadorTest {
     }
 
     private static Accion enviarRespuesta() {
-        return (cu, token) -> cu.enviarRespuesta(SOLICITUD, token);
+        return (cu, token) -> cu.enviarRespuesta(SOLICITUD, null, token);
     }
 
     private static Accion enviarRecibo() {
@@ -307,10 +307,30 @@ class TramiteExamenSupletorioCUImplAdaptadorTest {
     void lasAccionesConObservacionObligatoriaLaExigen(String observacion) {
         enEtapa(RADICADA);
         assertTrue(falla(rechazarFuncionario(observacion), TOKEN_FUNCIONARIO).contains("observación"));
-        enEtapa(EN_REVISION_DECANO);
-        assertTrue(falla(rechazarDecano(observacion), TOKEN_DECANO).contains("observación"));
         enEtapa(EN_VERIFICACION_PAGO);
         assertTrue(falla(rechazarComprobante(observacion), TOKEN_FUNCIONARIO).contains("observación"));
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = {"", "   "})
+    void elDecanoRechazaSinObservacion(String observacion) {
+        enEtapa(EN_REVISION_DECANO);
+
+        casoDeUso.rechazarPorDecano(SOLICITUD, observacion, TOKEN_DECANO);
+
+        assertEquals(RECHAZADA_POR_DECANO, etapaGuardada());
+        assertNull(historialGuardado().getObservaciones());
+    }
+
+    @Test
+    void enviarRespuestaGuardaElMensajeParaElEstudiante() {
+        enEtapa(RECHAZADA_POR_DECANO);
+
+        casoDeUso.enviarRespuesta(SOLICITUD, "Puede radicar una nueva solicitud", TOKEN_FUNCIONARIO);
+
+        assertEquals("Puede radicar una nueva solicitud", historialGuardado().getObservaciones());
+        assertEquals(RECHAZADA, etapaGuardada());
     }
 
     @Test

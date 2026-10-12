@@ -13,7 +13,7 @@ import java.util.List;
 public class FuncionarioAcademico {
     private String uuidUsuario;
     private Usuario usuario;
-    private String dependencia;
+    private String cargo;
     @Builder.Default
     private List<TipoSolicitudAcademica> tiposSolicitud = new ArrayList<>();
 }

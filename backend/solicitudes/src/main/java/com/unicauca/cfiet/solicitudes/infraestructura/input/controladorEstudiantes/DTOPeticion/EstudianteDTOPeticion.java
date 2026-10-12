@@ -61,10 +61,6 @@ public class EstudianteDTOPeticion {
     @Size(max = 10, message = "El semestre debe tener máximo 10 caracteres")
     private String semestre;
 
-    @NotBlank(message = "La facultad no puede estar vacía")
-    @Size(max = 100, message = "La facultad debe tener máximo 100 caracteres")
-    private String facultad;
-
     @Valid
     @NotNull(message = "La lista de asignaturas no puede ser nula")
     @Size(min = 1, message = "Debe registrar al menos una asignatura matriculada")

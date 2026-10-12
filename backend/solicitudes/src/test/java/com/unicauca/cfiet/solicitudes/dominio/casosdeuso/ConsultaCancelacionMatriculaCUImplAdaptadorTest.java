@@ -81,7 +81,7 @@ class ConsultaCancelacionMatriculaCUImplAdaptadorTest {
                 .asignaturas(new ArrayList<>(List.of(AsignaturaSolicitudAcademica.builder()
                         .uuidAsignaturaSolicitud("as-1")
                         .asignaturaMatriculada(materia("am-1", "Cálculo I", "activa"))
-                        .numeroFaltas(2)
+                        .numeroFaltas("2")
                         .situacionMatricula(situacion("sit-r0"))
                         .situacionCancelar(situacion("sit-r1"))
                         .build())))
@@ -180,7 +180,7 @@ class ConsultaCancelacionMatriculaCUImplAdaptadorTest {
 
         assertNull(asignatura.getSituacionCancelar());
         assertEquals("sit-r0", asignatura.getSituacionMatricula().getUuidSituacionAcademica());
-        assertEquals(2, asignatura.getNumeroFaltas());
+        assertEquals("2", asignatura.getNumeroFaltas());
     }
 
     @ParameterizedTest

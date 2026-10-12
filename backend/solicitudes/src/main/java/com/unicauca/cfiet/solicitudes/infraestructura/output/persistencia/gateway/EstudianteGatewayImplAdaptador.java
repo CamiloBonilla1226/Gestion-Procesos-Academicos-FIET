@@ -39,6 +39,11 @@ public class EstudianteGatewayImplAdaptador implements EstudianteGatewayIntPuert
     }
 
     @Override
+    public boolean existePorCodigoEstudiantilEnOtro(String codigoEstudiantil, String uuidUsuario) {
+        return repositorio.existsByCodigoEstudiantilAndUuidUsuarioNot(codigoEstudiantil, uuidUsuario);
+    }
+
+    @Override
     public boolean existePorUuid(String uuidUsuario) {
         return repositorio.existsById(uuidUsuario);
     }

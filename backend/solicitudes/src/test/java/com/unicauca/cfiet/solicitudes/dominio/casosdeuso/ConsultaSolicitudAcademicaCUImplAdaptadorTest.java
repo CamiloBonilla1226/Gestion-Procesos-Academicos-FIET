@@ -317,6 +317,46 @@ class ConsultaSolicitudAcademicaCUImplAdaptadorTest {
                 historial.stream().map(HistorialSolicitudAcademica::getEtapaCodigo).toList());
     }
 
+    private List<HistorialSolicitudAcademica> historialConObservaciones() {
+        return List.of(
+                HistorialSolicitudAcademica.builder().accion("RADICAR").observaciones("Radicada").build(),
+                HistorialSolicitudAcademica.builder().accion("REMITIR_DECANO").observaciones("Para el Decano").build(),
+                HistorialSolicitudAcademica.builder().accion("RECHAZAR_DECANO").observaciones("No procede").build(),
+                HistorialSolicitudAcademica.builder().accion("ENVIAR_RESPUESTA").observaciones("Mensaje al estudiante").build());
+    }
+
+    @Test
+    void elEstudianteVeVaciasLasObservacionesDeLaRemisionYDeLasDecisionesDelDecano() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(RECHAZADA));
+        when(historialGateway.getPorSolicitud(SOLICITUD)).thenReturn(historialConObservaciones());
+
+        List<HistorialSolicitudAcademica> historial = casoDeUso.getHistorial(SOLICITUD, token(ESTUDIANTE));
+
+        assertEquals(Arrays.asList("Radicada", null, null, "Mensaje al estudiante"),
+                historial.stream().map(HistorialSolicitudAcademica::getObservaciones).toList());
+        assertEquals(List.of("RADICAR", "REMITIR_DECANO", "RECHAZAR_DECANO", "ENVIAR_RESPUESTA"),
+                historial.stream().map(HistorialSolicitudAcademica::getAccion).toList());
+    }
+
+    @Test
+    void elFuncionarioYElDecanoVenTodasLasObservacionesDelHistorial() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(RECHAZADA));
+        when(historialGateway.getPorSolicitud(SOLICITUD)).thenReturn(historialConObservaciones(), historialConObservaciones());
+
+        for (String usuario : List.of(FUNCIONARIO, DECANO))
+            assertEquals(List.of("Radicada", "Para el Decano", "No procede", "Mensaje al estudiante"),
+                    casoDeUso.getHistorial(SOLICITUD, token(usuario)).stream().map(HistorialSolicitudAcademica::getObservaciones).toList());
+    }
+
+    @Test
+    void elEstudianteVeLaObservacionDeAprobarDecanoVacia() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(APROBADA));
+        when(historialGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(
+                HistorialSolicitudAcademica.builder().accion("APROBAR_DECANO").observaciones("Procede").build()));
+
+        assertNull(casoDeUso.getHistorial(SOLICITUD, token(ESTUDIANTE)).get(0).getObservaciones());
+    }
+
     @Test
     void laRespuestaDespuesDeLaAprobacionLlevaAAprobada() {
         when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(APROBADA));

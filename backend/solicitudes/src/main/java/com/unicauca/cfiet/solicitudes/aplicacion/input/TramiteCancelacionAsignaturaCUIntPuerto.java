@@ -13,9 +13,9 @@ public interface TramiteCancelacionAsignaturaCUIntPuerto {
     SolicitudCancelacionAsignatura remitirADecano(String uuidSolicitudAcademica, List<EvaluacionAsignatura> evaluaciones,
                                                   String observacion, String token);
 
-    SolicitudCancelacionAsignatura aprobarPorDecano(String uuidSolicitudAcademica, List<DecisionAsignatura> decisiones, String token);
+    SolicitudCancelacionAsignatura aprobarPorDecano(String uuidSolicitudAcademica, List<DecisionAsignatura> decisiones, String observacion, String token);
 
     SolicitudCancelacionAsignatura rechazarPorDecano(String uuidSolicitudAcademica, String observacion, String token);
 
-    SolicitudCancelacionAsignatura enviarRespuesta(String uuidSolicitudAcademica, String token);
+    SolicitudCancelacionAsignatura enviarRespuesta(String uuidSolicitudAcademica, String observacion, String token);
 }

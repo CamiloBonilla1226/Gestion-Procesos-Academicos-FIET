@@ -105,8 +105,10 @@ public class ExamenSupletorioRestController {
     @Transactional
     @PostMapping(UUID_SOLICITUD + "/funcionario/responder")
     public ResponseEntity<?> enviarRespuesta(@PathVariable String uuidSolicitud,
+                                             @RequestBody(required = false) ObservacionDTOPeticion peticion,
                                              @RequestHeader("Authorization") String token) {
-        return accion(uuidSolicitud, token, () -> tramiteCU.enviarRespuesta(uuidSolicitud, token.substring(7)));
+        return accion(uuidSolicitud, token, () -> tramiteCU.enviarRespuesta(uuidSolicitud,
+                peticion == null ? null : peticion.getObservacion(), token.substring(7)));
     }
 
     @PreAuthorize(ApplicationConstantes.FUNCIONARIO_ACADEMICO_ACCESO)
@@ -150,9 +152,10 @@ public class ExamenSupletorioRestController {
     @Transactional
     @PostMapping(UUID_SOLICITUD + "/decano/rechazar")
     public ResponseEntity<?> rechazarPorDecano(@PathVariable String uuidSolicitud,
-                                               @RequestBody ObservacionDTOPeticion peticion,
+                                               @RequestBody(required = false) ObservacionDTOPeticion peticion,
                                                @RequestHeader("Authorization") String token) {
-        return accion(uuidSolicitud, token, () -> tramiteCU.rechazarPorDecano(uuidSolicitud, peticion.getObservacion(), token.substring(7)));
+        return accion(uuidSolicitud, token, () -> tramiteCU.rechazarPorDecano(uuidSolicitud,
+                peticion == null ? null : peticion.getObservacion(), token.substring(7)));
     }
 
     @PreAuthorize(ApplicationConstantes.ESTUDIANTE_ACCESO)

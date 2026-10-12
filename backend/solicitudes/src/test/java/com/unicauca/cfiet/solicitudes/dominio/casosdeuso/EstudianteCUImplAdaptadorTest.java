@@ -3,6 +3,7 @@ package com.unicauca.cfiet.solicitudes.dominio.casosdeuso;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.LogCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.UsuarioCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.AsignaturaGatewayIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.output.DatosPersonalesGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.EstudianteGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.IJwtServicio;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.ProgramaAcademicoGatewayIntPuerto;
@@ -10,6 +11,7 @@ import com.unicauca.cfiet.solicitudes.aplicacion.output.RolGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.SesionGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.UsuarioGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.dominio.helper.PaginacionRespuestaDTO;
+import com.unicauca.cfiet.solicitudes.dominio.helper.constantes.ApplicationConstantes;
 import com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EstadoAsignaturaMatriculadaConstantes;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.Asignatura;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.AsignaturaMatriculada;
@@ -77,6 +79,9 @@ class EstudianteCUImplAdaptadorTest {
     private UsuarioGatewayIntPuerto usuarioGateway;
 
     @Mock
+    private DatosPersonalesGatewayIntPuerto datosPersonalesGateway;
+
+    @Mock
     private SesionGatewayIntPuerto sesionGateway;
 
     @Mock
@@ -94,7 +99,7 @@ class EstudianteCUImplAdaptadorTest {
     @BeforeEach
     void setUp() {
         casoDeUso = new EstudianteCUImplAdaptador(usuarioCU, gateway, asignaturaGateway, programaGateway, rolGateway,
-                usuarioGateway, sesionGateway, jwtServicio, new ExcepcionesFormateadorImplAdaptador(), log);
+                usuarioGateway, datosPersonalesGateway, sesionGateway, jwtServicio, new ExcepcionesFormateadorImplAdaptador(), log);
         lenient().when(programaGateway.getPorUuid(UUID_ISI)).thenReturn(SISTEMAS);
         lenient().when(asignaturaGateway.getPorCodigo(anyString())).thenAnswer(invocacion ->
                 existente("asig-" + invocacion.getArgument(0), invocacion.getArgument(0), "Materia " + invocacion.getArgument(0)));
@@ -129,7 +134,6 @@ class EstudianteCUImplAdaptadorTest {
                 .codigoEstudiantil(codigoEstudiantil)
                 .programaAcademico(ProgramaAcademico.builder().uuidProgramaAcademico(UUID_ISI).build())
                 .semestre("5")
-                .facultad("FIET")
                 .asignaturasMatriculadas(new ArrayList<>(List.of(materias)))
                 .build();
     }
@@ -183,6 +187,7 @@ class EstudianteCUImplAdaptadorTest {
         assertSame(tipoEstudiante, captorUsuario.getValue().getObjTipoUsuario());
 
         assertEquals(UUID_USUARIO, creado.getUuidUsuario());
+        assertEquals("FIET", creado.getFacultad());
         AsignaturaMatriculada matriculada = creado.getAsignaturasMatriculadas().get(0);
         assertNotNull(matriculada.getUuidAsignaturaMatriculada());
         assertEquals(EstadoAsignaturaMatriculadaConstantes.ACTIVA, matriculada.getEstado());
@@ -571,55 +576,153 @@ class EstudianteCUImplAdaptadorTest {
         verify(gateway, never()).getAsignaturasMatriculadas(anyString());
     }
 
+    private Estudiante edicion(String codigoEstudiantil, String semestre) {
+        return Estudiante.builder().usuario(new Usuario()).codigoEstudiantil(codigoEstudiantil).semestre(semestre).build();
+    }
+
+    private void verificarQueNoSeActualizoNada() {
+        verify(datosPersonalesGateway, never()).actualizar(anyString(), any());
+        verify(gateway, never()).guardar(any());
+        verifyNoInteractions(log);
+    }
+
     @Test
-    void actualizarEstudianteSoloCambiaDatosAcademicosYRegistraLog() {
+    void actualizarEstudianteCambiaDatosPersonalesYAcademicosSinTocarUsernameProgramaNiFacultad() {
         AsignaturaMatriculada materiaActual = matriculada("m1", "IS101", "A", EstadoAsignaturaMatriculadaConstantes.ACTIVA);
         Estudiante actual = registrado("1001", materiaActual);
-        Usuario usuarioActual = actual.getUsuario();
+        actual.setFacultad("Otra");
         when(gateway.getPorUuid(UUID_ESTUDIANTE)).thenReturn(actual);
-        when(gateway.existePorCodigoEstudiantil("2002")).thenReturn(false);
         when(gateway.guardar(any(Estudiante.class))).thenAnswer(invocacion -> invocacion.getArgument(0));
 
         Estudiante cambios = estudiante("2002", materia("IS999", "Otra", "Z"));
         cambios.setProgramaAcademico(ELECTRONICA);
-        cambios.setSemestre("6");
+        cambios.setSemestre(" 6 ");
         cambios.setFacultad("FIET Popayan");
-        cambios.getUsuario().setNombres("Otro nombre");
+        cambios.getUsuario().setNombres(" Maria ");
+        cambios.getUsuario().setApellidos("Lopez");
+        cambios.getUsuario().setTipoDocumento("tarjeta de identidad");
+        cambios.getUsuario().setNumeroDocumento(" D2002 ");
+        cambios.getUsuario().setTelefono("3109998877");
+        cambios.getUsuario().setCorreoElectronico("maria@unicauca.edu.co");
+        cambios.getUsuario().setUsername("otro-username");
 
         Estudiante actualizado = casoDeUso.actualizarEstudiante(UUID_ESTUDIANTE, cambios, TOKEN);
 
         assertEquals("2002", actualizado.getCodigoEstudiantil());
         assertSame(SISTEMAS, actualizado.getProgramaAcademico());
         assertEquals("6", actualizado.getSemestre());
-        assertEquals("FIET Popayan", actualizado.getFacultad());
-        assertSame(usuarioActual, actualizado.getUsuario());
-        assertEquals("Ana", actualizado.getUsuario().getNombres());
+        assertEquals("FIET", actualizado.getFacultad());
+        assertEquals("Maria", actualizado.getUsuario().getNombres());
+        assertEquals("Lopez", actualizado.getUsuario().getApellidos());
+        assertEquals(ApplicationConstantes.TARJETA_IDENTIDAD, actualizado.getUsuario().getTipoDocumento());
+        assertEquals("D2002", actualizado.getUsuario().getNumeroDocumento());
+        assertEquals("3109998877", actualizado.getUsuario().getTelefono());
+        assertEquals("maria@unicauca.edu.co", actualizado.getUsuario().getCorreoElectronico());
+        assertEquals("u1001", actualizado.getUsuario().getUsername());
         assertEquals(List.of(materiaActual), actualizado.getAsignaturasMatriculadas());
+
+        verify(gateway).existePorCodigoEstudiantilEnOtro("2002", UUID_ESTUDIANTE);
+        verify(datosPersonalesGateway).existeNumeroDocumentoEnOtro("D2002", UUID_ESTUDIANTE);
+        verify(datosPersonalesGateway).existeCorreoEnOtro("maria@unicauca.edu.co", UUID_ESTUDIANTE);
+        ArgumentCaptor<Usuario> guardados = ArgumentCaptor.forClass(Usuario.class);
+        verify(datosPersonalesGateway).actualizar(eq(UUID_ESTUDIANTE), guardados.capture());
+        assertEquals("Maria", guardados.getValue().getNombres());
+        assertEquals("D2002", guardados.getValue().getNumeroDocumento());
+        assertNull(guardados.getValue().getUsername());
         verifyNoInteractions(usuarioCU, usuarioGateway, programaGateway);
         verify(log).crearLog(eq("Actualizar estudiante"), anyString(), eq(TOKEN));
     }
 
     @Test
-    void actualizarEstudianteConCodigoDeOtroEstudianteLanzaEntidadExiste() {
-        when(gateway.getPorUuid(UUID_ESTUDIANTE)).thenReturn(registrado("1001"));
-        when(gateway.existePorCodigoEstudiantil("2002")).thenReturn(true);
+    void actualizarEstudianteConCamposVaciosNoCambiaNadaDeLoQueYaTiene() {
+        Estudiante actual = registrado("1001");
+        when(gateway.getPorUuid(UUID_ESTUDIANTE)).thenReturn(actual);
+        when(gateway.guardar(any(Estudiante.class))).thenAnswer(invocacion -> invocacion.getArgument(0));
+        Estudiante cambios = edicion("  ", "");
+        cambios.getUsuario().setNombres(" ");
+        cambios.getUsuario().setCorreoElectronico("");
 
-        assertThrows(ErrorEntidadExisteExcepcion.class,
-                () -> casoDeUso.actualizarEstudiante(UUID_ESTUDIANTE, estudiante("2002"), TOKEN));
+        Estudiante actualizado = casoDeUso.actualizarEstudiante(UUID_ESTUDIANTE, cambios, TOKEN);
 
-        verify(gateway, never()).guardar(any());
-        verifyNoInteractions(log);
+        assertEquals("1001", actualizado.getCodigoEstudiantil());
+        assertEquals("5", actualizado.getSemestre());
+        assertEquals("Ana", actualizado.getUsuario().getNombres());
+        assertEquals("FIET", actualizado.getFacultad());
+        verify(gateway, never()).existePorCodigoEstudiantilEnOtro(anyString(), anyString());
+        verifyNoInteractions(datosPersonalesGateway);
+        verify(gateway).guardar(actual);
     }
 
     @Test
-    void actualizarEstudianteConSuMismoCodigoNoConsultaDuplicados() {
-        when(gateway.getPorUuid(UUID_ESTUDIANTE)).thenReturn(registrado("ab1001"));
+    void actualizarEstudianteConCodigoDeOtroEstudianteLanzaEntidadExiste() {
+        when(gateway.getPorUuid(UUID_ESTUDIANTE)).thenReturn(registrado("1001"));
+        when(gateway.existePorCodigoEstudiantilEnOtro("2002", UUID_ESTUDIANTE)).thenReturn(true);
+
+        ErrorEntidadExisteExcepcion error = assertThrows(ErrorEntidadExisteExcepcion.class,
+                () -> casoDeUso.actualizarEstudiante(UUID_ESTUDIANTE, edicion("2002", null), TOKEN));
+
+        assertEquals(String.format(MensajesError.ATRIBUTO_UNICO_YA_EXISTE, "Estudiante", "codigo estudiantil", "2002"), error.getMessage());
+        verificarQueNoSeActualizoNada();
+    }
+
+    @Test
+    void actualizarEstudianteConDocumentoDeOtroUsuarioLanzaEntidadExiste() {
+        when(gateway.getPorUuid(UUID_ESTUDIANTE)).thenReturn(registrado("1001"));
+        when(datosPersonalesGateway.existeNumeroDocumentoEnOtro("D9999", UUID_ESTUDIANTE)).thenReturn(true);
+        Estudiante cambios = edicion("2002", "6");
+        cambios.getUsuario().setNumeroDocumento("D9999");
+
+        ErrorEntidadExisteExcepcion error = assertThrows(ErrorEntidadExisteExcepcion.class,
+                () -> casoDeUso.actualizarEstudiante(UUID_ESTUDIANTE, cambios, TOKEN));
+
+        assertEquals(String.format(MensajesError.ATRIBUTO_UNICO_YA_EXISTE, "Usuario", "numero de documento", "D9999"), error.getMessage());
+        verificarQueNoSeActualizoNada();
+    }
+
+    @Test
+    void actualizarEstudianteConCorreoDeOtroUsuarioLanzaEntidadExiste() {
+        when(gateway.getPorUuid(UUID_ESTUDIANTE)).thenReturn(registrado("1001"));
+        when(datosPersonalesGateway.existeCorreoEnOtro("otro@unicauca.edu.co", UUID_ESTUDIANTE)).thenReturn(true);
+        Estudiante cambios = edicion(null, null);
+        cambios.getUsuario().setCorreoElectronico("otro@unicauca.edu.co");
+
+        ErrorEntidadExisteExcepcion error = assertThrows(ErrorEntidadExisteExcepcion.class,
+                () -> casoDeUso.actualizarEstudiante(UUID_ESTUDIANTE, cambios, TOKEN));
+
+        assertEquals(String.format(MensajesError.ATRIBUTO_UNICO_YA_EXISTE, "Usuario", "correo electronico", "otro@unicauca.edu.co"),
+                error.getMessage());
+        verificarQueNoSeActualizoNada();
+    }
+
+    @Test
+    void actualizarEstudianteConSusPropiosDatosUnicosLosAceptaPorqueLaConsultaLoExcluye() {
+        Estudiante actual = registrado("1001");
+        when(gateway.getPorUuid(UUID_ESTUDIANTE)).thenReturn(actual);
         when(gateway.guardar(any(Estudiante.class))).thenAnswer(invocacion -> invocacion.getArgument(0));
+        Estudiante cambios = edicion("1001", null);
+        cambios.getUsuario().setNumeroDocumento("D1001");
+        cambios.getUsuario().setCorreoElectronico("e1001@unicauca.edu.co");
 
-        casoDeUso.actualizarEstudiante(UUID_ESTUDIANTE, estudiante(" AB1001 "), TOKEN);
+        casoDeUso.actualizarEstudiante(UUID_ESTUDIANTE, cambios, TOKEN);
 
+        verify(gateway).existePorCodigoEstudiantilEnOtro("1001", UUID_ESTUDIANTE);
+        verify(datosPersonalesGateway).existeNumeroDocumentoEnOtro("D1001", UUID_ESTUDIANTE);
+        verify(datosPersonalesGateway).existeCorreoEnOtro("e1001@unicauca.edu.co", UUID_ESTUDIANTE);
         verify(gateway, never()).existePorCodigoEstudiantil(anyString());
-        verify(gateway).guardar(any(Estudiante.class));
+        verify(gateway).guardar(actual);
+    }
+
+    @Test
+    void actualizarEstudianteConTipoDeDocumentoInvalidoLanzaMalFormato() {
+        when(gateway.getPorUuid(UUID_ESTUDIANTE)).thenReturn(registrado("1001"));
+        Estudiante cambios = edicion(null, null);
+        cambios.getUsuario().setTipoDocumento("Pasaporte");
+
+        ErrorMalFormatoExcepcion error = assertThrows(ErrorMalFormatoExcepcion.class,
+                () -> casoDeUso.actualizarEstudiante(UUID_ESTUDIANTE, cambios, TOKEN));
+
+        assertEquals(MensajesError.TIPO_DOCUMENTO_ERRONEO, error.getMessage());
+        verificarQueNoSeActualizoNada();
     }
 
     @Test
@@ -629,7 +732,7 @@ class EstudianteCUImplAdaptadorTest {
         assertThrows(ErrorEntidadNoExisteExcepcion.class,
                 () -> casoDeUso.actualizarEstudiante("no-existe", estudiante("1001"), TOKEN));
 
-        verify(gateway, never()).guardar(any());
+        verificarQueNoSeActualizoNada();
     }
 
     @Test

@@ -4,6 +4,7 @@ import com.unicauca.cfiet.solicitudes.aplicacion.input.EstudianteCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.LogCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.UsuarioCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.AsignaturaGatewayIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.output.DatosPersonalesGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.EstudianteGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.ExcepcionesFormateadorIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.IJwtServicio;
@@ -21,6 +22,7 @@ import com.unicauca.cfiet.solicitudes.dominio.modelos.ProgramaAcademico;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.Rol;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.TipoUsuario;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.Usuario;
+import com.unicauca.cfiet.solicitudes.dominio.servicios.DatosPersonales;
 import com.unicauca.cfiet.solicitudes.dominio.servicios.ReglasAsignatura;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.MensajesError;
 
@@ -42,6 +44,8 @@ public class EstudianteCUImplAdaptador implements EstudianteCUIntPuerto {
     private final IJwtServicio jwtServicio;
     private final ExcepcionesFormateadorIntPuerto formateadorExcepciones;
     private final LogCUIntPuerto log;
+    private final DatosPersonales datosPersonales;
+    private static final String FACULTAD_ESTUDIANTE = "FIET";
     private static final String ESTUDIANTE = "Estudiante";
     private static final String ESTUDIANTES = "estudiantes";
     private static final String USUARIO = "Usuario";
@@ -66,6 +70,7 @@ public class EstudianteCUImplAdaptador implements EstudianteCUIntPuerto {
                                      ProgramaAcademicoGatewayIntPuerto programaGateway,
                                      RolGatewayIntPuerto rolGateway,
                                      UsuarioGatewayIntPuerto usuarioGateway,
+                                     DatosPersonalesGatewayIntPuerto datosPersonalesGateway,
                                      SesionGatewayIntPuerto sesionGateway,
                                      IJwtServicio jwtServicio,
                                      ExcepcionesFormateadorIntPuerto formateadorExcepciones,
@@ -80,6 +85,7 @@ public class EstudianteCUImplAdaptador implements EstudianteCUIntPuerto {
         this.jwtServicio = jwtServicio;
         this.formateadorExcepciones = formateadorExcepciones;
         this.log = log;
+        this.datosPersonales = new DatosPersonales(datosPersonalesGateway, formateadorExcepciones);
     }
 
     @Override
@@ -151,18 +157,18 @@ public class EstudianteCUImplAdaptador implements EstudianteCUIntPuerto {
     public Estudiante actualizarEstudiante(String uuidUsuario, Estudiante estudiante, String token) {
         Estudiante actual = getEstudiante(uuidUsuario);
 
-        String nuevoCodigo = estudiante.getCodigoEstudiantil();
-        if (tieneTexto(nuevoCodigo) && !normalizar(nuevoCodigo).equals(normalizar(actual.getCodigoEstudiantil()))) {
-            if (gateway.existePorCodigoEstudiantil(nuevoCodigo.trim()))
-                formateadorExcepciones.lanzarEntidadExiste(String.format(
-                        MensajesError.ATRIBUTO_UNICO_YA_EXISTE, ESTUDIANTE, CODIGO_ESTUDIANTIL, nuevoCodigo));
-        }
-        if (tieneTexto(nuevoCodigo))
-            actual.setCodigoEstudiantil(nuevoCodigo.trim());
+        String nuevoCodigo = tieneTexto(estudiante.getCodigoEstudiantil()) ? estudiante.getCodigoEstudiantil().trim() : null;
+        if (nuevoCodigo != null && gateway.existePorCodigoEstudiantilEnOtro(nuevoCodigo, uuidUsuario))
+            formateadorExcepciones.lanzarEntidadExiste(String.format(
+                    MensajesError.ATRIBUTO_UNICO_YA_EXISTE, ESTUDIANTE, CODIGO_ESTUDIANTIL, nuevoCodigo));
+        Usuario cambios = datosPersonales.cambiosValidados(uuidUsuario, estudiante.getUsuario());
+
+        datosPersonales.guardar(uuidUsuario, actual.getUsuario(), cambios);
+        if (nuevoCodigo != null)
+            actual.setCodigoEstudiantil(nuevoCodigo);
         if (tieneTexto(estudiante.getSemestre()))
-            actual.setSemestre(estudiante.getSemestre());
-        if (tieneTexto(estudiante.getFacultad()))
-            actual.setFacultad(estudiante.getFacultad());
+            actual.setSemestre(estudiante.getSemestre().trim());
+        actual.setFacultad(FACULTAD_ESTUDIANTE);
 
         Estudiante guardado = gateway.guardar(actual);
         log.crearLog("Actualizar estudiante",
@@ -313,6 +319,7 @@ public class EstudianteCUImplAdaptador implements EstudianteCUIntPuerto {
 
         estudiante.setUuidUsuario(creado.getUuidUsuario());
         estudiante.setUsuario(creado);
+        estudiante.setFacultad(FACULTAD_ESTUDIANTE);
         for (AsignaturaMatriculada materia : estudiante.getAsignaturasMatriculadas()) {
             materia.setUuidAsignaturaMatriculada(UUID.randomUUID().toString());
             materia.setEstado(EstadoAsignaturaMatriculadaConstantes.ACTIVA);

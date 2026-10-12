@@ -17,7 +17,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -73,8 +72,8 @@ class ConsultaCancelacionAsignaturaCUImplAdaptadorTest {
         return AsignaturaSolicitudAcademica.builder()
                 .uuidAsignaturaSolicitud(uuid)
                 .asignaturaMatriculada(materia("am-" + uuid, "Materia " + uuid, "activa"))
-                .numeroFaltas(2)
-                .nota(new BigDecimal("3.5"))
+                .numeroFaltas("2")
+                .nota("3.5")
                 .situacionMatricula(situacion("sit-r0"))
                 .cumpleCondiciones(aprobada)
                 .observacionEvaluacion(aprobada ? null : "Supera las faltas")
@@ -161,8 +160,8 @@ class ConsultaCancelacionAsignaturaCUImplAdaptadorTest {
         assertEquals("Etiqueta", detalle.getDetalle().getEtiqueta());
         AsignaturaSolicitudAcademica aprobada = detalle.getAsignaturas().get(0);
         AsignaturaSolicitudAcademica rechazada = detalle.getAsignaturas().get(1);
-        assertEquals(2, aprobada.getNumeroFaltas());
-        assertEquals(new BigDecimal("3.5"), aprobada.getNota());
+        assertEquals("2", aprobada.getNumeroFaltas());
+        assertEquals("3.5", aprobada.getNota());
         assertEquals("sit-r0", aprobada.getSituacionMatricula().getUuidSituacionAcademica());
         assertTrue(aprobada.getCumpleCondiciones());
         assertTrue(aprobada.getAprobadaPorDecano());
@@ -195,7 +194,7 @@ class ConsultaCancelacionAsignaturaCUImplAdaptadorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"APROBADA", "RECHAZADA"})
-    void enLaEtapaFinalElEstudianteVeElResultadoPorAsignaturaPeroNuncaLaObservacionDeEvaluacion(String etapa) {
+    void enLaEtapaFinalElEstudianteVeElResultadoPorAsignaturaPeroNuncaLasObservaciones(String etapa) {
         cancelacionEn(etapa, RolEtiquetaEtapa.ESTUDIANTE);
 
         List<AsignaturaSolicitudAcademica> asignaturas = casoDeUso.getDetalle(SOLICITUD, TOKEN).getAsignaturas();
@@ -203,7 +202,7 @@ class ConsultaCancelacionAsignaturaCUImplAdaptadorTest {
         assertTrue(asignaturas.get(0).getAprobadaPorDecano());
         assertNull(asignaturas.get(0).getObservacionDecision());
         assertFalse(asignaturas.get(1).getAprobadaPorDecano());
-        assertEquals("No procede", asignaturas.get(1).getObservacionDecision());
+        assertNull(asignaturas.get(1).getObservacionDecision());
         assertNull(asignaturas.get(1).getObservacionEvaluacion());
         assertNull(asignaturas.get(1).getCumpleCondiciones());
         assertNull(asignaturas.get(0).getNota());

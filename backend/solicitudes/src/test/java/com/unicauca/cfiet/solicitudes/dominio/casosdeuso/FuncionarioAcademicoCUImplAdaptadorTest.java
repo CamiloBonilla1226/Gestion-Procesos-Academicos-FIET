@@ -2,6 +2,7 @@ package com.unicauca.cfiet.solicitudes.dominio.casosdeuso;
 
 import com.unicauca.cfiet.solicitudes.aplicacion.input.LogCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.UsuarioCUIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.output.DatosPersonalesGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.FuncionarioAcademicoGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.RolGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.UsuarioGatewayIntPuerto;
@@ -11,6 +12,7 @@ import com.unicauca.cfiet.solicitudes.dominio.modelos.Rol;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.TipoUsuario;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.Usuario;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.formateador.ExcepcionesFormateadorImplAdaptador;
+import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.MensajesError;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.excepcionesPropias.ErrorEntidadExisteExcepcion;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.excepcionesPropias.ErrorEntidadNoExisteExcepcion;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.excepcionesPropias.ErrorMalFormatoExcepcion;
@@ -57,6 +59,9 @@ class FuncionarioAcademicoCUImplAdaptadorTest {
     private UsuarioGatewayIntPuerto usuarioGateway;
 
     @Mock
+    private DatosPersonalesGatewayIntPuerto datosPersonalesGateway;
+
+    @Mock
     private LogCUIntPuerto log;
 
     private FuncionarioAcademicoCUImplAdaptador casoDeUso;
@@ -67,11 +72,11 @@ class FuncionarioAcademicoCUImplAdaptadorTest {
 
     @BeforeEach
     void setUp() {
-        casoDeUso = new FuncionarioAcademicoCUImplAdaptador(usuarioCU, gateway, rolGateway, usuarioGateway,
+        casoDeUso = new FuncionarioAcademicoCUImplAdaptador(usuarioCU, gateway, rolGateway, usuarioGateway, datosPersonalesGateway,
                 new ExcepcionesFormateadorImplAdaptador(), log);
     }
 
-    private FuncionarioAcademico funcionario(String sufijo, String dependencia) {
+    private FuncionarioAcademico funcionario(String sufijo, String cargo) {
         Usuario usuario = new Usuario();
         usuario.setNombres("Carlos");
         usuario.setApellidos("Lopez");
@@ -81,12 +86,12 @@ class FuncionarioAcademicoCUImplAdaptadorTest {
         usuario.setRoles(new ArrayList<>(List.of(rolDecano)));
         return FuncionarioAcademico.builder()
                 .usuario(usuario)
-                .dependencia(dependencia)
+                .cargo(cargo)
                 .build();
     }
 
-    private FuncionarioAcademico registrado(String dependencia) {
-        FuncionarioAcademico funcionario = funcionario("100", dependencia);
+    private FuncionarioAcademico registrado(String cargo) {
+        FuncionarioAcademico funcionario = funcionario("100", cargo);
         funcionario.setUuidUsuario(UUID_FUNCIONARIO);
         funcionario.getUsuario().setUuidUsuario(UUID_FUNCIONARIO);
         return funcionario;
@@ -123,7 +128,7 @@ class FuncionarioAcademicoCUImplAdaptadorTest {
         assertSame(tipoFuncionarioAcademico, captor.getValue().getObjTipoUsuario());
 
         assertEquals(UUID_CREADO, creado.getUuidUsuario());
-        assertEquals("Division de Admisiones", creado.getDependencia());
+        assertEquals("Division de Admisiones", creado.getCargo());
         verify(log).crearLog(eq("Crear funcionario académico"), anyString(), eq(TOKEN));
     }
 
@@ -311,34 +316,93 @@ class FuncionarioAcademicoCUImplAdaptadorTest {
         assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso.getFuncionarioAcademico("no-existe"));
     }
 
+    private FuncionarioAcademico edicion(String cargo) {
+        return FuncionarioAcademico.builder().usuario(new Usuario()).cargo(cargo).build();
+    }
+
     @Test
-    void actualizarFuncionarioAcademicoSoloCambiaLaDependenciaYRegistraLog() {
+    void actualizarFuncionarioAcademicoCambiaDatosPersonalesYCargoSinTocarElUsername() {
         FuncionarioAcademico actual = registrado("Admisiones");
-        Usuario usuarioActual = actual.getUsuario();
         when(gateway.getPorUuid(UUID_FUNCIONARIO)).thenReturn(actual);
         when(gateway.guardar(any(FuncionarioAcademico.class))).thenAnswer(invocacion -> invocacion.getArgument(0));
 
         FuncionarioAcademico cambios = funcionario("999", " Registro Academico ");
-        cambios.getUsuario().setNombres("Otro nombre");
+        cambios.getUsuario().setNombres(" Laura ");
+        cambios.getUsuario().setTipoDocumento("cédula de ciudadanía");
+        cambios.getUsuario().setTelefono("3201112233");
+        cambios.getUsuario().setUsername("otro-username");
 
         FuncionarioAcademico actualizado = casoDeUso.actualizarFuncionarioAcademico(UUID_FUNCIONARIO, cambios, TOKEN);
 
-        assertEquals("Registro Academico", actualizado.getDependencia());
-        assertSame(usuarioActual, actualizado.getUsuario());
-        assertEquals("Carlos", actualizado.getUsuario().getNombres());
+        assertEquals("Registro Academico", actualizado.getCargo());
+        assertEquals("Laura", actualizado.getUsuario().getNombres());
+        assertEquals("Lopez", actualizado.getUsuario().getApellidos());
+        assertEquals("Cédula de ciudadanía", actualizado.getUsuario().getTipoDocumento());
+        assertEquals("D999", actualizado.getUsuario().getNumeroDocumento());
+        assertEquals("f999@unicauca.edu.co", actualizado.getUsuario().getCorreoElectronico());
+        assertEquals("3201112233", actualizado.getUsuario().getTelefono());
+        assertEquals("u100", actualizado.getUsuario().getUsername());
         assertEquals(UUID_FUNCIONARIO, actualizado.getUuidUsuario());
+        verify(datosPersonalesGateway).existeNumeroDocumentoEnOtro("D999", UUID_FUNCIONARIO);
+        verify(datosPersonalesGateway).existeCorreoEnOtro("f999@unicauca.edu.co", UUID_FUNCIONARIO);
+        verify(datosPersonalesGateway).actualizar(eq(UUID_FUNCIONARIO), any(Usuario.class));
         verifyNoInteractions(usuarioCU, usuarioGateway, rolGateway);
         verify(log).crearLog(eq("Actualizar funcionario académico"), anyString(), eq(TOKEN));
     }
 
     @Test
-    void actualizarFuncionarioAcademicoConDependenciaVaciaConservaLaActual() {
+    void actualizarFuncionarioAcademicoConCamposVaciosConservaLoActual() {
         when(gateway.getPorUuid(UUID_FUNCIONARIO)).thenReturn(registrado("Admisiones"));
         when(gateway.guardar(any(FuncionarioAcademico.class))).thenAnswer(invocacion -> invocacion.getArgument(0));
+        FuncionarioAcademico cambios = edicion(" ");
+        cambios.getUsuario().setNombres("");
 
-        FuncionarioAcademico actualizado = casoDeUso.actualizarFuncionarioAcademico(UUID_FUNCIONARIO, funcionario("2", " "), TOKEN);
+        FuncionarioAcademico actualizado = casoDeUso.actualizarFuncionarioAcademico(UUID_FUNCIONARIO, cambios, TOKEN);
 
-        assertEquals("Admisiones", actualizado.getDependencia());
+        assertEquals("Admisiones", actualizado.getCargo());
+        assertEquals("Carlos", actualizado.getUsuario().getNombres());
+        verifyNoInteractions(datosPersonalesGateway);
+    }
+
+    @Test
+    void actualizarFuncionarioAcademicoConDocumentoDeOtroUsuarioLanzaEntidadExiste() {
+        when(gateway.getPorUuid(UUID_FUNCIONARIO)).thenReturn(registrado("Admisiones"));
+        when(datosPersonalesGateway.existeNumeroDocumentoEnOtro("D555", UUID_FUNCIONARIO)).thenReturn(true);
+        FuncionarioAcademico cambios = edicion("Otro cargo");
+        cambios.getUsuario().setNumeroDocumento("D555");
+
+        ErrorEntidadExisteExcepcion error = assertThrows(ErrorEntidadExisteExcepcion.class,
+                () -> casoDeUso.actualizarFuncionarioAcademico(UUID_FUNCIONARIO, cambios, TOKEN));
+
+        assertEquals(String.format(MensajesError.ATRIBUTO_UNICO_YA_EXISTE, "Usuario", "numero de documento", "D555"), error.getMessage());
+        verify(datosPersonalesGateway, never()).actualizar(anyString(), any());
+        verify(gateway, never()).guardar(any());
+        verifyNoInteractions(log);
+    }
+
+    @Test
+    void actualizarFuncionarioAcademicoConCorreoDeOtroUsuarioLanzaEntidadExiste() {
+        when(gateway.getPorUuid(UUID_FUNCIONARIO)).thenReturn(registrado("Admisiones"));
+        when(datosPersonalesGateway.existeCorreoEnOtro("x@unicauca.edu.co", UUID_FUNCIONARIO)).thenReturn(true);
+        FuncionarioAcademico cambios = edicion(null);
+        cambios.getUsuario().setCorreoElectronico("x@unicauca.edu.co");
+
+        assertThrows(ErrorEntidadExisteExcepcion.class, () -> casoDeUso.actualizarFuncionarioAcademico(UUID_FUNCIONARIO, cambios, TOKEN));
+
+        verify(gateway, never()).guardar(any());
+        verifyNoInteractions(log);
+    }
+
+    @Test
+    void actualizarFuncionarioAcademicoConTipoDeDocumentoInvalidoLanzaMalFormato() {
+        when(gateway.getPorUuid(UUID_FUNCIONARIO)).thenReturn(registrado("Admisiones"));
+        FuncionarioAcademico cambios = edicion(null);
+        cambios.getUsuario().setTipoDocumento("Licencia");
+
+        assertThrows(ErrorMalFormatoExcepcion.class, () -> casoDeUso.actualizarFuncionarioAcademico(UUID_FUNCIONARIO, cambios, TOKEN));
+
+        verify(gateway, never()).guardar(any());
+        verifyNoInteractions(log);
     }
 
     @Test

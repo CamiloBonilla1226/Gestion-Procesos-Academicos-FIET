@@ -29,7 +29,7 @@ class AgrupadorEstudiantesExcelTest {
                                                 Consumer<EstudianteDTOPeticion> ajuste) {
         EstudianteDTOPeticion peticion = new EstudianteDTOPeticion("Ana", "Pérez", "Cédula de ciudadanía", documento, "3001234567",
                 "est" + documento + "@unicauca.edu.co", "est" + documento, "Clave12345", "COD" + documento,
-                UUID_SISTEMAS, "5", "FIET",
+                UUID_SISTEMAS, "5",
                 new ArrayList<>(List.of(new AsignaturaMatriculadaDTOPeticion(codigoAsignatura, grupo))));
         ajuste.accept(peticion);
         return new FilaEstudianteExcelDTOPeticion(numero, "Ingeniería de Sistemas", peticion);
@@ -80,7 +80,7 @@ class AgrupadorEstudiantesExcelTest {
 
     @Test
     void rechazaLaMismaMateriaYGrupoDosVecesParaElMismoEstudiante() {
-        assertEquals(String.format(MensajesError.EXCEL_FILA_MATERIA_REPETIDA, 4, "M", "codigoAsignatura", "mat1", " a ", 2),
+        assertEquals(String.format(MensajesError.EXCEL_FILA_MATERIA_REPETIDA, 4, "L", "codigoAsignatura", "mat1", " a ", 2),
                 error(List.of(fila(2, "1001", "MAT1", "A"), fila(3, "1001", "FIS1", "A"), fila(4, "1001", "mat1", " a "))));
     }
 

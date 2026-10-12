@@ -100,7 +100,6 @@ public class ConsultaCancelacionAsignaturaCUImplAdaptador implements ConsultaCan
                 .uuidAsignaturaSolicitud(asignatura.getUuidAsignaturaSolicitud())
                 .asignaturaMatriculada(asignatura.getAsignaturaMatriculada())
                 .aprobadaPorDecano(esFinal ? asignatura.getAprobadaPorDecano() : null)
-                .observacionDecision(esFinal ? asignatura.getObservacionDecision() : null)
                 .build();
     }
 

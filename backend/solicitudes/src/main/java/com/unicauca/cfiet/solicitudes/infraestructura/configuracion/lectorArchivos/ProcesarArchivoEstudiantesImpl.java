@@ -77,7 +77,7 @@ public class ProcesarArchivoEstudiantesImpl implements ProcesadorArchivos<FilaEs
 
     private EstudianteDTOPeticion leerFila(Row fila) {
         List<AsignaturaMatriculadaDTOPeticion> asignaturas = new ArrayList<>();
-        asignaturas.add(new AsignaturaMatriculadaDTOPeticion(valor(fila, 12), valor(fila, 13)));
+        asignaturas.add(new AsignaturaMatriculadaDTOPeticion(valor(fila, 11), valor(fila, 12)));
 
         EstudianteDTOPeticion peticion = new EstudianteDTOPeticion();
         peticion.setNombres(valor(fila, 0));
@@ -90,7 +90,6 @@ public class ProcesarArchivoEstudiantesImpl implements ProcesadorArchivos<FilaEs
         peticion.setPassword(valor(fila, 7));
         peticion.setCodigoEstudiantil(valor(fila, 8));
         peticion.setSemestre(valor(fila, 10));
-        peticion.setFacultad(valor(fila, 11));
         peticion.setAsignaturas(asignaturas);
         return peticion;
     }

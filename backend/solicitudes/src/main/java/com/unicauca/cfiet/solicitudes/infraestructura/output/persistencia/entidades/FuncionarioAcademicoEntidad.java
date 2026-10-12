@@ -23,8 +23,8 @@ public class FuncionarioAcademicoEntidad implements Persistable<String> {
             foreignKey = @ForeignKey(name = "fk_funcionarioacademico_usuario")
     )
     private UsuarioEntidad usuario;
-    @Column(name = "dependencia", length = 100, nullable = false)
-    private String dependencia;
+    @Column(name = "cargo", length = 100, nullable = false)
+    private String cargo;
     @Transient
     private boolean nuevo;
 

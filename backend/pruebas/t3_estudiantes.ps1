@@ -15,7 +15,6 @@ function Nuevo-CuerpoEstudiante {
         codigoEstudiantil     = "C$Sufijo"
         uuidProgramaAcademico = $UuidPrograma
         semestre              = "5"
-        facultad              = "FIET"
         asignaturas           = @($Materias)
     }
 }
@@ -136,6 +135,32 @@ try {
     $r = Invoke-Api -Metodo PUT -Ruta "estudiantes/$uuidA" -Token $tokenRoot -Cuerpo @{ codigoEstudiantil = $cuerpoB.codigoEstudiantil }
     $cod = Obtener-CodigoError $r
     Escribir-Resultado "root actualiza con codigo de otro estudiante (500 codigoError 2, obtuvo $($r.Status) codigoError $cod)" (($r.Status -eq 500) -and ($cod -eq "2"))
+    $r = Invoke-Api -Metodo PUT -Ruta "estudiantes/$uuidA" -Token $tokenRoot -Cuerpo @{ numeroDocumento = $cuerpoB.numeroDocumento }
+    $cod = Obtener-CodigoError $r
+    Escribir-Resultado "root actualiza con el documento de otro estudiante (500 codigoError 2, obtuvo $($r.Status) codigoError $cod)" (($r.Status -eq 500) -and ($cod -eq "2"))
+    $r = Invoke-Api -Metodo PUT -Ruta "estudiantes/$uuidA" -Token $tokenRoot -Cuerpo @{ correoElectronico = $cuerpoB.correoElectronico }
+    $cod = Obtener-CodigoError $r
+    Escribir-Resultado "root actualiza con el correo de otro estudiante (500 codigoError 2, obtuvo $($r.Status) codigoError $cod)" (($r.Status -eq 500) -and ($cod -eq "2"))
+
+    $r = Invoke-Api -Metodo PUT -Ruta "estudiantes/$uuidA" -Token $tokenRoot -Cuerpo @{ nombres = "Editado"; apellidos = "Apellido $sufijoA"; telefono = "3110000000"; numeroDocumento = $cuerpoA.numeroDocumento; correoElectronico = $cuerpoA.correoElectronico; codigoEstudiantil = $cuerpoA.codigoEstudiantil; username = "otro$sufijoA"; facultad = "Otra" }
+    $editado = if ($r.Status -eq 200) { Leer-Json $r } else { $null }
+    Escribir-Resultado "root edita datos personales con su propio documento, correo y codigo (200, obtuvo $($r.Status))" (($r.Status -eq 200) -and ($editado.nombres -eq "Editado") -and ($editado.apellidos -eq "Apellido $sufijoA") -and ($editado.telefono -eq "3110000000") -and ($editado.codigoEstudiantil -eq $cuerpoA.codigoEstudiantil))
+    Escribir-Resultado "username, programa y facultad no cambian al editar (obtuvo $($editado.username), $($editado.facultad))" (($editado.username -eq $cuerpoA.username) -and ($editado.uuidProgramaAcademico -eq $isi.uuidProgramaAcademico) -and ($editado.facultad -eq "FIET"))
+
+    $nuevoDocumento = "9$sufijoA"
+    $nuevoCorreo = "editado$sufijoA@unicauca.edu.co"
+    $r = Invoke-Api -Metodo PUT -Ruta "estudiantes/$uuidA" -Token $tokenRoot -Cuerpo @{ numeroDocumento = $nuevoDocumento; correoElectronico = $nuevoCorreo; tipoDocumento = "Tarjeta de identidad"; nombres = ""; semestre = "" }
+    $editado = if ($r.Status -eq 200) { Leer-Json $r } else { $null }
+    Escribir-Resultado "root cambia documento, correo y tipo de documento; los vacios no cambian (200, obtuvo $($r.Status))" (($r.Status -eq 200) -and ($editado.numeroDocumento -eq $nuevoDocumento) -and ($editado.correoElectronico -eq $nuevoCorreo) -and ($editado.tipoDocumento -eq "Tarjeta de identidad") -and ($editado.nombres -eq "Editado") -and ($editado.semestre -eq "6"))
+    $enBase = Consultar-Base "select concat(l.nombres, '|', u.numeroDocumento, '|', u.correoElectronico, '|', e.facultad) from usuarios u join usuariosLivianos l on l.uuidUsuario = u.uuidUsuario join ESTUDIANTE e on e.Usuario_uuid = u.uuidUsuario where u.uuidUsuario = '$uuidA'"
+    Escribir-Resultado "los datos personales quedaron en usuarios y usuariosLivianos y la facultad es FIET (obtuvo $enBase)" ($enBase -eq "Editado|$nuevoDocumento|$nuevoCorreo|FIET")
+    $r = Invoke-Api -Metodo PUT -Ruta "estudiantes/$uuidA" -Token $tokenRoot -Cuerpo @{ tipoDocumento = "Pasaporte extranjero" }
+    $cod = Obtener-CodigoError $r
+    Escribir-Resultado "root edita con un tipo de documento invalido (500 codigoError 6, obtuvo $($r.Status) codigoError $cod)" (($r.Status -eq 500) -and ($cod -eq "6"))
+    $login = Invoke-Api -Metodo POST -Ruta "sesiones" -Cuerpo @{ username = $cuerpoA.username; password = $cuerpoA.password }
+    Escribir-Resultado "el estudiante editado sigue iniciando sesion con su username (obtuvo $($login.Status))" ($login.Status -eq 200)
+    $cuerpoA.numeroDocumento = $nuevoDocumento
+    $cuerpoA.correoElectronico = $nuevoCorreo
 
     $sufijoX = Nuevo-Sufijo
     $repetido = Nuevo-CuerpoEstudiante -Sufijo $sufijoX -Materias @($materiaA)

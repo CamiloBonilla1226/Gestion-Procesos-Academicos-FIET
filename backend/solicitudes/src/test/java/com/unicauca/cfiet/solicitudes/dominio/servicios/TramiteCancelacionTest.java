@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
@@ -80,7 +81,7 @@ class TramiteCancelacionTest {
     }
 
     private EvaluacionAsignatura evaluacion(String uuid) {
-        return EvaluacionAsignatura.builder().uuidAsignaturaSolicitud(uuid).numeroFaltas(0).nota(new BigDecimal("4.0")).build();
+        return EvaluacionAsignatura.builder().uuidAsignaturaSolicitud(uuid).numeroFaltas("0").nota("4.0").build();
     }
 
     private SituacionAcademicaAsignatura situacion(String uuid) {
@@ -154,50 +155,94 @@ class TramiteCancelacionTest {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {0, 1, 15, 200})
-    void faltasDeAceptaCeroOMas(int faltas) {
-        assertEquals(faltas, tramite.faltasDe(faltas, "Cálculo I"));
+    @CsvSource({"0,0", "1,1", "15,15", "200,200", "' 7 ',7", "3.0,3", "007,7", "+4,4"})
+    void faltasDeAceptaEnterosDeCeroOMasYLosNormaliza(String faltas, String esperado) {
+        assertEquals(esperado, tramite.faltasDe(faltas, "Cálculo I"));
     }
 
-    @Test
-    void faltasDeRechazaUnNumeroNegativo() {
-        ErrorMalFormatoExcepcion error = assertThrows(ErrorMalFormatoExcepcion.class, () -> tramite.faltasDe(-1, "Cálculo I"));
+    @ParameterizedTest
+    @ValueSource(strings = {"-1", "-3", "2.5", "1,5"})
+    void faltasDeRechazaUnNumeroNegativoODecimal(String faltas) {
+        ErrorMalFormatoExcepcion error = assertThrows(ErrorMalFormatoExcepcion.class, () -> tramite.faltasDe(faltas, "Cálculo I"));
 
         assertEquals(String.format(MensajesError.NUMERO_FALTAS_NO_VALIDO, "Cálculo I"), error.getMessage());
     }
 
-    @Test
-    void faltasDeExigeElDato() {
+    @ParameterizedTest
+    @CsvSource({"Sin registro,Sin registro", "'  N/A ',N/A", "muchas,muchas", "3 faltas,3 faltas"})
+    void faltasDeAceptaTextoNoNumericoSinEspaciosSobrantes(String faltas, String esperado) {
+        assertEquals(esperado, tramite.faltasDe(faltas, "Cálculo I"));
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"   "})
+    void faltasDeExigeElDato(String faltas) {
         ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
-                () -> tramite.faltasDe(null, "Cálculo I"));
+                () -> tramite.faltasDe(faltas, "Cálculo I"));
 
         assertEquals(String.format(MensajesError.DATO_ASIGNATURA_FALTANTE, "el número de faltas", "Cálculo I"), error.getMessage());
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"0", "0.0", "3", "3.5", "4.50", "5", "5.0", "5.00"})
-    void notaDeAceptaDeCeroACincoConUnDecimalYLaDejaConUnDecimal(String nota) {
-        BigDecimal resultado = tramite.notaDe(new BigDecimal(nota), "Física I");
+    @Test
+    void faltasDeRechazaUnTextoDeMasDeVeinteCaracteres() {
+        ErrorMalFormatoExcepcion error = assertThrows(ErrorMalFormatoExcepcion.class,
+                () -> tramite.faltasDe("a".repeat(21), "Cálculo I"));
 
-        assertEquals(1, resultado.scale());
-        assertEquals(0, resultado.compareTo(new BigDecimal(nota)));
+        assertEquals(String.format(MensajesError.VALOR_ASIGNATURA_MUY_LARGO, "Cálculo I", "el número de faltas", 20), error.getMessage());
+        assertEquals("a".repeat(20), tramite.faltasDe("a".repeat(20), "Cálculo I"));
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"-0.1", "-1", "5.1", "6", "10", "3.25", "4.99", "0.05"})
-    void notaDeRechazaValoresFueraDeRangoOConMasDeUnDecimal(String nota) {
+    @CsvSource({"0,0.0", "0.0,0.0", "3,3.0", "3.5,3.5", "4.50,4.5", "5,5.0", "5.0,5.0", "5.00,5.0", "'3,5',3.5", "'4,0',4.0", "' 2.5 ',2.5"})
+    void notaDeAceptaDeCeroACincoConUnDecimalConPuntoOComaYLaDejaConPunto(String nota, String esperada) {
+        assertEquals(esperada, tramite.notaDe(nota, "Física I"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"-0.1", "-1", "5.1", "6", "10", "3.25", "4.99", "0.05", "3,25", "5,1"})
+    void notaDeRechazaNumerosFueraDeRangoOConMasDeUnDecimal(String nota) {
         ErrorMalFormatoExcepcion error = assertThrows(ErrorMalFormatoExcepcion.class,
-                () -> tramite.notaDe(new BigDecimal(nota), "Física I"));
+                () -> tramite.notaDe(nota, "Física I"));
 
         assertEquals(String.format(MensajesError.NOTA_NO_VALIDA, "Física I"), error.getMessage());
     }
 
-    @Test
-    void notaDeExigeElDato() {
+    @ParameterizedTest
+    @CsvSource({"Sin nota,Sin nota", "'  Pendiente ',Pendiente", "Aprobado,Aprobado", "3.5 / 5,3.5 / 5"})
+    void notaDeAceptaTextoNoNumericoSinEspaciosSobrantes(String nota, String esperada) {
+        assertEquals(esperada, tramite.notaDe(nota, "Física I"));
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"   "})
+    void notaDeExigeElDato(String nota) {
         ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
-                () -> tramite.notaDe(null, "Física I"));
+                () -> tramite.notaDe(nota, "Física I"));
 
         assertEquals(String.format(MensajesError.DATO_ASIGNATURA_FALTANTE, "la nota", "Física I"), error.getMessage());
+    }
+
+    @Test
+    void notaDeRechazaUnTextoDeMasDeVeinteCaracteres() {
+        ErrorMalFormatoExcepcion error = assertThrows(ErrorMalFormatoExcepcion.class,
+                () -> tramite.notaDe("b".repeat(21), "Física I"));
+
+        assertEquals(String.format(MensajesError.VALOR_ASIGNATURA_MUY_LARGO, "Física I", "la nota", 20), error.getMessage());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"3.5,3.5", "'3,5',3.5", "0,0", "-2,-2"})
+    void numeroInterpretaPuntoOComa(String valor, String esperado) {
+        assertEquals(0, new BigDecimal(esperado).compareTo(tramite.numero(valor)));
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"abc", "3.", ".5", "3,5,1", "1e3", "3 5"})
+    void numeroDevuelveNuloSiNoEsNumerico(String valor) {
+        assertNull(tramite.numero(valor));
     }
 
     @Test

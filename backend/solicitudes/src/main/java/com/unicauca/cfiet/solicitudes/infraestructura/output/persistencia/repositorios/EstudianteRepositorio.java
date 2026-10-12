@@ -13,6 +13,8 @@ public interface EstudianteRepositorio extends JpaRepository<EstudianteEntidad, 
 
     boolean existsByCodigoEstudiantil(String codigoEstudiantil);
 
+    boolean existsByCodigoEstudiantilAndUuidUsuarioNot(String codigoEstudiantil, String uuidUsuario);
+
     @Query("""
         SELECT e FROM EstudianteEntidad e
         WHERE (:nombre IS NULL OR LOWER(e.usuario.nombres) LIKE LOWER(CONCAT('%', :nombre, '%')))

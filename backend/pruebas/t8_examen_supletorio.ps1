@@ -44,7 +44,6 @@ function Nuevo-Estudiante {
         codigoEstudiantil = "S$s"
         uuidProgramaAcademico = $script:programaIsi.uuidProgramaAcademico
         semestre          = "5"
-        facultad          = "FIET"
         asignaturas       = $asignaturas
     }
     $r = Invoke-Api -Metodo POST -Ruta "estudiantes" -Token $Token -Cuerpo $cuerpo
@@ -68,7 +67,7 @@ function Nuevo-Funcionario {
         correoElectronico = "tsu$s@unicauca.edu.co"
         username          = "tsu$s"
         password          = "Clave12345"
-        dependencia       = "DepT8 $s"
+        cargo             = "DepT8 $s"
     }
     $r = Invoke-Api -Metodo POST -Ruta "funcionarios-academicos" -Token $Token -Cuerpo $cuerpo
     if ($r.Status -ne 200) { throw "No se pudo crear el funcionario academico ($($r.Status)): $($r.Body)" }
@@ -472,17 +471,20 @@ try {
     $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol3/funcionario/remitir" -Token $fa1.Token -Cuerpo @{ requisitosVerificados = $true }
     Escribir-Resultado "el estudiante 3 radica y el funcionario remite (obtuvo $($r.Status), etapa $(Etapa-De $sol3))" (($r.Status -eq 200) -and ((Etapa-De $sol3) -eq "EN_REVISION_DECANO"))
     Verificar-EtapaHttp -Solicitud $sol3 -Esperada "EN_REVISION_DECANO" -Estudiante $est3.Token -Funcionario $fa1.Token -Decano $decano.Token
-    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol3/decano/rechazar" -Token $decano.Token -Cuerpo @{ observacion = "" }
-    Escribir-Resultado "el Decano no rechaza sin observacion (obtuvo $($r.Status))" (($r.Status -ne 200) -and ((Etapa-De $sol3) -eq "EN_REVISION_DECANO"))
     $motivoDecano = "No procede: la causa no esta soportada"
     $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol3/decano/rechazar" -Token $decano.Token -Cuerpo @{ observacion = $motivoDecano }
     Escribir-Resultado "el rechazo del Decano pasa a RECHAZADA_POR_DECANO (obtuvo $($r.Status), etapa $(Etapa-De $sol3))" (($r.Status -eq 200) -and ((Etapa-De $sol3) -eq "RECHAZADA_POR_DECANO"))
     Verificar-EtapaHttp -Solicitud $sol3 -Esperada "RECHAZADA_POR_DECANO" -Estudiante $est3.Token -Funcionario $fa1.Token -Decano $decano.Token
-    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol3/funcionario/responder" -Token $fa1.Token
+    $mensajeEstudiante = "Puede radicar una nueva solicitud"
+    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol3/funcionario/responder" -Token $fa1.Token -Cuerpo @{ observacion = $mensajeEstudiante }
     Escribir-Resultado "enviar la respuesta sin escaneo deja la solicitud RECHAZADA (obtuvo $($r.Status), etapa $(Etapa-De $sol3))" (($r.Status -eq 200) -and ((Etapa-De $sol3) -eq "RECHAZADA"))
     Verificar-EtapaHttp -Solicitud $sol3 -Esperada "RECHAZADA" -Estudiante $est3.Token -Funcionario $fa1.Token -Decano $decano.Token
-    $filaDecano = @(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol3/historial" -Token $est3.Token)) | Where-Object { $_.accion -eq "RECHAZAR_DECANO" }
-    Escribir-Resultado "el estudiante 3 ve el motivo del Decano y su asignatura sigue activa (obtuvo $($filaDecano.observaciones))" (($filaDecano.observaciones -eq $motivoDecano) -and ((Estados @($est3.Uuid)) -eq "activa"))
+    $historialEst = @(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol3/historial" -Token $est3.Token))
+    $filaDecano = $historialEst | Where-Object { $_.accion -eq "RECHAZAR_DECANO" }
+    $filaRespuesta = $historialEst | Where-Object { $_.accion -eq "ENVIAR_RESPUESTA" }
+    Escribir-Resultado "el estudiante 3 ve vacia la observacion del Decano, ve el mensaje del funcionario y su asignatura sigue activa" ($filaDecano -and (-not $filaDecano.observaciones) -and ($filaRespuesta.observaciones -eq $mensajeEstudiante) -and ((Estados @($est3.Uuid)) -eq "activa"))
+    $filaDecanoFa = @(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol3/historial" -Token $fa1.Token)) | Where-Object { $_.accion -eq "RECHAZAR_DECANO" }
+    Escribir-Resultado "el funcionario ve la observacion del Decano (obtuvo $($filaDecanoFa.observaciones))" ($filaDecanoFa.observaciones -eq $motivoDecano)
 
     $e1 = @(Activas $est4)[0]
     $r = Radicar -Token $est4.Token -Asignatura $e1 -Fecha $hoy -Causa "otra" -Tipos @($for23, $justificacion) -Pdf $pdf

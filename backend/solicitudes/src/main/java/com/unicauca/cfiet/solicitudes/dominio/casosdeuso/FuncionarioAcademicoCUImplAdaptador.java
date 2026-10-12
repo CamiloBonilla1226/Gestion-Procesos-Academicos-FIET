@@ -3,6 +3,7 @@ package com.unicauca.cfiet.solicitudes.dominio.casosdeuso;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.FuncionarioAcademicoCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.LogCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.UsuarioCUIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.output.DatosPersonalesGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.ExcepcionesFormateadorIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.FuncionarioAcademicoGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.RolGatewayIntPuerto;
@@ -13,6 +14,7 @@ import com.unicauca.cfiet.solicitudes.dominio.modelos.FuncionarioAcademico;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.Rol;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.TipoUsuario;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.Usuario;
+import com.unicauca.cfiet.solicitudes.dominio.servicios.DatosPersonales;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.MensajesError;
 
 import java.util.ArrayList;
@@ -28,6 +30,7 @@ public class FuncionarioAcademicoCUImplAdaptador implements FuncionarioAcademico
     private final UsuarioGatewayIntPuerto usuarioGateway;
     private final ExcepcionesFormateadorIntPuerto formateadorExcepciones;
     private final LogCUIntPuerto log;
+    private final DatosPersonales datosPersonales;
     private static final String FUNCIONARIO_ACADEMICO = "Funcionario Académico";
     private static final String FUNCIONARIOS_ACADEMICOS = "funcionarios académicos";
     private static final String USUARIO = "Usuario";
@@ -44,6 +47,7 @@ public class FuncionarioAcademicoCUImplAdaptador implements FuncionarioAcademico
                                                FuncionarioAcademicoGatewayIntPuerto gateway,
                                                RolGatewayIntPuerto rolGateway,
                                                UsuarioGatewayIntPuerto usuarioGateway,
+                                               DatosPersonalesGatewayIntPuerto datosPersonalesGateway,
                                                ExcepcionesFormateadorIntPuerto formateadorExcepciones,
                                                LogCUIntPuerto log) {
         this.usuarioCU = usuarioCU;
@@ -52,6 +56,7 @@ public class FuncionarioAcademicoCUImplAdaptador implements FuncionarioAcademico
         this.usuarioGateway = usuarioGateway;
         this.formateadorExcepciones = formateadorExcepciones;
         this.log = log;
+        this.datosPersonales = new DatosPersonales(datosPersonalesGateway, formateadorExcepciones);
     }
 
     @Override
@@ -88,9 +93,9 @@ public class FuncionarioAcademicoCUImplAdaptador implements FuncionarioAcademico
     }
 
     @Override
-    public PaginacionRespuestaDTO<FuncionarioAcademico> getFuncionariosAcademicosPorFiltro(String nombre, String apellido, String dependencia, int pagina, int tamanio) {
+    public PaginacionRespuestaDTO<FuncionarioAcademico> getFuncionariosAcademicosPorFiltro(String nombre, String apellido, String cargo, int pagina, int tamanio) {
         validarPaginacion(pagina, tamanio);
-        return gateway.getPorFiltro(nombre, apellido, dependencia, pagina, tamanio);
+        return gateway.getPorFiltro(nombre, apellido, cargo, pagina, tamanio);
     }
 
     @Override
@@ -105,8 +110,10 @@ public class FuncionarioAcademicoCUImplAdaptador implements FuncionarioAcademico
     @Override
     public FuncionarioAcademico actualizarFuncionarioAcademico(String uuidUsuario, FuncionarioAcademico funcionarioAcademico, String token) {
         FuncionarioAcademico actual = getFuncionarioAcademico(uuidUsuario);
-        if (tieneTexto(funcionarioAcademico.getDependencia()))
-            actual.setDependencia(funcionarioAcademico.getDependencia().trim());
+        Usuario cambios = datosPersonales.cambiosValidados(uuidUsuario, funcionarioAcademico.getUsuario());
+        datosPersonales.guardar(uuidUsuario, actual.getUsuario(), cambios);
+        if (tieneTexto(funcionarioAcademico.getCargo()))
+            actual.setCargo(funcionarioAcademico.getCargo().trim());
 
         FuncionarioAcademico guardado = gateway.guardar(actual);
         log.crearLog("Actualizar funcionario académico",
@@ -165,8 +172,8 @@ public class FuncionarioAcademicoCUImplAdaptador implements FuncionarioAcademico
         funcionarioAcademico.setUsuario(creado);
         FuncionarioAcademico guardado = gateway.guardar(funcionarioAcademico);
         log.crearLog("Crear funcionario académico",
-                String.format("Funcionario académico %s %s de la dependencia %s creado con uuid %s",
-                        creado.getNombres(), creado.getApellidos(), guardado.getDependencia(), guardado.getUuidUsuario()),
+                String.format("Funcionario académico %s %s con el cargo %s creado con uuid %s",
+                        creado.getNombres(), creado.getApellidos(), guardado.getCargo(), guardado.getUuidUsuario()),
                 token);
         return guardado;
     }

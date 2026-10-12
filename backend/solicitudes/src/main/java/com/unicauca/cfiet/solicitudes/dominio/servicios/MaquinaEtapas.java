@@ -46,7 +46,7 @@ public class MaquinaEtapas {
             new Transicion(SUPLETORIO, RADICADA, AccionEtapa.RECHAZAR_FUNCIONARIO, RECHAZADA, RolEtiquetaEtapa.FUNCIONARIO, true, false, false, false),
             new Transicion(TODOS, RADICADA, AccionEtapa.REMITIR_DECANO, EN_REVISION_DECANO, RolEtiquetaEtapa.FUNCIONARIO, false, false, false, false),
             new Transicion(TODOS, EN_REVISION_DECANO, AccionEtapa.APROBAR_DECANO, APROBADA_POR_DECANO, RolEtiquetaEtapa.DECANO, false, false, false, false),
-            new Transicion(TODOS, EN_REVISION_DECANO, AccionEtapa.RECHAZAR_DECANO, RECHAZADA_POR_DECANO, RolEtiquetaEtapa.DECANO, true, false, false, false),
+            new Transicion(TODOS, EN_REVISION_DECANO, AccionEtapa.RECHAZAR_DECANO, RECHAZADA_POR_DECANO, RolEtiquetaEtapa.DECANO, false, false, false, false),
             new Transicion(CANCELACIONES, APROBADA_POR_DECANO, AccionEtapa.ENVIAR_RESPUESTA, APROBADA, RolEtiquetaEtapa.FUNCIONARIO, false, true, false, false),
             new Transicion(CANCELACIONES, RECHAZADA_POR_DECANO, AccionEtapa.ENVIAR_RESPUESTA, RECHAZADA, RolEtiquetaEtapa.FUNCIONARIO, false, true, false, false),
             new Transicion(SUPLETORIO, RECHAZADA_POR_DECANO, AccionEtapa.ENVIAR_RESPUESTA, RECHAZADA, RolEtiquetaEtapa.FUNCIONARIO, false, false, false, false),

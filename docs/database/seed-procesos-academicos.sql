@@ -36,10 +36,10 @@ INSERT IGNORE INTO ETAPA_ETIQUETA_ROL (Etapa_uuid, rol, etiqueta) VALUES
 ('28ee2417-f100-4972-82d3-a4d267a1a10f', 'FUNCIONARIO', 'En Gestión'),
 ('28ee2417-f100-4972-82d3-a4d267a1a10f', 'DECANO', 'Pendiente'),
 ('1dfc0089-f1b0-486d-bfc5-2025081d800f', 'ESTUDIANTE', 'En trámite'),
-('1dfc0089-f1b0-486d-bfc5-2025081d800f', 'FUNCIONARIO', 'Pendiente de Respuesta'),
+('1dfc0089-f1b0-486d-bfc5-2025081d800f', 'FUNCIONARIO', 'Aprobada por el Decano'),
 ('1dfc0089-f1b0-486d-bfc5-2025081d800f', 'DECANO', 'Respondida'),
 ('fa3c502f-dc81-46eb-bace-88deb194564b', 'ESTUDIANTE', 'En trámite'),
-('fa3c502f-dc81-46eb-bace-88deb194564b', 'FUNCIONARIO', 'Pendiente de Respuesta'),
+('fa3c502f-dc81-46eb-bace-88deb194564b', 'FUNCIONARIO', 'Rechazada por el Decano'),
 ('fa3c502f-dc81-46eb-bace-88deb194564b', 'DECANO', 'Respondida'),
 ('6e4561a7-b354-4f21-9825-f35263882b36', 'ESTUDIANTE', 'Pendiente de pago'),
 ('6e4561a7-b354-4f21-9825-f35263882b36', 'FUNCIONARIO', 'En Gestión'),
@@ -68,7 +68,7 @@ INSERT IGNORE INTO TIPO_ANEXO_ACADEMICO (uuidTipoAnexoAcademico, TipoSolicitudAc
 ('8408772b-8b61-472e-ac44-a83923dea147', '459cde47-f3a3-4a74-9b44-1063a516326c', 'Comprobante de pago', 'pdf,jpg,png', 0);
 
 INSERT IGNORE INTO SITUACION_ACADEMICA_ASIGNATURA (uuidSituacionAcademica, codigo, nombre) VALUES
-('6eec86b1-53da-4c65-baa9-96bf67669c13', 'R0', 'Cursada por primera vez'),
-('62aa0705-f878-408e-8111-78691c1a871a', 'R1', 'Cursada por segunda vez'),
-('fa14cee3-6e4f-4178-955c-ba73312e08cb', 'R2', 'Cursada por tercera vez'),
-('a6077d43-d5fc-4e8d-9424-18c549515c24', 'R3', 'Cursada por cuarta vez');
+('6eec86b1-53da-4c65-baa9-96bf67669c13', 'R0', 'No cursada'),
+('62aa0705-f878-408e-8111-78691c1a871a', 'R1', 'Cursada por primera vez'),
+('fa14cee3-6e4f-4178-955c-ba73312e08cb', 'R2', 'Cursada por segunda vez'),
+('a6077d43-d5fc-4e8d-9424-18c549515c24', 'R3', 'Cursada por tercera vez');

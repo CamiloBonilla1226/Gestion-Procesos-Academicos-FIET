@@ -56,7 +56,7 @@ class MaquinaEtapasTest {
                 new Fila(tipo, RADICADA, RECHAZAR_FUNCIONARIO, FUNCIONARIO, RECHAZADA, true, true, false, false),
                 new Fila(tipo, RADICADA, REMITIR_DECANO, FUNCIONARIO, EN_REVISION_DECANO, false, false, false, false),
                 new Fila(tipo, EN_REVISION_DECANO, APROBAR_DECANO, DECANO, APROBADA_POR_DECANO, false, false, false, false),
-                new Fila(tipo, EN_REVISION_DECANO, RECHAZAR_DECANO, DECANO, RECHAZADA_POR_DECANO, true, false, false, false),
+                new Fila(tipo, EN_REVISION_DECANO, RECHAZAR_DECANO, DECANO, RECHAZADA_POR_DECANO, false, false, false, false),
                 new Fila(tipo, APROBADA_POR_DECANO, ENVIAR_RESPUESTA, FUNCIONARIO, APROBADA, false, true, false, false),
                 new Fila(tipo, RECHAZADA_POR_DECANO, ENVIAR_RESPUESTA, FUNCIONARIO, RECHAZADA, false, true, false, false));
     }
@@ -67,7 +67,7 @@ class MaquinaEtapasTest {
                 new Fila(EXAMEN_SUPLETORIO, RADICADA, RECHAZAR_FUNCIONARIO, FUNCIONARIO, RECHAZADA, true, false, false, false),
                 new Fila(EXAMEN_SUPLETORIO, RADICADA, REMITIR_DECANO, FUNCIONARIO, EN_REVISION_DECANO, false, false, false, false),
                 new Fila(EXAMEN_SUPLETORIO, EN_REVISION_DECANO, APROBAR_DECANO, DECANO, APROBADA_POR_DECANO, false, false, false, false),
-                new Fila(EXAMEN_SUPLETORIO, EN_REVISION_DECANO, RECHAZAR_DECANO, DECANO, RECHAZADA_POR_DECANO, true, false, false, false),
+                new Fila(EXAMEN_SUPLETORIO, EN_REVISION_DECANO, RECHAZAR_DECANO, DECANO, RECHAZADA_POR_DECANO, false, false, false, false),
                 new Fila(EXAMEN_SUPLETORIO, RECHAZADA_POR_DECANO, ENVIAR_RESPUESTA, FUNCIONARIO, RECHAZADA, false, false, false, false),
                 new Fila(EXAMEN_SUPLETORIO, APROBADA_POR_DECANO, ENVIAR_RECIBO, FUNCIONARIO, PENDIENTE_PAGO, false, false, true, false),
                 new Fila(EXAMEN_SUPLETORIO, PENDIENTE_PAGO, SUBIR_COMPROBANTE, ESTUDIANTE, EN_VERIFICACION_PAGO, false, false, false, true),
@@ -262,7 +262,7 @@ class MaquinaEtapasTest {
 
     @Test
     void unaObservacionEnBlancoCuentaComoFaltante() {
-        assertRechazo("observación", () -> maquina.transicionar(EXAMEN_SUPLETORIO, EN_REVISION_DECANO, RECHAZAR_DECANO, DECANO,
+        assertRechazo("observación", () -> maquina.transicionar(EXAMEN_SUPLETORIO, EN_VERIFICACION_PAGO, RECHAZAR_COMPROBANTE, FUNCIONARIO,
                 EntregaTransicion.builder().observacion("   ").build()));
     }
 
@@ -309,8 +309,10 @@ class MaquinaEtapasTest {
     }
 
     @Test
-    void rechazarDecanoExigeObservacionYAprobarDecanoNoExigeNada() {
-        assertRechazo("observación", () -> maquina.transicionar(CANCELACION_ASIGNATURA, EN_REVISION_DECANO, RECHAZAR_DECANO, DECANO, null));
+    void rechazarDecanoYAprobarDecanoNoExigenObservacion() {
+        assertEquals(RECHAZADA_POR_DECANO, maquina.transicionar(CANCELACION_ASIGNATURA, EN_REVISION_DECANO, RECHAZAR_DECANO, DECANO, null).getEtapaSiguiente());
+        assertEquals(RECHAZADA_POR_DECANO, maquina.transicionar(EXAMEN_SUPLETORIO, EN_REVISION_DECANO, RECHAZAR_DECANO, DECANO,
+                EntregaTransicion.builder().observacion("   ").build()).getEtapaSiguiente());
         assertEquals(APROBADA_POR_DECANO, maquina.transicionar(CANCELACION_ASIGNATURA, EN_REVISION_DECANO, APROBAR_DECANO, DECANO, null).getEtapaSiguiente());
     }
 

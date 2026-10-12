@@ -46,7 +46,9 @@ CREATE TABLE IF NOT EXISTS PROGRAMA_ACADEMICO (
 -- ---------------------------------------------------------------------
 
 -- El programa del estudiante se elige al crearlo y no se edita después.
--- Solo puede matricular asignaturas de ese mismo programa.
+-- Solo puede matricular asignaturas de ese mismo programa. La facultad
+-- siempre es 'FIET': la asigna el backend al crear y al editar, y no llega
+-- del cliente.
 CREATE TABLE IF NOT EXISTS ESTUDIANTE (
     Usuario_uuid            VARCHAR(100) NOT NULL,
     codigoEstudiantil       VARCHAR(45)  NOT NULL,
@@ -65,12 +67,13 @@ CREATE TABLE IF NOT EXISTS ESTUDIANTE (
 -- distinta del Funcionario/tabla "funcionarios" de Julián (ese es un rol
 -- de comité de facultad). Esta tabla cubre solo al Funcionario Académico
 -- (Técnico Administrativo de Procesos Académicos) que verifica la
--- información académica. La columna "dependencia" es la dependencia u
--- oficina a la que pertenece; no distingue roles
+-- información académica. La columna "cargo" es el cargo que ocupa (antes
+-- se llamaba "dependencia"; la renombra
+-- docs/database/migracion_cargo_situaciones_notas.sql); no distingue roles
 -- (ver docs/database/diccionario-datos-extension.md).
 CREATE TABLE IF NOT EXISTS FUNCIONARIO_ACADEMICO (
     Usuario_uuid        VARCHAR(100) NOT NULL,
-    dependencia         VARCHAR(100) NOT NULL,
+    cargo               VARCHAR(100) NOT NULL,
     PRIMARY KEY (Usuario_uuid),
     CONSTRAINT fk_funcionarioacademico_usuario
         FOREIGN KEY (Usuario_uuid) REFERENCES usuarios (uuidUsuario)
@@ -222,6 +225,8 @@ CREATE TABLE IF NOT EXISTS SOLICITUD_SUPLETORIO_CRUCE_ASIGNATURA (
 -- 7. Catálogo de situación académica (formato oficial PA-GA-4.2-FOR-9)
 -- ---------------------------------------------------------------------
 
+-- Filas sembradas: R0 No cursada, R1 Cursada por primera vez, R2 Cursada
+-- por segunda vez, R3 Cursada por tercera vez.
 CREATE TABLE IF NOT EXISTS SITUACION_ACADEMICA_ASIGNATURA (
     uuidSituacionAcademica  VARCHAR(100) NOT NULL,
     codigo                  VARCHAR(10)  NOT NULL,
@@ -238,12 +243,16 @@ CREATE TABLE IF NOT EXISTS SITUACION_ACADEMICA_ASIGNATURA (
 -- Decano decide cada asignatura por separado (decisión P14 de
 -- docs/database/etapas-por-proceso.md). En Cancelación de Matrícula quedan
 -- en NULL. BOOLEAN es TINYINT(1) en MySQL.
+-- numeroFaltas y nota son texto de hasta 20 caracteres: si el valor es
+-- numérico se valida (faltas entero >= 0; nota de 0.0 a 5.0 con un decimal,
+-- con punto o coma, guardada con punto); si no, se guarda el texto tal cual.
+-- observacionDecision es opcional y el Estudiante nunca la ve.
 CREATE TABLE IF NOT EXISTS ASIGNATURA_SOLICITUD_ACADEMICA (
     uuidAsignaturaSolicitud     VARCHAR(100) NOT NULL,
     SolicitudAcademica_uuid     VARCHAR(100) NOT NULL,
     AsignaturaMatriculada_uuid  VARCHAR(100) NOT NULL,
-    numeroFaltas                INT          NULL,
-    nota                        DECIMAL(3,1) NULL,
+    numeroFaltas                VARCHAR(20)  NULL,
+    nota                        VARCHAR(20)  NULL,
     SituacionMatricula_uuid     VARCHAR(100) NULL,
     SituacionCancelar_uuid      VARCHAR(100) NULL,
     cumpleCondiciones           BOOLEAN      NULL,

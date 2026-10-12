@@ -107,11 +107,11 @@ public class FuncionarioAcademicoRestController {
     public ResponseEntity<PaginacionRespuestaDTO<FuncionarioAcademicoDTORespuesta>> getFuncionariosAcademicosPorFiltro(
             @RequestParam(value = "nombre", required = false) String nombre,
             @RequestParam(value = "apellido", required = false) String apellido,
-            @RequestParam(value = "dependencia", required = false) String dependencia,
+            @RequestParam(value = "cargo", required = false) String cargo,
             @RequestParam("pagina") int pagina,
             @RequestParam("tamanio") int tamanio) {
         PaginacionRespuestaDTO<FuncionarioAcademico> respuesta =
-                casoDeUso.getFuncionariosAcademicosPorFiltro(nombre, apellido, dependencia, pagina, tamanio);
+                casoDeUso.getFuncionariosAcademicosPorFiltro(nombre, apellido, cargo, pagina, tamanio);
         return new ResponseEntity<>(mapper.mapearPaginaARespuesta(respuesta), HttpStatus.OK);
     }
 

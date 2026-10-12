@@ -15,10 +15,10 @@ public interface FuncionarioAcademicoRepositorio extends JpaRepository<Funcionar
         SELECT f FROM FuncionarioAcademicoEntidad f
         WHERE (:nombre IS NULL OR LOWER(f.usuario.nombres) LIKE LOWER(CONCAT('%', :nombre, '%')))
           AND (:apellido IS NULL OR LOWER(f.usuario.apellidos) LIKE LOWER(CONCAT('%', :apellido, '%')))
-          AND (:dependencia IS NULL OR LOWER(f.dependencia) LIKE LOWER(CONCAT('%', :dependencia, '%')))
+          AND (:cargo IS NULL OR LOWER(f.cargo) LIKE LOWER(CONCAT('%', :cargo, '%')))
     """)
     Page<FuncionarioAcademicoEntidad> findByFiltro(@Param("nombre") String nombre,
                                                    @Param("apellido") String apellido,
-                                                   @Param("dependencia") String dependencia,
+                                                   @Param("cargo") String cargo,
                                                    Pageable pageable);
 }
