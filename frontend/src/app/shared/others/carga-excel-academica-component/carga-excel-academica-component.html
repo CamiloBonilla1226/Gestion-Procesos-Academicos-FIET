@@ -1,5 +1,6 @@
-<app-generic-dialog-form-component [visible]="visible" [title]="titulo" textoBoton="Cargar archivo" (visibleChange)="cerrar($event)" (save)="confirmar()">
+<app-generic-dialog-form-component [visible]="visible" [title]="titulo" [textoBoton]="resultado ? 'Cerrar' : 'Cargar archivo'" (visibleChange)="cerrar($event)" (save)="confirmar()">
   <div class="d-flex flex-column gap-3" data-carga-excel>
+    @if (!resultado) {
     <div>
       <p class="mb-1">La primera fila de la primera hoja debe tener estos encabezados, en este orden:</p>
       <ol class="small mb-1" data-encabezados>
@@ -48,8 +49,17 @@
     </div>
     }
 
-    @if (resultado) {
-    <div class="alert alert-success mb-0 py-2" data-resultado-carga>{{ resultado }}</div>
+    } @else {
+    <div class="alert alert-success mb-0 py-2" data-resultado-carga>
+      <p class="mb-0">{{ resultado }}</p>
+      @if (creados.length > 0) {
+      <ul class="mb-0 mt-1 small" data-creados>
+        @for (texto of creados; track $index) {
+        <li>{{ texto }}</li>
+        }
+      </ul>
+      }
+    </div>
     }
 
     @if (enviando) {

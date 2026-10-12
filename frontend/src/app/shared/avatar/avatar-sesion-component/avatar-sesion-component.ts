@@ -53,7 +53,8 @@ export class AvatarSesionComponent {
   /**
    * Cierra la sesión del usuario actual y redirige a la pantalla de login.
    */
-  cerrarSesion(): void {
+  cerrarSesion(evento?: Event): void {
+    evento?.preventDefault();
     this.authService.logout();
     this.router.navigate(['/login']);
   }

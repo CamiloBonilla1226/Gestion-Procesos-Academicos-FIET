@@ -54,7 +54,7 @@
 
 <app-generic-dialog-form-component [visible]="dialogoVisible" [title]="tituloDialogo" [textoBoton]="editando ? 'Guardar cambios' : 'Crear'" (visibleChange)="cerrar($event)"
   (save)="guardar()">
-  <div class="d-flex flex-column" data-dialogo-asignatura>
+  <div class="d-flex flex-column" data-dialogo-asignatura (input)="revalidar()" (change)="revalidar()">
     @if (editando) {
     <dl class="row small mb-0" data-solo-lectura>
       <dt class="col-4">Código</dt>
@@ -87,5 +87,5 @@
 <app-carga-excel-academica-component [visible]="dialogoExcel" (visibleChange)="dialogoExcel = $event"
   titulo="Cargar asignaturas desde Excel" [encabezados]="encabezadosExcel" nombrePlural="asignaturas"
   [reglas]="reglasExcel" tituloValores="Programas válidos para programaAcademico:" [valores]="nombresPrograma"
-  [cargar]="cargarExcel" (cargado)="alCargarExcel()">
+  [describir]="describirAsignatura" [cargar]="cargarExcel" (cargado)="alCargarExcel()">
 </app-carga-excel-academica-component>

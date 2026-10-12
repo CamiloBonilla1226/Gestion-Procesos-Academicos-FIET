@@ -102,8 +102,33 @@ describe('CargaExcelAcademicaComponent', () => {
     req.flush([{}, {}, {}]);
     fixture.detectChanges();
     expect(document.querySelector('[data-resultado-carga]')?.textContent).toContain('Se crearon 3 estudiantes.');
-    expect(cargados).toEqual([3]);
     expect(toast.showSuccess).toHaveBeenCalledWith('Carga terminada', 'Se crearon 3 estudiantes.');
+    expect(cargados).toEqual([]);
+  });
+
+  it('tras una carga exitosa muestra solo el resultado, sin el selector ni errores, y al cerrar avisa para refrescar', () => {
+    const fixture = crear();
+    const componente = fixture.componentInstance;
+    const cargados: number[] = [];
+    const visibles: boolean[] = [];
+    componente.cargado.subscribe(cantidad => cargados.push(cantidad));
+    componente.visibleChange.subscribe(visible => visibles.push(visible));
+    fixture.componentRef.setInput('describir', (registro: { codigoAsignatura: string }) => registro.codigoAsignatura);
+    componente.alSeleccionar(excel(), entrada);
+    componente.confirmar();
+    http.expectOne(URL).flush([{ codigoAsignatura: 'ISI-001' }, { codigoAsignatura: 'ISI-002' }]);
+    fixture.detectChanges();
+    const dialogo = document.querySelector('[data-carga-excel]') as HTMLElement;
+    expect(dialogo.querySelector('app-input-anexo-upload-component')).toBeNull();
+    expect(dialogo.textContent).not.toContain('Este anexo es obligatorio');
+    expect(dialogo.querySelector('[data-error="archivo"]')).toBeNull();
+    const creados = Array.from(dialogo.querySelectorAll('[data-creados] li')).map(li => li.textContent?.trim());
+    expect(creados).toEqual(['ISI-001', 'ISI-002']);
+    expect((document.querySelector('[data-boton-dialogo] button')?.textContent ?? '').trim()).toBe('Cerrar');
+    componente.confirmar();
+    http.expectNone(URL);
+    expect(visibles).toEqual([false]);
+    expect(cargados).toEqual([2]);
   });
 
   it('el 400 de la carga se muestra como lista dentro del dialogo', () => {

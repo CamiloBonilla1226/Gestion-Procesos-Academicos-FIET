@@ -60,7 +60,7 @@
 
 <app-generic-dialog-form-component [visible]="dialogoCrear" title="Nuevo estudiante" textoBoton="Crear" (visibleChange)="cerrarCrear($event)"
   (save)="crear()">
-  <div class="d-flex flex-column gap-2" data-dialogo-crear>
+  <div class="d-flex flex-column gap-2" data-dialogo-crear (input)="revalidarCrear()" (change)="revalidarCrear()">
     <h6 class="mb-0">Programa académico</h6>
     <div data-campo-programa>
       <app-input-select-component label="Programa académico" [required]="true" [options]="opcionesPrograma"
@@ -162,7 +162,7 @@
 
 <app-generic-dialog-form-component [visible]="dialogoEditar" title="Editar datos académicos" textoBoton="Guardar cambios"
   (visibleChange)="cerrarEditar($event)" (save)="editar()">
-  <div class="d-flex flex-column gap-2" data-dialogo-editar>
+  <div class="d-flex flex-column gap-2" data-dialogo-editar (input)="revalidarEditar()" (change)="revalidarEditar()">
     <p class="mb-0 small text-secondary">
       {{ nombreSeleccionado }}. Escribe solo los datos que quieres cambiar; los que dejes vacíos se conservan.
     </p>
@@ -233,9 +233,9 @@
     </ul>
     }
 
-    <div class="border rounded p-2" data-agregar-matricula>
+    <div class="border rounded p-2" data-agregar-matricula (input)="revalidarMatricula()" (change)="revalidarMatricula()">
       <h6 class="mb-0">Agregar asignatura (queda activa)</h6>
-      <small class="text-secondary d-block">Asignaturas del programa {{ seleccionado.programaAcademico }}.</small>
+      <small class="text-secondary d-block">Asignaturas del programa {{ seleccionado.programaAcademico }} que el estudiante no tiene activas.</small>
       @if (!seleccionado.uuidProgramaAcademico) {
       <small class="text-danger d-block" data-aviso-detalle="sin-programa">El estudiante no tiene programa académico registrado.</small>
       } @else if (cargandoDetalle) {
@@ -253,6 +253,10 @@
       <div class="alert alert-warning mb-0 mt-2 py-2" data-aviso-detalle="sin-asignaturas">
         No hay asignaturas registradas para el programa {{ seleccionado.programaAcademico }}. Deben crearse primero en la pestaña Asignaturas.
       </div>
+      } @else if (opcionesDetalle.length === 0) {
+      <p class="text-secondary small mb-0 mt-2" data-aviso-detalle="todas-activas">
+        El estudiante ya tiene activas todas las asignaturas de su programa.
+      </p>
       } @else {
       <div class="row g-2 align-items-center">
         <div class="col-md-7">

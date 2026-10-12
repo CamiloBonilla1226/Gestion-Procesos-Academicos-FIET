@@ -93,7 +93,7 @@
           [uploadedFile]="archivos[campo.anexo.uuidTipoAnexoAcademico] ?? null"
           (fileSelected)="alSeleccionarAnexo(campo, $event, entrada)" (fileRemoved)="alQuitarAnexo(campo)">
         </app-input-anexo-upload-component>
-        @if (errores[campo.anexo.uuidTipoAnexoAcademico]) {
+        @if (archivos[campo.anexo.uuidTipoAnexoAcademico] && errores[campo.anexo.uuidTipoAnexoAcademico]) {
         <small class="text-danger" data-error-anexo>{{ errores[campo.anexo.uuidTipoAnexoAcademico] }}</small>
         }
       </div>

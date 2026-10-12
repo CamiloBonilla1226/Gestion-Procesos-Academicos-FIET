@@ -9,7 +9,9 @@ import { Router } from '@angular/router';
 import { ErrorHandlerService } from '../../core/services/error-handler-service';
 import { ROLES_FIET } from '../../core/constantes/constantes';
 import { ToastService } from '../../core/services/toast-service';
-import { ROLES_ACADEMICOS } from '../../core/constantes/procesos-academicos';
+import { finalize } from 'rxjs';
+import { FormsModule } from '@angular/forms';
+import { rutaDeInicio } from '../../core/utils/rutas-por-rol';
 
 /**
  * Componente de formulario de login.
@@ -19,7 +21,7 @@ import { ROLES_ACADEMICOS } from '../../core/constantes/procesos-academicos';
  */
 @Component({
   selector: 'app-login-form-component',
-  imports: [CommonModule, InputTextComponent, InputPasswordComponent, SimpleButtonComponent],
+  imports: [CommonModule, FormsModule, InputTextComponent, InputPasswordComponent, SimpleButtonComponent],
   templateUrl: './login-form-component.html',
   styleUrl: './login-form-component.css'
 })
@@ -38,6 +40,8 @@ export class LoginFormComponent {
    * Lista de roles que pertenecen a usuarios FIET para redirección.
    */
   usuariosFiet: string[] = ROLES_FIET; 
+
+  enviando = false;
 
   /**
    * Constructor del componente.
@@ -60,23 +64,13 @@ export class LoginFormComponent {
   onSubmit(): void {
     const request: SesionDTOPeticion = { username: this.username, password: this.password };
 
-    this.authService.login(request).subscribe({
+    if (this.enviando) return;
+    this.enviando = true;
+    this.authService.login(request).pipe(finalize(() => (this.enviando = false))).subscribe({
       next: (userInfo) => {
-        const roles = userInfo.roles.map(r => r.nombre);
-        if (roles.includes('Secretario General')) 
-          this.router.navigate(['/sec-general']);
-        else if (roles.includes('Funcionario'))
-          this.router.navigate(['/funcionario']);
-        else if(roles.includes('Secretaria Decanatura FIET'))
-          this.router.navigate(['/sec-fiet']);
-        else if (roles.includes(ROLES_ACADEMICOS.DECANO))
-          this.router.navigate(['/decano']);
-        else if (roles.includes(ROLES_ACADEMICOS.FUNCIONARIO_ACADEMICO))
-          this.router.navigate(['/funcionario-academico']);
-        else if (roles.includes(ROLES_ACADEMICOS.ESTUDIANTE))
-          this.router.navigate(['/estudiante']);
-        else if (roles.some(r => this.usuariosFiet.includes(r))) 
-          this.router.navigate(['/usuario-fiet']);
+        const ruta = rutaDeInicio(userInfo.roles.map(r => r.nombre));
+        if (ruta)
+          this.router.navigate([ruta]);
         else
           this.toastService.showError('Error ingresando al sistema', 'El usuario no tiene un rol con vistas definidas en el sistema.');
       },

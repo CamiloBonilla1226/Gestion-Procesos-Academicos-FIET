@@ -55,7 +55,7 @@
 
 <app-generic-dialog-form-component [visible]="dialogoCrear" title="Nuevo funcionario académico" textoBoton="Crear"
   (visibleChange)="cerrarCrear($event)" (save)="crear()">
-  <div class="d-flex flex-column gap-2" data-dialogo-crear>
+  <div class="d-flex flex-column gap-2" data-dialogo-crear (input)="revalidarCrear()" (change)="revalidarCrear()">
     <app-datos-usuario-academico-component [datos]="datosUsuario" [errores]="errores">
     </app-datos-usuario-academico-component>
     <app-input-text-component label="Dependencia" [required]="true" [(value)]="dependencia"></app-input-text-component>
@@ -72,7 +72,7 @@
 
 <app-generic-dialog-form-component [visible]="dialogoEditar" title="Editar dependencia" textoBoton="Guardar cambios" (visibleChange)="cerrarEditar($event)"
   (save)="editar()">
-  <div class="d-flex flex-column gap-2" data-dialogo-editar>
+  <div class="d-flex flex-column gap-2" data-dialogo-editar (input)="revalidarEditar()" (change)="revalidarEditar()">
     <p class="mb-0 small text-secondary">{{ seleccionado?.nombres }} {{ seleccionado?.apellidos }}</p>
     <app-input-text-component label="Dependencia" [required]="true" [(value)]="dependenciaEditada"></app-input-text-component>
     <small class="text-danger" data-error="dependencia">{{ errores['dependencia'] || '' }}</small>

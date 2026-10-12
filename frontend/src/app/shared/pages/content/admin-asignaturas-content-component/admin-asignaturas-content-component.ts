@@ -43,6 +43,7 @@ export class AdminAsignaturasContentComponent implements OnInit {
     'La lectura termina en la primera fila vacía.'
   ];
   readonly cargarExcel = (archivo: File) => this.asignaturaService.crearAsignaturasDesdeArchivo(archivo);
+  readonly describirAsignatura = (asignatura: AsignaturaDTORespuesta) => `${asignatura.codigoAsignatura} - ${asignatura.nombreAsignatura}`;
 
   texto = '';
   programaFiltro: string | null = '';
@@ -169,6 +170,10 @@ export class AdminAsignaturasContentComponent implements OnInit {
         this.errorHandlerService.handleError(err, 'Error', 'No se pudo guardar la asignatura');
       }
     });
+  }
+
+  revalidar(): void {
+    if (Object.keys(this.errores).length > 0) this.errores = this.validar();
   }
 
   alCargarExcel(): void {

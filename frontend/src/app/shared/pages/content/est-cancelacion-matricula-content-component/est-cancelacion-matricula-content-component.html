@@ -56,9 +56,9 @@
           [uploadedFile]="archivos[campo.requerido.uuidTipoAnexoAcademico]"
           (fileSelected)="alSeleccionarAnexo(campo, $event, entrada)" (fileRemoved)="alQuitarAnexo(campo)">
         </app-input-anexo-upload-component>
-        @if (errores[campo.requerido.uuidTipoAnexoAcademico] || erroresServidor[campo.requerido.uuidTipoAnexoAcademico]) {
+        @if ((archivos[campo.requerido.uuidTipoAnexoAcademico] && errores[campo.requerido.uuidTipoAnexoAcademico]) || erroresServidor[campo.requerido.uuidTipoAnexoAcademico]) {
         <small class="text-danger" data-error-anexo>
-          {{ errores[campo.requerido.uuidTipoAnexoAcademico] || erroresServidor[campo.requerido.uuidTipoAnexoAcademico] }}
+          {{ (archivos[campo.requerido.uuidTipoAnexoAcademico] && errores[campo.requerido.uuidTipoAnexoAcademico]) || erroresServidor[campo.requerido.uuidTipoAnexoAcademico] }}
         </small>
         }
       </div>

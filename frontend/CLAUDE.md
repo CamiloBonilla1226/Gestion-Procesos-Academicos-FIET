@@ -286,7 +286,10 @@ debe pasar de 840 kB.
 El login (`shared/login-form-component`) redirige por rol en este orden:
 Secretario General, Funcionario (Julián), Secretaria Decanatura FIET, Decano,
 Funcionario Académico, Estudiante y luego los usuarios FIET. El Decano va
-antes que el Funcionario Académico y que el Estudiante.
+antes que el Funcionario Académico y que el Estudiante. Esa lógica vive en
+`rutaDeInicio` (`core/utils/rutas-por-rol.ts`) y la reutiliza `inicioGuard` en la
+ruta raíz. "Cerrar sesión" (`avatar-sesion-component`) llama a
+`AuthService.logout()`, evita el `href="#"` del enlace y navega a `/login`.
 
 ### Capa API
 
@@ -437,6 +440,9 @@ Las reglas que no son "obligatorio" viven en
 | D-F17 | Alta de estudiante: programa primero; asignaturas en un `<fieldset>` deshabilitado hasta tener programa con asignaturas; select por fila sin repetidas. Cambiar el programa con filas llenas pide confirmación en línea dentro del diálogo (no un segundo diálogo) y limpia las filas al confirmar |
 | D-F18 | El programa del estudiante no se edita en ninguna pantalla. La matrícula desde el detalle elige entre las asignaturas del programa del estudiante; si ya la tiene activa lo decide el backend |
 | D-F19 | `CargaExcelAcademicaComponent` se generaliza con entradas opcionales (`reglas`, `tituloValores`, `valores`); los usos que no las pasan se ven igual que antes |
+| D-F20 | La raíz (`/`) pasa por `inicioGuard`: sin sesión va a `/login`; con token y usuario guardados va al inicio de su rol con `rutaDeInicio` (`core/utils/rutas-por-rol.ts`), la misma función que usa el login. `usuario-publico/solicitudes` sigue existiendo pero ya no es la entrada |
+| D-F21 | El login es un `<form>` con `(ngSubmit)` y botón `type="submit"` (`SimpleButtonComponent` recibe `tipo`); Enter envía y una bandera `enviando` bloquea el doble envío |
+| D-F22 | Tras una carga Excel exitosa el diálogo muestra solo el resultado (y, si se pasa `describir`, la lista de lo creado, como los códigos de asignatura); el botón pasa a "Cerrar" y la tabla se refresca al cerrar |
 
 Otras decisiones tomadas en las tareas, sin número:
 
@@ -542,7 +548,13 @@ npx ng test --watch=false --browsers=ChromeHeadless --include=src/app/shared/pag
   `header-main-component` y `enviar-solicitud-usuario-fiet-component` también
   leen `roles[0]`.
 - `RoleGuard` de Julián redirige a `/login` cuando el rol no coincide o falla
-  la consulta del usuario, pero no limpia la sesión.
+  la consulta del usuario, sin mensaje y sin limpiar la sesión. Lo usan todas
+  las rutas protegidas; no se cambió.
+- Por debajo de 992 px el encabezado de Julián (`navbar-expand-lg` con
+  `navbar-collapse` y sin botón para desplegarlo) oculta el avatar y con él
+  "Cerrar sesión".
+- Los roles del menú del avatar son enlaces `href="#"` sin acción: recargan la
+  raíz, que ahora lleva al inicio del rol.
 - D-F13: no hay aviso previo de que el estudiante ya tiene una solicitud en
   curso del mismo tipo; se entera por el error del backend al radicar.
 - El reintento de la acción de recibo o de comprobante no consulta si el

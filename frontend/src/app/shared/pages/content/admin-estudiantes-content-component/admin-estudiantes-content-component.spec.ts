@@ -296,7 +296,7 @@ describe('AdminEstudiantesContentComponent', () => {
     porPrograma(ISI).flush(asignaturasDe('ISI', ISI, 'Ingeniería de Sistemas'));
     fixture.detectChanges();
     const opciones = Array.from(document.querySelectorAll('[data-agregar-matricula] option')).map(o => o.textContent?.trim());
-    expect(opciones).toEqual(['Seleccione una opción', 'ISI-001 - Materia 1', 'ISI-002 - Materia 2', 'ISI-003 - Materia 3']);
+    expect(opciones).toEqual(['Seleccione una opción', 'ISI-002 - Materia 2', 'ISI-003 - Materia 3']);
     componente.agregarMatricula();
     expect(componente.errores['nueva-codigo']).toBeTruthy();
     http.expectNone(`${URL}/e-1/asignaturas`);
@@ -307,6 +307,44 @@ describe('AdminEstudiantesContentComponent', () => {
     expect(req.request.body).toEqual({ codigoAsignatura: 'ISI-003', grupo: 'C' });
     req.flush({ uuidAsignaturaMatriculada: 'm-9', uuidAsignatura: 'ISI-3', codigoAsignatura: 'ISI-003', nombreAsignatura: 'Materia 3', grupo: 'C', estado: 'activa' });
     expect(componente.seleccionado?.asignaturasMatriculadas.map(a => a.uuidAsignaturaMatriculada)).toEqual(['m-1', 'm-2', 'm-9']);
+    expect(componente.opcionesDetalle.map(o => o.value)).toEqual(['ISI-002']);
+  });
+
+  it('el selector de matricula deja fuera las activas y conserva las canceladas, que el backend deja volver a matricular', () => {
+    const fixture = crear();
+    const componente = fixture.componentInstance;
+    componente.abrirDetalle(componente.filas[0]);
+    porPrograma(ISI).flush(asignaturasDe('ISI', ISI, 'Ingeniería de Sistemas'));
+    expect(componente.opcionesDetalle.map(o => o.value)).toEqual(['ISI-002', 'ISI-003']);
+    componente.estadosNuevos['m-1'] = 'cancelada';
+    componente.cambiarEstado(componente.seleccionado!.asignaturasMatriculadas[0]);
+    http.expectOne(`${URL}/e-1/asignaturas/m-1/estado`).flush({ ...componente.seleccionado!.asignaturasMatriculadas[0], estado: 'cancelada' });
+    expect(componente.opcionesDetalle.map(o => o.value)).toEqual(['ISI-001', 'ISI-002', 'ISI-003']);
+  });
+
+  it('avisa cuando el estudiante ya tiene activas todas las asignaturas del programa', () => {
+    const fixture = crear();
+    const componente = fixture.componentInstance;
+    componente.abrirDetalle(componente.filas[0]);
+    porPrograma(ISI).flush(asignaturasDe('ISI', ISI, 'Ingeniería de Sistemas', 1));
+    fixture.detectChanges();
+    expect(document.querySelector('[data-aviso-detalle="todas-activas"]')).toBeTruthy();
+    expect(document.querySelector('[data-boton-agregar-matricula]')).toBeNull();
+  });
+
+  it('el error de un campo desaparece en cuanto el campo queda valido', () => {
+    const fixture = crear();
+    const componente = abrirCrear(fixture);
+    componente.crear();
+    fixture.detectChanges();
+    expect(componente.errores['codigoEstudiantil']).toBeTruthy();
+    const entrada = document.querySelector('[data-dialogo-crear] input[id="Código estudiantil"]') as HTMLInputElement;
+    entrada.value = '104620';
+    entrada.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+    expect(componente.errores['codigoEstudiantil']).toBeUndefined();
+    expect(document.querySelector('[data-dialogo-crear] [data-error="codigoEstudiantil"]')?.textContent?.trim()).toBe('');
+    expect(componente.errores['semestre']).toBeTruthy();
   });
 
   it('agregar matricula muestra el error del backend si ya la tiene activa', () => {

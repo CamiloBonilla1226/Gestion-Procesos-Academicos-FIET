@@ -322,13 +322,8 @@ export class AdminEstudiantesContentComponent implements OnInit, OnDestroy {
 
   editar(): void {
     if (this.enviando || !this.seleccionado) return;
-    const peticion: EstudianteActualizarDTOPeticion = {};
-    for (const { campo } of LIMITES_ACADEMICOS) {
-      const valor = this.edicion[campo].trim();
-      if (valor !== '') peticion[campo] = valor;
-    }
-    this.errores = this.erroresAcademicos(this.edicion, false);
-    if (Object.keys(peticion).length === 0) this.errores['edicion'] = 'Escribe al menos un dato para cambiar.';
+    const peticion = this.peticionEdicion();
+    this.errores = this.validarEdicion();
     if (Object.keys(this.errores).length > 0) return;
     this.enviar(
       this.estudianteService.actualizarEstudiante(this.seleccionado.uuidUsuario, peticion),
@@ -365,7 +360,7 @@ export class AdminEstudiantesContentComponent implements OnInit, OnDestroy {
       .subscribe({
         next: asignaturas => {
           this.asignaturasDetalle = asignaturas ?? [];
-          this.opcionesDetalle = opcionesDeAsignatura(this.asignaturasDetalle);
+          this.actualizarOpcionesDetalle();
         },
         error: err => {
           this.errorDetalle = true;
@@ -398,6 +393,7 @@ export class AdminEstudiantesContentComponent implements OnInit, OnDestroy {
       matricula => {
         estudiante.asignaturasMatriculadas = [...(estudiante.asignaturasMatriculadas ?? []), matricula];
         this.nuevaMatricula = filaVacia();
+        this.actualizarOpcionesDetalle();
       }
     );
   }
@@ -419,6 +415,7 @@ export class AdminEstudiantesContentComponent implements OnInit, OnDestroy {
             a.uuidAsignaturaMatriculada === actualizada.uuidAsignaturaMatriculada ? actualizada : a
           );
           delete this.estadosNuevos[matricula.uuidAsignaturaMatriculada];
+          this.actualizarOpcionesDetalle();
           this.toastService.showSuccess('Listo', `La asignatura ${actualizada.codigoAsignatura} quedó ${actualizada.estado}.`);
         },
         error: err => {
@@ -431,6 +428,44 @@ export class AdminEstudiantesContentComponent implements OnInit, OnDestroy {
   alCargarExcel(): void {
     this.paginaActual = 1;
     this.cargar();
+  }
+
+  revalidarCrear(): void {
+    if (Object.keys(this.errores).length > 0) this.errores = this.validarCreacion();
+  }
+
+  revalidarEditar(): void {
+    if (Object.keys(this.errores).length > 0) this.errores = this.validarEdicion();
+  }
+
+  revalidarMatricula(): void {
+    if (Object.keys(this.errores).length > 0) this.errores = erroresDeFila(this.nuevaMatricula, 'nueva-');
+  }
+
+  private actualizarOpcionesDetalle(): void {
+    const activas = new Set(
+      (this.seleccionado?.asignaturasMatriculadas ?? [])
+        .filter(m => m.estado === this.estadoActiva)
+        .map(m => (m.codigoAsignatura ?? '').trim().toUpperCase())
+    );
+    this.opcionesDetalle = opcionesDeAsignatura(
+      this.asignaturasDetalle.filter(a => !activas.has(a.codigoAsignatura.trim().toUpperCase()))
+    );
+  }
+
+  private peticionEdicion(): EstudianteActualizarDTOPeticion {
+    const peticion: EstudianteActualizarDTOPeticion = {};
+    for (const { campo } of LIMITES_ACADEMICOS) {
+      const valor = this.edicion[campo].trim();
+      if (valor !== '') peticion[campo] = valor;
+    }
+    return peticion;
+  }
+
+  private validarEdicion(): Record<string, string> {
+    const errores = this.erroresAcademicos(this.edicion, false);
+    if (Object.keys(this.peticionEdicion()).length === 0) errores['edicion'] = 'Escribe al menos un dato para cambiar.';
+    return errores;
   }
 
   private aplicarPrograma(uuid: string | null): void {

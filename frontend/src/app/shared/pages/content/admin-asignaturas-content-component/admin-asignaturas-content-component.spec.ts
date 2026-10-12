@@ -154,6 +154,27 @@ describe('AdminAsignaturasContentComponent', () => {
     http.expectNone(URL);
   });
 
+  it('El nombre es obligatorio desaparece en cuanto el nombre es valido', () => {
+    const fixture = crear();
+    const componente = fixture.componentInstance;
+    componente.abrirNueva();
+    componente.guardar();
+    fixture.detectChanges();
+    const error = () => document.querySelector('[data-dialogo-asignatura] [data-error="nombre"]')?.textContent?.trim();
+    expect(error()).toBe('El nombre es obligatorio.');
+    const entrada = document.querySelector('[data-dialogo-asignatura] input[id="Nombre"]') as HTMLInputElement;
+    entrada.value = 'Compiladores';
+    entrada.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+    expect(error()).toBe('');
+    expect(componente.errores['programa']).toBeTruthy();
+  });
+
+  it('la carga Excel lista los codigos generados con su nombre', () => {
+    const componente = crear().componentInstance;
+    expect(componente.describirAsignatura(componente.asignaturas[0])).toBe('ISI-001 - Asignatura 1');
+  });
+
   it('edita solo el nombre con PUT y muestra codigo y programa de solo lectura', () => {
     const fixture = crear();
     const componente = fixture.componentInstance;

@@ -88,6 +88,21 @@ describe('AdminFuncionariosContentComponent', () => {
     http.expectNone(`${URL}/f-1`);
   });
 
+  it('el error de la dependencia desaparece en cuanto se escribe', () => {
+    const fixture = crear();
+    const componente = fixture.componentInstance;
+    componente.abrirCrear();
+    componente.crear();
+    fixture.detectChanges();
+    expect(componente.errores['dependencia']).toBeTruthy();
+    const entrada = document.querySelector('[data-dialogo-crear] input[id="Dependencia"]') as HTMLInputElement;
+    entrada.value = 'Decanatura';
+    entrada.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+    expect(componente.errores['dependencia']).toBeUndefined();
+    expect(componente.errores['nombres']).toBeTruthy();
+  });
+
   it('edita solo la dependencia con PUT', () => {
     const componente = crear().componentInstance;
     componente.abrirEditar(componente.filas[0]);

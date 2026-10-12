@@ -21,6 +21,7 @@ export class CargaExcelAcademicaComponent {
   @Input() reglas: string[] = [];
   @Input() tituloValores = '';
   @Input() valores: string[] = [];
+  @Input() describir: ((registro: any) => string) | null = null;
   @Input() nombrePlural = 'registros';
   @Input({ required: true }) cargar!: (archivo: File) => Observable<unknown[]>;
   @Output() visibleChange = new EventEmitter<boolean>();
@@ -33,6 +34,8 @@ export class CargaExcelAcademicaComponent {
   error = '';
   erroresCarga: string[] = [];
   resultado = '';
+  creados: string[] = [];
+  private cantidadCreada: number | null = null;
 
   constructor(
     private errorHandlerService: ErrorHandlerService,
@@ -64,15 +67,23 @@ export class CargaExcelAcademicaComponent {
 
   cerrar(visible: boolean): void {
     if (visible || this.enviando) return;
+    const cantidad = this.cantidadCreada;
     this.archivo = null;
     this.error = '';
     this.erroresCarga = [];
     this.resultado = '';
+    this.creados = [];
+    this.cantidadCreada = null;
     this.visibleChange.emit(false);
+    if (cantidad !== null) this.cargado.emit(cantidad);
   }
 
   confirmar(): void {
     if (this.enviando) return;
+    if (this.resultado) {
+      this.cerrar(false);
+      return;
+    }
     if (!this.archivo) {
       this.error = 'Elige el archivo Excel que quieres cargar.';
       return;
@@ -86,10 +97,13 @@ export class CargaExcelAcademicaComponent {
       .subscribe({
         next: creados => {
           const cantidad = creados?.length ?? 0;
+          const describir = this.describir;
           this.resultado = `Se crearon ${cantidad} ${this.nombrePlural}.`;
+          this.creados = describir ? (creados ?? []).map(registro => describir(registro)) : [];
+          this.cantidadCreada = cantidad;
           this.archivo = null;
+          this.error = '';
           this.toastService.showSuccess('Carga terminada', this.resultado);
-          this.cargado.emit(cantidad);
         },
         error: err => {
           this.erroresCarga = mensajesDeError(err);

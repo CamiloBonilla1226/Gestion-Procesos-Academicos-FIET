@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { AuthGuard } from './core/auth/guards/auth-guard';
 import { RoleGuard } from './core/auth/guards/role-guard';
+import { inicioGuard } from './core/auth/guards/inicio-guard';
 import { ROLES_ACADEMICOS } from './core/constantes/procesos-academicos';
 
 export const routes: Routes = [
@@ -198,7 +199,8 @@ export const routes: Routes = [
     },
     {
         path: '',
-        redirectTo: 'usuario-publico/solicitudes',
-        pathMatch: 'full'
+        pathMatch: 'full',
+        canActivate: [inicioGuard],
+        children: []
     }
 ];

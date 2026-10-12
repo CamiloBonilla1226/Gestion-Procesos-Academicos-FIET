@@ -103,7 +103,10 @@ describe('EstCancelacionMatriculaContentComponent', () => {
     fixture.detectChanges();
     expect(servicio.radicar).not.toHaveBeenCalled();
     expect(Object.keys(componente.errores).sort()).toEqual(['advertencia', 'motivo', 't-1', 't-2', 't-3', 't-4', 't-5', 't-6']);
-    expect(fixture.nativeElement.querySelectorAll('[data-error-anexo]').length).toBe(6);
+    expect(fixture.nativeElement.querySelectorAll('[data-error-anexo]').length).toBe(0);
+    for (const campo of Array.from(fixture.nativeElement.querySelectorAll('[data-campo-anexo]')) as HTMLElement[]) {
+      expect((campo.textContent ?? '').split('Este anexo es obligatorio').length - 1).toBe(1);
+    }
     expect(toast.showError).toHaveBeenCalled();
   });
 

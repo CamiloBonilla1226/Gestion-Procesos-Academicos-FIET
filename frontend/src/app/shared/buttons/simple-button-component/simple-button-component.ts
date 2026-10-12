@@ -41,6 +41,8 @@ export class SimpleButtonComponent {
    */
   @Input() disabled: boolean = false;
 
+  @Input() tipo: 'button' | 'submit' = 'button';
+
   /**
    * Evento emitido cuando el botón es presionado.
    */

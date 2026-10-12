@@ -124,9 +124,7 @@ export class AdminFuncionariosContentComponent implements OnInit {
 
   crear(): void {
     if (this.enviando) return;
-    this.errores = validarDatosUsuario(this.datosUsuario);
-    const errorDependencia = errorDeTexto(this.dependencia, 100, true, 'La dependencia', true);
-    if (errorDependencia) this.errores['dependencia'] = errorDependencia;
+    this.errores = this.validarCreacion();
     if (Object.keys(this.errores).length > 0) return;
     this.enviar(
       this.funcionarioAcademicoService.crearFuncionarioAcademico({
@@ -150,9 +148,8 @@ export class AdminFuncionariosContentComponent implements OnInit {
 
   editar(): void {
     if (this.enviando || !this.seleccionado) return;
-    const error = errorDeTexto(this.dependenciaEditada, 100, true, 'La dependencia', true);
-    this.errores = error ? { dependencia: error } : {};
-    if (error) return;
+    this.errores = this.validarEdicion();
+    if (Object.keys(this.errores).length > 0) return;
     this.enviar(
       this.funcionarioAcademicoService.actualizarFuncionarioAcademico(this.seleccionado.uuidUsuario, {
         dependencia: this.dependenciaEditada.trim()
@@ -161,6 +158,26 @@ export class AdminFuncionariosContentComponent implements OnInit {
       'No se pudo actualizar el funcionario académico',
       () => (this.dialogoEditar = false)
     );
+  }
+
+  revalidarCrear(): void {
+    if (Object.keys(this.errores).length > 0) this.errores = this.validarCreacion();
+  }
+
+  revalidarEditar(): void {
+    if (Object.keys(this.errores).length > 0) this.errores = this.validarEdicion();
+  }
+
+  private validarCreacion(): Record<string, string> {
+    const errores = validarDatosUsuario(this.datosUsuario);
+    const errorDependencia = errorDeTexto(this.dependencia, 100, true, 'La dependencia', true);
+    if (errorDependencia) errores['dependencia'] = errorDependencia;
+    return errores;
+  }
+
+  private validarEdicion(): Record<string, string> {
+    const error = errorDeTexto(this.dependenciaEditada, 100, true, 'La dependencia', true);
+    return error ? { dependencia: error } : {};
   }
 
   cerrarCrear(visible: boolean): void {
