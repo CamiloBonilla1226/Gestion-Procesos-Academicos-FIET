@@ -8,4 +8,5 @@ export interface SolicitudAcademicaResumenDTORespuesta {
   etapaCodigo: string;
   nombreEstudiante: string;
   codigoEstudiantil: string;
+  numeroDocumento?: string | null;
 }

@@ -25,8 +25,14 @@ export class GenericDialogFormComponent {
   get anchoBoton(): string {
     return this.textoBoton === TEXTO_BOTON_POR_DEFECTO ? '70px' : 'auto';
   }
+  @Input() textoCancelar: string | null = null;
+  @Input() cerrarConEscape = false;
   @Output() visibleChange = new EventEmitter<boolean>();
   @Output() save = new EventEmitter<void>();
+
+  alPulsarEscape(): void {
+    if (this.cerrarConEscape) this.close();
+  }
 
   /**
    * Cierra el diálogo emitiendo visibleChange como false

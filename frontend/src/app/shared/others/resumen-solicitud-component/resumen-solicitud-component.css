@@ -1,0 +1,31 @@
+.resumen {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr);
+  gap: 9px 14px;
+  margin: 0;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 13px;
+}
+
+.resumen dt {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.resumen dd {
+  margin: 0;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 575.98px) {
+  .resumen {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3px 0;
+  }
+
+  .resumen dd {
+    margin-bottom: 8px;
+  }
+}

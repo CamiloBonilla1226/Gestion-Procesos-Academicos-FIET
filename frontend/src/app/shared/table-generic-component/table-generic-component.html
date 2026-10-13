@@ -1,6 +1,13 @@
 <div class="tabla-scroll">
 <table class="table table-bordered">
-  <thead>
+  <thead *ngIf="encabezadoAgrupado?.length" class="encabezado-agrupado">
+    <tr *ngFor="let fila of encabezadoAgrupado; let primera = first">
+      <th *ngFor="let celda of fila" [attr.colspan]="celda.colspan > 1 ? celda.colspan : null"
+        [attr.rowspan]="celda.rowspan > 1 ? celda.rowspan : null" [class.grupo]="celda.colspan > 1">{{ celda.titulo }}</th>
+      <th *ngIf="primera && actionTemplate" [attr.rowspan]="encabezadoAgrupado!.length > 1 ? encabezadoAgrupado!.length : null">Acciones</th>
+    </tr>
+  </thead>
+  <thead *ngIf="!encabezadoAgrupado?.length">
     <tr>
       <th *ngFor="let header of headers">
         <div style="display: flex; align-items: center; justify-content: space-between;">

@@ -1,0 +1,66 @@
+.paso-numero {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--navy-700);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  flex: 0 0 24px;
+}
+
+.ayuda {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+}
+
+.lista > li,
+.lista > label {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 13px;
+}
+
+.lista > li:last-child,
+.lista > label:last-child {
+  border-bottom: 0;
+}
+
+.lista > label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.lista > label:hover {
+  background: #F4F6FB;
+}
+
+.pie-formulario {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+@media (max-width: 575.98px) {
+  .pie-formulario {
+    flex-direction: column-reverse;
+  }
+}

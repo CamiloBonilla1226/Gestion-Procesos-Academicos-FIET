@@ -1,9 +1,9 @@
-<p-dialog [(visible)]="visible" [modal]="true" [closable]="false" styleClass="custom-dialog">
+<p-dialog [(visible)]="visible" [modal]="true" [closable]="false" styleClass="custom-dialog" (keydown.escape)="alPulsarEscape()">
 
   <ng-template pTemplate="header">
     <div class="custom-dialog-header">
-      {{ title }}
-      <button type="button" class="close-btn" (click)="close()">X</button>
+      <span class="custom-dialog-titulo">{{ title }}</span>
+      <button type="button" class="close-btn" aria-label="Cerrar" (click)="close()">&times;</button>
     </div>
   </ng-template>
 
@@ -11,7 +11,12 @@
     <ng-content></ng-content>
   </div>
   <ng-template pTemplate="footer">
-    <app-simple-button-component data-boton-dialogo [label]="textoBoton" [width]="anchoBoton" height="30px" (clicked)="onSave()">
-    </app-simple-button-component>
+    <div class="custom-dialog-pie">
+      <app-simple-button-component *ngIf="textoCancelar" data-boton-cancelar [label]="textoCancelar" width="auto" height="36px"
+        color="#2A3A86" [contorno]="true" (clicked)="close()">
+      </app-simple-button-component>
+      <app-simple-button-component data-boton-dialogo [label]="textoBoton" [width]="anchoBoton" height="36px" color="#2A3A86" (clicked)="onSave()">
+      </app-simple-button-component>
+    </div>
   </ng-template>
 </p-dialog>

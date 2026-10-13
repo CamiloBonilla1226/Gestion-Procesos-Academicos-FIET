@@ -27,7 +27,7 @@ export function filtrarSolicitudes(
     if (filtrarTipo && solicitud.tipoSolicitud !== tipo) return false;
     if (filtrarEstado && solicitud.etiqueta !== estado) return false;
     if (!buscado) return true;
-    return [solicitud.radicado, solicitud.nombreEstudiante, solicitud.codigoEstudiantil]
+    return [solicitud.radicado, solicitud.nombreEstudiante, solicitud.codigoEstudiantil, solicitud.numeroDocumento]
       .some(campo => normalizarTexto(campo).includes(buscado));
   });
 }

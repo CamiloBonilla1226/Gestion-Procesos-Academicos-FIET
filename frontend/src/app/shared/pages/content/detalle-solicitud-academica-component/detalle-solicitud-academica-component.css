@@ -1,0 +1,55 @@
+.historial {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-left: 2px solid var(--line);
+}
+
+.historial li {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 0 0 14px 16px;
+}
+
+.historial li:last-child {
+  padding-bottom: 0;
+}
+
+.historial li::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--navy-700);
+}
+
+.historial-texto {
+  min-width: 0;
+}
+
+.historial-accion {
+  color: var(--navy-ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.historial-texto small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.historial-observacion {
+  margin: 4px 0 0;
+  font-size: 13px;
+  white-space: pre-line;
+}
+
+.campos-grid dd {
+  margin: 0;
+}

@@ -350,7 +350,14 @@ describe('CancelacionMatriculaProcesoComponent', () => {
       asignaturas: DETALLE.asignaturas.map(a => ({ ...a, numeroFaltas: null, nota: null, situacionMatricula: null }))
     }));
     const fixture = crear(solicitud([]));
-    expect(fixture.nativeElement.querySelectorAll('thead th').length).toBe(6);
+    expect(fixture.componentInstance.encabezados.length).toBe(6);
+    const grupos = Array.from(fixture.nativeElement.querySelectorAll('thead tr')).map((tr: any) =>
+      Array.from(tr.querySelectorAll('th')).map((th: any) => [th.textContent.trim(), th.getAttribute('colspan'), th.getAttribute('rowspan')]));
+    expect(grupos).toEqual([
+      [['Código', null, '3'], ['Asignatura', null, '3'], ['Espacio a diligenciar por la Facultad a la que pertenece el estudiante', '4', null]],
+      [['No. Faltas', null, '2'], ['Nota', null, '2'], ['Situación Académica de la(s) Asignatura(s)', '2', null]],
+      [['En la Matrícula', null, null], ['Al Cancelar', null, null]]
+    ]);
   });
 
   it('cada dialogo usa el texto de su accion en el boton', () => {
@@ -363,6 +370,41 @@ describe('CancelacionMatriculaProcesoComponent', () => {
     fixture.detectChanges();
     expect((document.querySelector('[data-boton-dialogo] button')?.textContent ?? '').trim()).toBe('Remitir al Decano');
     expect(fixture.componentInstance.textoBotonDialogo).toBe('Remitir al Decano');
+  });
+
+  it('los rechazos van en contorno rojo y el resto en navy, en una tarjeta de acciones', () => {
+    const fixture = crear(solicitud(['RECHAZAR_FUNCIONARIO', 'REMITIR_DECANO']));
+    const rechazar = fixture.nativeElement.querySelector('[data-acciones] [data-accion="RECHAZAR_FUNCIONARIO"] button') as HTMLButtonElement;
+    const remitir = fixture.nativeElement.querySelector('[data-acciones] [data-accion="REMITIR_DECANO"] button') as HTMLButtonElement;
+    expect(rechazar.classList).toContain('contorno');
+    expect(rechazar.textContent?.trim()).toBe('Rechazar solicitud');
+    expect(remitir.classList).not.toContain('contorno');
+    expect(remitir.textContent?.trim()).toBe('Remitir al Decano');
+    expect(fixture.nativeElement.querySelector('[data-acciones]').classList).toContain('tarjeta-acciones');
+  });
+
+  it('el dialogo resume la solicitud, ofrece Cancelar y el Decano ve la nota al aprobar', () => {
+    const fixture = crear(solicitud(['APROBAR_DECANO', 'RECHAZAR_DECANO'], false, 'EN_REVISION_DECANO'), 'DECANO');
+    fixture.componentInstance.abrir('APROBAR_DECANO');
+    fixture.detectChanges();
+    const resumen = Array.from(document.querySelectorAll('[data-resumen-solicitud] dt')).map(dt => dt.textContent?.trim());
+    expect(resumen).toEqual(['Estudiante', 'Código estudiantil', 'Tipo de proceso', 'Número de radicado']);
+    expect(document.querySelector('[data-resumen-solicitud]')?.textContent).toContain('2026-CM-0001');
+    expect(document.querySelector('[data-nota-aprobar]')?.textContent).toContain('Al aprobar, quedará registrada tu decisión.');
+    expect(document.querySelector('[data-boton-cancelar] button')?.textContent?.trim()).toBe('Cancelar');
+
+    (document.querySelector('[data-boton-cancelar] button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.dialogoVisible).toBeFalse();
+  });
+
+  it('el mensaje para el estudiante lleva contador dentro del dialogo de respuesta', () => {
+    const fixture = crear(solicitud(['ENVIAR_RESPUESTA'], true, 'APROBADA_POR_DECANO'));
+    fixture.componentInstance.abrir('ENVIAR_RESPUESTA');
+    fixture.componentInstance.observacion = 'Hola';
+    fixture.detectChanges();
+    expect(document.querySelector('[data-campo-observacion]')?.textContent).toContain('Mensaje para el estudiante (opcional)');
+    expect(document.querySelector('[data-campo-observacion] [data-contador]')?.textContent?.trim()).toBe('4/500');
   });
 });
 

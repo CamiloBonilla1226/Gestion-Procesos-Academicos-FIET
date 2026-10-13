@@ -1,0 +1,14 @@
+<ol class="stepper" aria-label="Pasos del formulario">
+  @for (paso of pasos; track paso.titulo; let i = $index) {
+  <li [class]="estado(i)" [attr.data-paso]="estado(i)" [attr.aria-current]="estado(i) === 'activo' ? 'step' : null">
+    <span class="numero" aria-hidden="true">
+      @if (estado(i) === 'hecho') {
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l4.5 4.5L20 6"/></svg>
+      } @else {
+      {{ i + 1 }}
+      }
+    </span>
+    <span class="titulo">{{ paso.titulo }}</span>
+  </li>
+  }
+</ol>

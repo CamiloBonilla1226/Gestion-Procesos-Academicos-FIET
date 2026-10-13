@@ -20,6 +20,8 @@ import {
 } from '../../../../core/constantes/procesos-academicos';
 import { comoTipoAnexo, errorDeArchivo, errorDeTexto, erroresDeCampos } from '../../../../core/utils/validaciones-academicas';
 import { formatearTamanio } from '../../../../core/utils/formato';
+import { DatosEstudianteSesionComponent } from '../../../others/datos-estudiante-sesion-component/datos-estudiante-sesion-component';
+import { PasoFormulario, StepperFormularioComponent } from '../../../others/stepper-formulario-component/stepper-formulario-component';
 
 interface CampoAnexo {
   requerido: AnexoRequeridoDTORespuesta;
@@ -28,8 +30,15 @@ interface CampoAnexo {
 
 @Component({
   selector: 'app-est-cancelacion-matricula-content-component',
-  imports: [InputTextTareaComponent, InputAnexoUploadComponent, SimpleButtonComponent],
-  templateUrl: './est-cancelacion-matricula-content-component.html'
+  imports: [
+    InputTextTareaComponent,
+    InputAnexoUploadComponent,
+    SimpleButtonComponent,
+    DatosEstudianteSesionComponent,
+    StepperFormularioComponent
+  ],
+  templateUrl: './est-cancelacion-matricula-content-component.html',
+  styleUrls: ['../estilos-academicos.css', '../estilos-formularios.css']
 })
 export class EstCancelacionMatriculaContentComponent implements OnInit {
   readonly maximoMotivo = MAXIMO_CARACTERES_MOTIVO;
@@ -65,6 +74,18 @@ export class EstCancelacionMatriculaContentComponent implements OnInit {
 
   get puedeRadicar(): boolean {
     return !!this.formulario && this.formulario.asignaturas.length > 0;
+  }
+
+  get pasos(): PasoFormulario[] {
+    const errores = this.validar();
+    const anexosListos = this.campos.every(c => !errores[c.requerido.uuidTipoAnexoAcademico]);
+    return [
+      { titulo: 'Datos del estudiante', completo: true },
+      { titulo: 'Asignaturas', completo: this.puedeRadicar },
+      { titulo: 'Motivo', completo: !errores['motivo'] },
+      { titulo: 'Anexos', completo: anexosListos && !errores['total'] },
+      { titulo: 'Confirmación', completo: !errores['advertencia'] && !errores['soporte'] }
+    ];
   }
 
   get erroresServidorGenerales(): string[] {
@@ -171,6 +192,10 @@ export class EstCancelacionMatriculaContentComponent implements OnInit {
           this.errorHandlerService.handleError(err, 'Error', 'No se pudo radicar la solicitud');
         }
       });
+  }
+
+  volver(): void {
+    this.router.navigate([RUTAS_SOLICITUDES_POR_ROL[ROLES_ETIQUETA.ESTUDIANTE]]);
   }
 
   irAlDetalle(): void {

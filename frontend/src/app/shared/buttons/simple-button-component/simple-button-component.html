@@ -1,7 +1,4 @@
-<button [attr.type]="tipo" class="btn custom-btn" [disabled]="disabled" [ngStyle]="{ 
-          'background-color': color,
-          'width': width,
-          'height': height
-        }" (click)="onClick()">
+<button [attr.type]="tipo" class="btn custom-btn" [class.contorno]="contorno" [disabled]="disabled" [ngStyle]="estilos"
+  (click)="onClick()">
   {{ label }}
 </button>

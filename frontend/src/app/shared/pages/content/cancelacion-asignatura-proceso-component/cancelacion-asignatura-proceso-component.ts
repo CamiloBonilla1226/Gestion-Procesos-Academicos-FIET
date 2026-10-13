@@ -30,10 +30,14 @@ import {
 } from '../../../../core/constantes/procesos-academicos';
 import {
   ETIQUETAS_FINALES_ESTUDIANTE,
+  NOTA_APROBAR_DECANO,
+  RUTAS_ENCABEZADO_ASIGNATURAS,
   campoObservacion,
   esEtiqueta,
   etiquetaCampoObservacion
 } from '../../../../core/constantes/etiquetas-academicas';
+import { CeldaEncabezado, agruparEncabezados } from '../../../../core/utils/encabezado-agrupado';
+import { ResumenSolicitudComponent } from '../../../others/resumen-solicitud-component/resumen-solicitud-component';
 import {
   comoTipoAnexo,
   errorDeArchivo,
@@ -132,11 +136,11 @@ const COLUMNAS_COMPLETAS: Columna[] = [
   { titulo: 'Faltas', valor: a => textoLibre(a.numeroFaltas) },
   { titulo: 'Nota', valor: a => textoLibre(a.nota) },
   { titulo: 'Situación en la matrícula', valor: a => textoSituacion(a.situacionMatricula) },
+  { titulo: 'Situación al cancelar', valor: a => textoSituacion(a.situacionCancelar) },
   { titulo: 'Cumple condiciones', valor: a => textoSiNo(a.cumpleCondiciones, 'Sí', 'No') },
   { titulo: 'Observación de la evaluación', valor: a => textoLibre(a.observacionEvaluacion) },
   COLUMNA_DECISION,
-  COLUMNA_OBSERVACION_DECISION,
-  { titulo: 'Situación al cancelar', valor: a => textoSituacion(a.situacionCancelar) }
+  COLUMNA_OBSERVACION_DECISION
 ];
 const COLUMNAS_FIJAS = new Set([COLUMNA_CODIGO.titulo, COLUMNA_NOMBRE.titulo]);
 
@@ -149,9 +153,11 @@ const COLUMNAS_FIJAS = new Set([COLUMNA_CODIGO.titulo, COLUMNA_NOMBRE.titulo]);
     InputTextComponent,
     InputTextTareaComponent,
     InputSelectComponent,
-    InputAnexoUploadComponent
+    InputAnexoUploadComponent,
+    ResumenSolicitudComponent
   ],
-  templateUrl: './cancelacion-asignatura-proceso-component.html'
+  templateUrl: './cancelacion-asignatura-proceso-component.html',
+  styleUrl: '../estilos-academicos.css'
 })
 export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   @Input({ required: true }) uuidSolicitud!: string;
@@ -165,9 +171,11 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   readonly maximoObservacionAsignatura = MAXIMO_CARACTERES_OBSERVACION_ASIGNATURA;
   readonly tipoResolucion = comoTipoAnexo('resolucion', 'Escaneo de la Resolución firmada', FORMATOS_RESOLUCION, true);
   readonly textoLibre = textoLibre;
+  readonly notaAprobarDecano = NOTA_APROBAR_DECANO;
 
   detalle: CancelacionAsignaturaDetalleDTORespuesta | null = null;
   encabezados: TableHeader[] = [];
+  encabezadoAgrupado: CeldaEncabezado[][] = [];
   filasAsignaturas: Record<string, string>[] = [];
   cargando = false;
   errorCarga = false;
@@ -244,6 +252,10 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
     return lista.length > 0 && lista.every(d => d.aprobada === false);
   }
 
+  esRechazo(accion: AccionAcademica): boolean {
+    return accion === ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO || accion === ACCIONES_ACADEMICAS.RECHAZAR_DECANO;
+  }
+
   etiquetaBoton(accion: AccionAcademica): string {
     return ETIQUETAS_BOTON[accion] ?? accion;
   }
@@ -267,6 +279,7 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
         error: err => {
           this.detalle = null;
           this.encabezados = [];
+          this.encabezadoAgrupado = [];
           this.filasAsignaturas = [];
           this.errorCarga = true;
           this.errorHandlerService.handleError(err, 'Error', 'No se pudo cargar la cancelación de asignatura');
@@ -346,6 +359,7 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
       columna => COLUMNAS_FIJAS.has(columna.titulo) || detalle.asignaturas.some(a => columna.valor(a) !== null)
     );
     this.encabezados = columnas.map(columna => ({ title: columna.titulo }));
+    this.encabezadoAgrupado = agruparEncabezados(columnas.map(columna => columna.titulo), RUTAS_ENCABEZADO_ASIGNATURAS);
     this.filasAsignaturas = detalle.asignaturas.map(a =>
       Object.fromEntries(columnas.map(columna => [columna.titulo, columna.valor(a) ?? SIN_REGISTRAR]))
     );

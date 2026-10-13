@@ -47,6 +47,12 @@ describe('filtrarSolicitudes', () => {
     expect(filtrarSolicitudes(lista, TODOS_LOS_TIPOS, '618024').map(s => s.radicado)).toEqual(['2026-CA-0002']);
   });
 
+  it('busca tambien por numero de documento y tolera que no llegue', () => {
+    const conDocumento = lista.map((s, i) => ({ ...s, numeroDocumento: i === 2 ? '1061789234' : null }));
+    expect(filtrarSolicitudes(conDocumento, TODOS_LOS_TIPOS, '1061789').map(s => s.radicado)).toEqual(['2026-ES-0001']);
+    expect(filtrarSolicitudes(conDocumento, TODOS_LOS_TIPOS, 'juan').map(s => s.radicado)).toEqual(['2026-CA-0002']);
+  });
+
   it('combina tipo y texto', () => {
     expect(filtrarSolicitudes(lista, 'Cancelación de Asignatura', 'juan').map(s => s.radicado)).toEqual(['2026-CA-0002']);
     expect(filtrarSolicitudes(lista, 'Examen Supletorio', 'juan')).toEqual([]);

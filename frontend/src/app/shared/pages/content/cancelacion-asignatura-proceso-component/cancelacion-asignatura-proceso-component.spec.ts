@@ -160,8 +160,12 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
 
   it('el Funcionario y el Decano ven la evaluacion completa', () => {
     const fixture = crear(solicitud([], 'EN_REVISION_DECANO'), EVALUADAS, 'DECANO');
-    expect(encabezados(fixture)).toEqual([
+    expect(fixture.componentInstance.encabezados.map(h => h.title)).toEqual([
       'Código', 'Asignatura', 'Faltas', 'Nota', 'Situación en la matrícula', 'Cumple condiciones', 'Observación de la evaluación'
+    ]);
+    expect(encabezados(fixture)).toEqual([
+      'Código', 'Asignatura', 'Espacio a diligenciar por la Facultad a la que pertenece el estudiante', 'Cumple condiciones',
+      'Observación de la evaluación', 'No. Faltas', 'Nota', 'Situación Académica de la(s) Asignatura(s)', 'En la Matrícula'
     ]);
     expect(fixture.nativeElement.querySelectorAll('tbody tr')[1].textContent).toContain('2.4');
   });

@@ -69,7 +69,7 @@ describe('BandejaSolicitudesAcademicasComponent', () => {
     expect(servicio.getSolicitudesFuncionario).toHaveBeenCalledTimes(1);
     expect(filas(fixture).length).toBe(10);
     expect(encabezados(fixture)).toEqual([
-      'Radicado', 'Estudiante', 'Código estudiantil', 'Tipo de proceso', 'Fecha de radicación', 'Estado', 'Acciones'
+      'Radicado', 'Estudiante', 'Documento', 'Código estudiantil', 'Tipo de proceso', 'Fecha de radicación', 'Estado', 'Acciones'
     ]);
     expect(filas(fixture)[0].textContent).toContain('31/12/2026 23:59');
     expect(filas(fixture)[0].querySelector('.radicado')?.textContent?.trim()).toBe('2026-CA-0001');
@@ -81,10 +81,26 @@ describe('BandejaSolicitudesAcademicasComponent', () => {
     expect(filas(fixture).length).toBe(3);
   });
 
+  it('Funcionario y Decano ven el documento y lo buscan con la etiqueta de identificacion', () => {
+    const lista = solicitudes(3);
+    lista[1].numeroDocumento = '1061789234';
+    servicio.getSolicitudesFuncionario.and.returnValue(of(lista));
+    const fixture = crear('FUNCIONARIO');
+    expect(filas(fixture)[1].querySelectorAll('td')[2].textContent.trim()).toBe('1061789234');
+    expect(fixture.nativeElement.querySelector('.campo-etiqueta').textContent.trim()).toBe('Número de identificación');
+    expect(fixture.nativeElement.querySelector('app-barra-busqueda-component input').getAttribute('placeholder')).toBe('Ej. 1061789234');
+
+    fixture.componentInstance.onBusquedaChange('1061789');
+    fixture.detectChanges();
+    expect(filas(fixture).length).toBe(1);
+    expect(filas(fixture)[0].querySelector('.radicado')?.textContent?.trim()).toBe('2026-CA-0002');
+  });
+
   it('el Estudiante solo ve sus columnas y no tiene filtro por codigo', () => {
     servicio.getSolicitudesEstudiante.and.returnValue(of(solicitudes(2)));
     const fixture = crear('ESTUDIANTE');
     expect(encabezados(fixture)).toEqual(['Radicado', 'Tipo de proceso', 'Fecha de radicación', 'Estado', 'Acciones']);
+    expect(fixture.nativeElement.textContent).not.toContain('Número de identificación');
     expect(filas(fixture).length).toBe(2);
     expect(fixture.nativeElement.querySelector('app-barra-busqueda-component')).toBeNull();
     expect(fixture.nativeElement.querySelector('.tarjeta-head h2').textContent.trim()).toBe('Mis trámites radicados');

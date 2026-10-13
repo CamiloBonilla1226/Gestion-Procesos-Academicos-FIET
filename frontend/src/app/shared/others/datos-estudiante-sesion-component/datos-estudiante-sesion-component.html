@@ -1,0 +1,9 @@
+<div class="datos" data-datos-sesion>
+  @for (dato of datos; track dato.etiqueta) {
+  <label class="dato">
+    <span class="dato-etiqueta">{{ dato.etiqueta }}</span>
+    <input type="text" class="dato-valor" [value]="dato.valor" readonly>
+  </label>
+  }
+</div>
+<p class="nota" data-nota-darca>{{ nota }}</p>

@@ -19,11 +19,20 @@ import {
 } from '../../../../core/constantes/procesos-academicos';
 import { comoTipoAnexo, errorDeArchivo, errorDeTexto, erroresDeCampos } from '../../../../core/utils/validaciones-academicas';
 import { formatearTamanio } from '../../../../core/utils/formato';
+import { DatosEstudianteSesionComponent } from '../../../others/datos-estudiante-sesion-component/datos-estudiante-sesion-component';
+import { PasoFormulario, StepperFormularioComponent } from '../../../others/stepper-formulario-component/stepper-formulario-component';
 
 @Component({
   selector: 'app-est-cancelacion-asignatura-content-component',
-  imports: [InputTextTareaComponent, InputAnexoUploadComponent, SimpleButtonComponent],
-  templateUrl: './est-cancelacion-asignatura-content-component.html'
+  imports: [
+    InputTextTareaComponent,
+    InputAnexoUploadComponent,
+    SimpleButtonComponent,
+    DatosEstudianteSesionComponent,
+    StepperFormularioComponent
+  ],
+  templateUrl: './est-cancelacion-asignatura-content-component.html',
+  styleUrls: ['../estilos-academicos.css', '../estilos-formularios.css']
 })
 export class EstCancelacionAsignaturaContentComponent implements OnInit {
   readonly maximoMotivo = MAXIMO_CARACTERES_MOTIVO;
@@ -59,6 +68,16 @@ export class EstCancelacionAsignaturaContentComponent implements OnInit {
 
   get puedeRadicar(): boolean {
     return !!this.formulario && this.formulario.asignaturas.length > 0;
+  }
+
+  get pasos(): PasoFormulario[] {
+    const errores = this.validar();
+    return [
+      { titulo: 'Datos del estudiante', completo: true },
+      { titulo: 'Asignaturas', completo: !errores['asignaturas'] },
+      { titulo: 'Motivo', completo: !errores['motivo'] },
+      { titulo: 'Soportes', completo: !errores['asignaturas'] && !errores['motivo'] && !errores['soporte'] && !errores['total'] }
+    ];
   }
 
   get erroresServidorGenerales(): string[] {
@@ -153,6 +172,10 @@ export class EstCancelacionAsignaturaContentComponent implements OnInit {
           this.errorHandlerService.handleError(err, 'Error', 'No se pudo radicar la solicitud');
         }
       });
+  }
+
+  volver(): void {
+    this.router.navigate([RUTAS_SOLICITUDES_POR_ROL[ROLES_ETIQUETA.ESTUDIANTE]]);
   }
 
   irAlDetalle(): void {

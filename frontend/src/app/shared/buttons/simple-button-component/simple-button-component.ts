@@ -43,6 +43,14 @@ export class SimpleButtonComponent {
 
   @Input() tipo: 'button' | 'submit' = 'button';
 
+  @Input() contorno = false;
+
+  get estilos(): Record<string, string> {
+    const base = { width: this.width, height: this.height };
+    if (!this.contorno) return { ...base, 'background-color': this.color };
+    return { ...base, 'background-color': '#fff', color: this.color, 'border-color': this.color };
+  }
+
   /**
    * Evento emitido cuando el botón es presionado.
    */

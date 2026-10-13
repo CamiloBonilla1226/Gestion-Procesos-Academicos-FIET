@@ -26,6 +26,7 @@ import {
 } from '../../../../core/constantes/procesos-academicos';
 import {
   ETIQUETAS_ESTUDIANTE,
+  NOTA_APROBAR_DECANO,
   campoObservacion,
   esEtiqueta,
   etiquetaCampoObservacion
@@ -38,6 +39,7 @@ import {
   esFechaValida
 } from '../../../../core/utils/validaciones-academicas';
 import { formatearFecha } from '../../../../core/utils/formato';
+import { ResumenSolicitudComponent } from '../../../others/resumen-solicitud-component/resumen-solicitud-component';
 
 const ACCIONES_DEL_PROCESO: AccionAcademica[] = [
   ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO,
@@ -123,8 +125,16 @@ function mismoNombre(a: string | null | undefined, b: string): boolean {
 
 @Component({
   selector: 'app-examen-supletorio-proceso-component',
-  imports: [GenericDialogFormComponent, SimpleButtonComponent, InputTextTareaComponent, InputDateComponent, InputAnexoUploadComponent],
-  templateUrl: './examen-supletorio-proceso-component.html'
+  imports: [
+    GenericDialogFormComponent,
+    SimpleButtonComponent,
+    InputTextTareaComponent,
+    InputDateComponent,
+    InputAnexoUploadComponent,
+    ResumenSolicitudComponent
+  ],
+  templateUrl: './examen-supletorio-proceso-component.html',
+  styleUrl: '../estilos-academicos.css'
 })
 export class ExamenSupletorioProcesoComponent implements OnChanges {
   @Input({ required: true }) uuidSolicitud!: string;
@@ -133,6 +143,7 @@ export class ExamenSupletorioProcesoComponent implements OnChanges {
   @Input({ required: true }) recargar!: () => void;
 
   readonly acciones = ACCIONES_ACADEMICAS;
+  readonly notaAprobarDecano = NOTA_APROBAR_DECANO;
   readonly maximoObservacion = MAXIMO_CARACTERES_OBSERVACION;
   readonly formatearFecha = formatearFecha;
 

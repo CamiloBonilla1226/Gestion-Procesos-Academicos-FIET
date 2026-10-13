@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, Input, TemplateRef } from '@angular/core';
+import { CeldaEncabezado } from '../../core/utils/encabezado-agrupado';
 
 /**
  * Interfaz que define la estructura de los encabezados de la tabla.
@@ -44,5 +45,7 @@ export class TableGenericComponent {
   /**
    * Template para mostrar acciones personalizadas por fila.
    */
-  @Input() actionTemplate!: TemplateRef<any>; 
+  @Input() actionTemplate!: TemplateRef<any>;
+
+  @Input() encabezadoAgrupado: CeldaEncabezado[][] | null = null;
 }

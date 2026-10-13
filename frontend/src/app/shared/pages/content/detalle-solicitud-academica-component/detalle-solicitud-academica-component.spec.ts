@@ -100,7 +100,25 @@ describe('DetalleSolicitudAcademicaComponent', () => {
     expect(contenido).toContain('Ingeniería de Sistemas');
     const estado = fixture.nativeElement.querySelector('[data-estado-solicitud]');
     expect(estado.textContent.trim()).toBe('Aprobada');
-    expect(estado.classList).toContain('text-bg-success');
+    expect(estado.getAttribute('data-categoria')).toBe('aprobada');
+    expect(fixture.nativeElement.querySelector('[data-titulo-detalle]').textContent.trim()).toBe('Solicitud de Cancelación de Matrícula');
+    expect(fixture.nativeElement.querySelector('[data-volver]').getAttribute('href')).toBe('/estudiante/solicitudes');
+  });
+
+  it('Datos generales solo muestra los campos que llegan', () => {
+    const datos = detalle(false, false);
+    const fixture = crear({ ...datos, estudiante: { ...datos.estudiante, semestre: '', correoElectronico: '' } });
+    const etiquetas = texto(fixture, '[data-datos-generales] dt');
+    expect(etiquetas).toEqual(['Nombre', 'Código estudiantil', 'Programa académico', 'Fecha de la solicitud']);
+    expect(texto(fixture, '[data-datos-generales] dd')[0]).toBe('María Pérez');
+  });
+
+  it('el titulo de los anexos depende del proceso y muestra cuantos hay', () => {
+    const matricula = crear(detalle(false, false));
+    expect(texto(matricula, '[data-tarjeta-anexos] h3')).toEqual(['Documentación requerida']);
+    expect(texto(matricula, '[data-contador-anexos]')).toEqual(['2']);
+    const supletorio = crear({ ...detalle(false, false), tipoSolicitud: 'Examen Supletorio' });
+    expect(texto(supletorio, '[data-tarjeta-anexos] h3')).toEqual(['Anexos adjuntos']);
   });
 
   it('pinta los anexos con tipo, Soporte para los libres y tamaño legible', () => {
@@ -121,15 +139,14 @@ describe('DetalleSolicitudAcademicaComponent', () => {
     expect(fixture.nativeElement.textContent).not.toContain('APROBADA');
     const estado = fixture.nativeElement.querySelector('[data-estado-solicitud]');
     expect(estado.textContent.trim()).toBe('En trámite');
-    expect(estado.classList).toContain('text-bg-secondary');
-    expect(estado.classList).not.toContain('text-bg-success');
+    expect(estado.getAttribute('data-categoria')).toBe('gestion');
   });
 
   it('al Estudiante le pinta amarilla la etiqueta de pago y roja la de rechazo', () => {
     const pago = crear({ ...detalle(false, false), etiqueta: 'Pendiente de pago', etapaCodigo: 'EN_REVISION_DECANO' });
-    expect(pago.nativeElement.querySelector('[data-estado-solicitud]').classList).toContain('text-bg-warning');
+    expect(pago.nativeElement.querySelector('[data-estado-solicitud]').getAttribute('data-categoria')).toBe('pago');
     const rechazo = crear({ ...detalle(false, false), etiqueta: 'Rechazada', etapaCodigo: 'APROBADA' });
-    expect(rechazo.nativeElement.querySelector('[data-estado-solicitud]').classList).toContain('text-bg-danger');
+    expect(rechazo.nativeElement.querySelector('[data-estado-solicitud]').getAttribute('data-categoria')).toBe('rechazada');
   });
 
   it('el Funcionario ve el bloque Decision del Decano con la observacion tomada del historial', () => {
@@ -144,7 +161,7 @@ describe('DetalleSolicitudAcademicaComponent', () => {
     fixture.detectChanges();
     const bloque = fixture.nativeElement.querySelector('[data-decision-decano]');
     expect(bloque.querySelector('[data-decision]').textContent.trim()).toBe('Rechazada por el Decano');
-    expect(bloque.querySelector('[data-decision]').classList).toContain('text-bg-danger');
+    expect(bloque.querySelector('[data-decision]').classList).toContain('rechazada');
     expect(bloque.querySelector('[data-observacion-decano]').textContent).toContain('No hay soporte médico');
   });
 
@@ -282,6 +299,28 @@ describe('DetalleSolicitudAcademicaComponent', () => {
     const anexos = texto(fixture, '[data-anexo]');
     expect(anexos[0]).toContain('Recibo de pago');
     expect(anexos[1]).toContain('Comprobante de pago');
-    expect(fixture.nativeElement.querySelectorAll('[data-anexo] app-simple-button-component').length).toBe(2);
+    expect(fixture.nativeElement.querySelectorAll('[data-anexo] [data-descargar]').length).toBe(2);
+  });
+
+  it('la observacion para el Decano se ve en su tarjeta para Funcionario y Decano, nunca para el Estudiante', () => {
+    for (const rol of ['FUNCIONARIO', 'DECANO']) {
+      const fixture = crear(detalle(false, false), rol);
+      expect(texto(fixture, '[data-observacion-remision] .bloque-texto')).toEqual(['Cumple los requisitos']);
+    }
+    expect(crear(detalle(false, false), 'ESTUDIANTE').nativeElement.querySelector('[data-observacion-remision]')).toBeNull();
+  });
+
+  it('el mensaje para el estudiante solo aparece cuando existe', () => {
+    const conMensaje: HistorialSolicitudAcademicaDTORespuesta[] = [
+      ...historial.filter(fila => fila.accion !== 'ENVIAR_RESPUESTA'),
+      { accion: 'ENVIAR_RESPUESTA', etapaCodigo: null, observaciones: 'Tu solicitud fue aprobada.', fecha: '2026-10-10T08:00:00', nombresUsuario: 'Ana', apellidosUsuario: 'Ruiz' }
+    ];
+    servicio.getSolicitud.and.returnValue(of(detalle(false, false)));
+    servicio.getHistorial.and.returnValue(of(conMensaje));
+    const fixture = TestBed.createComponent(DetalleSolicitudAcademicaComponent);
+    fixture.componentRef.setInput('rol', 'ESTUDIANTE');
+    fixture.detectChanges();
+    expect(texto(fixture, '[data-mensaje-estudiante] .bloque-texto')).toEqual(['Tu solicitud fue aprobada.']);
+    expect(crear(detalle(false, false)).nativeElement.querySelector('[data-mensaje-estudiante]')).toBeNull();
   });
 });

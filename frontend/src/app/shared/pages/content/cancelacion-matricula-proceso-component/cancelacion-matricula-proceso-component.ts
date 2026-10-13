@@ -25,7 +25,14 @@ import {
   ROLES_ETIQUETA,
   RolEtiqueta
 } from '../../../../core/constantes/procesos-academicos';
-import { campoObservacion, etiquetaCampoObservacion } from '../../../../core/constantes/etiquetas-academicas';
+import {
+  NOTA_APROBAR_DECANO,
+  RUTAS_ENCABEZADO_ASIGNATURAS,
+  campoObservacion,
+  etiquetaCampoObservacion
+} from '../../../../core/constantes/etiquetas-academicas';
+import { CeldaEncabezado, agruparEncabezados } from '../../../../core/utils/encabezado-agrupado';
+import { ResumenSolicitudComponent } from '../../../others/resumen-solicitud-component/resumen-solicitud-component';
 import {
   comoTipoAnexo,
   errorDeArchivo,
@@ -94,9 +101,11 @@ const COLUMNAS_FIJAS = ['Código', 'Asignatura'];
     InputTextComponent,
     InputTextTareaComponent,
     InputSelectComponent,
-    InputAnexoUploadComponent
+    InputAnexoUploadComponent,
+    ResumenSolicitudComponent
   ],
-  templateUrl: './cancelacion-matricula-proceso-component.html'
+  templateUrl: './cancelacion-matricula-proceso-component.html',
+  styleUrl: '../estilos-academicos.css'
 })
 export class CancelacionMatriculaProcesoComponent implements OnChanges {
   @Input({ required: true }) uuidSolicitud!: string;
@@ -108,7 +117,10 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
   readonly maximoObservacion = MAXIMO_CARACTERES_OBSERVACION;
   readonly tipoResolucion = comoTipoAnexo('resolucion', 'Escaneo de la Resolución firmada', FORMATOS_RESOLUCION, true);
 
+  readonly notaAprobarDecano = NOTA_APROBAR_DECANO;
+
   encabezados: TableHeader[] = TITULOS_COLUMNAS.map(title => ({ title }));
+  encabezadoAgrupado: CeldaEncabezado[][] = agruparEncabezados(TITULOS_COLUMNAS, RUTAS_ENCABEZADO_ASIGNATURAS);
 
   detalle: CancelacionMatriculaDetalleDTORespuesta | null = null;
   filasAsignaturas: Record<string, string>[] = [];
@@ -174,6 +186,10 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
     return campo ? etiquetaCampoObservacion(campo) : '';
   }
 
+  esRechazo(accion: AccionAcademica): boolean {
+    return accion === ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO || accion === ACCIONES_ACADEMICAS.RECHAZAR_DECANO;
+  }
+
   etiquetaBoton(accion: AccionAcademica): string {
     return ETIQUETAS_BOTON[accion] ?? accion;
   }
@@ -200,7 +216,9 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
             'Situación en la matrícula': a.situacionMatricula ? `${a.situacionMatricula.codigo} - ${a.situacionMatricula.nombre}` : SIN_REGISTRAR,
             'Situación al cancelar': a.situacionCancelar ? `${a.situacionCancelar.codigo} - ${a.situacionCancelar.nombre}` : SIN_REGISTRAR
           }));
-          this.encabezados = this.titulosVisibles().map(title => ({ title }));
+          const titulos = this.titulosVisibles();
+          this.encabezados = titulos.map(title => ({ title }));
+          this.encabezadoAgrupado = agruparEncabezados(titulos, RUTAS_ENCABEZADO_ASIGNATURAS);
         },
         error: err => {
           this.detalle = null;

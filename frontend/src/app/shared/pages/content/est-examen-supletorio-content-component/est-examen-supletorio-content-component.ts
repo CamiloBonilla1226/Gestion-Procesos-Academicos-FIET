@@ -28,6 +28,8 @@ import {
   esHoraValida,
   fechaDeHoy
 } from '../../../../core/utils/validaciones-academicas';
+import { DatosEstudianteSesionComponent } from '../../../others/datos-estudiante-sesion-component/datos-estudiante-sesion-component';
+import { PasoFormulario, StepperFormularioComponent } from '../../../others/stepper-formulario-component/stepper-formulario-component';
 
 interface CampoAnexo {
   anexo: AnexoSupletorioDTORespuesta;
@@ -41,8 +43,17 @@ const TEXTOS_CAUSA: Record<string, string> = {
 
 @Component({
   selector: 'app-est-examen-supletorio-content-component',
-  imports: [InputSelectComponent, InputDateComponent, InputTextComponent, InputAnexoUploadComponent, SimpleButtonComponent],
-  templateUrl: './est-examen-supletorio-content-component.html'
+  imports: [
+    InputSelectComponent,
+    InputDateComponent,
+    InputTextComponent,
+    InputAnexoUploadComponent,
+    SimpleButtonComponent,
+    DatosEstudianteSesionComponent,
+    StepperFormularioComponent
+  ],
+  templateUrl: './est-examen-supletorio-content-component.html',
+  styleUrls: ['../estilos-academicos.css', '../estilos-formularios.css']
 })
 export class EstExamenSupletorioContentComponent implements OnInit {
   readonly causas = CAUSAS_SUPLETORIO;
@@ -75,6 +86,21 @@ export class EstExamenSupletorioContentComponent implements OnInit {
 
   ngOnInit(): void {
     this.cargarFormulario();
+  }
+
+  get pasos(): PasoFormulario[] {
+    const errores = this.validar();
+    const examenListo = !errores['asignatura'] && !errores['fechaExamen'] && !errores['causa'];
+    const anexosListos = !!this.causa && this.camposVisibles.every(c => !errores[c.anexo.uuidTipoAnexoAcademico]) && !errores['total'];
+    const pasos: PasoFormulario[] = [
+      { titulo: 'Datos del estudiante', completo: true },
+      { titulo: 'Examen no presentado', completo: examenListo }
+    ];
+    if (this.esCruce) {
+      pasos.push({ titulo: 'Examen cruzado', completo: !errores['asignaturaCruzada'] && !errores['fechaCruce'] && !errores['horaCruce'] });
+    }
+    pasos.push({ titulo: 'Anexos', completo: anexosListos });
+    return pasos;
   }
 
   get puedeRadicar(): boolean {
@@ -223,6 +249,10 @@ export class EstExamenSupletorioContentComponent implements OnInit {
           this.errorHandlerService.handleError(err, 'Error', 'No se pudo radicar la solicitud');
         }
       });
+  }
+
+  volver(): void {
+    this.router.navigate([RUTAS_SOLICITUDES_POR_ROL[ROLES_ETIQUETA.ESTUDIANTE]]);
   }
 
   irAlDetalle(): void {

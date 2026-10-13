@@ -7,6 +7,22 @@
   border-radius: 4px;     
 }
 
+.btn.custom-btn.contorno {
+  border-width: 1px;
+  border-style: solid;
+  font-weight: 600;
+}
+
+.btn.custom-btn.contorno:hover:not([disabled]) {
+  filter: brightness(.96);
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+
+.btn.custom-btn:focus-visible {
+  outline: 2px solid #B9C7EE;
+  outline-offset: 2px;
+}
+
 .btn[disabled] {
   opacity: 0.45;
   cursor: not-allowed !important;

@@ -1,18 +1,24 @@
 @if (anexos.length === 0) {
-<p class="text-secondary mb-0" data-estado="sin-anexos">La solicitud no tiene anexos.</p>
+<p class="sin-anexos" data-estado="sin-anexos">La solicitud no tiene anexos.</p>
 } @else {
-<ul class="list-group">
+<ul class="anexos">
   @for (anexo of anexos; track anexo.uuidAnexoAcademico) {
-  <li class="list-group-item d-flex justify-content-between align-items-center gap-3" data-anexo>
-    <div class="d-flex flex-column">
-      <strong class="text-break">{{ anexo.nombreArchivo }}</strong>
-      <small class="text-secondary">
-        {{ tipoDe(anexo) }} &middot; {{ formatearTamanio(anexo.tamanioBytes) }} &middot; {{ formatearFechaHora(anexo.fechaSubida) }}
-      </small>
+  <li data-anexo>
+    <div class="anexo-nombre">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A3A86" stroke-width="1.6" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>
+      <div class="anexo-texto">
+        <span class="anexo-archivo">{{ anexo.nombreArchivo }}</span>
+        <small>{{ tipoDe(anexo) }} &middot; {{ formatearTamanio(anexo.tamanioBytes) }} &middot; {{ formatearFechaHora(anexo.fechaSubida) }}</small>
+      </div>
     </div>
-    <app-simple-button-component [label]="descargando.has(anexo.uuidAnexoAcademico) ? 'Descargando...' : 'Descargar'"
-      width="120px" height="30px" [disabled]="descargando.has(anexo.uuidAnexoAcademico)" (clicked)="descargar(anexo)">
-    </app-simple-button-component>
+    <div class="anexo-acciones">
+      <button type="button" class="enlace" data-visualizar [disabled]="ocupado(anexo)" (click)="visualizar(anexo)">
+        {{ abriendo.has(anexo.uuidAnexoAcademico) ? 'Abriendo...' : 'Visualizar' }}
+      </button>
+      <button type="button" class="enlace" data-descargar [disabled]="ocupado(anexo)" (click)="descargar(anexo)">
+        {{ descargando.has(anexo.uuidAnexoAcademico) ? 'Descargando...' : 'Descargar' }}
+      </button>
+    </div>
   </li>
   }
 </ul>

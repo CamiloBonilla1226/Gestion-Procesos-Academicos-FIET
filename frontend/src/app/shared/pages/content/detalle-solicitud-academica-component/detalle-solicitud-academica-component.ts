@@ -12,6 +12,7 @@ import { HistorialSolicitudAcademicaDTORespuesta } from '../../../../core/models
 import {
   ACCIONES_ACADEMICAS,
   CODIGOS_ERROR,
+  PROCESOS_ACADEMICOS,
   ProcesoAcademico,
   ROLES_ETIQUETA,
   RUTAS_SOLICITUDES_POR_ROL,
@@ -21,7 +22,7 @@ import {
   textoAccion,
   textoEtapa
 } from '../../../../core/constantes/procesos-academicos';
-import { ETIQUETAS_DECISION_DECANO, claseInsigniaEtiquetaEstudiante } from '../../../../core/constantes/etiquetas-academicas';
+import { CategoriaEstado, ETIQUETAS_DECISION_DECANO, categoriaEstado } from '../../../../core/constantes/etiquetas-academicas';
 
 export interface DecisionDecano {
   aprobada: boolean;
@@ -31,6 +32,17 @@ export interface DecisionDecano {
 }
 
 const ACCIONES_DECISION_DECANO: string[] = [ACCIONES_ACADEMICAS.APROBAR_DECANO, ACCIONES_ACADEMICAS.RECHAZAR_DECANO];
+
+export interface DatoGeneral {
+  etiqueta: string;
+  valor: string;
+}
+
+const TITULOS_ANEXOS: Partial<Record<ProcesoAcademico, string>> = {
+  [PROCESOS_ACADEMICOS.CANCELACION_MATRICULA]: 'Documentación requerida',
+  [PROCESOS_ACADEMICOS.CANCELACION_ASIGNATURA]: 'Soporte adjunto',
+  [PROCESOS_ACADEMICOS.EXAMEN_SUPLETORIO]: 'Anexos adjuntos'
+};
 import { leerCodigoError } from '../../../../core/utils/errores-http';
 import { guardarArchivo } from '../../../../core/utils/descargas';
 import { formatearFechaHora } from '../../../../core/utils/formato';
@@ -39,7 +51,8 @@ import { COMPONENTES_PROCESO, EntradasComponenteProceso } from './componentes-pr
 @Component({
   selector: 'app-detalle-solicitud-academica-component',
   imports: [NgClass, NgComponentOutlet, SimpleButtonComponent, AnexosAcademicosComponent],
-  templateUrl: './detalle-solicitud-academica-component.html'
+  templateUrl: './detalle-solicitud-academica-component.html',
+  styleUrls: ['../estilos-academicos.css', './detalle-solicitud-academica-component.css']
 })
 export class DetalleSolicitudAcademicaComponent implements OnInit {
   @Input({ required: true }) rol!: RolEtiqueta;
@@ -84,9 +97,35 @@ export class DetalleSolicitudAcademicaComponent implements OnInit {
     return this.rol === ROLES_ETIQUETA.ESTUDIANTE;
   }
 
-  get claseInsignia(): string {
-    if (!this.solicitud) return '';
-    return this.esEstudiante ? claseInsigniaEtiquetaEstudiante(this.solicitud.etiqueta) : claseInsigniaEtapa(this.solicitud.etapaCodigo);
+  get categoriaEstado(): CategoriaEstado {
+    return categoriaEstado(this.solicitud?.etiqueta);
+  }
+
+  get tituloAnexos(): string {
+    const proceso = this.solicitud ? procesoDeTipoSolicitud(this.solicitud.tipoSolicitud) : undefined;
+    return (proceso && TITULOS_ANEXOS[proceso]) || 'Anexos';
+  }
+
+  get datosGenerales(): DatoGeneral[] {
+    const estudiante = this.solicitud?.estudiante;
+    if (!this.solicitud || !estudiante) return [];
+    return [
+      { etiqueta: 'Nombre', valor: `${estudiante.nombres ?? ''} ${estudiante.apellidos ?? ''}`.trim() },
+      { etiqueta: 'Código estudiantil', valor: estudiante.codigoEstudiantil ?? '' },
+      { etiqueta: 'Programa académico', valor: estudiante.programaAcademico ?? '' },
+      { etiqueta: 'Semestre', valor: estudiante.semestre ?? '' },
+      { etiqueta: 'Correo electrónico', valor: estudiante.correoElectronico ?? '' },
+      { etiqueta: 'Fecha de la solicitud', valor: this.solicitud.fechaCreacion ? formatearFechaHora(this.solicitud.fechaCreacion) : '' }
+    ].filter(dato => `${dato.valor}`.trim() !== '');
+  }
+
+  get observacionRemision(): string | null {
+    if (this.esEstudiante) return null;
+    return this.ultimaObservacion(ACCIONES_ACADEMICAS.REMITIR_DECANO);
+  }
+
+  get mensajeEstudiante(): string | null {
+    return this.ultimaObservacion(ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA);
   }
 
   get decisionDecano(): DecisionDecano | null {
@@ -152,6 +191,12 @@ export class DetalleSolicitudAcademicaComponent implements OnInit {
         next: blob => guardarArchivo(blob, `Resolucion-${radicado}.pdf`),
         error: err => this.errorHandlerService.handleError(err, 'Error', 'No se pudo descargar la Resolución')
       });
+  }
+
+  private ultimaObservacion(accion: string): string | null {
+    const fila = [...this.historial].reverse().find(entrada => entrada.accion === accion);
+    const texto = (fila?.observaciones ?? '').trim();
+    return texto === '' ? null : texto;
   }
 
   private ordenarHistorial(historial: HistorialSolicitudAcademicaDTORespuesta[]): HistorialSolicitudAcademicaDTORespuesta[] {

@@ -2,6 +2,43 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-13 - Rediseño visual, parte 2: detalle, modales y formularios (Tarea T12.2-C)
+- Qué se hizo:
+  - Ajuste 2: las bandejas del Funcionario y del Decano muestran la columna "Documento" con `numeroDocumento` (T12.5) y el filtro pasa a "NÚMERO DE IDENTIFICACIÓN" con placeholder "Ej. 1061789234"; la búsqueda cubre radicado, nombre, código y documento. El Estudiante no ve ni la columna ni el filtro.
+  - B3: detalle con "← Volver", "Solicitud de {tipo}", "Radicado {número}" y pill de estado; tarjetas de Datos generales (solo los campos que llegan), anexos con título por proceso, contador y enlaces "Visualizar"/"Descargar", "Observación para el Decano", "Decisión del Decano", "Mensaje para el estudiante", tarjetas del proceso (motivo, asignaturas con encabezado agrupado de la Facultad, datos del supletorio) y una tarjeta final de acciones con rechazo en contorno rojo y el resto en navy.
+  - B4: modales con barra navy, ×, resumen de la solicitud, notas grises, Cancelar y confirmar; cierran con Escape y caben en móvil. Nota del Decano al aprobar.
+  - B7: formularios del Estudiante con stepper guía sobre sus secciones, bloque de datos de la sesión de solo lectura con Facultad FIET y la nota de DARCA, contadores con los límites que ya se validaban, zona de carga punteada y pie "Volver" / "Radicar solicitud".
+  - Recibo, comprobante, escaneo de la Resolución y fecha acordada toman el mismo estilo sin cambiar su lógica.
+- Archivos:
+  - `frontend/src/app/core/models/SolicitudAcademica/DTOResponse/SolicitudAcademicaResumenDTORespuesta.ts` (modificado)
+  - `frontend/src/app/core/utils/bandeja-solicitudes.ts`, `.spec.ts` (modificado)
+  - `frontend/src/app/core/utils/encabezado-agrupado.ts`, `.spec.ts` (creado)
+  - `frontend/src/app/core/constantes/etiquetas-academicas.ts` (modificado)
+  - `frontend/src/app/shared/pages/content/estilos-academicos.css`, `estilos-formularios.css` (creado)
+  - `frontend/src/app/shared/others/resumen-solicitud-component/*` (creado, con spec)
+  - `frontend/src/app/shared/others/stepper-formulario-component/*` (creado, con spec)
+  - `frontend/src/app/shared/others/datos-estudiante-sesion-component/*` (creado, con spec)
+  - `frontend/src/app/shared/others/anexos-academicos-component/anexos-academicos-component.ts`, `.html`, `.spec.ts` (modificado), `.css` (creado)
+  - `frontend/src/app/shared/pages/content/bandeja-solicitudes-academicas-component/bandeja-solicitudes-academicas-component.ts`, `.html`, `.spec.ts` (modificado)
+  - `frontend/src/app/shared/pages/content/detalle-solicitud-academica-component/detalle-solicitud-academica-component.ts`, `.html`, `.spec.ts` (modificado), `.css` (creado)
+  - `frontend/src/app/shared/pages/content/cancelacion-matricula-proceso-component/*.ts`, `.html`, `.spec.ts` (modificado)
+  - `frontend/src/app/shared/pages/content/cancelacion-asignatura-proceso-component/*.ts`, `.html`, `.spec.ts` (modificado)
+  - `frontend/src/app/shared/pages/content/examen-supletorio-proceso-component/*.ts`, `.html` (modificado)
+  - `frontend/src/app/shared/pages/content/est-cancelacion-matricula-content-component/*.ts`, `.html`, `.spec.ts` (modificado)
+  - `frontend/src/app/shared/pages/content/est-cancelacion-asignatura-content-component/*.ts`, `.html` (modificado)
+  - `frontend/src/app/shared/pages/content/est-examen-supletorio-content-component/*.ts`, `.html` (modificado)
+  - `frontend/src/app/shared/buttons/simple-button-component/simple-button-component.ts`, `.html`, `.css` (modificado), `simple-button-contorno.spec.ts` (creado)
+  - `frontend/src/app/shared/generic-dialog-form-component/generic-dialog-form-component.ts`, `.html`, `.css` (modificado), `generic-dialog-form-cancelar.spec.ts` (creado)
+  - `frontend/src/app/shared/table-generic-component/table-generic-component.ts`, `.html`, `.css`, `table-generic-celdas.spec.ts` (modificado)
+  - `frontend/src/app/shared/inputs/input-anexo-upload-component/input-anexo-upload-component.css` (modificado)
+  - `frontend/CLAUDE.md` (modificado)
+- Notas:
+  - Decisiones confirmadas por el usuario: el stepper es una guía sobre la página única (no se parte en pasos); el primer bloque muestra los datos del usuario de la sesión más Facultad FIET; B6 (catálogo del Estudiante) se omite porque no existe la página ni sus textos.
+  - Componentes de Julián tocados solo con entradas opcionales y estilos: `SimpleButtonComponent.contorno`, `GenericDialogFormComponent.textoCancelar` y `cerrarConEscape`, `TableGenericComponent.encabezadoAgrupado`; estilo nuevo de `InputAnexoUploadComponent` y del diálogo (afecta también a los diálogos de Julián que lo usan).
+  - El detalle no trae número de documento, así que ni Datos generales ni el resumen de los modales lo muestran.
+  - Orden del detalle: los anexos y los bloques del Decano van antes de las tarjetas del proceso, para que la tarjeta de acciones quede al final sin reordenar con CSS; el historial va después.
+  - Bundle inicial: 836,06 kB (sin cambio). Decisiones D-F31 a D-F33.
+
 ## 2026-10-13 - Número de documento en el resumen de las bandejas (Tarea T12.5)
 - Qué se hizo: `SolicitudAcademicaResumenDTORespuesta` lleva `numeroDocumento` del estudiante en las bandejas del Funcionario Académico y del Decano; en la del Estudiante sale nulo. Lo decide el caso de uso por rol y el mapper lo copia del resumen. Se confirmó que el enmascaramiento de la decisión del Decano para el Estudiante (T12.4, P41) sigue cubierto por sus pruebas unitarias y de humo.
 - Archivos:

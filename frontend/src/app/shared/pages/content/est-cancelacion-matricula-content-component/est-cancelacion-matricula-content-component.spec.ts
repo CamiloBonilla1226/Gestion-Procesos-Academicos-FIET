@@ -207,6 +207,26 @@ describe('EstCancelacionMatriculaContentComponent', () => {
     expect(fixture.nativeElement.querySelectorAll('[data-campo-anexo]').length).toBe(0);
     expect(fixture.nativeElement.textContent).not.toContain('Este anexo es obligatorio');
   });
+
+  it('muestra el stepper guia, los datos del estudiante con la nota de DARCA y avanza al completar', () => {
+    const fixture = crear();
+    const estados = () => Array.from(fixture.nativeElement.querySelectorAll('app-stepper-formulario-component li'))
+      .map((li: any) => li.getAttribute('data-paso'));
+    expect(estados()).toEqual(['hecho', 'hecho', 'activo', 'pendiente', 'pendiente']);
+    expect(fixture.nativeElement.querySelector('[data-nota-darca]').textContent).toContain('corregirlo ante DARCA');
+    const valores = Array.from(fixture.nativeElement.querySelectorAll('[data-datos-sesion] input')).map((i: any) => i.value);
+    expect(valores).toContain('FIET');
+
+    llenar(fixture.componentInstance);
+    fixture.detectChanges();
+    expect(estados()).toEqual(['hecho', 'hecho', 'hecho', 'hecho', 'hecho']);
+  });
+
+  it('Volver lleva a Mis solicitudes', () => {
+    const fixture = crear();
+    (fixture.nativeElement.querySelector('[data-boton-volver] button') as HTMLButtonElement).click();
+    expect(router.navigate).toHaveBeenCalledWith(['/estudiante/solicitudes']);
+  });
 });
 
 @Component({ template: '<p data-destino>Detalle</p>' })

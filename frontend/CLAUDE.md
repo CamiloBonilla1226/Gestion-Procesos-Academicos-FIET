@@ -381,7 +381,9 @@ en su propio chunk diferido.
 
 Todas las confirmaciones y formularios usan `GenericDialogFormComponent`. La
 extensión le agregó el `@Input() textoBoton` (por defecto `Guardar`, con el
-ancho de 70px de siempre, así los diálogos de Julián no cambian) (D-F12).
+ancho de 70px de siempre, así los diálogos de Julián no cambian) (D-F12), y en
+T12.2-C `textoCancelar` y `cerrarConEscape` (D-F31), que los diálogos de los
+procesos pasan como "Cancelar" y `true`.
 Nuestros diálogos pasan un texto por acción: "Rechazar solicitud",
 "Remitir al Decano", "Aprobar solicitud", "Registrar decisiones" (decisión
 por asignatura), "Enviar respuesta", "Enviar recibo", "Subir comprobante",
@@ -491,19 +493,51 @@ Las reglas que no son "obligatorio" viven en
 | D-F28 | Estado de las bandejas con ícono y texto por `categoriaEstado(etiqueta)`, nunca por `etapaCodigo`; sin insignia aparte de decisión del Decano |
 | D-F29 | `TableGenericComponent` acepta `cellTemplate` opcional por columna (contexto `$implicit` = fila, `valor` = celda); sin plantilla pinta el texto como antes |
 | D-F30 | `SidebarComponent` acepta `children` por ítem (submenú desplegable con ">") y resalta la ruta más específica que coincide con la URL. El Decano agrupa Solicitudes académicas y Administración académica en "Gestión académica" |
+| D-F31 | Entradas opcionales nuevas en componentes de Julián, sin cambiar a quien no las pasa: `SimpleButtonComponent.contorno`, `GenericDialogFormComponent.textoCancelar` y `cerrarConEscape`, `TableGenericComponent.encabezadoAgrupado` |
+| D-F32 | El estilo compartido de detalle, procesos y formularios vive en `shared/pages/content/estilos-academicos.css` y `estilos-formularios.css`, que cada componente incluye en `styleUrls` (carga diferida, no toca el bundle inicial) |
+| D-F33 | Los formularios del Estudiante siguen siendo de una sola página; el stepper solo guía. Los datos del primer bloque salen del usuario de la sesión, no del formulario |
 
 Otras decisiones tomadas en las tareas, sin número:
 
 - Bandejas: una tarjeta por rol ("Solicitudes remitidas por el Funcionario
   Académico", "Gestión de solicitudes", "Mis trámites radicados"). Filtros de
   tipo de proceso, estado (decisión en el Decano, con las etiquetas presentes)
-  y código estudiantil (no en el Estudiante), con "Limpiar filtros". Columnas:
-  Radicado, Estudiante, Código estudiantil, Tipo de proceso, Fecha de
-  radicación, Estado y Acciones (ojo); el Estudiante ve Radicado, Tipo de
-  proceso, Fecha de radicación, Estado y Acciones. Fecha y Estado se ordenan
-  con ⇅. El resumen no trae número de documento ni fechas de remisión o
-  decisión, por eso se usan el código estudiantil y la fecha de radicación. La
-  búsqueda sigue cubriendo radicado, nombre y código.
+  y "Número de identificación" (no en el Estudiante), con "Limpiar filtros".
+  Columnas: Radicado, Estudiante, Documento (`numeroDocumento` del resumen,
+  P42 del backend), Código estudiantil, Tipo de proceso, Fecha de radicación,
+  Estado y Acciones (ojo); el Estudiante ve Radicado, Tipo de proceso, Fecha de
+  radicación, Estado y Acciones. Fecha y Estado se ordenan con ⇅. El resumen no
+  trae fechas de remisión ni de decisión, por eso se usa la fecha de
+  radicación. La búsqueda cubre radicado, nombre, código y documento.
+- Detalle (T12.2-C): "← Volver", "Solicitud de {tipo}", "Radicado {número}" y
+  la pill de estado por `categoriaEstado(etiqueta)`. Orden de tarjetas: Datos
+  generales (solo los campos que llegan del backend; el detalle no trae número
+  de documento), anexos (título por proceso: "Documentación requerida",
+  "Soporte adjunto" o "Anexos adjuntos", con contador, y enlaces "Visualizar" y
+  "Descargar"), "Observación para el Decano" (Funcionario y Decano), "Decisión
+  del Decano" (Funcionario), "Mensaje para el estudiante" (si existe, de la
+  última fila `ENVIAR_RESPUESTA`), las tarjetas del proceso con la tarjeta de
+  acciones al final y el historial. Los botones de rechazo van en contorno rojo
+  y el resto en navy; textos y visibilidad siguen saliendo de
+  `accionesDisponibles`.
+- Las tablas de asignaturas de las dos cancelaciones usan el encabezado
+  agrupado del formato de la Facultad (`agruparEncabezados` en
+  `core/utils/encabezado-agrupado.ts` y `RUTAS_ENCABEZADO_ASIGNATURAS`). En
+  Cancelación de Asignatura "Situación al cancelar" va junto a "Situación en la
+  matrícula".
+- Modales: barra navy con ×, resumen de la solicitud
+  (`ResumenSolicitudComponent`: Estudiante, Código estudiantil, Tipo de proceso,
+  Número de radicado), notas grises y botones Cancelar y confirmar. Cierran con
+  Escape. Al aprobar, el Decano ve `NOTA_APROBAR_DECANO`.
+- Formularios del Estudiante: stepper guía (`StepperFormularioComponent`) sobre
+  las secciones que ya existían, todo en una sola página; cada paso queda verde
+  cuando su sección es válida y el primero pendiente en navy. El primer bloque
+  (`DatosEstudianteSesionComponent`) muestra de solo lectura los datos del
+  usuario de la sesión y la Facultad FIET, con la nota de DARCA. El Estudiante
+  no tiene endpoint para su código, programa ni semestre. Pie con "Volver" (a
+  Mis solicitudes) y "Radicar solicitud".
+- El catálogo de solicitudes del Estudiante (B6 de T12.2-C) no existe: no hay
+  ruta ni textos de descripción, requisitos o formatos.
 - Tras radicar, la pantalla reemplaza el formulario por el radicado y un botón
   "Ver solicitud", y además navega al detalle.
 - Examen Supletorio:

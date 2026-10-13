@@ -1,85 +1,97 @@
-<section class="card">
-  <div class="card-body d-flex flex-column gap-3">
-    <h6 class="card-title mb-0">Cancelación de Asignatura</h6>
-
-    @if (cargando && !detalle) {
-    <div class="d-flex align-items-center gap-2 text-secondary" data-estado="cargando">
-      <div class="spinner-border spinner-border-sm" role="status"></div>
-      <span>Cargando datos de la cancelación...</span>
-    </div>
-    } @else if (errorCarga) {
-    <div class="alert alert-danger d-flex justify-content-between align-items-center mb-0" data-estado="error">
-      <span>No se pudieron cargar los datos de la cancelación.</span>
-      <app-simple-button-component label="Reintentar" width="100px" height="30px" (clicked)="cargarDetalle()">
-      </app-simple-button-component>
-    </div>
-    } @else if (detalle) {
-    <div>
-      <small class="text-secondary d-block">Motivo de la cancelación</small>
-      <p class="mb-0" style="white-space: pre-line;" data-motivo>{{ detalle.motivoCancelacion }}</p>
-    </div>
-    <app-table-generic-component [headers]="encabezados" [data]="filasAsignaturas"></app-table-generic-component>
-    }
-
-    @if (accionesVisibles.length > 0) {
-    <div class="d-flex flex-wrap gap-2 justify-content-end" data-acciones>
-      @for (accion of accionesVisibles; track accion) {
-      <app-simple-button-component [attr.data-accion]="accion" [label]="etiquetaBoton(accion)" width="210px"
-        height="34px" [color]="accion === acciones.RECHAZAR_FUNCIONARIO || accion === acciones.RECHAZAR_DECANO ? '#B02A37' : '#1E257B'"
-        [disabled]="!detalle || cargandoSituaciones" (clicked)="abrir(accion)">
-      </app-simple-button-component>
-      }
-    </div>
-    }
+<div class="pila">
+  @if (cargando && !detalle) {
+  <div class="cargando" data-estado="cargando">
+    <div class="spinner-border spinner-border-sm" role="status"></div>
+    <span>Cargando datos de la cancelación...</span>
   </div>
-</section>
+  } @else if (errorCarga) {
+  <div class="nota-error d-flex flex-wrap justify-content-between align-items-center gap-2" data-estado="error">
+    <span>No se pudieron cargar los datos de la cancelación.</span>
+    <app-simple-button-component label="Reintentar" width="100px" height="30px" (clicked)="cargarDetalle()">
+    </app-simple-button-component>
+  </div>
+  } @else if (detalle) {
+  <section class="tarjeta">
+    <header class="tarjeta-head">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+      <h3>Motivo de cancelación</h3>
+    </header>
+    <div class="tarjeta-body">
+      <p class="bloque-texto" data-motivo>{{ detalle.motivoCancelacion }}</p>
+    </div>
+  </section>
 
-<app-generic-dialog-form-component [visible]="dialogoVisible" [title]="tituloDialogo" [textoBoton]="textoBotonDialogo" (visibleChange)="cerrar($event)"
-  (save)="confirmar()">
+  <section class="tarjeta">
+    <header class="tarjeta-head">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+      <h3>Asignaturas a cancelar</h3>
+    </header>
+    <div class="tarjeta-body">
+      <app-table-generic-component [headers]="encabezados" [data]="filasAsignaturas" [encabezadoAgrupado]="encabezadoAgrupado">
+      </app-table-generic-component>
+    </div>
+  </section>
+  }
+
+  @if (accionesVisibles.length > 0) {
+  <section class="tarjeta tarjeta-acciones" data-acciones>
+    @for (accion of accionesVisibles; track accion) {
+    <app-simple-button-component [attr.data-accion]="accion" [label]="etiquetaBoton(accion)" width="auto" height="38px"
+      [color]="esRechazo(accion) ? '#D0463B' : '#2A3A86'" [contorno]="esRechazo(accion)"
+      [disabled]="!detalle || cargandoSituaciones" (clicked)="abrir(accion)">
+    </app-simple-button-component>
+    }
+  </section>
+  }
+</div>
+
+<app-generic-dialog-form-component [visible]="dialogoVisible" [title]="tituloDialogo" [textoBoton]="textoBotonDialogo"
+  textoCancelar="Cancelar" [cerrarConEscape]="true" (visibleChange)="cerrar($event)" (save)="confirmar()">
   <div class="d-flex flex-column gap-3" data-dialogo>
+    <app-resumen-solicitud-component [solicitud]="solicitud"></app-resumen-solicitud-component>
     @switch (accionActiva) {
     @case (acciones.RECHAZAR_FUNCIONARIO) {
-    <p class="mb-0">
+    <p class="nota-gris">
       La solicitud quedará rechazada y terminará el trámite. Sube el escaneo de la Resolución firmada por el Decano y
       escribe la observación que verá el estudiante.
     </p>
     }
     @case (acciones.REMITIR_DECANO) {
-    <p class="mb-0">
+    <p class="nota-gris">
       Registra la evaluación de cada asignatura. Las faltas y la nota aceptan un número o un texto de hasta 20
       caracteres. Con una nota numérica menor a 3.0 no se puede marcar que cumple, y si no cumple la observación de la
       evaluación es obligatoria.
     </p>
     @if (solicitud.tieneResolucion) {
-    <div class="alert alert-warning mb-0 py-2">Al remitir se retira el escaneo de la Resolución que estaba cargado.</div>
+    <div class="nota-aviso">Al remitir se retira el escaneo de la Resolución que estaba cargado.</div>
     }
     @for (asignatura of asignaturas; track asignatura.uuidAsignaturaSolicitud) {
-    <div class="border rounded p-2" [attr.data-evaluacion]="asignatura.uuidAsignaturaSolicitud">
+    <div class="bloque-edicion" [attr.data-evaluacion]="asignatura.uuidAsignaturaSolicitud">
       <strong>{{ asignatura.codigoAsignatura }} - {{ asignatura.nombreAsignatura }}</strong>
       <div class="row g-2">
         <div class="col-md-2">
           <app-input-text-component label="Faltas" [required]="true"
             [(value)]="evaluaciones[asignatura.uuidAsignaturaSolicitud].faltas">
           </app-input-text-component>
-          <small class="text-danger">{{ errores['faltas-' + asignatura.uuidAsignaturaSolicitud] || '' }}</small>
+          <small class="texto-error">{{ errores['faltas-' + asignatura.uuidAsignaturaSolicitud] || '' }}</small>
         </div>
         <div class="col-md-2">
           <app-input-text-component label="Nota" [required]="true"
             [(value)]="evaluaciones[asignatura.uuidAsignaturaSolicitud].nota">
           </app-input-text-component>
-          <small class="text-danger">{{ errores['nota-' + asignatura.uuidAsignaturaSolicitud] || '' }}</small>
+          <small class="texto-error">{{ errores['nota-' + asignatura.uuidAsignaturaSolicitud] || '' }}</small>
         </div>
         <div class="col-md-5">
           <app-input-select-component label="Situación en la matrícula" [required]="true" [options]="opcionesSituacion"
             [(value)]="evaluaciones[asignatura.uuidAsignaturaSolicitud].situacion">
           </app-input-select-component>
-          <small class="text-danger">{{ errores['situacion-' + asignatura.uuidAsignaturaSolicitud] || '' }}</small>
+          <small class="texto-error">{{ errores['situacion-' + asignatura.uuidAsignaturaSolicitud] || '' }}</small>
         </div>
         <div class="col-md-3">
           <app-input-select-component label="Cumple condiciones" [required]="true" [options]="opcionesSiNo"
             [(value)]="evaluaciones[asignatura.uuidAsignaturaSolicitud].cumple">
           </app-input-select-component>
-          <small class="text-danger" data-error-cumple>{{ errores['cumple-' + asignatura.uuidAsignaturaSolicitud] || '' }}</small>
+          <small class="texto-error" data-error-cumple>{{ errores['cumple-' + asignatura.uuidAsignaturaSolicitud] || '' }}</small>
         </div>
         <div class="col-12">
           <app-input-text-component
@@ -87,27 +99,28 @@
             [required]="evaluaciones[asignatura.uuidAsignaturaSolicitud].cumple === false"
             [(value)]="evaluaciones[asignatura.uuidAsignaturaSolicitud].observacion">
           </app-input-text-component>
-          <div class="d-flex justify-content-between">
-            <small class="text-danger">{{ errores['observacion-' + asignatura.uuidAsignaturaSolicitud] || '' }}</small>
-            <small class="text-secondary">{{ evaluaciones[asignatura.uuidAsignaturaSolicitud].observacion.length }}/{{ maximoObservacionAsignatura }}</small>
+          <div class="fila-ayuda">
+            <small class="texto-error">{{ errores['observacion-' + asignatura.uuidAsignaturaSolicitud] || '' }}</small>
+            <small class="contador">{{ evaluaciones[asignatura.uuidAsignaturaSolicitud].observacion.length }}/{{ maximoObservacionAsignatura }}</small>
           </div>
         </div>
       </div>
     </div>
     }
     @if (ningunaCumple || errores['ninguna']) {
-    <div class="alert alert-danger mb-0 py-2" data-error="ninguna">
+    <div class="nota-error" data-error="ninguna">
       Ninguna asignatura cumple las condiciones: en lugar de remitir la solicitud al Decano debes rechazarla.
     </div>
     }
     }
     @case (acciones.APROBAR_DECANO) {
+    <p class="nota-gris" data-nota-aprobar>{{ notaAprobarDecano }}</p>
     <p class="mb-0">
       Decide cada asignatura. Solo se aprueba una asignatura que cumple las condiciones y la aprobada necesita la
       situación al cancelar. Las observaciones son opcionales y solo las verá el Funcionario Académico.
     </p>
     @for (asignatura of asignaturas; track asignatura.uuidAsignaturaSolicitud) {
-    <div class="border rounded p-2" [attr.data-decision]="asignatura.uuidAsignaturaSolicitud">
+    <div class="bloque-edicion" [attr.data-decision]="asignatura.uuidAsignaturaSolicitud">
       <strong>{{ asignatura.codigoAsignatura }} - {{ asignatura.nombreAsignatura }}</strong>
       <div class="small text-secondary" data-evaluacion-funcionario>
         Faltas: {{ textoLibre(asignatura.numeroFaltas) ?? 'Sin registrar' }} &middot; Nota: {{ textoLibre(asignatura.nota) ?? 'Sin registrar' }}
@@ -121,42 +134,42 @@
           <app-input-select-component label="¿Se aprueba?" [required]="true" [options]="opcionesSiNo"
             [(value)]="decisiones[asignatura.uuidAsignaturaSolicitud].aprobada">
           </app-input-select-component>
-          <small class="text-danger">{{ errores['decision-' + asignatura.uuidAsignaturaSolicitud] || '' }}</small>
+          <small class="texto-error">{{ errores['decision-' + asignatura.uuidAsignaturaSolicitud] || '' }}</small>
         </div>
         @if (decisiones[asignatura.uuidAsignaturaSolicitud].aprobada === true) {
         <div class="col-md-8">
           <app-input-select-component label="Situación al cancelar" [required]="true" [options]="opcionesSituacion"
             [(value)]="decisiones[asignatura.uuidAsignaturaSolicitud].situacion">
           </app-input-select-component>
-          <small class="text-danger">{{ errores['cancelar-' + asignatura.uuidAsignaturaSolicitud] || '' }}</small>
+          <small class="texto-error">{{ errores['cancelar-' + asignatura.uuidAsignaturaSolicitud] || '' }}</small>
         </div>
         }
         <div class="col-12">
           <app-input-text-component label="Observación de la decisión (opcional)"
             [(value)]="decisiones[asignatura.uuidAsignaturaSolicitud].observacion">
           </app-input-text-component>
-          <div class="d-flex justify-content-between">
-            <small class="text-danger">{{ errores['observacion-' + asignatura.uuidAsignaturaSolicitud] || '' }}</small>
-            <small class="text-secondary">{{ decisiones[asignatura.uuidAsignaturaSolicitud].observacion.length }}/{{ maximoObservacionAsignatura }}</small>
+          <div class="fila-ayuda">
+            <small class="texto-error">{{ errores['observacion-' + asignatura.uuidAsignaturaSolicitud] || '' }}</small>
+            <small class="contador">{{ decisiones[asignatura.uuidAsignaturaSolicitud].observacion.length }}/{{ maximoObservacionAsignatura }}</small>
           </div>
         </div>
       </div>
     </div>
     }
     @if (ningunaAprobada || errores['ninguna']) {
-    <div class="alert alert-danger mb-0 py-2" data-error="ninguna">
+    <div class="nota-error" data-error="ninguna">
       No se aprobó ninguna asignatura: para negar la solicitud completa usa Rechazar solicitud completa.
     </div>
     }
     }
     @case (acciones.RECHAZAR_DECANO) {
-    <p class="mb-0">
+    <p class="nota-gris">
       Se niega la cancelación de todas las asignaturas. La solicitud pasará al Funcionario Académico para que envíe la
       respuesta al estudiante.
     </p>
     }
     @case (acciones.ENVIAR_RESPUESTA) {
-    <p class="mb-0">
+    <p class="nota-gris">
       Sube el escaneo de la Resolución firmada por el Decano. Al enviar la respuesta la solicitud termina
       @if (solicitud.etapaCodigo === 'APROBADA_POR_DECANO') {
       y solo se cancelan las asignaturas aprobadas que sigan activas.
@@ -170,12 +183,12 @@
     @if (accionActiva === acciones.RECHAZAR_FUNCIONARIO || accionActiva === acciones.ENVIAR_RESPUESTA) {
     <div data-campo-resolucion>
       @if (hayResolucion) {
-      <small class="text-success d-block mb-1">Ya hay un escaneo de la Resolución cargado. Puedes reemplazarlo si lo necesitas.</small>
+      <p class="nota-gris mb-2">Ya hay un escaneo de la Resolución cargado. Puedes reemplazarlo si lo necesitas.</p>
       }
       <app-input-anexo-upload-component #entradaResolucion [tipoAnexo]="tipoResolucion" [uploadedFile]="archivoResolucion"
         (fileSelected)="alSeleccionarResolucion($event, entradaResolucion)" (fileRemoved)="alQuitarResolucion()">
       </app-input-anexo-upload-component>
-      <small class="text-danger" data-error="resolucion">{{ errores['resolucion'] || '' }}</small>
+      <small class="texto-error" data-error="resolucion">{{ errores['resolucion'] || '' }}</small>
     </div>
     }
 
@@ -184,17 +197,17 @@
       <app-input-text-tarea-component [label]="etiquetaObservacion" [required]="campo.obligatoria" [(value)]="observacion">
       </app-input-text-tarea-component>
       @if (campo.aviso) {
-      <small class="text-secondary d-block" data-aviso-observacion>{{ campo.aviso }}</small>
+      <p class="nota-gris mt-1" data-aviso-observacion>{{ campo.aviso }}</p>
       }
-      <div class="d-flex justify-content-between">
-        <small class="text-danger" data-error="observacion">{{ errores['observacion'] || '' }}</small>
-        <small class="text-secondary">{{ observacion.length }}/{{ maximoObservacion }}</small>
+      <div class="fila-ayuda">
+        <small class="texto-error" data-error="observacion">{{ errores['observacion'] || '' }}</small>
+        <small class="contador" [class.excedido]="observacion.length > maximoObservacion" data-contador>{{ observacion.length }}/{{ maximoObservacion }}</small>
       </div>
     </div>
     }
 
     @if (erroresServidor.length > 0) {
-    <div class="alert alert-danger mb-0 py-2" data-error="servidor">
+    <div class="nota-error" data-error="servidor">
       @for (mensaje of erroresServidor; track mensaje) {
       <div>{{ mensaje }}</div>
       }
@@ -202,7 +215,7 @@
     }
 
     @if (enviando) {
-    <div class="d-flex align-items-center gap-2 text-secondary" data-estado="enviando">
+    <div class="cargando" data-estado="enviando">
       <div class="spinner-border spinner-border-sm" role="status"></div>
       <span>Enviando...</span>
     </div>
