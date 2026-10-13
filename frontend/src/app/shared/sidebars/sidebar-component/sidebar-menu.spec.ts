@@ -72,4 +72,19 @@ describe('SidebarComponent menu', () => {
   it('acepta rutas sin barra inicial', () => {
     expect(activos(crear('/decano/solicitudes-consejo'))).toEqual(['Solicitudes del Consejo']);
   });
+
+  it('resalta el item cuyas rutas relacionadas coinciden en lugar del prefijo mas corto', () => {
+    TestBed.configureTestingModule({
+      imports: [SidebarComponent],
+      providers: [{ provide: Router, useValue: { url: '/estudiante/examen-supletorio' } }]
+    });
+    const fixture = TestBed.createComponent(SidebarComponent);
+    fixture.componentRef.setInput('buttons', [
+      { label: '| Mi Usuario', route: '/estudiante' },
+      { label: '| Solicitudes', route: '/estudiante/catalogo', activaEn: ['/estudiante/examen-supletorio'] },
+      { label: '| Mis solicitudes', route: '/estudiante/solicitudes' }
+    ]);
+    fixture.detectChanges();
+    expect(activos(fixture)).toEqual(['Solicitudes']);
+  });
 });

@@ -182,7 +182,7 @@ export class BandejaSolicitudesAcademicasComponent implements OnInit {
     const fecha: TableHeader = { title: COLUMNA_FECHA, headerTemplate: this.ordenFecha };
     const estado: TableHeader = { title: this.columnaEstado, headerTemplate: this.ordenEstado, cellTemplate: this.celdaEstado };
     if (this.esEstudiante) return [radicado, tipo, fecha, estado];
-    return [radicado, { title: 'Estudiante' }, { title: 'Documento' }, { title: 'Código estudiantil' }, tipo, fecha, estado];
+    return [radicado, { title: 'Estudiante' }, { title: 'Documento' }, tipo, fecha, estado];
   }
 
   private fila(solicitud: SolicitudAcademicaResumenDTORespuesta): Record<string, string> {
@@ -191,7 +191,6 @@ export class BandejaSolicitudesAcademicasComponent implements OnInit {
       'Radicado': solicitud.radicado,
       'Estudiante': solicitud.nombreEstudiante,
       'Documento': solicitud.numeroDocumento ?? '',
-      'Código estudiantil': solicitud.codigoEstudiantil,
       'Tipo de proceso': solicitud.tipoSolicitud,
       [COLUMNA_FECHA]: formatearFechaHora(solicitud.fechaCreacion),
       [this.columnaEstado]: solicitud.etiqueta

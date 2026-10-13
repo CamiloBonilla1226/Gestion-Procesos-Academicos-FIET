@@ -19,6 +19,7 @@ export class ResumenSolicitudComponent {
     const nombre = `${estudiante?.nombres ?? ''} ${estudiante?.apellidos ?? ''}`.trim();
     return [
       { etiqueta: 'Estudiante', valor: nombre },
+      { etiqueta: 'Número de CC', valor: this.solicitud?.numeroDocumento ?? '' },
       { etiqueta: 'Código estudiantil', valor: estudiante?.codigoEstudiantil ?? '' },
       { etiqueta: 'Tipo de proceso', valor: this.solicitud?.tipoSolicitud ?? '' },
       { etiqueta: 'Número de radicado', valor: this.solicitud?.radicado ?? '' }

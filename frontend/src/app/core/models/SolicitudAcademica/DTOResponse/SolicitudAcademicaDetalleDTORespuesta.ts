@@ -9,6 +9,7 @@ export interface SolicitudAcademicaDetalleDTORespuesta {
   fechaCreacion: string;
   etiqueta: string;
   etapaCodigo: string;
+  numeroDocumento?: string | null;
   estudiante: EstudianteSolicitudDTORespuesta;
   anexos: AnexoAcademicoDTORespuesta[];
   tieneResolucion: boolean;

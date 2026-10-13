@@ -113,6 +113,19 @@ describe('DetalleSolicitudAcademicaComponent', () => {
     expect(texto(fixture, '[data-datos-generales] dd')[0]).toBe('María Pérez');
   });
 
+  it('Funcionario y Decano ven el numero de CC en Datos generales y el Estudiante no', () => {
+    const datos = { ...detalle(false, false), numeroDocumento: '1061789234' };
+    for (const rol of ['FUNCIONARIO', 'DECANO']) {
+      const fixture = crear(datos, rol);
+      expect(texto(fixture, '[data-datos-generales] dt').slice(0, 2)).toEqual(['Nombre', 'Número de CC']);
+      expect(texto(fixture, '[data-datos-generales] dd')[1]).toBe('1061789234');
+      fixture.destroy();
+    }
+    const delEstudiante = crear(datos, 'ESTUDIANTE');
+    expect(texto(delEstudiante, '[data-datos-generales] dt')).not.toContain('Número de CC');
+    expect(delEstudiante.nativeElement.textContent).not.toContain('1061789234');
+  });
+
   it('el titulo de los anexos depende del proceso y muestra cuantos hay', () => {
     const matricula = crear(detalle(false, false));
     expect(texto(matricula, '[data-tarjeta-anexos] h3')).toEqual(['Documentación requerida']);

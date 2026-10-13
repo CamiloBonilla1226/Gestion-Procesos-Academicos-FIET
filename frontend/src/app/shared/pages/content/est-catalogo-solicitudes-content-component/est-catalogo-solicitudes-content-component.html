@@ -1,0 +1,28 @@
+<div class="catalogo">
+  @for (tramite of tramites; track tramite.ruta) {
+    <article class="tramite" [attr.data-tramite]="tramite.ruta">
+      <header class="tramite-barra">
+        <img [src]="tramite.icono" alt="" aria-hidden="true">
+        <h2>{{ tramite.titulo }}</h2>
+      </header>
+      <div class="tramite-cuerpo">
+        <p class="descripcion">{{ tramite.descripcion }}</p>
+        <h3>Requisitos</h3>
+        <ul data-lista="requisitos">
+          @for (requisito of tramite.requisitos; track requisito) {
+            <li>{{ requisito }}</li>
+          }
+        </ul>
+        <h3>Anexos requeridos</h3>
+        <ul data-lista="anexos">
+          @for (anexo of tramite.anexos; track anexo) {
+            <li>{{ anexo }}</li>
+          }
+        </ul>
+      </div>
+      <div class="tramite-pie">
+        <a class="iniciar" [attr.href]="tramite.ruta" (click)="iniciar($event, tramite.ruta)">Iniciar solicitud →</a>
+      </div>
+    </article>
+  }
+</div>

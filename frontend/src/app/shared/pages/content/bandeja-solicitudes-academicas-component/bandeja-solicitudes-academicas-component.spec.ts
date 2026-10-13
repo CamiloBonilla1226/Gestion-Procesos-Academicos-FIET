@@ -69,7 +69,7 @@ describe('BandejaSolicitudesAcademicasComponent', () => {
     expect(servicio.getSolicitudesFuncionario).toHaveBeenCalledTimes(1);
     expect(filas(fixture).length).toBe(10);
     expect(encabezados(fixture)).toEqual([
-      'Radicado', 'Estudiante', 'Documento', 'Código estudiantil', 'Tipo de proceso', 'Fecha de radicación', 'Estado', 'Acciones'
+      'Radicado', 'Estudiante', 'Documento', 'Tipo de proceso', 'Fecha de radicación', 'Estado', 'Acciones'
     ]);
     expect(filas(fixture)[0].textContent).toContain('31/12/2026 23:59');
     expect(filas(fixture)[0].querySelector('.radicado')?.textContent?.trim()).toBe('2026-CA-0001');
@@ -131,6 +131,8 @@ describe('BandejaSolicitudesAcademicasComponent', () => {
     componente.onBusquedaChange('104614');
     fixture.detectChanges();
     expect(filas(fixture).length).toBe(1);
+    expect(filas(fixture)[0].textContent).toContain('Estudiante 4');
+    expect(filas(fixture)[0].textContent).not.toContain('104614');
   });
 
   it('filtra por estado con las etiquetas presentes y limpia los filtros', () => {

@@ -2,6 +2,27 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-13 - Catálogo del Estudiante, número de CC en el detalle y bandejas sin código (Tarea T12.7)
+- Qué se hizo:
+  - Catálogo en `/estudiante/catalogo` con las tres tarjetas y los textos oficiales; "Iniciar solicitud →" es un `<a href>` con `router.navigateByUrl`. El menú del Estudiante cambia los tres ítems de formulario por "Solicitudes" y las migas de los formularios apuntan al catálogo. `BotonSidebar.activaEn` opcional para resaltar "Solicitudes" dentro de los formularios.
+  - "Número de CC" (`numeroDocumento`, T12.6) en Datos generales y en el resumen de los modales, solo para Funcionario y Decano.
+  - Las bandejas del Funcionario y del Decano pierden la columna "Código estudiantil"; la búsqueda por código se conserva.
+- Archivos:
+  - `frontend/src/app/core/constantes/catalogo-estudiante.ts` (creado)
+  - `frontend/src/app/shared/pages/content/est-catalogo-solicitudes-content-component/*` (creado, con spec)
+  - `frontend/src/app/shared/pages/est-catalogo-solicitudes-component/*` (creado)
+  - `frontend/src/app/core/estudiante/pages/estudiante-catalogo-component/*` (creado)
+  - `frontend/src/app/app.routes.ts` (modificado)
+  - `frontend/src/app/core/estudiante/components/side-bar-estudiante-component/side-bar-estudiante-component.html` (modificado)
+  - `frontend/src/app/core/estudiante/pages/estudiante-cancelacion-matricula-component/*.html`, `estudiante-cancelacion-asignatura-component/*.html`, `estudiante-examen-supletorio-component/*.html` (modificado)
+  - `frontend/src/app/shared/sidebars/sidebar-component/sidebar-component.ts`, `sidebar-menu.spec.ts` (modificado)
+  - `frontend/src/app/core/models/SolicitudAcademica/DTOResponse/SolicitudAcademicaDetalleDTORespuesta.ts` (modificado)
+  - `frontend/src/app/shared/others/resumen-solicitud-component/resumen-solicitud-component.ts`, `.spec.ts` (modificado)
+  - `frontend/src/app/shared/pages/content/detalle-solicitud-academica-component/detalle-solicitud-academica-component.ts`, `.spec.ts` (modificado)
+  - `frontend/src/app/shared/pages/content/bandeja-solicitudes-academicas-component/bandeja-solicitudes-academicas-component.ts`, `.spec.ts` (modificado)
+  - `frontend/CLAUDE.md` (modificado, D-F34)
+- Notas: bundle inicial 836,23 kB (con `routerLink` subía a 840,71). Sin enlaces "Descargar formato": no hay plantillas en la app. El orden del detalle no se cambió: motivo, tabla y acciones están en el mismo componente de proceso y reordenar con CSS rompería el foco. Specs de las carpetas tocadas: 46, todos en verde; la suite completa, el conteo de los 58 de Julián y lo visual quedan sin verificar.
+
 ## 2026-10-13 - numeroDocumento en el detalle de la solicitud (Tarea T12.6)
 - Qué se hizo: el detalle común (`GET solicitudes-academicas/{uuid}`) y el bloque `solicitud` de los detalles de Cancelación de Matrícula, Cancelación de Asignatura y Examen Supletorio traen `numeroDocumento` del estudiante para Funcionario Académico y Decano; para el Estudiante sale nulo. `getDetalle` lo decide por el rol del acceso y el mapper lo copia de `DetalleSolicitudAcademica`, nunca del usuario de la solicitud.
 - Archivos:

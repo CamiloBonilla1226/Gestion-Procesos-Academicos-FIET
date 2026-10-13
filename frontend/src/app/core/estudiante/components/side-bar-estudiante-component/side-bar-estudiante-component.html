@@ -1,8 +1,7 @@
 <app-sidebar-component [buttons]="[
     { label: '| Mi Usuario', imgUrl: 'buttons/usuario.svg', route: '/estudiante' },
+    { label: '| Solicitudes', imgUrl: 'buttons/add.svg', route: '/estudiante/catalogo',
+      activaEn: ['/estudiante/cancelacion-matricula', '/estudiante/cancelacion-asignatura', '/estudiante/examen-supletorio'] },
     { label: '| Mis solicitudes', imgUrl: 'buttons/solicitudes.svg', route: '/estudiante/solicitudes' },
-    { label: '| Cancelar matrícula', imgUrl: 'buttons/add.svg', route: '/estudiante/cancelacion-matricula' },
-    { label: '| Cancelar asignatura', imgUrl: 'buttons/add.svg', route: '/estudiante/cancelacion-asignatura' },
-    { label: '| Examen supletorio', imgUrl: 'buttons/add.svg', route: '/estudiante/examen-supletorio' },
   ]" (buttonClicked)="onSidebarButtonClick($event)">
 </app-sidebar-component>

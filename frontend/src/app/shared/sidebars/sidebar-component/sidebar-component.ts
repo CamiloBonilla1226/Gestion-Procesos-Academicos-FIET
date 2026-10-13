@@ -6,6 +6,7 @@ export interface BotonSidebar {
   label: string;
   imgUrl?: string;
   route?: string;
+  activaEn?: string[];
   children?: BotonSidebar[];
 }
 
@@ -69,13 +70,13 @@ export class SidebarComponent {
 
   private rutaActiva(): string | null {
     const actual = this.normalizar(this.router.url.split(/[?#]/)[0]);
-    const rutas = this.buttons
+    const candidatas = this.buttons
       .flatMap(boton => [boton, ...(boton.children ?? [])])
-      .map(boton => boton.route)
-      .filter((ruta): ruta is string => !!ruta)
-      .map(ruta => this.normalizar(ruta))
-      .filter(ruta => actual === ruta || actual.startsWith(`${ruta}/`));
-    return rutas.sort((a, b) => b.length - a.length)[0] ?? null;
+      .filter((boton): boton is BotonSidebar & { route: string } => !!boton.route)
+      .flatMap(boton => [boton.route, ...(boton.activaEn ?? [])]
+        .map(ruta => ({ ruta: this.normalizar(ruta), destino: this.normalizar(boton.route) })))
+      .filter(({ ruta }) => actual === ruta || actual.startsWith(`${ruta}/`));
+    return candidatas.sort((a, b) => b.ruta.length - a.ruta.length)[0]?.destino ?? null;
   }
 
   private normalizar(ruta: string): string {

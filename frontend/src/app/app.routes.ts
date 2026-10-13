@@ -120,6 +120,12 @@ export const routes: Routes = [
         loadComponent: () => import('./core/estudiante/pages/estudiante-solicitudes-component/estudiante-solicitudes-component').then(m => m.EstudianteSolicitudesComponent)
     },
     {
+        path: 'estudiante/catalogo',
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: [ROLES_ACADEMICOS.ESTUDIANTE] },
+        loadComponent: () => import('./core/estudiante/pages/estudiante-catalogo-component/estudiante-catalogo-component').then(m => m.EstudianteCatalogoComponent)
+    },
+    {
         path: 'estudiante/solicitudes/:uuid',
         canActivate: [AuthGuard, RoleGuard],
         data: { roles: [ROLES_ACADEMICOS.ESTUDIANTE] },
