@@ -113,8 +113,63 @@ describe('DetalleSolicitudAcademicaComponent', () => {
     expect(anexos[1]).toContain('1,5 MB');
   });
 
+  it('al Estudiante el historial no le muestra etapas y la insignia sale de la etiqueta', () => {
+    const datos = { ...detalle(false, false), etiqueta: 'En trámite', etapaCodigo: 'APROBADA' };
+    const fixture = crear(datos);
+    expect(fixture.nativeElement.querySelectorAll('[data-etapa-historial]').length).toBe(0);
+    expect(fixture.nativeElement.textContent).not.toContain('Etapa no determinada');
+    expect(fixture.nativeElement.textContent).not.toContain('APROBADA');
+    const estado = fixture.nativeElement.querySelector('[data-estado-solicitud]');
+    expect(estado.textContent.trim()).toBe('En trámite');
+    expect(estado.classList).toContain('text-bg-secondary');
+    expect(estado.classList).not.toContain('text-bg-success');
+  });
+
+  it('al Estudiante le pinta amarilla la etiqueta de pago y roja la de rechazo', () => {
+    const pago = crear({ ...detalle(false, false), etiqueta: 'Pendiente de pago', etapaCodigo: 'EN_REVISION_DECANO' });
+    expect(pago.nativeElement.querySelector('[data-estado-solicitud]').classList).toContain('text-bg-warning');
+    const rechazo = crear({ ...detalle(false, false), etiqueta: 'Rechazada', etapaCodigo: 'APROBADA' });
+    expect(rechazo.nativeElement.querySelector('[data-estado-solicitud]').classList).toContain('text-bg-danger');
+  });
+
+  it('el Funcionario ve el bloque Decision del Decano con la observacion tomada del historial', () => {
+    const conDecision: HistorialSolicitudAcademicaDTORespuesta[] = [
+      ...historial,
+      { accion: 'RECHAZAR_DECANO', etapaCodigo: 'RECHAZADA_POR_DECANO', observaciones: 'No hay soporte médico', fecha: '2026-10-09T15:00:00', nombresUsuario: 'Luis', apellidosUsuario: 'Decano' }
+    ];
+    servicio.getSolicitud.and.returnValue(of({ ...detalle(false, false), etiqueta: 'Rechazada por el Decano', etapaCodigo: 'RECHAZADA_POR_DECANO' }));
+    servicio.getHistorial.and.returnValue(of(conDecision));
+    const fixture = TestBed.createComponent(DetalleSolicitudAcademicaComponent);
+    fixture.componentRef.setInput('rol', 'FUNCIONARIO');
+    fixture.detectChanges();
+    const bloque = fixture.nativeElement.querySelector('[data-decision-decano]');
+    expect(bloque.querySelector('[data-decision]').textContent.trim()).toBe('Rechazada por el Decano');
+    expect(bloque.querySelector('[data-decision]').classList).toContain('text-bg-danger');
+    expect(bloque.querySelector('[data-observacion-decano]').textContent).toContain('No hay soporte médico');
+  });
+
+  it('el bloque de la decision aprobada sin observacion lo dice, y no aparece para el Estudiante ni el Decano', () => {
+    const conDecision: HistorialSolicitudAcademicaDTORespuesta[] = [
+      { accion: 'APROBAR_DECANO', etapaCodigo: 'APROBADA_POR_DECANO', observaciones: null, fecha: '2026-10-09T15:00:00', nombresUsuario: 'Luis', apellidosUsuario: 'Decano' }
+    ];
+    servicio.getSolicitud.and.returnValue(of(detalle(false, false)));
+    servicio.getHistorial.and.returnValue(of(conDecision));
+    const funcionario = TestBed.createComponent(DetalleSolicitudAcademicaComponent);
+    funcionario.componentRef.setInput('rol', 'FUNCIONARIO');
+    funcionario.detectChanges();
+    const bloque = funcionario.nativeElement.querySelector('[data-decision-decano]');
+    expect(bloque.querySelector('[data-decision]').textContent.trim()).toBe('Aprobada por el Decano');
+    expect(bloque.querySelector('[data-sin-observacion-decano]')).toBeTruthy();
+    for (const rol of ['ESTUDIANTE', 'DECANO']) {
+      const otro = TestBed.createComponent(DetalleSolicitudAcademicaComponent);
+      otro.componentRef.setInput('rol', rol);
+      otro.detectChanges();
+      expect(otro.nativeElement.querySelector('[data-decision-decano]')).toBeNull();
+    }
+  });
+
   it('pinta el historial de la mas antigua a la mas reciente con textos legibles', () => {
-    const entradas = texto(crear(detalle(false, false)), '[data-historial]');
+    const entradas = texto(crear(detalle(false, false), 'FUNCIONARIO'), '[data-historial]');
     expect(entradas.length).toBe(3);
     expect(entradas[0]).toContain('Radicación de la solicitud');
     expect(entradas[0]).toContain('María Pérez');

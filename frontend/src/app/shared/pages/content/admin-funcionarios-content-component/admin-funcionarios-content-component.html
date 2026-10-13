@@ -7,7 +7,7 @@
       <app-input-text-component label="Apellido" [(value)]="filtro.apellido"></app-input-text-component>
     </div>
     <div class="col-md-3">
-      <app-input-text-component label="Dependencia" [(value)]="filtro.dependencia"></app-input-text-component>
+      <app-input-text-component label="Cargo" [(value)]="filtro.cargo"></app-input-text-component>
     </div>
     <div class="col-md-3">
       <app-simple-button-component data-boton-buscar label="Buscar" width="100px" height="36px" (clicked)="buscar()">
@@ -48,7 +48,7 @@
 </div>
 
 <ng-template #acciones let-fila>
-  <app-simple-button-component [attr.data-editar]="fila.uuid" label="Editar dependencia" width="160px" height="28px"
+  <app-simple-button-component [attr.data-editar]="fila.uuid" label="Editar" width="80px" height="28px"
     (clicked)="abrirEditar(fila)">
   </app-simple-button-component>
 </ng-template>
@@ -58,8 +58,8 @@
   <div class="d-flex flex-column gap-2" data-dialogo-crear (input)="revalidarCrear()" (change)="revalidarCrear()">
     <app-datos-usuario-academico-component [datos]="datosUsuario" [errores]="errores">
     </app-datos-usuario-academico-component>
-    <app-input-text-component label="Dependencia" [required]="true" [(value)]="dependencia"></app-input-text-component>
-    <small class="text-danger" data-error="dependencia">{{ errores['dependencia'] || '' }}</small>
+    <app-input-text-component label="Cargo" [required]="true" [(value)]="cargo"></app-input-text-component>
+    <small class="text-danger" data-error="cargo">{{ errores['cargo'] || '' }}</small>
     @if (erroresServidor.length > 0) {
     <div class="alert alert-danger mb-0 py-2" data-error="servidor">
       @for (mensaje of erroresServidor; track $index) {
@@ -70,12 +70,24 @@
   </div>
 </app-generic-dialog-form-component>
 
-<app-generic-dialog-form-component [visible]="dialogoEditar" title="Editar dependencia" textoBoton="Guardar cambios" (visibleChange)="cerrarEditar($event)"
+<app-generic-dialog-form-component [visible]="dialogoEditar" title="Editar funcionario académico" textoBoton="Guardar cambios" (visibleChange)="cerrarEditar($event)"
   (save)="editar()">
   <div class="d-flex flex-column gap-2" data-dialogo-editar (input)="revalidarEditar()" (change)="revalidarEditar()">
-    <p class="mb-0 small text-secondary">{{ seleccionado?.nombres }} {{ seleccionado?.apellidos }}</p>
-    <app-input-text-component label="Dependencia" [required]="true" [(value)]="dependenciaEditada"></app-input-text-component>
-    <small class="text-danger" data-error="dependencia">{{ errores['dependencia'] || '' }}</small>
+    <p class="mb-0 small text-secondary">
+      {{ seleccionado?.nombres }} {{ seleccionado?.apellidos }}. Cambia solo los datos que necesites; un campo que dejes vacío conserva su valor.
+    </p>
+    <dl class="row small mb-0" data-solo-lectura>
+      <dt class="col-4">Nombre de usuario</dt>
+      <dd class="col-8 mb-0" data-username>{{ seleccionado?.username }}</dd>
+      <dt class="col-4">Procesos a cargo</dt>
+      <dd class="col-8 mb-0" data-procesos>{{ procesosSeleccionado }}</dd>
+    </dl>
+    <small class="text-secondary" data-aviso-procesos>Los procesos a cargo se cambian en la pestaña Responsable por proceso.</small>
+    <app-datos-usuario-academico-component [datos]="datosEdicion" [errores]="errores" [edicion]="true">
+    </app-datos-usuario-academico-component>
+    <app-input-text-component label="Cargo" [(value)]="cargoEditado"></app-input-text-component>
+    <small class="text-danger" data-error="cargo">{{ errores['cargo'] || '' }}</small>
+    <small class="text-danger" data-error="edicion">{{ errores['edicion'] || '' }}</small>
     @if (erroresServidor.length > 0) {
     <div class="alert alert-danger mb-0 py-2" data-error="servidor">
       @for (mensaje of erroresServidor; track $index) {

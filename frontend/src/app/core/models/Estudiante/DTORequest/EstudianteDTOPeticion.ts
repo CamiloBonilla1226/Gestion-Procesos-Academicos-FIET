@@ -12,6 +12,5 @@ export interface EstudianteDTOPeticion {
   codigoEstudiantil: string;
   uuidProgramaAcademico: string;
   semestre: string;
-  facultad: string;
   asignaturas: AsignaturaMatriculadaDTOPeticion[];
 }

@@ -58,4 +58,20 @@ describe('CancelacionMatriculaService', () => {
     expect(req.request.body).toBeNull();
     req.flush({});
   });
+
+  it('envia responder con el mensaje para el estudiante', () => {
+    const uuid = '33333333-3333-3333-3333-333333333333';
+    servicio.enviarRespuesta(uuid, { observacion: 'Revisa la Resolución' }).subscribe();
+    const req = http.expectOne(`${environment.apiUrl}/cancelaciones-matricula/${uuid}/funcionario/responder`);
+    expect(req.request.body).toEqual({ observacion: 'Revisa la Resolución' });
+    req.flush({});
+  });
+
+  it('envia la aprobacion del Decano con su observacion opcional', () => {
+    const uuid = '33333333-3333-3333-3333-333333333333';
+    servicio.aprobarPorDecano(uuid, { situaciones: [{ asignaturaSolicitudUuid: 'a', situacionCancelarUuid: 'r1' }], observacion: 'Ok' }).subscribe();
+    const req = http.expectOne(`${environment.apiUrl}/cancelaciones-matricula/${uuid}/decano/aprobar`);
+    expect(req.request.body).toEqual({ situaciones: [{ asignaturaSolicitudUuid: 'a', situacionCancelarUuid: 'r1' }], observacion: 'Ok' });
+    req.flush({});
+  });
 });

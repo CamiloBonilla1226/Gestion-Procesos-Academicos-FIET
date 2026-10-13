@@ -1,4 +1,5 @@
 import { Component, Input, OnInit } from '@angular/core';
+import { NgClass } from '@angular/common';
 import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { TableGenericComponent, TableHeader } from '../../../table-generic-component/table-generic-component';
@@ -15,12 +16,13 @@ import {
   RolEtiqueta,
   TIPOS_SOLICITUD_ACADEMICA
 } from '../../../../core/constantes/procesos-academicos';
+import { claseInsigniaDecisionDecano } from '../../../../core/constantes/etiquetas-academicas';
 import { TODOS_LOS_TIPOS, filtrarSolicitudes, paginar, totalPaginas } from '../../../../core/utils/bandeja-solicitudes';
 import { formatearFechaHora } from '../../../../core/utils/formato';
 
 @Component({
   selector: 'app-bandeja-solicitudes-academicas-component',
-  imports: [TableGenericComponent, Paginator, BarraBusquedaComponent, InputSelectComponent, SimpleButtonComponent],
+  imports: [NgClass, TableGenericComponent, Paginator, BarraBusquedaComponent, InputSelectComponent, SimpleButtonComponent],
   templateUrl: './bandeja-solicitudes-academicas-component.html'
 })
 export class BandejaSolicitudesAcademicasComponent implements OnInit {
@@ -91,6 +93,10 @@ export class BandejaSolicitudesAcademicasComponent implements OnInit {
   onPageChange(pagina: number): void {
     this.paginaActual = pagina;
     this.actualizarPagina();
+  }
+
+  insigniaDecision(fila: Record<string, string>): string | null {
+    return this.rol === ROLES_ETIQUETA.FUNCIONARIO ? claseInsigniaDecisionDecano(fila['Estado']) : null;
   }
 
   verSolicitud(fila: Record<string, string>): void {

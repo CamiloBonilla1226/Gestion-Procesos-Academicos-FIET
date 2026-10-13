@@ -1,3 +1,3 @@
 export interface ObservacionDTOPeticion {
-  observacion: string;
+  observacion?: string | null;
 }

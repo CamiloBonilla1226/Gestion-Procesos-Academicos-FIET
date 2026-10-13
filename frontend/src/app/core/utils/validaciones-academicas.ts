@@ -1,10 +1,14 @@
 import { TipoAnexoDTORespuesta } from '../models/TipoSolicitud/DTOResponse/TipoAnexoDTORespuesta';
 import {
+  AccionAcademica,
   FALTAS_MINIMAS,
+  MAXIMO_CARACTERES_OBSERVACION,
+  MAXIMO_CARACTERES_VALOR_ASIGNATURA,
   NOTA_MAXIMA,
   NOTA_MINIMA,
   TAMANIO_MAXIMO_ARCHIVO_BYTES
 } from '../constantes/procesos-academicos';
+import { campoObservacion } from '../constantes/etiquetas-academicas';
 import { formatearTamanio } from './formato';
 
 const EQUIVALENTES: Record<string, string[]> = {
@@ -76,6 +80,55 @@ export function leerFaltas(valor: string | null | undefined): number | null {
   if (!/^\d+$/.test(texto)) return null;
   const faltas = Number(texto);
   return Number.isSafeInteger(faltas) && faltas >= FALTAS_MINIMAS ? faltas : null;
+}
+
+export function errorDeObservacion(accion: AccionAcademica, valor: string | null | undefined): string | null {
+  const campo = campoObservacion(accion);
+  if (!campo) return null;
+  return campo.esMensaje
+    ? errorDeTexto(valor, MAXIMO_CARACTERES_OBSERVACION, campo.obligatoria, 'El mensaje')
+    : errorDeTexto(valor, MAXIMO_CARACTERES_OBSERVACION, campo.obligatoria, 'La observación', true);
+}
+
+const VALOR_NUMERICO = /^[+-]?\d+([.,]\d+)?$/;
+
+function decimalesSignificativos(texto: string): number {
+  const decimales = texto.split(/[.,]/)[1] ?? '';
+  return decimales.replace(/0+$/, '').length;
+}
+
+export function numeroDeValor(valor: string | null | undefined): number | null {
+  const texto = (valor ?? '').trim();
+  return VALOR_NUMERICO.test(texto) ? Number(texto.replace(',', '.')) : null;
+}
+
+function errorDeValorAsignatura(valor: string | null | undefined, campo: string, femenino: boolean): string | null {
+  const texto = (valor ?? '').trim();
+  if (texto === '') return `${campo} ${femenino ? 'es obligatoria' : 'son obligatorias'}.`;
+  if (texto.length > MAXIMO_CARACTERES_VALOR_ASIGNATURA) {
+    return `${campo} ${femenino ? 'supera' : 'superan'} los ${MAXIMO_CARACTERES_VALOR_ASIGNATURA} caracteres permitidos.`;
+  }
+  return null;
+}
+
+export function errorDeFaltas(valor: string | null | undefined): string | null {
+  const error = errorDeValorAsignatura(valor, 'Las faltas', false);
+  if (error) return error;
+  const faltas = numeroDeValor(valor);
+  if (faltas === null) return null;
+  return faltas < FALTAS_MINIMAS || decimalesSignificativos((valor ?? '').trim()) > 0
+    ? 'Si las faltas son un número, deben ser un entero mayor o igual a 0.'
+    : null;
+}
+
+export function errorDeNotaAsignatura(valor: string | null | undefined): string | null {
+  const error = errorDeValorAsignatura(valor, 'La nota', true);
+  if (error) return error;
+  const nota = numeroDeValor(valor);
+  if (nota === null) return null;
+  return nota < NOTA_MINIMA || nota > NOTA_MAXIMA || decimalesSignificativos((valor ?? '').trim()) > 1
+    ? 'Si la nota es un número, debe estar entre 0.0 y 5.0 con un decimal.'
+    : null;
 }
 
 export function esFechaValida(valor: string | null | undefined): boolean {

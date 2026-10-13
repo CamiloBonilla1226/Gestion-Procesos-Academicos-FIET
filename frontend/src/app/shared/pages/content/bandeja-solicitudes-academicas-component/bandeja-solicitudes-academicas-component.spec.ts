@@ -105,6 +105,30 @@ describe('BandejaSolicitudesAcademicasComponent', () => {
     expect(router.navigate).toHaveBeenCalledWith(['/decano/solicitudes', 'uuid-1']);
   });
 
+  it('el Funcionario ve una insignia con la decision del Decano que trae la etiqueta', () => {
+    const lista = solicitudes(3);
+    lista[0].etiqueta = 'Aprobada por el Decano';
+    lista[1].etiqueta = 'Rechazada por el Decano';
+    servicio.getSolicitudesFuncionario.and.returnValue(of(lista));
+    const fixture = crear('FUNCIONARIO');
+    const aprobada = fixture.nativeElement.querySelector('[data-decision-decano="uuid-1"]');
+    const rechazada = fixture.nativeElement.querySelector('[data-decision-decano="uuid-2"]');
+    expect(aprobada.textContent.trim()).toBe('Aprobada por el Decano');
+    expect(aprobada.classList).toContain('text-bg-success');
+    expect(rechazada.textContent.trim()).toBe('Rechazada por el Decano');
+    expect(rechazada.classList).toContain('text-bg-danger');
+    expect(fixture.nativeElement.querySelector('[data-decision-decano="uuid-3"]')).toBeNull();
+  });
+
+  it('el Estudiante y el Decano no ven insignias de decision', () => {
+    const lista = solicitudes(1);
+    lista[0].etiqueta = 'Aprobada por el Decano';
+    servicio.getSolicitudesEstudiante.and.returnValue(of(lista));
+    servicio.getSolicitudesDecano.and.returnValue(of(lista));
+    expect(crear('ESTUDIANTE').nativeElement.querySelector('[data-decision-decano]')).toBeNull();
+    expect(crear('DECANO').nativeElement.querySelector('[data-decision-decano]')).toBeNull();
+  });
+
   it('muestra el estado vacio', () => {
     servicio.getSolicitudesEstudiante.and.returnValue(of([]));
     const fixture = crear('ESTUDIANTE');

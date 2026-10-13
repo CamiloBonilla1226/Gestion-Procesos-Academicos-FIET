@@ -23,15 +23,20 @@ import { ProgramaAcademicoDTORespuesta } from '../../../../core/models/CatalogoA
 import {
   ENCABEZADOS_EXCEL_ESTUDIANTES,
   ESTADOS_ASIGNATURA_MATRICULADA,
+  FACULTAD_ESTUDIANTE,
   TAMANIO_PAGINA_ADMINISTRACION
 } from '../../../../core/constantes/procesos-academicos';
 import { errorDeTexto } from '../../../../core/utils/validaciones-academicas';
 import {
+  CAMPOS_PERSONALES,
   DatosUsuarioAcademico,
+  cambiosDeTexto,
+  datosUsuarioDe,
   datosUsuarioRecortados,
   datosUsuarioVacios,
   mensajesDeError,
   totalDePaginas,
+  validarCambiosPersonales,
   validarDatosUsuario
 } from '../../../../core/utils/usuarios-academicos';
 import {
@@ -44,7 +49,6 @@ import {
 interface DatosAcademicos {
   codigoEstudiantil: string;
   semestre: string;
-  facultad: string;
 }
 
 interface FilaMatricula {
@@ -54,12 +58,13 @@ interface FilaMatricula {
 
 const LIMITES_ACADEMICOS: { campo: keyof DatosAcademicos; maximo: number; nombre: string; femenino: boolean }[] = [
   { campo: 'codigoEstudiantil', maximo: 45, nombre: 'El código estudiantil', femenino: false },
-  { campo: 'semestre', maximo: 10, nombre: 'El semestre', femenino: false },
-  { campo: 'facultad', maximo: 100, nombre: 'La facultad', femenino: true }
+  { campo: 'semestre', maximo: 10, nombre: 'El semestre', femenino: false }
 ];
 
+const CAMPOS_ACADEMICOS: (keyof DatosAcademicos)[] = LIMITES_ACADEMICOS.map(limite => limite.campo);
+
 function datosAcademicosVacios(): DatosAcademicos {
-  return { codigoEstudiantil: '', semestre: '', facultad: '' };
+  return { codigoEstudiantil: '', semestre: '' };
 }
 
 function filaVacia(): FilaMatricula {
@@ -104,6 +109,7 @@ export class AdminEstudiantesContentComponent implements OnInit, OnDestroy {
   ];
   readonly opcionesEstado = Object.values(ESTADOS_ASIGNATURA_MATRICULADA).map(estado => ({ label: estado, value: estado }));
   readonly estadoActiva = ESTADOS_ASIGNATURA_MATRICULADA.ACTIVA;
+  readonly facultad = FACULTAD_ESTUDIANTE;
   readonly cargarExcel = (archivo: File) => this.estudianteService.crearEstudiantesDesdeArchivo(archivo);
 
   filtro = { nombre: '', apellido: '', codigo: '' };
@@ -133,6 +139,7 @@ export class AdminEstudiantesContentComponent implements OnInit, OnDestroy {
   opcionesPorFila: OpcionSelect[][] = [[]];
 
   dialogoEditar = false;
+  datosEdicion: DatosUsuarioAcademico = datosUsuarioVacios();
   edicion: DatosAcademicos = datosAcademicosVacios();
 
   dialogoExcel = false;
@@ -300,7 +307,6 @@ export class AdminEstudiantesContentComponent implements OnInit, OnDestroy {
         codigoEstudiantil: this.datosAcademicos.codigoEstudiantil.trim(),
         uuidProgramaAcademico: this.uuidPrograma ?? '',
         semestre: this.datosAcademicos.semestre.trim(),
-        facultad: this.datosAcademicos.facultad.trim(),
         asignaturas: this.filasMatricula.map(comoPeticion)
       }),
       'El estudiante quedó creado.',
@@ -315,7 +321,8 @@ export class AdminEstudiantesContentComponent implements OnInit, OnDestroy {
   abrirEditar(fila: Record<string, string>): void {
     this.seleccionado = this.estudiantes.find(e => e.uuidUsuario === fila['uuid']) ?? null;
     if (!this.seleccionado) return;
-    this.edicion = datosAcademicosVacios();
+    this.datosEdicion = datosUsuarioDe(this.seleccionado);
+    this.edicion = { codigoEstudiantil: this.seleccionado.codigoEstudiantil ?? '', semestre: this.seleccionado.semestre ?? '' };
     this.limpiarErrores();
     this.dialogoEditar = true;
   }
@@ -454,17 +461,20 @@ export class AdminEstudiantesContentComponent implements OnInit, OnDestroy {
   }
 
   private peticionEdicion(): EstudianteActualizarDTOPeticion {
-    const peticion: EstudianteActualizarDTOPeticion = {};
-    for (const { campo } of LIMITES_ACADEMICOS) {
-      const valor = this.edicion[campo].trim();
-      if (valor !== '') peticion[campo] = valor;
-    }
-    return peticion;
+    if (!this.seleccionado) return {};
+    return {
+      ...cambiosDeTexto(CAMPOS_PERSONALES, this.seleccionado, this.datosEdicion),
+      ...cambiosDeTexto(CAMPOS_ACADEMICOS, this.seleccionado, this.edicion)
+    };
   }
 
   private validarEdicion(): Record<string, string> {
-    const errores = this.erroresAcademicos(this.edicion, false);
-    if (Object.keys(this.peticionEdicion()).length === 0) errores['edicion'] = 'Escribe al menos un dato para cambiar.';
+    const peticion = this.peticionEdicion();
+    const errores = {
+      ...validarCambiosPersonales(peticion),
+      ...this.erroresAcademicos({ codigoEstudiantil: peticion.codigoEstudiantil ?? '', semestre: peticion.semestre ?? '' }, false)
+    };
+    if (Object.keys(peticion).length === 0) errores['edicion'] = 'No cambiaste ningún dato.';
     return errores;
   }
 

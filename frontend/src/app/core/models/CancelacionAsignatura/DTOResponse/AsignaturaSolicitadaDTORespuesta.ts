@@ -4,8 +4,8 @@ export interface AsignaturaSolicitadaDTORespuesta {
   uuidAsignaturaSolicitud: string;
   codigoAsignatura: string;
   nombreAsignatura: string;
-  numeroFaltas: number | null;
-  nota: number | null;
+  numeroFaltas: string | null;
+  nota: string | null;
   situacionMatricula: SituacionAsignaturaDTORespuesta | null;
   cumpleCondiciones: boolean | null;
   observacionEvaluacion: string | null;

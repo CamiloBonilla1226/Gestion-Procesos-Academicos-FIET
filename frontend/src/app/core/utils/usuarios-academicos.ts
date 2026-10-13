@@ -75,6 +75,53 @@ export function datosUsuarioRecortados(datos: DatosUsuarioAcademico): Omit<Datos
   };
 }
 
+export type CamposPersonales = 'nombres' | 'apellidos' | 'tipoDocumento' | 'numeroDocumento' | 'telefono' | 'correoElectronico';
+
+export const CAMPOS_PERSONALES: CamposPersonales[] = ['nombres', 'apellidos', 'tipoDocumento', 'numeroDocumento', 'telefono', 'correoElectronico'];
+
+export function datosUsuarioDe(usuario: Partial<Record<CamposPersonales | 'username', string | null>>): DatosUsuarioAcademico {
+  return {
+    nombres: usuario.nombres ?? '',
+    apellidos: usuario.apellidos ?? '',
+    tipoDocumento: usuario.tipoDocumento || null,
+    numeroDocumento: usuario.numeroDocumento ?? '',
+    telefono: usuario.telefono ?? '',
+    correoElectronico: usuario.correoElectronico ?? '',
+    username: usuario.username ?? '',
+    password: ''
+  };
+}
+
+export function cambiosDeTexto<C extends string>(
+  campos: readonly C[],
+  original: Partial<Record<C, string | null>>,
+  editado: Partial<Record<C, string | null>>
+): Partial<Record<C, string>> {
+  const cambios: Partial<Record<C, string>> = {};
+  for (const campo of campos) {
+    const valor = (editado[campo] ?? '').trim();
+    if (valor !== '' && valor !== (original[campo] ?? '').trim()) cambios[campo] = valor;
+  }
+  return cambios;
+}
+
+export function validarCambiosPersonales(cambios: Partial<Record<CamposPersonales, string>>): Record<string, string> {
+  const errores: Record<string, string> = {};
+  const agregar = (campo: CamposPersonales, error: string | null) => {
+    if (campo in cambios && error) errores[campo] = error;
+  };
+  agregar('nombres', errorDeTexto(cambios.nombres, 1000, false, 'Los nombres'));
+  agregar('apellidos', errorDeTexto(cambios.apellidos, 1000, false, 'Los apellidos'));
+  agregar('tipoDocumento', errorDeLongitud(cambios.tipoDocumento, 5, 1000, 'El tipo de documento'));
+  agregar('numeroDocumento', errorDeLongitud(cambios.numeroDocumento, 5, 255, 'El número de documento'));
+  agregar('telefono', errorDeLongitud(cambios.telefono, 5, 1000, 'El teléfono'));
+  agregar('correoElectronico', errorDeLongitud(cambios.correoElectronico, 5, 1000, 'El correo electrónico'));
+  if ('correoElectronico' in cambios && !errores['correoElectronico'] && !esCorreoValido(cambios.correoElectronico)) {
+    errores['correoElectronico'] = 'El correo electrónico no tiene un formato válido.';
+  }
+  return errores;
+}
+
 export function mensajesDeError(err: unknown): string[] {
   if (!(err instanceof HttpErrorResponse)) return ['Ocurrió un error inesperado.'];
   const cuerpo = err.error;

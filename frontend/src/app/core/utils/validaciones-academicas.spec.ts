@@ -2,8 +2,12 @@ import { HttpErrorResponse } from '@angular/common/http';
 import {
   comoTipoAnexo,
   errorDeArchivo,
+  errorDeFaltas,
+  errorDeNotaAsignatura,
+  errorDeObservacion,
   errorDeTexto,
   erroresDeCampos,
+  numeroDeValor,
   esFechaValida,
   esHoraValida,
   fechaDeHoy,
@@ -74,6 +78,40 @@ describe('validaciones academicas', () => {
     expect(leerFaltas('-1')).toBeNull();
     expect(leerFaltas('1.5')).toBeNull();
     expect(leerFaltas('')).toBeNull();
+  });
+
+  it('faltas aceptan texto de hasta 20 caracteres y, si son numero, un entero mayor o igual a 0', () => {
+    expect(errorDeFaltas('')).toContain('obligatorias');
+    expect(errorDeFaltas('Sin registro')).toBeNull();
+    expect(errorDeFaltas('3')).toBeNull();
+    expect(errorDeFaltas('3.0')).toBeNull();
+    expect(errorDeFaltas('x'.repeat(21))).toContain('20');
+    expect(errorDeFaltas('-1')).toContain('entero mayor o igual a 0');
+    expect(errorDeFaltas('2,5')).toContain('entero mayor o igual a 0');
+  });
+
+  it('la nota acepta texto de hasta 20 caracteres y, si es numero, de 0.0 a 5.0 con un decimal', () => {
+    expect(errorDeNotaAsignatura(' ')).toContain('obligatoria');
+    expect(errorDeNotaAsignatura('Sin nota')).toBeNull();
+    expect(errorDeNotaAsignatura('3,5')).toBeNull();
+    expect(errorDeNotaAsignatura('4.50')).toBeNull();
+    expect(errorDeNotaAsignatura('5')).toBeNull();
+    expect(errorDeNotaAsignatura('5.1')).toContain('entre 0.0 y 5.0');
+    expect(errorDeNotaAsignatura('3.25')).toContain('entre 0.0 y 5.0');
+    expect(errorDeNotaAsignatura('n'.repeat(21))).toContain('20');
+    expect(numeroDeValor('2,8')).toBe(2.8);
+    expect(numeroDeValor('Sin nota')).toBeNull();
+  });
+
+  it('la observacion de cada accion respeta si es obligatoria y el maximo de 500', () => {
+    expect(errorDeObservacion('RECHAZAR_FUNCIONARIO', '')).toContain('obligatoria');
+    expect(errorDeObservacion('RECHAZAR_DECANO', '')).toBeNull();
+    expect(errorDeObservacion('APROBAR_DECANO', '')).toBeNull();
+    expect(errorDeObservacion('REMITIR_DECANO', '')).toBeNull();
+    expect(errorDeObservacion('ENVIAR_RESPUESTA', '')).toBeNull();
+    expect(errorDeObservacion('ENVIAR_RESPUESTA', 'm'.repeat(501))).toBe('El mensaje supera los 500 caracteres permitidos.');
+    expect(errorDeObservacion('RECHAZAR_DECANO', 'o'.repeat(501))).toContain('500');
+    expect(errorDeObservacion('ENVIAR_RECIBO', 'o'.repeat(501))).toBeNull();
   });
 
   it('solo toma el mapa de campos de un error 400', () => {

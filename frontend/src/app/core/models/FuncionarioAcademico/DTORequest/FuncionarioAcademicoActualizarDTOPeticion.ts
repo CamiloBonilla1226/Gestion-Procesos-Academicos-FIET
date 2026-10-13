@@ -1,3 +1,9 @@
 export interface FuncionarioAcademicoActualizarDTOPeticion {
-  dependencia: string;
+  nombres?: string;
+  apellidos?: string;
+  tipoDocumento?: string;
+  numeroDocumento?: string;
+  telefono?: string;
+  correoElectronico?: string;
+  cargo?: string;
 }

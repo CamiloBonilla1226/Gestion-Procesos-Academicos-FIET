@@ -10,8 +10,10 @@ import { ErrorHandlerService } from '../../../../core/services/error-handler-ser
 import { SolicitudAcademicaDetalleDTORespuesta } from '../../../../core/models/SolicitudAcademica/DTOResponse/SolicitudAcademicaDetalleDTORespuesta';
 import { HistorialSolicitudAcademicaDTORespuesta } from '../../../../core/models/SolicitudAcademica/DTOResponse/HistorialSolicitudAcademicaDTORespuesta';
 import {
+  ACCIONES_ACADEMICAS,
   CODIGOS_ERROR,
   ProcesoAcademico,
+  ROLES_ETIQUETA,
   RUTAS_SOLICITUDES_POR_ROL,
   RolEtiqueta,
   claseInsigniaEtapa,
@@ -19,6 +21,16 @@ import {
   textoAccion,
   textoEtapa
 } from '../../../../core/constantes/procesos-academicos';
+import { ETIQUETAS_DECISION_DECANO, claseInsigniaEtiquetaEstudiante } from '../../../../core/constantes/etiquetas-academicas';
+
+export interface DecisionDecano {
+  aprobada: boolean;
+  etiqueta: string;
+  observacion: string | null;
+  fecha: string;
+}
+
+const ACCIONES_DECISION_DECANO: string[] = [ACCIONES_ACADEMICAS.APROBAR_DECANO, ACCIONES_ACADEMICAS.RECHAZAR_DECANO];
 import { leerCodigoError } from '../../../../core/utils/errores-http';
 import { guardarArchivo } from '../../../../core/utils/descargas';
 import { formatearFechaHora } from '../../../../core/utils/formato';
@@ -66,6 +78,29 @@ export class DetalleSolicitudAcademicaComponent implements OnInit {
 
   get rutaBandeja(): string {
     return RUTAS_SOLICITUDES_POR_ROL[this.rol];
+  }
+
+  get esEstudiante(): boolean {
+    return this.rol === ROLES_ETIQUETA.ESTUDIANTE;
+  }
+
+  get claseInsignia(): string {
+    if (!this.solicitud) return '';
+    return this.esEstudiante ? claseInsigniaEtiquetaEstudiante(this.solicitud.etiqueta) : claseInsigniaEtapa(this.solicitud.etapaCodigo);
+  }
+
+  get decisionDecano(): DecisionDecano | null {
+    if (this.rol !== ROLES_ETIQUETA.FUNCIONARIO) return null;
+    const fila = [...this.historial].reverse().find(entrada => ACCIONES_DECISION_DECANO.includes(entrada.accion));
+    if (!fila) return null;
+    const aprobada = fila.accion === ACCIONES_ACADEMICAS.APROBAR_DECANO;
+    const observacion = (fila.observaciones ?? '').trim();
+    return {
+      aprobada,
+      etiqueta: aprobada ? ETIQUETAS_DECISION_DECANO.APROBADA : ETIQUETAS_DECISION_DECANO.RECHAZADA,
+      observacion: observacion === '' ? null : observacion,
+      fecha: fila.fecha
+    };
   }
 
   cargar(): void {

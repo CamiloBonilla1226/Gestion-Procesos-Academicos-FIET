@@ -97,10 +97,10 @@
         </app-input-text-component>
         <small class="text-danger" data-error="semestre">{{ errores['semestre'] || '' }}</small>
       </div>
-      <div class="col-md-6">
-        <app-input-text-component label="Facultad" [required]="true" [(value)]="datosAcademicos.facultad">
-        </app-input-text-component>
-        <small class="text-danger" data-error="facultad">{{ errores['facultad'] || '' }}</small>
+      <div class="col-md-6" data-facultad>
+        <small class="text-secondary d-block">Facultad</small>
+        <span class="fw-semibold">{{ facultad }}</span>
+        <small class="text-secondary d-block">La facultad es siempre {{ facultad }} y no se modifica.</small>
       </div>
     </div>
     <h6 class="mb-0 mt-2">Asignaturas matriculadas</h6>
@@ -160,33 +160,35 @@
   </div>
 </app-generic-dialog-form-component>
 
-<app-generic-dialog-form-component [visible]="dialogoEditar" title="Editar datos académicos" textoBoton="Guardar cambios"
+<app-generic-dialog-form-component [visible]="dialogoEditar" title="Editar estudiante" textoBoton="Guardar cambios"
   (visibleChange)="cerrarEditar($event)" (save)="editar()">
   <div class="d-flex flex-column gap-2" data-dialogo-editar (input)="revalidarEditar()" (change)="revalidarEditar()">
     <p class="mb-0 small text-secondary">
-      {{ nombreSeleccionado }}. Escribe solo los datos que quieres cambiar; los que dejes vacíos se conservan.
+      {{ nombreSeleccionado }}. Cambia solo los datos que necesites; un campo que dejes vacío conserva su valor.
     </p>
     <dl class="row small mb-0" data-solo-lectura>
+      <dt class="col-4">Nombre de usuario</dt>
+      <dd class="col-8 mb-0" data-username>{{ seleccionado?.username }}</dd>
       <dt class="col-4">Programa</dt>
       <dd class="col-8 mb-0" data-programa>{{ seleccionado?.programaAcademico }}</dd>
+      <dt class="col-4">Facultad</dt>
+      <dd class="col-8 mb-0" data-facultad>{{ facultad }}</dd>
     </dl>
-    <small class="text-secondary">El programa no se puede cambiar.</small>
+    <small class="text-secondary">El nombre de usuario, el programa y la facultad no se pueden cambiar.</small>
+    <h6 class="mb-0 mt-2">Datos personales</h6>
+    <app-datos-usuario-academico-component [datos]="datosEdicion" [errores]="errores" [edicion]="true">
+    </app-datos-usuario-academico-component>
+    <h6 class="mb-0 mt-2">Datos académicos</h6>
     <div class="row g-2">
       <div class="col-md-6">
-        <app-input-text-component [label]="'Código estudiantil (' + (seleccionado?.codigoEstudiantil ?? '') + ')'"
-          [(value)]="edicion.codigoEstudiantil">
+        <app-input-text-component label="Código estudiantil" [(value)]="edicion.codigoEstudiantil">
         </app-input-text-component>
-        <small class="text-danger">{{ errores['codigoEstudiantil'] || '' }}</small>
+        <small class="text-danger" data-error="codigoEstudiantil">{{ errores['codigoEstudiantil'] || '' }}</small>
       </div>
       <div class="col-md-6">
-        <app-input-text-component [label]="'Semestre (' + (seleccionado?.semestre ?? '') + ')'" [(value)]="edicion.semestre">
+        <app-input-text-component label="Semestre" [(value)]="edicion.semestre">
         </app-input-text-component>
-        <small class="text-danger">{{ errores['semestre'] || '' }}</small>
-      </div>
-      <div class="col-md-6">
-        <app-input-text-component [label]="'Facultad (' + (seleccionado?.facultad ?? '') + ')'" [(value)]="edicion.facultad">
-        </app-input-text-component>
-        <small class="text-danger">{{ errores['facultad'] || '' }}</small>
+        <small class="text-danger" data-error="semestre">{{ errores['semestre'] || '' }}</small>
       </div>
     </div>
     <small class="text-danger" data-error="edicion">{{ errores['edicion'] || '' }}</small>

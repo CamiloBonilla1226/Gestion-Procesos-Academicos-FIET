@@ -13,12 +13,17 @@ import { ToastService } from '../../../../core/services/toast-service';
 import { FuncionarioAcademicoDTORespuesta } from '../../../../core/models/FuncionarioAcademico/DTOResponse/FuncionarioAcademicoDTORespuesta';
 import { ENCABEZADOS_EXCEL_FUNCIONARIOS, TAMANIO_PAGINA_ADMINISTRACION } from '../../../../core/constantes/procesos-academicos';
 import { errorDeTexto } from '../../../../core/utils/validaciones-academicas';
+import { FuncionarioAcademicoActualizarDTOPeticion } from '../../../../core/models/FuncionarioAcademico/DTORequest/FuncionarioAcademicoActualizarDTOPeticion';
 import {
+  CAMPOS_PERSONALES,
   DatosUsuarioAcademico,
+  cambiosDeTexto,
+  datosUsuarioDe,
   datosUsuarioRecortados,
   datosUsuarioVacios,
   mensajesDeError,
   totalDePaginas,
+  validarCambiosPersonales,
   validarDatosUsuario
 } from '../../../../core/utils/usuarios-academicos';
 
@@ -36,13 +41,13 @@ import {
   templateUrl: './admin-funcionarios-content-component.html'
 })
 export class AdminFuncionariosContentComponent implements OnInit {
-  readonly encabezados: TableHeader[] = ['Nombres', 'Apellidos', 'Dependencia', 'Correo electrónico', 'Procesos a cargo'].map(
+  readonly encabezados: TableHeader[] = ['Nombres', 'Apellidos', 'Cargo', 'Correo electrónico', 'Procesos a cargo'].map(
     title => ({ title })
   );
   readonly encabezadosExcel = ENCABEZADOS_EXCEL_FUNCIONARIOS;
   readonly cargarExcel = (archivo: File) => this.funcionarioAcademicoService.crearFuncionariosAcademicosDesdeArchivo(archivo);
 
-  filtro = { nombre: '', apellido: '', dependencia: '' };
+  filtro = { nombre: '', apellido: '', cargo: '' };
   funcionarios: FuncionarioAcademicoDTORespuesta[] = [];
   filas: Record<string, string>[] = [];
   paginaActual = 1;
@@ -53,11 +58,12 @@ export class AdminFuncionariosContentComponent implements OnInit {
 
   dialogoCrear = false;
   datosUsuario: DatosUsuarioAcademico = datosUsuarioVacios();
-  dependencia = '';
+  cargo = '';
 
   dialogoEditar = false;
   seleccionado: FuncionarioAcademicoDTORespuesta | null = null;
-  dependenciaEditada = '';
+  datosEdicion: DatosUsuarioAcademico = datosUsuarioVacios();
+  cargoEditado = '';
 
   dialogoExcel = false;
 
@@ -100,7 +106,7 @@ export class AdminFuncionariosContentComponent implements OnInit {
             uuid: f.uuidUsuario,
             'Nombres': f.nombres,
             'Apellidos': f.apellidos,
-            'Dependencia': f.dependencia,
+            'Cargo': f.cargo,
             'Correo electrónico': f.correoElectronico,
             'Procesos a cargo': (f.tiposSolicitud ?? []).map(t => t.nombre).join(', ') || 'Ninguno'
           }));
@@ -116,7 +122,7 @@ export class AdminFuncionariosContentComponent implements OnInit {
 
   abrirCrear(): void {
     this.datosUsuario = datosUsuarioVacios();
-    this.dependencia = '';
+    this.cargo = '';
     this.errores = {};
     this.erroresServidor = [];
     this.dialogoCrear = true;
@@ -129,7 +135,7 @@ export class AdminFuncionariosContentComponent implements OnInit {
     this.enviar(
       this.funcionarioAcademicoService.crearFuncionarioAcademico({
         ...datosUsuarioRecortados(this.datosUsuario),
-        dependencia: this.dependencia.trim()
+        cargo: this.cargo.trim()
       }),
       'El funcionario académico quedó creado.',
       'No se pudo crear el funcionario académico',
@@ -140,7 +146,8 @@ export class AdminFuncionariosContentComponent implements OnInit {
   abrirEditar(fila: Record<string, string>): void {
     this.seleccionado = this.funcionarios.find(f => f.uuidUsuario === fila['uuid']) ?? null;
     if (!this.seleccionado) return;
-    this.dependenciaEditada = this.seleccionado.dependencia ?? '';
+    this.datosEdicion = datosUsuarioDe(this.seleccionado);
+    this.cargoEditado = this.seleccionado.cargo ?? '';
     this.errores = {};
     this.erroresServidor = [];
     this.dialogoEditar = true;
@@ -151,10 +158,8 @@ export class AdminFuncionariosContentComponent implements OnInit {
     this.errores = this.validarEdicion();
     if (Object.keys(this.errores).length > 0) return;
     this.enviar(
-      this.funcionarioAcademicoService.actualizarFuncionarioAcademico(this.seleccionado.uuidUsuario, {
-        dependencia: this.dependenciaEditada.trim()
-      }),
-      'La dependencia quedó actualizada.',
+      this.funcionarioAcademicoService.actualizarFuncionarioAcademico(this.seleccionado.uuidUsuario, this.peticionEdicion()),
+      'El funcionario académico quedó actualizado.',
       'No se pudo actualizar el funcionario académico',
       () => (this.dialogoEditar = false)
     );
@@ -170,14 +175,30 @@ export class AdminFuncionariosContentComponent implements OnInit {
 
   private validarCreacion(): Record<string, string> {
     const errores = validarDatosUsuario(this.datosUsuario);
-    const errorDependencia = errorDeTexto(this.dependencia, 100, true, 'La dependencia', true);
-    if (errorDependencia) errores['dependencia'] = errorDependencia;
+    const errorCargo = errorDeTexto(this.cargo, 100, true, 'El cargo');
+    if (errorCargo) errores['cargo'] = errorCargo;
     return errores;
   }
 
+  get procesosSeleccionado(): string {
+    return (this.seleccionado?.tiposSolicitud ?? []).map(t => t.nombre).join(', ') || 'Ninguno';
+  }
+
+  private peticionEdicion(): FuncionarioAcademicoActualizarDTOPeticion {
+    if (!this.seleccionado) return {};
+    return {
+      ...cambiosDeTexto(CAMPOS_PERSONALES, this.seleccionado, this.datosEdicion),
+      ...cambiosDeTexto(['cargo'], { cargo: this.seleccionado.cargo }, { cargo: this.cargoEditado })
+    };
+  }
+
   private validarEdicion(): Record<string, string> {
-    const error = errorDeTexto(this.dependenciaEditada, 100, true, 'La dependencia', true);
-    return error ? { dependencia: error } : {};
+    const peticion = this.peticionEdicion();
+    const errores = validarCambiosPersonales(peticion);
+    const errorCargo = errorDeTexto(peticion.cargo, 100, false, 'El cargo');
+    if (errorCargo) errores['cargo'] = errorCargo;
+    if (Object.keys(peticion).length === 0) errores['edicion'] = 'No cambiaste ningún dato.';
+    return errores;
   }
 
   cerrarCrear(visible: boolean): void {

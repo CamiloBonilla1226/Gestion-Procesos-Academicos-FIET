@@ -25,13 +25,14 @@ import {
   ROLES_ETIQUETA,
   RolEtiqueta
 } from '../../../../core/constantes/procesos-academicos';
+import { campoObservacion, etiquetaCampoObservacion } from '../../../../core/constantes/etiquetas-academicas';
 import {
   comoTipoAnexo,
   errorDeArchivo,
-  errorDeTexto,
-  erroresDeCampos,
-  leerFaltas,
-  leerNota
+  errorDeFaltas,
+  errorDeNotaAsignatura,
+  errorDeObservacion,
+  erroresDeCampos
 } from '../../../../core/utils/validaciones-academicas';
 
 interface EvaluacionEnEdicion {
@@ -164,12 +165,17 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
     return this.solicitud?.tieneResolucion || this.resolucionSubida;
   }
 
-  etiquetaBoton(accion: AccionAcademica): string {
-    return ETIQUETAS_BOTON[accion] ?? accion;
+  get campoObservacion() {
+    return campoObservacion(this.accionActiva);
   }
 
-  textoNota(nota: number | null): string {
-    return nota === null || nota === undefined ? 'Sin registrar' : nota.toFixed(1).replace('.', ',');
+  get etiquetaObservacion(): string {
+    const campo = this.campoObservacion;
+    return campo ? etiquetaCampoObservacion(campo) : '';
+  }
+
+  etiquetaBoton(accion: AccionAcademica): string {
+    return ETIQUETAS_BOTON[accion] ?? accion;
   }
 
   textoValor(valor: number | string | null | undefined): string {
@@ -190,7 +196,7 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
             'Código': a.codigoAsignatura,
             'Asignatura': a.nombreAsignatura,
             'Faltas': this.textoValor(a.numeroFaltas),
-            'Nota': this.textoNota(a.nota),
+            'Nota': this.textoValor(a.nota),
             'Situación en la matrícula': a.situacionMatricula ? `${a.situacionMatricula.codigo} - ${a.situacionMatricula.nombre}` : SIN_REGISTRAR,
             'Situación al cancelar': a.situacionCancelar ? `${a.situacionCancelar.codigo} - ${a.situacionCancelar.nombre}` : SIN_REGISTRAR
           }));
@@ -216,8 +222,8 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
       this.asignaturas.map(a => [
         a.uuidAsignaturaSolicitud,
         {
-          faltas: a.numeroFaltas === null ? '' : String(a.numeroFaltas),
-          nota: a.nota === null ? '' : a.nota.toFixed(1),
+          faltas: a.numeroFaltas ?? '',
+          nota: a.nota ?? '',
           situacion: a.situacionMatricula?.uuidSituacionAcademica ?? null
         }
       ])
@@ -287,6 +293,7 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
   private ejecutar(accion: AccionAcademica): Observable<unknown> {
     const uuid = this.uuidSolicitud;
     const observacion = this.observacion.trim();
+    const opcional = observacion === '' ? null : observacion;
     switch (accion) {
       case ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO:
         return this.subirResolucion().pipe(
@@ -294,15 +301,17 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
         );
       case ACCIONES_ACADEMICAS.REMITIR_DECANO:
         return this.cancelacionMatriculaService.remitirADecano(uuid, {
-          observacion: observacion === '' ? null : observacion,
+          observacion: opcional,
           evaluaciones: this.armarEvaluaciones()
         });
       case ACCIONES_ACADEMICAS.APROBAR_DECANO:
-        return this.cancelacionMatriculaService.aprobarPorDecano(uuid, { situaciones: this.armarSituaciones() });
+        return this.cancelacionMatriculaService.aprobarPorDecano(uuid, { situaciones: this.armarSituaciones(), observacion: opcional });
       case ACCIONES_ACADEMICAS.RECHAZAR_DECANO:
-        return this.cancelacionMatriculaService.rechazarPorDecano(uuid, { observacion });
+        return this.cancelacionMatriculaService.rechazarPorDecano(uuid, { observacion: opcional });
       default:
-        return this.subirResolucion().pipe(switchMap(() => this.cancelacionMatriculaService.enviarRespuesta(uuid)));
+        return this.subirResolucion().pipe(
+          switchMap(() => this.cancelacionMatriculaService.enviarRespuesta(uuid, { observacion: opcional }))
+        );
     }
   }
 
@@ -322,8 +331,8 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
       const evaluacion = this.evaluaciones[a.uuidAsignaturaSolicitud];
       return {
         asignaturaSolicitudUuid: a.uuidAsignaturaSolicitud,
-        numeroFaltas: leerFaltas(evaluacion.faltas)!,
-        nota: leerNota(evaluacion.nota)!,
+        numeroFaltas: evaluacion.faltas.trim(),
+        nota: evaluacion.nota.trim(),
         situacionMatriculaUuid: evaluacion.situacion!
       };
     });
@@ -338,9 +347,7 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
 
   private validar(accion: AccionAcademica): Record<string, string> {
     const errores: Record<string, string> = {};
-    const observacionObligatoria =
-      accion === ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO || accion === ACCIONES_ACADEMICAS.RECHAZAR_DECANO;
-    const errorObservacion = errorDeTexto(this.observacion, MAXIMO_CARACTERES_OBSERVACION, observacionObligatoria, 'La observación', true);
+    const errorObservacion = errorDeObservacion(accion, this.observacion);
     if (errorObservacion) errores['observacion'] = errorObservacion;
 
     const exigeResolucion =
@@ -352,12 +359,10 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
     if (accion === ACCIONES_ACADEMICAS.REMITIR_DECANO) {
       for (const a of this.asignaturas) {
         const evaluacion = this.evaluaciones[a.uuidAsignaturaSolicitud];
-        if (leerFaltas(evaluacion?.faltas) === null) {
-          errores[`faltas-${a.uuidAsignaturaSolicitud}`] = 'Las faltas deben ser un entero mayor o igual a 0.';
-        }
-        if (leerNota(evaluacion?.nota) === null) {
-          errores[`nota-${a.uuidAsignaturaSolicitud}`] = 'La nota debe estar entre 0.0 y 5.0 con un decimal.';
-        }
+        const errorFaltas = errorDeFaltas(evaluacion?.faltas);
+        const errorNota = errorDeNotaAsignatura(evaluacion?.nota);
+        if (errorFaltas) errores[`faltas-${a.uuidAsignaturaSolicitud}`] = errorFaltas;
+        if (errorNota) errores[`nota-${a.uuidAsignaturaSolicitud}`] = errorNota;
         if (!evaluacion?.situacion) {
           errores[`situacion-${a.uuidAsignaturaSolicitud}`] = 'Elige la situación en la matrícula.';
         }

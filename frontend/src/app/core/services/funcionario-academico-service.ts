@@ -36,7 +36,7 @@ export class FuncionarioAcademicoService {
   }
 
   getFuncionariosAcademicosFiltrados(
-    filtro: { nombre?: string | null; apellido?: string | null; dependencia?: string | null },
+    filtro: { nombre?: string | null; apellido?: string | null; cargo?: string | null },
     pagina: number,
     tamanio: number
   ): Observable<PaginacionRespuestaDTO<FuncionarioAcademicoDTORespuesta>> {
@@ -44,7 +44,7 @@ export class FuncionarioAcademicoService {
       params: armarParametros({
         nombre: filtro.nombre,
         apellido: filtro.apellido,
-        dependencia: filtro.dependencia,
+        cargo: filtro.cargo,
         pagina,
         tamanio
       })

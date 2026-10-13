@@ -44,8 +44,8 @@ export class CancelacionAsignaturaService {
     return this.http.post<CancelacionAsignaturaDetalleDTORespuesta>(`${this.url}/${uuidSolicitud}/funcionario/remitir`, peticion);
   }
 
-  enviarRespuesta(uuidSolicitud: string): Observable<CancelacionAsignaturaDetalleDTORespuesta> {
-    return this.http.post<CancelacionAsignaturaDetalleDTORespuesta>(`${this.url}/${uuidSolicitud}/funcionario/responder`, null);
+  enviarRespuesta(uuidSolicitud: string, peticion?: ObservacionDTOPeticion): Observable<CancelacionAsignaturaDetalleDTORespuesta> {
+    return this.http.post<CancelacionAsignaturaDetalleDTORespuesta>(`${this.url}/${uuidSolicitud}/funcionario/responder`, peticion ?? null);
   }
 
   aprobarPorDecano(

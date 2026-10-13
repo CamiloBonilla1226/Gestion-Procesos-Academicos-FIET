@@ -46,7 +46,7 @@
     </div>
     }
 
-    @if (etapa === 'PENDIENTE_PAGO') {
+    @if (avisoEtapa === 'PENDIENTE_PAGO') {
     <div class="alert alert-warning mb-0" data-aviso-etapa="PENDIENTE_PAGO">
       @if (esEstudiante) {
       Descarga el recibo de pago en la sección Anexos, realiza el pago y sube el comprobante con el botón
@@ -55,7 +55,7 @@
       El estudiante debe pagar el recibo y subir el comprobante de pago.
       }
     </div>
-    } @else if (etapa === 'EN_VERIFICACION_PAGO') {
+    } @else if (avisoEtapa === 'EN_VERIFICACION_PAGO') {
     <div class="alert alert-warning mb-0" data-aviso-etapa="EN_VERIFICACION_PAGO">
       @if (esEstudiante) {
       El Funcionario Académico está verificando tu comprobante de pago.
@@ -63,7 +63,7 @@
       El comprobante de pago está en la sección Anexos y espera la verificación del Funcionario Académico.
       }
     </div>
-    } @else if (comprobanteRechazado) {
+    } @else if (avisoEtapa === 'COMPROBANTE_RECHAZADO') {
     <div class="alert alert-danger mb-0" data-aviso-etapa="COMPROBANTE_RECHAZADO">
       @if (esEstudiante) {
       Tu comprobante de pago fue rechazado. Si aún necesitas el examen supletorio, debes radicar una solicitud nueva.
@@ -108,7 +108,7 @@
     <p class="mb-0">La solicitud pasará al Funcionario Académico para que envíe la respuesta al estudiante.</p>
     }
     @case (acciones.ENVIAR_RESPUESTA) {
-    <p class="mb-0">La solicitud termina como rechazada y el estudiante verá la decisión del Decano.</p>
+    <p class="mb-0">La solicitud termina como rechazada y el estudiante verá que fue rechazada.</p>
     }
     @case (acciones.APROBAR_COMPROBANTE) {
     <p class="mb-0">La solicitud quedará aprobada. Puedes registrar la fecha acordada para presentar el supletorio.</p>
@@ -136,11 +136,13 @@
     </div>
     }
 
-    @if (pideObservacion) {
-    <div>
-      <app-input-text-tarea-component [label]="observacionObligatoria ? 'Observación' : 'Observación (opcional)'"
-        [required]="observacionObligatoria" [(value)]="observacion">
+    @if (campoObservacion; as campo) {
+    <div data-campo-observacion>
+      <app-input-text-tarea-component [label]="etiquetaObservacion" [required]="campo.obligatoria" [(value)]="observacion">
       </app-input-text-tarea-component>
+      @if (campo.aviso) {
+      <small class="text-secondary d-block" data-aviso-observacion>{{ campo.aviso }}</small>
+      }
       <div class="d-flex justify-content-between">
         <small class="text-danger" data-error="observacion">{{ errores['observacion'] || '' }}</small>
         <small class="text-secondary">{{ observacion.length }}/{{ maximoObservacion }}</small>

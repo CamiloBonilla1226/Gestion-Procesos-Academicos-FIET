@@ -24,7 +24,19 @@ import {
   ROLES_ETIQUETA,
   RolEtiqueta
 } from '../../../../core/constantes/procesos-academicos';
-import { comoTipoAnexo, errorDeArchivo, errorDeTexto, erroresDeCampos, esFechaValida } from '../../../../core/utils/validaciones-academicas';
+import {
+  ETIQUETAS_ESTUDIANTE,
+  campoObservacion,
+  esEtiqueta,
+  etiquetaCampoObservacion
+} from '../../../../core/constantes/etiquetas-academicas';
+import {
+  comoTipoAnexo,
+  errorDeArchivo,
+  errorDeObservacion,
+  erroresDeCampos,
+  esFechaValida
+} from '../../../../core/utils/validaciones-academicas';
 import { formatearFecha } from '../../../../core/utils/formato';
 
 const ACCIONES_DEL_PROCESO: AccionAcademica[] = [
@@ -45,11 +57,7 @@ const ACCIONES_DE_RECHAZO: AccionAcademica[] = [
   ACCIONES_ACADEMICAS.RECHAZAR_COMPROBANTE
 ];
 
-const ACCIONES_CON_OBSERVACION: AccionAcademica[] = [
-  ...ACCIONES_DE_RECHAZO,
-  ACCIONES_ACADEMICAS.REMITIR_DECANO,
-  ACCIONES_ACADEMICAS.APROBAR_DECANO
-];
+export type AvisoEtapaSupletorio = 'PENDIENTE_PAGO' | 'EN_VERIFICACION_PAGO' | 'COMPROBANTE_RECHAZADO';
 
 const ANEXO_DE_ACCION: Partial<Record<AccionAcademica, string>> = {
   [ACCIONES_ACADEMICAS.ENVIAR_RECIBO]: ANEXOS_PAGO_SUPLETORIO.RECIBO,
@@ -180,23 +188,25 @@ export class ExamenSupletorioProcesoComponent implements OnChanges {
     return this.rol === ROLES_ETIQUETA.ESTUDIANTE;
   }
 
-  get etapa(): string {
-    return this.solicitud?.etapaCodigo ?? '';
+  get avisoEtapa(): AvisoEtapaSupletorio | null {
+    if (this.enEtapa(ETAPAS_ACADEMICAS.PENDIENTE_PAGO, ETIQUETAS_ESTUDIANTE.PENDIENTE_PAGO)) return 'PENDIENTE_PAGO';
+    if (this.enEtapa(ETAPAS_ACADEMICAS.EN_VERIFICACION_PAGO, ETIQUETAS_ESTUDIANTE.EN_VERIFICACION_PAGO)) return 'EN_VERIFICACION_PAGO';
+    const conComprobante = (this.solicitud?.anexos ?? []).some(anexo => mismoNombre(anexo.tipoAnexo, ANEXOS_PAGO_SUPLETORIO.COMPROBANTE));
+    return conComprobante && this.enEtapa(ETAPAS_ACADEMICAS.RECHAZADA, ETIQUETAS_ESTUDIANTE.RECHAZADA) ? 'COMPROBANTE_RECHAZADO' : null;
   }
 
-  get comprobanteRechazado(): boolean {
-    return (
-      this.etapa === ETAPAS_ACADEMICAS.RECHAZADA &&
-      (this.solicitud?.anexos ?? []).some(anexo => mismoNombre(anexo.tipoAnexo, ANEXOS_PAGO_SUPLETORIO.COMPROBANTE))
-    );
+  private enEtapa(codigo: string, etiquetaEstudiante: string): boolean {
+    if (this.esEstudiante) return esEtiqueta(this.solicitud?.etiqueta, etiquetaEstudiante);
+    return this.solicitud?.etapaCodigo === codigo;
   }
 
-  get pideObservacion(): boolean {
-    return !!this.accionActiva && ACCIONES_CON_OBSERVACION.includes(this.accionActiva);
+  get campoObservacion() {
+    return campoObservacion(this.accionActiva);
   }
 
-  get observacionObligatoria(): boolean {
-    return !!this.accionActiva && ACCIONES_DE_RECHAZO.includes(this.accionActiva);
+  get etiquetaObservacion(): string {
+    const campo = this.campoObservacion;
+    return campo ? etiquetaCampoObservacion(campo) : '';
   }
 
   get pideAnexoPago(): boolean {
@@ -347,18 +357,19 @@ export class ExamenSupletorioProcesoComponent implements OnChanges {
   private ejecutar(accion: AccionAcademica): Observable<unknown> {
     const uuid = this.uuidSolicitud;
     const observacion = this.observacion.trim();
+    const opcional = observacion === '' ? null : observacion;
     switch (accion) {
       case ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO:
         return this.examenSupletorioService.rechazarPorFuncionario(uuid, { observacion });
       case ACCIONES_ACADEMICAS.REMITIR_DECANO:
         return this.examenSupletorioService.remitirADecano(uuid, {
           requisitosVerificados: true,
-          observacion: observacion === '' ? null : observacion
+          observacion: opcional
         });
       case ACCIONES_ACADEMICAS.APROBAR_DECANO:
-        return this.examenSupletorioService.aprobarPorDecano(uuid, observacion === '' ? undefined : { observacion });
+        return this.examenSupletorioService.aprobarPorDecano(uuid, opcional === null ? undefined : { observacion: opcional });
       case ACCIONES_ACADEMICAS.RECHAZAR_DECANO:
-        return this.examenSupletorioService.rechazarPorDecano(uuid, { observacion });
+        return this.examenSupletorioService.rechazarPorDecano(uuid, { observacion: opcional });
       case ACCIONES_ACADEMICAS.ENVIAR_RECIBO:
         return this.subirAnexoPago().pipe(switchMap(() => this.examenSupletorioService.enviarRecibo(uuid)));
       case ACCIONES_ACADEMICAS.SUBIR_COMPROBANTE:
@@ -370,7 +381,7 @@ export class ExamenSupletorioProcesoComponent implements OnChanges {
       case ACCIONES_ACADEMICAS.RECHAZAR_COMPROBANTE:
         return this.examenSupletorioService.rechazarComprobante(uuid, { observacion });
       default:
-        return this.examenSupletorioService.enviarRespuesta(uuid);
+        return this.examenSupletorioService.enviarRespuesta(uuid, { observacion: opcional });
     }
   }
 
@@ -389,10 +400,8 @@ export class ExamenSupletorioProcesoComponent implements OnChanges {
 
   private validar(accion: AccionAcademica): Record<string, string> {
     const errores: Record<string, string> = {};
-    if (ACCIONES_CON_OBSERVACION.includes(accion)) {
-      const error = errorDeTexto(this.observacion, MAXIMO_CARACTERES_OBSERVACION, ACCIONES_DE_RECHAZO.includes(accion), 'La observación', true);
-      if (error) errores['observacion'] = error;
-    }
+    const errorObservacion = errorDeObservacion(accion, this.observacion);
+    if (errorObservacion) errores['observacion'] = errorObservacion;
     if (accion === ACCIONES_ACADEMICAS.REMITIR_DECANO && !this.requisitosVerificados) {
       errores['requisitos'] = 'Confirma que verificaste los requisitos; si no se cumplen, rechaza la solicitud.';
     }

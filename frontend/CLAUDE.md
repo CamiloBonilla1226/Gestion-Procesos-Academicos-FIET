@@ -338,17 +338,34 @@ en su propio chunk diferido.
 
 - Los botones salen de `solicitud.accionesDisponibles` filtradas por las
   acciones que maneja el proceso; nunca se deducen del rol en el cliente.
-- Los textos y avisos dependen de `etapaCodigo`, no de `etiqueta` (la
-  etiqueta es solo para mostrar). La insignia usa `claseInsigniaEtapa`:
-  verde en APROBADA, rojo en RECHAZADA, amarillo en PENDIENTE_PAGO y
-  EN_VERIFICACION_PAGO (D-F9), gris en el resto.
+- Funcionario y Decano: los textos y avisos dependen de `etapaCodigo`, no de
+  `etiqueta`. La insignia usa `claseInsigniaEtapa`: verde en APROBADA, rojo en
+  RECHAZADA, amarillo en PENDIENTE_PAGO y EN_VERIFICACION_PAGO (D-F9), gris en
+  el resto.
+- Estudiante (D-F23): ninguna vista suya muestra ni usa `etapaCodigo` para
+  decidir colores, íconos, textos o pasos; solo `etiqueta` y
+  `accionesDisponibles`. Las etiquetas del Estudiante están en
+  `ETIQUETAS_ESTUDIANTE` (`core/constantes/etiquetas-academicas.ts`) y la
+  insignia sale de `claseInsigniaEtiquetaEstudiante`. Su historial no muestra
+  la etapa de cada fila. El backend además le enmascara la decisión del Decano
+  (P40 y P41 de `docs/database/etapas-por-proceso.md`).
 - Tras cada acción el componente de proceso llama a `recargar()`, que vuelve a
   pedir el detalle y el historial; así cambian la etapa, los anexos y los
   botones.
 - Cancelación de Asignatura: el Estudiante ve solo código y nombre antes de
-  la etapa final, y en APROBADA o RECHAZADA también la decisión del Decano y
-  su observación. Las columnas sin ningún dato se ocultan (también en la
-  vista del Estudiante de Matrícula).
+  la etapa final, y con la etiqueta "Aprobada" o "Rechazada" también la
+  decisión del Decano por asignatura, nunca su observación. Las columnas sin
+  ningún dato se ocultan (también en la vista del Estudiante de Matrícula).
+- Faltas y nota (las dos cancelaciones): texto o número de hasta 20
+  caracteres. Si es número se valida como antes (`errorDeFaltas`,
+  `errorDeNotaAsignatura`); la regla "nota menor a 3.0 no cumple" solo aplica
+  a una nota numérica (`numeroDeValor`). Se envían tal como se escriben,
+  recortadas; el backend normaliza "3,5" a "3.5".
+- Funcionario: la bandeja pinta una insignia junto a "Ver" cuando la etiqueta
+  es "Aprobada por el Decano" o "Rechazada por el Decano" (la tabla de Julián
+  solo pinta texto), y el detalle muestra el bloque "Decisión del Decano" con
+  la observación que trae la última fila `APROBAR_DECANO` o `RECHAZAR_DECANO`
+  del historial.
 
 ### Diálogos
 
@@ -361,6 +378,15 @@ por asignatura), "Enviar respuesta", "Enviar recibo", "Subir comprobante",
 "Aprobar comprobante", "Rechazar comprobante", "Crear", "Guardar cambios",
 "Cambiar responsable" y "Cargar archivo". Cada envío lleva su propia bandera
 `enviando` que bloquea el doble envío (D-F7).
+
+El campo de observación de cada acción sale de `campoObservacion`
+(`core/constantes/etiquetas-academicas.ts`) y se valida con
+`errorDeObservacion`: obligatoria al rechazar en el Funcionario y al rechazar
+el comprobante; opcional al remitir ("Observación para el Decano"), al
+aprobar y rechazar en el Decano (aviso "Esta observación solo será visible
+para el Funcionario Académico.") y al enviar la respuesta ("Mensaje para el
+estudiante", hasta 500 caracteres, lo único que el Estudiante recibe sobre el
+motivo). Las situaciones académicas salen del catálogo, sin lista fija.
 
 Un diálogo que depende de un catálogo (situaciones académicas para remitir o
 aprobar una cancelación, tipos de anexo para el recibo y el comprobante) se
@@ -416,6 +442,10 @@ Las reglas que no son "obligatorio" viven en
   `fechaDeHoy`.
 - `validarDatosUsuario`: límites del contrato para nombres, apellidos,
   documento, teléfono, correo, username y contraseña.
+- Edición de estudiantes y funcionarios: `datosUsuarioDe` llena el formulario
+  con los valores actuales, `cambiosDeTexto` arma el `PUT` solo con los campos
+  que cambiaron (uno vacío no cambia) y `validarCambiosPersonales` valida solo
+  esos campos.
 
 ### Decisiones del frontend
 
@@ -443,10 +473,15 @@ Las reglas que no son "obligatorio" viven en
 | D-F20 | La raíz (`/`) pasa por `inicioGuard`: sin sesión va a `/login`; con token y usuario guardados va al inicio de su rol con `rutaDeInicio` (`core/utils/rutas-por-rol.ts`), la misma función que usa el login. `usuario-publico/solicitudes` sigue existiendo pero ya no es la entrada |
 | D-F21 | El login es un `<form>` con `(ngSubmit)` y botón `type="submit"` (`SimpleButtonComponent` recibe `tipo`); Enter envía y una bandera `enviando` bloquea el doble envío |
 | D-F22 | Tras una carga Excel exitosa el diálogo muestra solo el resultado (y, si se pasa `describir`, la lista de lo creado, como los códigos de asignatura); el botón pasa a "Cerrar" y la tabla se refresca al cerrar |
+| D-F23 | En las vistas del Estudiante nunca se muestra ni se usa `etapaCodigo`; solo `etiqueta` y `accionesDisponibles` |
+| D-F24 | La edición de estudiante y funcionario académico abre con los valores actuales y envía solo lo que cambió; `DatosUsuarioAcademicoComponent` recibe `edicion` para ocultar usuario y contraseña y quitar los obligatorios |
+| D-F25 | Los procesos a cargo se ven de solo lectura al editar un funcionario: el `PUT` no los recibe y se cambian en la pestaña Responsable por proceso |
+| D-F26 | La facultad del estudiante es siempre FIET: se muestra de solo lectura y no se envía |
 
 Otras decisiones tomadas en las tareas, sin número:
 
-- La columna Estado de las bandejas es texto plano, sin insignia.
+- La columna Estado de las bandejas es texto plano, sin insignia; la del
+  Funcionario suma junto a "Ver" la insignia de la decisión del Decano.
 - Tras radicar, la pantalla reemplaza el formulario por el radicado y un botón
   "Ver solicitud", y además navega al detalle.
 - Examen Supletorio:
@@ -456,8 +491,9 @@ Otras decisiones tomadas en las tareas, sin número:
   - Recibo y comprobante: primero se sube el anexo y luego se llama la acción.
     Si la acción falla después de subir el archivo, el reintento no lo sube otra
     vez.
-  - El aviso de comprobante rechazado se deduce de la etapa RECHAZADA más un
-    anexo de tipo "Comprobante de pago" en la solicitud.
+  - El aviso de comprobante rechazado se deduce de la etapa RECHAZADA (para el
+    Estudiante, de la etiqueta "Rechazada") más un anexo de tipo "Comprobante
+    de pago" en la solicitud.
   - El plazo de 3 días hábiles (`plazoDiasHabiles`) es solo informativo; el
     vencimiento lo decide el backend.
   - No se envían los campos de las maquetas que el contrato no tiene.
@@ -499,11 +535,17 @@ con `opcionesDeAsignatura` (`core/utils/programas-academicos.ts`).
   diálogo ("Cambiar programa" o "Conservar el anterior") y, si se confirma,
   limpia las filas. Se envía `uuidProgramaAcademico` y `asignaturas` como
   `{codigoAsignatura, grupo}`.
-- Estudiantes, edición: el programa se ve de solo lectura; solo se editan
-  `codigoEstudiantil`, `semestre` y `facultad`.
+- Estudiantes, alta: la facultad se muestra fija, FIET, y no se envía.
+- Estudiantes, edición: nombres, apellidos, tipo y número de documento,
+  teléfono, correo, código estudiantil y semestre; usuario, programa y
+  facultad de solo lectura (D-F24, D-F26). El error de código 2 (unicidad) se
+  muestra dentro del diálogo.
+- Funcionarios académicos: el campo es `cargo` (antes `dependencia`) en
+  tabla, filtro (`?cargo=`), alta, edición y Excel. La edición cambia los datos
+  personales y el cargo (D-F24, D-F25).
 - Estudiantes, detalle: "Agregar asignatura" elige entre las asignaturas del
   programa del estudiante y el grupo. Si ya la tiene activa, lo dice el backend.
-- Excel de estudiantes: 14 encabezados (sin `nombreAsignatura`), los nombres
+- Excel de estudiantes: 13 encabezados (sin `nombreAsignatura` ni `facultad`), los nombres
   válidos de programa y la regla de que cada `codigoAsignatura` existe y es del
   programa.
 - Las pantallas que muestran el programa de un estudiante (tabla de

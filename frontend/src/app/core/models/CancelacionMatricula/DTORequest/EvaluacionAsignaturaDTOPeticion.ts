@@ -1,6 +1,6 @@
 export interface EvaluacionAsignaturaDTOPeticion {
   asignaturaSolicitudUuid: string;
-  numeroFaltas: number;
-  nota: number;
+  numeroFaltas: string;
+  nota: string;
   situacionMatriculaUuid: string;
 }

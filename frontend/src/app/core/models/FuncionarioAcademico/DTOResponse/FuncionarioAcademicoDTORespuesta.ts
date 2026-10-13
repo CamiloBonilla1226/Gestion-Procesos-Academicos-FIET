@@ -10,6 +10,6 @@ export interface FuncionarioAcademicoDTORespuesta {
   telefono: string;
   correoElectronico: string;
   username: string;
-  dependencia: string;
+  cargo: string;
   tiposSolicitud: TipoSolicitudAtendidaDTORespuesta[];
 }

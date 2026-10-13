@@ -13,6 +13,7 @@ import { DatosUsuarioAcademico } from '../../../core/utils/usuarios-academicos';
 export class DatosUsuarioAcademicoComponent {
   @Input({ required: true }) datos!: DatosUsuarioAcademico;
   @Input() errores: Record<string, string> = {};
+  @Input() edicion = false;
 
   readonly tiposDocumento = TIPOS_DOCUMENTO;
 }

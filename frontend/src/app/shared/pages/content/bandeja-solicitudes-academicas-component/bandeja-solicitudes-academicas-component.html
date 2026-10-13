@@ -37,6 +37,11 @@
 </div>
 
 <ng-template #acciones let-fila>
-  <app-simple-button-component label="Ver" width="60px" height="30px" (clicked)="verSolicitud(fila)">
-  </app-simple-button-component>
+  <div class="d-flex flex-wrap align-items-center gap-2">
+    @if (insigniaDecision(fila); as clase) {
+    <span class="badge" [ngClass]="clase" [attr.data-decision-decano]="fila.uuid">{{ fila['Estado'] }}</span>
+    }
+    <app-simple-button-component label="Ver" width="60px" height="30px" (clicked)="verSolicitud(fila)">
+    </app-simple-button-component>
+  </div>
 </ng-template>

@@ -79,4 +79,15 @@ describe('ExamenSupletorioService', () => {
     expect(req.request.body).toBeNull();
     req.flush({});
   });
+
+  it('envia responder con el mensaje para el estudiante y el rechazo del Decano con observacion nula', () => {
+    servicio.enviarRespuesta('s-1', { observacion: 'Radica de nuevo' }).subscribe();
+    const responder = http.expectOne(`${url}/s-1/funcionario/responder`);
+    expect(responder.request.body).toEqual({ observacion: 'Radica de nuevo' });
+    responder.flush({});
+    servicio.rechazarPorDecano('s-1', { observacion: null }).subscribe();
+    const rechazo = http.expectOne(`${url}/s-1/decano/rechazar`);
+    expect(rechazo.request.body).toEqual({ observacion: null });
+    rechazo.flush({});
+  });
 });

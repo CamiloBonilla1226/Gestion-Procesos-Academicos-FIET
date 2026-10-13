@@ -20,7 +20,6 @@ import { DecisionAsignaturaDTOPeticion } from '../../../../core/models/Cancelaci
 import {
   ACCIONES_ACADEMICAS,
   AccionAcademica,
-  ETAPAS_FINALES,
   FORMATOS_RESOLUCION,
   MAXIMO_CARACTERES_OBSERVACION,
   MAXIMO_CARACTERES_OBSERVACION_ASIGNATURA,
@@ -30,12 +29,20 @@ import {
   RolEtiqueta
 } from '../../../../core/constantes/procesos-academicos';
 import {
+  ETIQUETAS_FINALES_ESTUDIANTE,
+  campoObservacion,
+  esEtiqueta,
+  etiquetaCampoObservacion
+} from '../../../../core/constantes/etiquetas-academicas';
+import {
   comoTipoAnexo,
   errorDeArchivo,
+  errorDeFaltas,
+  errorDeNotaAsignatura,
+  errorDeObservacion,
   errorDeTexto,
   erroresDeCampos,
-  leerFaltas,
-  leerNota
+  numeroDeValor
 } from '../../../../core/utils/validaciones-academicas';
 
 interface EvaluacionEnEdicion {
@@ -108,10 +115,6 @@ function textoSituacion(situacion: { codigo: string; nombre: string } | null): s
   return situacion ? `${situacion.codigo} - ${situacion.nombre}` : null;
 }
 
-function textoNota(nota: number | null): string | null {
-  return nota === null || nota === undefined ? null : nota.toFixed(1).replace('.', ',');
-}
-
 function textoLibre(valor: string | null): string | null {
   return valor && valor.trim() !== '' ? valor : null;
 }
@@ -121,13 +124,13 @@ const COLUMNA_NOMBRE: Columna = { titulo: 'Asignatura', valor: a => a.nombreAsig
 const COLUMNA_DECISION: Columna = { titulo: 'Decisión del Decano', valor: a => textoSiNo(a.aprobadaPorDecano, 'Aprobada', 'No aprobada') };
 const COLUMNA_OBSERVACION_DECISION: Columna = { titulo: 'Observación de la decisión', valor: a => textoLibre(a.observacionDecision) };
 
-const COLUMNAS_ESTUDIANTE_FINAL: Columna[] = [COLUMNA_CODIGO, COLUMNA_NOMBRE, COLUMNA_DECISION, COLUMNA_OBSERVACION_DECISION];
+const COLUMNAS_ESTUDIANTE_FINAL: Columna[] = [COLUMNA_CODIGO, COLUMNA_NOMBRE, COLUMNA_DECISION];
 const COLUMNAS_ESTUDIANTE_EN_CURSO: Columna[] = [COLUMNA_CODIGO, COLUMNA_NOMBRE];
 const COLUMNAS_COMPLETAS: Columna[] = [
   COLUMNA_CODIGO,
   COLUMNA_NOMBRE,
-  { titulo: 'Faltas', valor: a => (a.numeroFaltas === null || a.numeroFaltas === undefined ? null : String(a.numeroFaltas)) },
-  { titulo: 'Nota', valor: a => textoNota(a.nota) },
+  { titulo: 'Faltas', valor: a => textoLibre(a.numeroFaltas) },
+  { titulo: 'Nota', valor: a => textoLibre(a.nota) },
   { titulo: 'Situación en la matrícula', valor: a => textoSituacion(a.situacionMatricula) },
   { titulo: 'Cumple condiciones', valor: a => textoSiNo(a.cumpleCondiciones, 'Sí', 'No') },
   { titulo: 'Observación de la evaluación', valor: a => textoLibre(a.observacionEvaluacion) },
@@ -161,7 +164,7 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   readonly maximoObservacion = MAXIMO_CARACTERES_OBSERVACION;
   readonly maximoObservacionAsignatura = MAXIMO_CARACTERES_OBSERVACION_ASIGNATURA;
   readonly tipoResolucion = comoTipoAnexo('resolucion', 'Escaneo de la Resolución firmada', FORMATOS_RESOLUCION, true);
-  readonly textoNota = textoNota;
+  readonly textoLibre = textoLibre;
 
   detalle: CancelacionAsignaturaDetalleDTORespuesta | null = null;
   encabezados: TableHeader[] = [];
@@ -220,6 +223,15 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
 
   get hayResolucion(): boolean {
     return this.solicitud?.tieneResolucion || this.resolucionSubida;
+  }
+
+  get campoObservacion() {
+    return campoObservacion(this.accionActiva);
+  }
+
+  get etiquetaObservacion(): string {
+    const campo = this.campoObservacion;
+    return campo ? etiquetaCampoObservacion(campo) : '';
   }
 
   get ningunaCumple(): boolean {
@@ -341,13 +353,13 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
 
   private columnasDelRol(): Columna[] {
     if (this.rol !== ROLES_ETIQUETA.ESTUDIANTE) return COLUMNAS_COMPLETAS;
-    return ETAPAS_FINALES.includes(this.solicitud?.etapaCodigo ?? '') ? COLUMNAS_ESTUDIANTE_FINAL : COLUMNAS_ESTUDIANTE_EN_CURSO;
+    return esEtiqueta(this.solicitud?.etiqueta, ...ETIQUETAS_FINALES_ESTUDIANTE) ? COLUMNAS_ESTUDIANTE_FINAL : COLUMNAS_ESTUDIANTE_EN_CURSO;
   }
 
   private evaluacionInicial(a: AsignaturaSolicitadaDTORespuesta): EvaluacionEnEdicion {
     return {
-      faltas: a.numeroFaltas === null ? '' : String(a.numeroFaltas),
-      nota: a.nota === null ? '' : a.nota.toFixed(1),
+      faltas: a.numeroFaltas ?? '',
+      nota: a.nota ?? '',
       situacion: a.situacionMatricula?.uuidSituacionAcademica ?? null,
       cumple: a.cumpleCondiciones,
       observacion: a.observacionEvaluacion ?? ''
@@ -366,6 +378,7 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   private ejecutar(accion: AccionAcademica): Observable<unknown> {
     const uuid = this.uuidSolicitud;
     const observacion = this.observacion.trim();
+    const opcional = observacion === '' ? null : observacion;
     switch (accion) {
       case ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO:
         return this.subirResolucion().pipe(
@@ -373,15 +386,17 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
         );
       case ACCIONES_ACADEMICAS.REMITIR_DECANO:
         return this.cancelacionAsignaturaService.remitirADecano(uuid, {
-          observacion: observacion === '' ? null : observacion,
+          observacion: opcional,
           evaluaciones: this.armarEvaluaciones()
         });
       case ACCIONES_ACADEMICAS.APROBAR_DECANO:
-        return this.cancelacionAsignaturaService.aprobarPorDecano(uuid, { decisiones: this.armarDecisiones() });
+        return this.cancelacionAsignaturaService.aprobarPorDecano(uuid, { decisiones: this.armarDecisiones(), observacion: opcional });
       case ACCIONES_ACADEMICAS.RECHAZAR_DECANO:
-        return this.cancelacionAsignaturaService.rechazarPorDecano(uuid, { observacion });
+        return this.cancelacionAsignaturaService.rechazarPorDecano(uuid, { observacion: opcional });
       default:
-        return this.subirResolucion().pipe(switchMap(() => this.cancelacionAsignaturaService.enviarRespuesta(uuid)));
+        return this.subirResolucion().pipe(
+          switchMap(() => this.cancelacionAsignaturaService.enviarRespuesta(uuid, { observacion: opcional }))
+        );
     }
   }
 
@@ -402,8 +417,8 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
       const observacion = evaluacion.observacion.trim();
       return {
         asignaturaSolicitudUuid: a.uuidAsignaturaSolicitud,
-        numeroFaltas: leerFaltas(evaluacion.faltas)!,
-        nota: leerNota(evaluacion.nota)!,
+        numeroFaltas: evaluacion.faltas.trim(),
+        nota: evaluacion.nota.trim(),
         situacionMatriculaUuid: evaluacion.situacion!,
         cumpleCondiciones: evaluacion.cumple!,
         observacionEvaluacion: observacion === '' ? null : observacion
@@ -426,9 +441,7 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
 
   private validar(accion: AccionAcademica): Record<string, string> {
     const errores: Record<string, string> = {};
-    const observacionObligatoria =
-      accion === ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO || accion === ACCIONES_ACADEMICAS.RECHAZAR_DECANO;
-    const errorObservacion = errorDeTexto(this.observacion, MAXIMO_CARACTERES_OBSERVACION, observacionObligatoria, 'La observación', true);
+    const errorObservacion = errorDeObservacion(accion, this.observacion);
     if (errorObservacion) errores['observacion'] = errorObservacion;
 
     const exigeResolucion =
@@ -446,14 +459,16 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
     for (const a of this.asignaturas) {
       const uuid = a.uuidAsignaturaSolicitud;
       const evaluacion = this.evaluaciones[uuid];
-      const nota = leerNota(evaluacion?.nota);
-      if (leerFaltas(evaluacion?.faltas) === null) errores[`faltas-${uuid}`] = 'Las faltas deben ser un entero mayor o igual a 0.';
-      if (nota === null) errores[`nota-${uuid}`] = 'La nota debe estar entre 0.0 y 5.0 con un decimal.';
+      const errorFaltas = errorDeFaltas(evaluacion?.faltas);
+      const errorNota = errorDeNotaAsignatura(evaluacion?.nota);
+      const nota = errorNota ? null : numeroDeValor(evaluacion?.nota);
+      if (errorFaltas) errores[`faltas-${uuid}`] = errorFaltas;
+      if (errorNota) errores[`nota-${uuid}`] = errorNota;
       if (!evaluacion?.situacion) errores[`situacion-${uuid}`] = 'Elige la situación en la matrícula.';
       if (evaluacion?.cumple === null || evaluacion?.cumple === undefined) {
         errores[`cumple-${uuid}`] = 'Indica si cumple las condiciones.';
       } else if (evaluacion.cumple && nota !== null && nota < NOTA_MINIMA_PARA_CUMPLIR) {
-        errores[`cumple-${uuid}`] = 'Con nota menor a 3.0 no puede marcarse que cumple las condiciones.';
+        errores[`cumple-${uuid}`] = 'Con una nota numérica menor a 3.0 no puede marcarse que cumple las condiciones.';
       }
       const errorObservacion = errorDeTexto(
         evaluacion?.observacion,
@@ -484,7 +499,7 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
       const errorObservacion = errorDeTexto(
         decision.observacion,
         MAXIMO_CARACTERES_OBSERVACION_ASIGNATURA,
-        !decision.aprobada,
+        false,
         'La observación de la decisión',
         true
       );

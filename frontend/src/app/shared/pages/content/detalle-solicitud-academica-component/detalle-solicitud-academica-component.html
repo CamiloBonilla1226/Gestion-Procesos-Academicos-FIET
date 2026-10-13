@@ -23,7 +23,7 @@
           <h5 class="mb-1">{{ solicitud.radicado }}</h5>
           <span class="text-secondary">{{ solicitud.tipoSolicitud }}</span>
         </div>
-        <span class="badge fs-6" [ngClass]="claseInsigniaEtapa(solicitud.etapaCodigo)" data-estado-solicitud>
+        <span class="badge fs-6" [ngClass]="claseInsignia" data-estado-solicitud>
           {{ solicitud.etiqueta }}
         </span>
       </div>
@@ -43,6 +43,25 @@
       </div>
     </div>
   </section>
+
+  @if (decisionDecano; as decision) {
+  <section class="card" data-decision-decano>
+    <div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+        <h6 class="card-title mb-0">Decisión del Decano</h6>
+        <span class="badge" [ngClass]="decision.aprobada ? 'text-bg-success' : 'text-bg-danger'" data-decision>
+          {{ decision.etiqueta }}
+        </span>
+      </div>
+      <small class="text-secondary d-block">{{ formatearFechaHora(decision.fecha) }}</small>
+      @if (decision.observacion) {
+      <p class="mb-0 mt-2" style="white-space: pre-line;" data-observacion-decano>{{ decision.observacion }}</p>
+      } @else {
+      <p class="mb-0 mt-2 text-secondary" data-sin-observacion-decano>El Decano no dejó observación.</p>
+      }
+    </div>
+  </section>
+  }
 
   <section class="card">
     <div class="card-body">
@@ -106,9 +125,11 @@
             <p class="mb-0 mt-1" style="white-space: pre-line;">{{ entrada.observaciones }}</p>
             }
           </div>
-          <span class="badge rounded-pill" [ngClass]="claseInsigniaEtapa(entrada.etapaCodigo)">
+          @if (!esEstudiante) {
+          <span class="badge rounded-pill" [ngClass]="claseInsigniaEtapa(entrada.etapaCodigo)" data-etapa-historial>
             {{ textoEtapa(entrada.etapaCodigo) }}
           </span>
+          }
         </li>
         }
       </ol>

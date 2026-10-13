@@ -96,7 +96,7 @@ describe('AdminEstudiantesContentComponent', () => {
       nombres: ' Ana ', apellidos: 'Ruiz', tipoDocumento: 'Tarjeta de identidad', numeroDocumento: '1002003',
       telefono: '3101234', correoElectronico: 'ana@unicauca.edu.co', username: 'aruiz', password: CLAVE
     });
-    Object.assign(componente.datosAcademicos, { codigoEstudiantil: '104620', semestre: '2', facultad: 'FIET' });
+    Object.assign(componente.datosAcademicos, { codigoEstudiantil: '104620', semestre: '2' });
     componente.elegirAsignatura(0, 'ISI-001');
     componente.filasMatricula[0].grupo = ' A ';
     componente.agregarFilaAsignatura();
@@ -143,16 +143,20 @@ describe('AdminEstudiantesContentComponent', () => {
     expect(opciones).toContain('ISI-001 - Materia 1');
   });
 
-  it('crea el estudiante con uuidProgramaAcademico y asignaturas por codigo y grupo', () => {
+  it('crea el estudiante con uuidProgramaAcademico y asignaturas por codigo y grupo, sin enviar la facultad', () => {
     const fixture = crear();
     const componente = llenar(fixture);
+    const facultad = document.querySelector('[data-dialogo-crear] [data-facultad]') as HTMLElement;
+    expect(facultad.textContent).toContain('FIET');
+    expect(facultad.querySelector('input')).toBeNull();
+    expect(document.querySelector('[data-dialogo-crear] input[id="Facultad"]')).toBeNull();
     componente.crear();
     const req = http.expectOne(URL);
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({
       nombres: 'Ana', apellidos: 'Ruiz', tipoDocumento: 'Tarjeta de identidad', numeroDocumento: '1002003',
       telefono: '3101234', correoElectronico: 'ana@unicauca.edu.co', username: 'aruiz', password: CLAVE,
-      codigoEstudiantil: '104620', uuidProgramaAcademico: ISI, semestre: '2', facultad: 'FIET',
+      codigoEstudiantil: '104620', uuidProgramaAcademico: ISI, semestre: '2',
       asignaturas: [
         { codigoAsignatura: 'ISI-001', grupo: 'A' },
         { codigoAsignatura: 'ISI-003', grupo: 'B' }
@@ -272,21 +276,74 @@ describe('AdminEstudiantesContentComponent', () => {
     expect(componente.dialogoCrear).toBeFalse();
   });
 
-  it('edita solo codigo estudiantil, semestre y facultad y muestra el programa de solo lectura', () => {
+  it('la edicion trae los datos actuales y deja de solo lectura usuario, programa y facultad', () => {
     const fixture = crear();
     const componente = fixture.componentInstance;
     componente.abrirEditar(componente.filas[0]);
     fixture.detectChanges();
-    expect(document.querySelector('[data-dialogo-editar] [data-programa]')?.textContent).toContain('Ingeniería de Sistemas');
-    expect(document.querySelectorAll('[data-dialogo-editar] input').length).toBe(3);
+    const dialogo = document.querySelector('[data-dialogo-editar]') as HTMLElement;
+    expect(dialogo.querySelector('[data-programa]')?.textContent).toContain('Ingeniería de Sistemas');
+    expect(dialogo.querySelector('[data-username]')?.textContent).toContain('mperez');
+    expect(dialogo.querySelector('[data-facultad]')?.textContent).toContain('FIET');
+    expect(dialogo.querySelector('input[id="Nombre de usuario"]')).toBeNull();
+    expect(dialogo.querySelector('input[id="Contraseña"]')).toBeNull();
+    expect(dialogo.querySelector('input[id="Facultad"]')).toBeNull();
+    expect(componente.datosEdicion.nombres).toBe('María');
+    expect(componente.datosEdicion.tipoDocumento).toBe('Cédula de ciudadanía');
+    expect(componente.edicion).toEqual({ codigoEstudiantil: '1046', semestre: '5' });
+  });
+
+  it('edita con PUT solo los campos que cambiaron, personales y academicos, y un campo vacio no cambia', () => {
+    const componente = crear().componentInstance;
+    componente.abrirEditar(componente.filas[0]);
     componente.editar();
     expect(componente.errores['edicion']).toBeTruthy();
+    http.expectNone(`${URL}/e-1`);
+    componente.datosEdicion.nombres = ' María José ';
+    componente.datosEdicion.tipoDocumento = 'Tarjeta de identidad';
+    componente.datosEdicion.numeroDocumento = '99887766';
+    componente.datosEdicion.telefono = '';
+    componente.datosEdicion.correoElectronico = 'mjose@unicauca.edu.co';
     componente.edicion.semestre = ' 6 ';
-    componente.edicion.facultad = 'FIET';
+    componente.edicion.codigoEstudiantil = '104699';
     componente.editar();
     const req = http.expectOne(`${URL}/e-1`);
     expect(req.request.method).toBe('PUT');
-    expect(req.request.body).toEqual({ semestre: '6', facultad: 'FIET' });
+    expect(req.request.body).toEqual({
+      nombres: 'María José', tipoDocumento: 'Tarjeta de identidad', numeroDocumento: '99887766',
+      correoElectronico: 'mjose@unicauca.edu.co', codigoEstudiantil: '104699', semestre: '6'
+    });
+    expect(req.request.body.facultad).toBeUndefined();
+    expect(req.request.body.username).toBeUndefined();
+    expect(req.request.body.uuidProgramaAcademico).toBeUndefined();
+  });
+
+  it('valida los campos cambiados en la edicion antes de enviar', () => {
+    const componente = crear().componentInstance;
+    componente.abrirEditar(componente.filas[0]);
+    componente.datosEdicion.correoElectronico = 'correo-malo';
+    componente.datosEdicion.telefono = '12';
+    componente.edicion.semestre = '12345678901';
+    componente.editar();
+    expect(componente.errores['correoElectronico']).toContain('formato');
+    expect(componente.errores['telefono']).toContain('entre 5 y 1000');
+    expect(componente.errores['semestre']).toContain('10');
+    http.expectNone(`${URL}/e-1`);
+  });
+
+  it('el codigo 2 del backend al editar queda visible en el dialogo', () => {
+    const fixture = crear();
+    const componente = fixture.componentInstance;
+    componente.abrirEditar(componente.filas[0]);
+    componente.edicion.codigoEstudiantil = '2000';
+    componente.editar();
+    http.expectOne(`${URL}/e-1`).flush(
+      { codigoError: 2, mensaje: 'Ya existe un estudiante con el código estudiantil 2000' },
+      { status: 500, statusText: 'Error' }
+    );
+    fixture.detectChanges();
+    expect(componente.dialogoEditar).toBeTrue();
+    expect(document.querySelector('[data-dialogo-editar] [data-error="servidor"]')?.textContent).toContain('código estudiantil 2000');
   });
 
   it('agrega una matricula eligiendo la asignatura del programa del estudiante con su grupo', () => {
@@ -408,7 +465,7 @@ describe('AdminEstudiantesContentComponent', () => {
     expect(document.querySelector('[data-dialogo-detalle] [data-error="servidor"]')?.textContent).toContain('No se puede cambiar');
   });
 
-  it('la carga de Excel muestra los 14 encabezados, los programas validos y la regla de asignaturas del programa', () => {
+  it('la carga de Excel muestra los 13 encabezados sin facultad, los programas validos y la regla de asignaturas del programa', () => {
     const fixture = crear();
     const componente = fixture.componentInstance;
     componente.abrirExcel();
@@ -416,8 +473,9 @@ describe('AdminEstudiantesContentComponent', () => {
     fixture.detectChanges();
     const encabezados = Array.from(document.querySelectorAll('[data-encabezados] li')).map(li => li.textContent?.trim());
     expect(encabezados).toEqual(ENCABEZADOS_EXCEL_ESTUDIANTES);
-    expect(encabezados.length).toBe(14);
+    expect(encabezados.length).toBe(13);
     expect(encabezados).not.toContain('nombreAsignatura');
+    expect(encabezados).not.toContain('facultad');
     const valores = Array.from(document.querySelectorAll('[data-valores] li')).map(li => li.textContent?.trim());
     expect(valores).toEqual(PROGRAMAS.map(p => p.nombre));
     expect(document.querySelector('[data-reglas]')?.textContent).toContain('ser del programa del estudiante');

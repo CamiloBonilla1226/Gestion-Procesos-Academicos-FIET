@@ -7,5 +7,5 @@ export interface FuncionarioAcademicoDTOPeticion {
   correoElectronico: string;
   username: string;
   password: string;
-  dependencia: string;
+  cargo: string;
 }

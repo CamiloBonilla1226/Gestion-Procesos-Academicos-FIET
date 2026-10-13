@@ -86,7 +86,7 @@ export class AdminResponsablesContentComponent implements OnInit {
           const funcionarios = pagina.content ?? [];
           this.hayMasFuncionarios = (pagina.totalElements ?? 0) > funcionarios.length;
           this.opcionesFuncionario = funcionarios.map(f => ({
-            label: `${f.apellidos} ${f.nombres} - ${f.dependencia}`,
+            label: `${f.apellidos} ${f.nombres} - ${f.cargo}`,
             value: f.uuidUsuario
           }));
           if (this.opcionesFuncionario.length === 0) {

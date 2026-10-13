@@ -16,10 +16,15 @@ const URL = `${API}/examenes-supletorios/s-1`;
 const URL_TIPOS = `${API}/catalogos-academicos/tipos-solicitud/t-sup/tipos-anexo`;
 const URL_ANEXOS = `${API}/solicitudes-academicas/s-1/anexos`;
 
-function solicitud(acciones: string[], etapaCodigo = 'RADICADA', anexos: AnexoAcademicoDTORespuesta[] = []): SolicitudAcademicaDetalleDTORespuesta {
+function solicitud(
+  acciones: string[],
+  etapaCodigo = 'RADICADA',
+  anexos: AnexoAcademicoDTORespuesta[] = [],
+  etiqueta = 'Pendiente'
+): SolicitudAcademicaDetalleDTORespuesta {
   return {
     uuidSolicitudAcademica: 's-1', radicado: '2026-ES-0001', uuidTipoSolicitudAcademica: 't-sup',
-    tipoSolicitud: 'Examen Supletorio', fechaCreacion: '2026-10-08T10:00:00', etiqueta: 'Pendiente', etapaCodigo,
+    tipoSolicitud: 'Examen Supletorio', fechaCreacion: '2026-10-08T10:00:00', etiqueta, etapaCodigo,
     estudiante: {
       uuidUsuario: 'e', nombres: 'María', apellidos: 'Pérez', codigoEstudiantil: '1', programaAcademico: 'P',
       semestre: '1', correoElectronico: 'm@u.co'
@@ -171,7 +176,7 @@ describe('ExamenSupletorioProcesoComponent', () => {
     terminar(req);
   });
 
-  it('el Decano aprueba sin cuerpo o con observacion, y rechaza con observacion obligatoria', () => {
+  it('el Decano aprueba sin cuerpo o con observacion, y rechaza con observacion opcional', () => {
     const componente = crear(solicitud(['APROBAR_DECANO', 'RECHAZAR_DECANO'], 'EN_REVISION_DECANO'), 'DECANO').componentInstance;
     componente.abrir('APROBAR_DECANO');
     componente.confirmar();
@@ -185,21 +190,43 @@ describe('ExamenSupletorioProcesoComponent', () => {
     expect(conObservacion.request.body).toEqual({ observacion: 'Causa justificada' });
     conObservacion.flush(detalleCruce());
     componente.abrir('RECHAZAR_DECANO');
+    componente.observacion = 'a'.repeat(501);
     componente.confirmar();
+    expect(componente.errores['observacion']).toContain('500');
     http.expectNone(`${URL}/decano/rechazar`);
-    componente.observacion = 'No procede';
+    componente.observacion = '';
     componente.confirmar();
     const req = accion('decano/rechazar');
-    expect(req.request.body).toEqual({ observacion: 'No procede' });
+    expect(req.request.body).toEqual({ observacion: null });
     terminar(req);
   });
 
-  it('enviar la respuesta va sin cuerpo y sin Resolucion', () => {
-    const componente = crear(solicitud(['ENVIAR_RESPUESTA'], 'RECHAZADA_POR_DECANO')).componentInstance;
+  it('el modal de rechazo del Decano no tiene asterisco y avisa que solo lo ve el Funcionario', () => {
+    const fixture = crear(solicitud(['RECHAZAR_DECANO'], 'EN_REVISION_DECANO'), 'DECANO');
+    fixture.componentInstance.abrir('RECHAZAR_DECANO');
+    fixture.detectChanges();
+    const campo = document.querySelector('[data-campo-observacion]') as HTMLElement;
+    expect(campo.textContent).toContain('Observación (opcional)');
+    expect(campo.textContent).not.toContain('*');
+    expect(campo.querySelector('[data-aviso-observacion]')?.textContent?.trim()).toBe('Esta observación solo será visible para el Funcionario Académico.');
+  });
+
+  it('enviar la respuesta va sin Resolucion y con el mensaje opcional para el estudiante', () => {
+    const fixture = crear(solicitud(['ENVIAR_RESPUESTA'], 'RECHAZADA_POR_DECANO'));
+    const componente = fixture.componentInstance;
     componente.abrir('ENVIAR_RESPUESTA');
+    fixture.detectChanges();
+    expect(document.querySelector('[data-campo-observacion]')?.textContent).toContain('Mensaje para el estudiante (opcional)');
+    componente.confirmar();
+    const sinMensaje = accion('funcionario/responder');
+    expect(sinMensaje.request.body).toEqual({ observacion: null });
+    sinMensaje.flush(detalleCruce());
+    componente.abrir('ENVIAR_RESPUESTA');
+    componente.observacion = 'Puedes radicar otra solicitud con el soporte completo';
     componente.confirmar();
     const req = accion('funcionario/responder');
-    expect(req.request.body).toBeNull();
+    expect(req.request.body).toEqual({ observacion: 'Puedes radicar otra solicitud con el soporte completo' });
+    http.expectNone(`${API}/solicitudes-academicas/s-1/resolucion`);
     terminar(req);
   });
 
@@ -321,23 +348,38 @@ describe('ExamenSupletorioProcesoComponent', () => {
   });
 
   it('en PENDIENTE_PAGO le indica al Estudiante descargar el recibo, pagar y subir el comprobante', () => {
-    const fixture = crear(solicitud(['SUBIR_COMPROBANTE'], 'PENDIENTE_PAGO', [anexo('u-recibo', 'Recibo de pago')]), 'ESTUDIANTE');
+    const fixture = crear(
+      solicitud(['SUBIR_COMPROBANTE'], 'PENDIENTE_PAGO', [anexo('u-recibo', 'Recibo de pago')], 'Pendiente de pago'),
+      'ESTUDIANTE'
+    );
     const aviso = fixture.nativeElement.querySelector('[data-aviso-etapa="PENDIENTE_PAGO"]').textContent;
     expect(aviso).toContain('Descarga el recibo');
     expect(aviso).toContain('comprobante');
   });
 
   it('en EN_VERIFICACION_PAGO avisa que el comprobante esta en verificacion', () => {
-    const fixture = crear(solicitud([], 'EN_VERIFICACION_PAGO'), 'ESTUDIANTE');
+    const fixture = crear(solicitud([], 'EN_VERIFICACION_PAGO', [], 'En verificación de pago'), 'ESTUDIANTE');
     expect(fixture.nativeElement.querySelector('[data-aviso-etapa="EN_VERIFICACION_PAGO"]').textContent).toContain('verificando');
   });
 
   it('con el comprobante rechazado indica radicar una solicitud nueva', () => {
-    const conComprobante = crear(solicitud([], 'RECHAZADA', [anexo('u-comprobante', 'Comprobante de pago')]), 'ESTUDIANTE');
+    const conComprobante = crear(solicitud([], 'RECHAZADA', [anexo('u-comprobante', 'Comprobante de pago')], 'Rechazada'), 'ESTUDIANTE');
     expect(conComprobante.nativeElement.querySelector('[data-aviso-etapa="COMPROBANTE_RECHAZADO"]').textContent)
       .toContain('radicar una solicitud nueva');
-    const sinComprobante = crear(solicitud([], 'RECHAZADA'), 'ESTUDIANTE');
+    const sinComprobante = crear(solicitud([], 'RECHAZADA', [], 'Rechazada'), 'ESTUDIANTE');
     expect(sinComprobante.nativeElement.querySelector('[data-aviso-etapa]')).toBeNull();
+  });
+
+  it('para el Estudiante los avisos salen de la etiqueta y nunca de etapaCodigo', () => {
+    const porCodigo = crear(solicitud([], 'PENDIENTE_PAGO', [], 'En trámite'), 'ESTUDIANTE');
+    expect(porCodigo.nativeElement.querySelector('[data-aviso-etapa]')).toBeNull();
+    const porEtiqueta = crear(solicitud([], 'EN_REVISION_DECANO', [], 'Pendiente de pago'), 'ESTUDIANTE');
+    expect(porEtiqueta.nativeElement.querySelector('[data-aviso-etapa="PENDIENTE_PAGO"]')).not.toBeNull();
+  });
+
+  it('para el Funcionario los avisos siguen saliendo de etapaCodigo', () => {
+    const fixture = crear(solicitud([], 'EN_VERIFICACION_PAGO', [], 'Pendiente de Verificación'));
+    expect(fixture.nativeElement.querySelector('[data-aviso-etapa="EN_VERIFICACION_PAGO"]').textContent).toContain('espera la verificación');
   });
 
   it('cada accion del supletorio usa su texto en el boton del dialogo', () => {

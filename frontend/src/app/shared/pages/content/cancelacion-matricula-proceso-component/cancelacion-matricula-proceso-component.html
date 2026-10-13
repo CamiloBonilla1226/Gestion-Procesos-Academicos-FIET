@@ -45,7 +45,10 @@
     </p>
     }
     @case (acciones.REMITIR_DECANO) {
-    <p class="mb-0">Registra la evaluación de cada asignatura antes de remitir la solicitud al Decano.</p>
+    <p class="mb-0">
+      Registra la evaluación de cada asignatura antes de remitir la solicitud al Decano. Las faltas y la nota aceptan un
+      número o un texto de hasta 20 caracteres.
+    </p>
     @if (solicitud.tieneResolucion) {
     <div class="alert alert-warning mb-0 py-2">Al remitir se retira el escaneo de la Resolución que estaba cargado.</div>
     }
@@ -114,12 +117,13 @@
     </div>
     }
 
-    @if (accionActiva && accionActiva !== acciones.APROBAR_DECANO && accionActiva !== acciones.ENVIAR_RESPUESTA) {
-    <div>
-      <app-input-text-tarea-component
-        [label]="accionActiva === acciones.REMITIR_DECANO ? 'Observación (opcional)' : 'Observación'"
-        [required]="accionActiva !== acciones.REMITIR_DECANO" [(value)]="observacion">
+    @if (campoObservacion; as campo) {
+    <div data-campo-observacion>
+      <app-input-text-tarea-component [label]="etiquetaObservacion" [required]="campo.obligatoria" [(value)]="observacion">
       </app-input-text-tarea-component>
+      @if (campo.aviso) {
+      <small class="text-secondary d-block" data-aviso-observacion>{{ campo.aviso }}</small>
+      }
       <div class="d-flex justify-content-between">
         <small class="text-danger" data-error="observacion">{{ errores['observacion'] || '' }}</small>
         <small class="text-secondary">{{ observacion.length }}/{{ maximoObservacion }}</small>

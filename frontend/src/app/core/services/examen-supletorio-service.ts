@@ -39,8 +39,8 @@ export class ExamenSupletorioService {
     return this.http.post<ExamenSupletorioDetalleDTORespuesta>(`${this.url}/${uuidSolicitud}/funcionario/remitir`, peticion);
   }
 
-  enviarRespuesta(uuidSolicitud: string): Observable<ExamenSupletorioDetalleDTORespuesta> {
-    return this.http.post<ExamenSupletorioDetalleDTORespuesta>(`${this.url}/${uuidSolicitud}/funcionario/responder`, null);
+  enviarRespuesta(uuidSolicitud: string, peticion?: ObservacionDTOPeticion): Observable<ExamenSupletorioDetalleDTORespuesta> {
+    return this.http.post<ExamenSupletorioDetalleDTORespuesta>(`${this.url}/${uuidSolicitud}/funcionario/responder`, peticion ?? null);
   }
 
   enviarRecibo(uuidSolicitud: string): Observable<ExamenSupletorioDetalleDTORespuesta> {

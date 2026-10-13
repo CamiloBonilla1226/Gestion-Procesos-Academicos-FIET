@@ -17,8 +17,8 @@ const TIPOS = [
 
 const FUNCIONARIOS = {
   content: [
-    { uuidUsuario: 'f-1', nombres: 'Ana', apellidos: 'Ruiz', dependencia: 'Vicedecanatura' },
-    { uuidUsuario: 'f-2', nombres: 'Luis', apellidos: 'Mora', dependencia: 'Secretaría' }
+    { uuidUsuario: 'f-1', nombres: 'Ana', apellidos: 'Ruiz', cargo: 'Vicedecanatura' },
+    { uuidUsuario: 'f-2', nombres: 'Luis', apellidos: 'Mora', cargo: 'Secretaría' }
   ],
   totalElements: 2
 };

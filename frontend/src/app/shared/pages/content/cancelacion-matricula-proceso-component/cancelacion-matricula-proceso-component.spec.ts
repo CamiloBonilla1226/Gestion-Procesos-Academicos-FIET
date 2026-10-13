@@ -31,7 +31,7 @@ const DETALLE: CancelacionMatriculaDetalleDTORespuesta = {
   motivoCancelacion: 'Motivos de salud',
   asignaturas: [
     { uuidAsignaturaSolicitud: 'as-1', codigoAsignatura: 'A1', nombreAsignatura: 'Cálculo', numeroFaltas: null, nota: null, situacionMatricula: null, situacionCancelar: null },
-    { uuidAsignaturaSolicitud: 'as-2', codigoAsignatura: 'A2', nombreAsignatura: 'Física', numeroFaltas: 2, nota: 3.5,
+    { uuidAsignaturaSolicitud: 'as-2', codigoAsignatura: 'A2', nombreAsignatura: 'Física', numeroFaltas: '2', nota: '3.5',
       situacionMatricula: { uuidSituacionAcademica: 'r1', codigo: 'R1', nombre: 'Aprobada' }, situacionCancelar: null }
   ]
 };
@@ -94,7 +94,7 @@ describe('CancelacionMatriculaProcesoComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-motivo]').textContent).toContain('Motivos de salud');
     const filas = fixture.nativeElement.querySelectorAll('tbody tr');
     expect(filas.length).toBe(2);
-    expect(filas[1].textContent).toContain('3,5');
+    expect(filas[1].textContent).toContain('3.5');
     expect(filas[1].textContent).toContain('R1 - Aprobada');
     expect(filas[0].textContent).toContain('Sin registrar');
     expect(fixture.nativeElement.querySelector('[data-acciones]')).toBeNull();
@@ -166,6 +166,30 @@ describe('CancelacionMatriculaProcesoComponent', () => {
     expect(componente.errores['resolucion']).toContain('pdf');
   });
 
+  it('remitir acepta faltas y nota de texto y rechaza las de mas de 20 caracteres', () => {
+    cancelaciones.remitirADecano.and.returnValue(of(DETALLE));
+    const fixture = crear(solicitud(['REMITIR_DECANO']));
+    const componente = fixture.componentInstance;
+    componente.abrir('REMITIR_DECANO');
+    fixture.detectChanges();
+    expect(document.querySelectorAll('[data-campo-observacion]').length).toBe(1);
+    expect(document.querySelector('[data-campo-observacion]')?.textContent).toContain('Observación para el Decano (opcional)');
+    componente.evaluaciones['as-1'] = { faltas: 'f'.repeat(21), nota: 'Sin nota', situacion: 'r0' };
+    componente.confirmar();
+    expect(componente.errores['faltas-as-1']).toContain('20');
+    expect(componente.errores['nota-as-1']).toBeUndefined();
+    componente.evaluaciones['as-1'] = { faltas: 'No registra', nota: 'Sin nota', situacion: 'r0' };
+    componente.observacion = ' Para revisar ';
+    componente.confirmar();
+    expect(cancelaciones.remitirADecano).toHaveBeenCalledWith('s-1', {
+      observacion: 'Para revisar',
+      evaluaciones: [
+        { asignaturaSolicitudUuid: 'as-1', numeroFaltas: 'No registra', nota: 'Sin nota', situacionMatriculaUuid: 'r0' },
+        { asignaturaSolicitudUuid: 'as-2', numeroFaltas: '2', nota: '3.5', situacionMatriculaUuid: 'r1' }
+      ]
+    });
+  });
+
   it('remitir valida faltas, nota y situacion de cada asignatura y envia los numeros', () => {
     cancelaciones.remitirADecano.and.returnValue(of(DETALLE));
     const componente = crear(solicitud(['REMITIR_DECANO'])).componentInstance;
@@ -183,8 +207,8 @@ describe('CancelacionMatriculaProcesoComponent', () => {
     expect(cancelaciones.remitirADecano).toHaveBeenCalledWith('s-1', {
       observacion: null,
       evaluaciones: [
-        { asignaturaSolicitudUuid: 'as-1', numeroFaltas: 4, nota: 2.8, situacionMatriculaUuid: 'r0' },
-        { asignaturaSolicitudUuid: 'as-2', numeroFaltas: 2, nota: 3.5, situacionMatriculaUuid: 'r1' }
+        { asignaturaSolicitudUuid: 'as-1', numeroFaltas: '4', nota: '2,8', situacionMatriculaUuid: 'r0' },
+        { asignaturaSolicitudUuid: 'as-2', numeroFaltas: '2', nota: '3.5', situacionMatriculaUuid: 'r1' }
       ]
     });
     expect(recargar).toHaveBeenCalled();
@@ -203,22 +227,54 @@ describe('CancelacionMatriculaProcesoComponent', () => {
       situaciones: [
         { asignaturaSolicitudUuid: 'as-1', situacionCancelarUuid: 'r0' },
         { asignaturaSolicitudUuid: 'as-2', situacionCancelarUuid: 'r1' }
-      ]
+      ],
+      observacion: null
     });
   });
 
-  it('el rechazo del Decano exige observacion', () => {
-    cancelaciones.rechazarPorDecano.and.returnValue(of(DETALLE));
-    const componente = crear(solicitud(['RECHAZAR_DECANO'], false, 'EN_REVISION_DECANO'), 'DECANO').componentInstance;
-    componente.abrir('RECHAZAR_DECANO');
+  it('aprobar acepta una observacion opcional que solo ve el Funcionario', () => {
+    cancelaciones.aprobarPorDecano.and.returnValue(of(DETALLE));
+    const fixture = crear(solicitud(['APROBAR_DECANO'], false, 'EN_REVISION_DECANO'), 'DECANO');
+    const componente = fixture.componentInstance;
+    componente.abrir('APROBAR_DECANO');
+    fixture.detectChanges();
+    expect(document.querySelector('[data-aviso-observacion]')?.textContent).toContain('Esta observación solo será visible para el Funcionario Académico.');
+    componente.situacionesCancelar['as-1'] = 'r0';
+    componente.situacionesCancelar['as-2'] = 'r1';
+    componente.observacion = 'Cumple todo';
     componente.confirmar();
-    expect(cancelaciones.rechazarPorDecano).not.toHaveBeenCalled();
-    componente.observacion = 'No procede';
-    componente.confirmar();
-    expect(cancelaciones.rechazarPorDecano).toHaveBeenCalledWith('s-1', { observacion: 'No procede' });
+    expect(cancelaciones.aprobarPorDecano.calls.mostRecent().args[1].observacion).toBe('Cumple todo');
   });
 
-  it('enviar la respuesta exige el escaneo y luego responde sin cuerpo', () => {
+  it('el rechazo del Decano no exige observacion y avisa que solo la ve el Funcionario', () => {
+    cancelaciones.rechazarPorDecano.and.returnValue(of(DETALLE));
+    const fixture = crear(solicitud(['RECHAZAR_DECANO'], false, 'EN_REVISION_DECANO'), 'DECANO');
+    const componente = fixture.componentInstance;
+    componente.abrir('RECHAZAR_DECANO');
+    fixture.detectChanges();
+    const campo = document.querySelector('[data-campo-observacion]') as HTMLElement;
+    expect(campo.textContent).not.toContain('*');
+    expect(campo.querySelector('[data-aviso-observacion]')?.textContent?.trim()).toBe('Esta observación solo será visible para el Funcionario Académico.');
+    componente.confirmar();
+    expect(cancelaciones.rechazarPorDecano).toHaveBeenCalledWith('s-1', { observacion: null });
+  });
+
+  it('enviar la respuesta manda el mensaje para el estudiante de hasta 500 caracteres', () => {
+    cancelaciones.enviarRespuesta.and.returnValue(of(DETALLE));
+    const fixture = crear(solicitud(['ENVIAR_RESPUESTA'], true, 'RECHAZADA_POR_DECANO'));
+    const componente = fixture.componentInstance;
+    componente.abrir('ENVIAR_RESPUESTA');
+    fixture.detectChanges();
+    expect(document.querySelector('[data-campo-observacion]')?.textContent).toContain('Mensaje para el estudiante (opcional)');
+    componente.observacion = 'x'.repeat(501);
+    componente.confirmar();
+    expect(componente.errores['observacion']).toContain('500');
+    componente.observacion = 'Puede radicar de nuevo el próximo periodo';
+    componente.confirmar();
+    expect(cancelaciones.enviarRespuesta).toHaveBeenCalledWith('s-1', { observacion: 'Puede radicar de nuevo el próximo periodo' });
+  });
+
+  it('enviar la respuesta exige el escaneo y luego responde sin mensaje', () => {
     solicitudes.adjuntarResolucion.and.returnValue(of({ uuidSolicitudAcademica: 's-1', nombreArchivo: 'r.pdf', fechaSubida: '' }));
     cancelaciones.enviarRespuesta.and.returnValue(of(DETALLE));
     const componente = crear(solicitud(['ENVIAR_RESPUESTA'], false, 'APROBADA_POR_DECANO')).componentInstance;
@@ -229,7 +285,7 @@ describe('CancelacionMatriculaProcesoComponent', () => {
     componente.alSeleccionarResolucion(new File(['%PDF-'], 'resolucion.pdf'), entrada);
     componente.confirmar();
     expect(solicitudes.adjuntarResolucion).toHaveBeenCalledWith('s-1', jasmine.any(File));
-    expect(cancelaciones.enviarRespuesta).toHaveBeenCalledWith('s-1');
+    expect(cancelaciones.enviarRespuesta).toHaveBeenCalledWith('s-1', { observacion: null });
     expect(recargar).toHaveBeenCalled();
   });
 
