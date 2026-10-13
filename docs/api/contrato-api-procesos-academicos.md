@@ -226,7 +226,10 @@ por ejemplo `ISI-001`), `nombreAsignatura`, `uuidProgramaAcademico` y
 `uuidSolicitudAcademica`, `radicado`, `uuidTipoSolicitudAcademica`,
 `tipoSolicitud` (nombre del tipo), `fechaCreacion` (fecha y hora),
 `etiqueta`, `etapaCodigo`, `nombreEstudiante` (nombres y apellidos),
-`codigoEstudiantil`.
+`codigoEstudiantil`, `numeroDocumento` (número de documento del estudiante;
+llega en las bandejas del Funcionario Académico y del Decano y sale `null` en
+la del Estudiante, P42). Las bandejas no tienen parámetros de búsqueda: el
+filtro se hace en el cliente.
 
 **SolicitudAcademicaDetalleDTORespuesta** (detalle común):
 

@@ -21,4 +21,5 @@ public class SolicitudAcademicaResumenDTORespuesta {
     private String etapaCodigo;
     private String nombreEstudiante;
     private String codigoEstudiantil;
+    private String numeroDocumento;
 }

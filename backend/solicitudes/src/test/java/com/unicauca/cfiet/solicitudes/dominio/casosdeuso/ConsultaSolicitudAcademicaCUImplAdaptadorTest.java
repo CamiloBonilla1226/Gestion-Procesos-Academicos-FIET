@@ -255,6 +255,31 @@ class ConsultaSolicitudAcademicaCUImplAdaptadorTest {
                 casoDeUso.getBandejaDecano(token(DECANO)).stream().map(ResumenSolicitudAcademica::getEtapaCodigo).toList());
     }
 
+    private SolicitudAcademica conDocumento(String codigoEtapa, String numeroDocumento) {
+        SolicitudAcademica solicitud = solicitud(codigoEtapa);
+        solicitud.setEstudiante(Estudiante.builder().uuidUsuario(ESTUDIANTE)
+                .usuario(Usuario.builder().uuidUsuario(ESTUDIANTE).numeroDocumento(numeroDocumento).build()).build());
+        return solicitud;
+    }
+
+    @Test
+    void elFuncionarioYElDecanoVenElNumeroDeDocumentoEnLaBandejaYElEstudianteNo() {
+        when(gateway.getPorEstudiante(ESTUDIANTE)).thenReturn(List.of(conDocumento(EN_REVISION_DECANO, "1061789234")));
+        when(gateway.getPorFuncionarioAcademico(FUNCIONARIO)).thenReturn(List.of(conDocumento(RADICADA, "1061789234")));
+        when(gateway.getTodas()).thenReturn(List.of(conDocumento(EN_REVISION_DECANO, "1061789234")));
+
+        assertNull(casoDeUso.getBandejaEstudiante(token(ESTUDIANTE)).get(0).getNumeroDocumento());
+        assertEquals("1061789234", casoDeUso.getBandejaFuncionario(token(FUNCIONARIO)).get(0).getNumeroDocumento());
+        assertEquals("1061789234", casoDeUso.getBandejaDecano(token(DECANO)).get(0).getNumeroDocumento());
+    }
+
+    @Test
+    void sinUsuarioDelEstudianteElNumeroDeDocumentoQuedaNulo() {
+        when(gateway.getPorFuncionarioAcademico(FUNCIONARIO)).thenReturn(List.of(solicitud(RADICADA)));
+
+        assertNull(casoDeUso.getBandejaFuncionario(token(FUNCIONARIO)).get(0).getNumeroDocumento());
+    }
+
     @Test
     void enElDetalleElEstudianteVeLaDecisionDelDecanoComoEnRevisionYLosDemasElCodigoReal() {
         for (String etapa : List.of(APROBADA_POR_DECANO, RECHAZADA_POR_DECANO)) {

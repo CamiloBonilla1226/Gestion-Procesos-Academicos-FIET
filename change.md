@@ -2,6 +2,24 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-13 - Número de documento en el resumen de las bandejas (Tarea T12.5)
+- Qué se hizo: `SolicitudAcademicaResumenDTORespuesta` lleva `numeroDocumento` del estudiante en las bandejas del Funcionario Académico y del Decano; en la del Estudiante sale nulo. Lo decide el caso de uso por rol y el mapper lo copia del resumen. Se confirmó que el enmascaramiento de la decisión del Decano para el Estudiante (T12.4, P41) sigue cubierto por sus pruebas unitarias y de humo.
+- Archivos:
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/modelos/ResumenSolicitudAcademica.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/ConsultaSolicitudAcademicaCUImplAdaptador.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorSolicitudesAcademicas/DTORespuesta/SolicitudAcademicaResumenDTORespuesta.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorSolicitudesAcademicas/mapeador/MapperSolicitudAcademicaInfraestructuraDominio.java` (modificado)
+  - `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/ConsultaSolicitudAcademicaCUImplAdaptadorTest.java` (modificado)
+  - `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorSolicitudesAcademicas/MapperSolicitudAcademicaInfraestructuraDominioTest.java` (modificado)
+  - `backend/pruebas/t5_solicitudes.ps1` (modificado)
+  - `docs/api/contrato-api-procesos-academicos.md` (modificado)
+  - `docs/database/etapas-por-proceso.md` (modificado)
+  - `backend/CLAUDE.md` (modificado)
+- Notas:
+  - Decisión P42 en `etapas-por-proceso.md`. No cambia ninguna tabla, así que el diccionario no se toca.
+  - Las bandejas no tienen filtro ni parámetro de búsqueda en el backend; el filtro es del cliente. El cambio del filtro de la bandeja en el frontend queda para T12.2-C.
+  - Pruebas unitarias: 1207 (antes 1204), sin fallos. Humo: `todo.ps1` con 1236 PASS y 0 FAIL (antes 1233); `t5_solicitudes` pasa de 70 a 73.
+
 ## 2026-10-13 - Rediseño visual, parte 1: base, layout, listados y Mi usuario (Tarea T12.2-B)
 - Qué se hizo:
   - Base: tokens del diseño en `:root` de `src/styles.css` (navy, acento, panel, líneas, texto, fuente "Segoe UI"/"Nunito Sans"/sistema) y ajuste de PrimeNG con variables; la fuente `var(--fuente)` reemplaza a Titillium Web en todos los `.css`.

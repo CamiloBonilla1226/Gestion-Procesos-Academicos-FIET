@@ -76,6 +76,23 @@ class MapperSolicitudAcademicaInfraestructuraDominioTest {
     }
 
     @Test
+    void elNumeroDeDocumentoSaleDelResumenYNoDelUsuarioDeLaSolicitud() {
+        SolicitudAcademica solicitud = solicitud("s1", "RADICADA");
+        solicitud.setEstudiante(Estudiante.builder().codigoEstudiantil("104622010148")
+                .usuario(Usuario.builder().nombres("Laura").apellidos("Muñoz").numeroDocumento("1061789234").build()).build());
+
+        SolicitudAcademicaResumenDTORespuesta conDocumento = mapper.mapearResumenARespuesta(ResumenSolicitudAcademica.builder()
+                .solicitudAcademica(solicitud).etiqueta("Pendiente").numeroDocumento("1061789234").build());
+        SolicitudAcademicaResumenDTORespuesta sinDocumento = mapper.mapearResumenARespuesta(ResumenSolicitudAcademica.builder()
+                .solicitudAcademica(solicitud).etiqueta("En trámite").build());
+
+        assertEquals("1061789234", conDocumento.getNumeroDocumento());
+        assertEquals("104622010148", conDocumento.getCodigoEstudiantil());
+        assertNull(sinDocumento.getNumeroDocumento());
+        assertEquals("Laura Muñoz", sinDocumento.getNombreEstudiante());
+    }
+
+    @Test
     void cadaFilaDelHistorialTraeElCodigoDeLaEtapaALaQueLlevo() {
         List<HistorialSolicitudAcademicaDTORespuesta> historial = mapper.mapearHistorialARespuesta(List.of(
                 HistorialSolicitudAcademica.builder().accion("RADICAR").etapaCodigo("RADICADA").observaciones("Radicada").build(),

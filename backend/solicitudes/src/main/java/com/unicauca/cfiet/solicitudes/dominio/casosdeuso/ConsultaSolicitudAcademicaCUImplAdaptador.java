@@ -204,8 +204,15 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
                         .solicitudAcademica(solicitud)
                         .etiqueta(etiquetas.get(solicitud.getEtapa().getUuidEtapa()))
                         .etapaCodigo(etapaVisible(solicitud.getEtapa().getCodigo(), rol))
+                        .numeroDocumento(rol == RolEtiquetaEtapa.ESTUDIANTE ? null : numeroDocumento(solicitud))
                         .build())
                 .toList();
+    }
+
+    private String numeroDocumento(SolicitudAcademica solicitud) {
+        Estudiante estudiante = solicitud.getEstudiante();
+        Usuario usuario = estudiante == null ? null : estudiante.getUsuario();
+        return usuario == null ? null : usuario.getNumeroDocumento();
     }
 
     private Map<String, String> etiquetas(RolEtiquetaEtapa rol) {

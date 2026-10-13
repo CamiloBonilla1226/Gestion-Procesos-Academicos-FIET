@@ -46,6 +46,7 @@ function Nuevo-Estudiante {
     return [pscustomobject]@{
         Uuid    = $creado.uuidUsuario
         Codigo  = $asignatura.codigoAsignatura
+        Documento = $cuerpo.numeroDocumento
         Token   = Iniciar-Sesion -Usuario "sol$s" -Clave "Clave12345"
     }
 }
@@ -202,6 +203,8 @@ try {
     Escribir-Resultado "cada item trae la etiqueta del estudiante y el codigo de etapa en su propio campo (obtuvo $($item.etiqueta), $($item.etapaCodigo))" (($item.etiqueta -eq $enTramite) -and ($item.etapaCodigo -eq "RADICADA") -and ($r.Body -notmatch '"codigo"'))
     Escribir-Resultado "el item trae radicado y tipo" (($item.radicado -eq "1999-CM-$n") -and ($item.uuidTipoSolicitudAcademica -eq $tipoCm))
     Escribir-Resultado "la bandeja del estudiante 1 trae etapaCodigo RADICADA en sus dos items (obtuvo $(Codigos-DeLista $r))" ((Codigos-DeLista $r) -eq "$($s4):RADICADA,$($s1):RADICADA")
+    $documentos = @(@(Leer-Json $r) | Where-Object { $null -ne $_.numeroDocumento })
+    Escribir-Resultado "la bandeja del estudiante no trae numeroDocumento (con valor: $($documentos.Count))" (($documentos.Count -eq 0) -and ($r.Body -notmatch [regex]::Escape($est1.Documento)))
     $r = Invoke-Api -Metodo GET -Ruta "$Global:Ruta/estudiante" -Token $est2.Token
     $lista = @(Uuids-DeLista $r)
     Escribir-Resultado "el estudiante 2 solo ve la suya (obtuvo $($lista -join ','))" (($lista.Count -eq 1) -and ($lista[0] -eq $s3))
@@ -221,6 +224,8 @@ try {
     Escribir-Resultado "el funcionario asignado ve las de su tipo en orden (obtuvo $($lista -join ','))" (($r.Status -eq 200) -and ($lista.Count -eq 2) -and ($lista[0] -eq $s3) -and ($lista[1] -eq $s1))
     $item = @(Leer-Json $r) | Where-Object { $_.uuidSolicitudAcademica -eq $s1 }
     Escribir-Resultado "el funcionario ve su etiqueta Pendiente (obtuvo $($item.etiqueta))" ($item.etiqueta -eq "Pendiente")
+    $itemS3 = @(Leer-Json $r) | Where-Object { $_.uuidSolicitudAcademica -eq $s3 }
+    Escribir-Resultado "la bandeja del funcionario trae el numeroDocumento de cada estudiante (obtuvo $($item.numeroDocumento), $($itemS3.numeroDocumento))" (($item.numeroDocumento -eq $est1.Documento) -and ($itemS3.numeroDocumento -eq $est2.Documento))
     Escribir-Resultado "la bandeja del funcionario trae el etapaCodigo de cada una (obtuvo $(Codigos-DeLista $r $solicitudes))" ((Codigos-DeLista $r $solicitudes) -eq "$($s3):EN_REVISION_DECANO,$($s1):RADICADA")
     $r = Invoke-Api -Metodo GET -Ruta "$Global:Ruta/funcionario" -Token $fa2.Token
     $lista = @(Uuids-DeLista $r | Where-Object { $solicitudes -contains $_ })
@@ -232,6 +237,8 @@ try {
     $lista = @(Uuids-DeLista $r | Where-Object { $solicitudes -contains $_ })
     Escribir-Resultado "el Decano ve la que esta en revision y no las radicadas (obtuvo $($lista -join ','))" (($r.Status -eq 200) -and ($lista.Count -eq 1) -and ($lista[0] -eq $s3))
     Escribir-Resultado "la bandeja del Decano trae etapaCodigo EN_REVISION_DECANO (obtuvo $(Codigos-DeLista $r $solicitudes))" ((Codigos-DeLista $r $solicitudes) -eq "$($s3):EN_REVISION_DECANO")
+    $itemS3 = @(Leer-Json $r) | Where-Object { $_.uuidSolicitudAcademica -eq $s3 }
+    Escribir-Resultado "la bandeja del Decano trae el numeroDocumento del estudiante (obtuvo $($itemS3.numeroDocumento))" ($itemS3.numeroDocumento -eq $est2.Documento)
     $r = Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$s1" -Token $decano.Token
     Escribir-Resultado "el Decano no ve el detalle de una radicada" ((Firma-Error $r $s1) -eq $firmaNoExiste)
     Escribir-Resultado "esa respuesta no deja ver el codigo de la etapa" (($r.Body -notmatch 'etapaCodigo') -and ($r.Body -notmatch 'RADICADA'))
