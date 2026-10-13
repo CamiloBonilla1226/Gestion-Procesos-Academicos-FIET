@@ -1,6 +1,7 @@
 package com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.mapeador;
 
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
+import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTOPeticion.AjusteAsignaturaDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTOPeticion.DecisionAsignaturaDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTOPeticion.EvaluacionCancelacionAsignaturaDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTORespuesta.*;
@@ -54,8 +55,17 @@ public class MapperCancelacionAsignaturaInfraestructuraDominio {
                 .map(decision -> decision == null ? null : DecisionAsignatura.builder()
                         .uuidAsignaturaSolicitud(decision.getAsignaturaSolicitudUuid())
                         .aprobada(decision.getAprobada())
-                        .uuidSituacionCancelar(decision.getSituacionCancelarUuid())
-                        .observacionDecision(decision.getObservacionDecision())
+                        .build())
+                .toList();
+    }
+
+    public List<AjusteAsignatura> mapearAjustes(List<AjusteAsignaturaDTOPeticion> ajustes) {
+        if (ajustes == null) return null;
+        return ajustes.stream()
+                .map(ajuste -> ajuste == null ? null : AjusteAsignatura.builder()
+                        .uuidAsignaturaSolicitud(ajuste.getAsignaturaSolicitudUuid())
+                        .uuidSituacionCancelar(ajuste.getSituacionCancelarUuid())
+                        .observacionDecision(ajuste.getObservacionDecision())
                         .build())
                 .toList();
     }
@@ -107,6 +117,7 @@ public class MapperCancelacionAsignaturaInfraestructuraDominio {
                 .observacionEvaluacion(asignatura.getObservacionEvaluacion())
                 .aprobadaPorDecano(asignatura.getAprobadaPorDecano())
                 .observacionDecision(asignatura.getObservacionDecision())
+                .decisionCambiadaPorDecano(asignatura.decisionCambiadaPorDecano())
                 .situacionCancelar(mapearSituacionARespuesta(asignatura.getSituacionCancelar()))
                 .build();
         AsignaturaMatriculada matriculada = asignatura.getAsignaturaMatriculada();

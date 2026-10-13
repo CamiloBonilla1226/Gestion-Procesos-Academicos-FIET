@@ -194,7 +194,7 @@ class ConsultaCancelacionAsignaturaCUImplAdaptadorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"APROBADA", "RECHAZADA"})
-    void enLaEtapaFinalElEstudianteVeElResultadoPorAsignaturaPeroNuncaLasObservaciones(String etapa) {
+    void enLaEtapaFinalElEstudianteVeElResultadoYLaObservacionDeLaDecisionPeroNoLaEvaluacion(String etapa) {
         cancelacionEn(etapa, RolEtiquetaEtapa.ESTUDIANTE);
 
         List<AsignaturaSolicitudAcademica> asignaturas = casoDeUso.getDetalle(SOLICITUD, TOKEN).getAsignaturas();
@@ -202,11 +202,25 @@ class ConsultaCancelacionAsignaturaCUImplAdaptadorTest {
         assertTrue(asignaturas.get(0).getAprobadaPorDecano());
         assertNull(asignaturas.get(0).getObservacionDecision());
         assertFalse(asignaturas.get(1).getAprobadaPorDecano());
-        assertNull(asignaturas.get(1).getObservacionDecision());
+        assertEquals("No procede", asignaturas.get(1).getObservacionDecision());
         assertNull(asignaturas.get(1).getObservacionEvaluacion());
         assertNull(asignaturas.get(1).getCumpleCondiciones());
+        assertNull(asignaturas.get(1).decisionCambiadaPorDecano());
         assertNull(asignaturas.get(0).getNota());
         assertNull(asignaturas.get(0).getSituacionCancelar());
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = RolEtiquetaEtapa.class, names = {"FUNCIONARIO", "DECANO"})
+    void elFuncionarioYElDecanoVenSiElDecanoCambioLaEvaluacion(RolEtiquetaEtapa rol) {
+        cancelacionEn("APROBADA_POR_DECANO", rol);
+        AsignaturaSolicitudAcademica cambiada = evaluada("as-3", false);
+        cambiada.setAprobadaPorDecano(true);
+        gateway.getPorSolicitud(SOLICITUD).getAsignaturas().add(cambiada);
+
+        List<AsignaturaSolicitudAcademica> asignaturas = casoDeUso.getDetalle(SOLICITUD, TOKEN).getAsignaturas();
+
+        assertEquals(List.of(false, false, true), asignaturas.stream().map(AsignaturaSolicitudAcademica::decisionCambiadaPorDecano).toList());
     }
 
     @Test

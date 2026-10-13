@@ -87,8 +87,12 @@ public class MensajesError {
     public static final String NOTA_INSUFICIENTE_CUMPLE = "La asignatura %s tiene nota %s, menor a 3.0, y no puede marcarse como que cumple las condiciones...";
     public static final String OBSERVACION_EVALUACION_REQUERIDA = "La asignatura %s no cumple las condiciones y requiere una observación de la evaluación...";
     public static final String NINGUNA_ASIGNATURA_CUMPLE = "Ninguna asignatura cumple las condiciones: en lugar de remitir la solicitud al Decano debe rechazarla...";
-    public static final String ASIGNATURA_NO_APROBABLE = "La asignatura %s no cumple las condiciones y su cancelación no se puede aprobar...";
     public static final String NINGUNA_ASIGNATURA_APROBADA = "No se aprobó ninguna asignatura: para negar la solicitud completa use el rechazo del Decano...";
+    public static final String FORMA_APROBACION_DECANO = "Debe aceptar la evaluación del funcionario (aceptarEvaluacion) o enviar la decisión de cada asignatura (decisiones), una de las dos...";
+    public static final String AJUSTE_ASIGNATURA_FALTANTE = "El Decano cambió la evaluación de la asignatura %s y falta su ajuste...";
+    public static final String SITUACION_CANCELAR_RECHAZADA = "La asignatura %s fue rechazada por el Decano y no lleva situación al cancelar...";
+    public static final String AJUSTES_SOLICITUD_RECHAZADA = "La solicitud %s fue rechazada por el Decano y no admite ajustes por asignatura...";
+    public static final String OBSERVACION_RESPUESTA_REQUERIDA = "El Decano rechazó la solicitud o alguna de sus asignaturas: la respuesta al estudiante requiere una observación...";
     public static final String VALOR_ASIGNATURA_MUY_LARGO = "En la asignatura %s, %s supera los %d caracteres permitidos...";
     public static final String OBSERVACION_ASIGNATURA_MUY_LARGA = "%s de la asignatura %s supera los %d caracteres permitidos...";
     public static final String ASIGNATURA_SUPLETORIO_REQUERIDA = "Debe elegir la asignatura del examen no presentado...";

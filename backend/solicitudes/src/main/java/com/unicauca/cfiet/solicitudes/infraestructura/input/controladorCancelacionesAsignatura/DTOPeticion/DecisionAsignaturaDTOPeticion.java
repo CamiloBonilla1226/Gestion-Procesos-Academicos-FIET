@@ -12,6 +12,4 @@ import lombok.NoArgsConstructor;
 public class DecisionAsignaturaDTOPeticion {
     private String asignaturaSolicitudUuid;
     private Boolean aprobada;
-    private String situacionCancelarUuid;
-    private String observacionDecision;
 }

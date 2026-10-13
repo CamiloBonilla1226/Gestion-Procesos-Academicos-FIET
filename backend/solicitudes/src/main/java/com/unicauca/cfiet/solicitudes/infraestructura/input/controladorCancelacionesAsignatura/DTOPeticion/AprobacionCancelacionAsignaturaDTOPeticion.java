@@ -13,6 +13,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AprobacionCancelacionAsignaturaDTOPeticion {
+    private Boolean aceptarEvaluacion;
     @Valid
     private List<DecisionAsignaturaDTOPeticion> decisiones;
     private String observacion;

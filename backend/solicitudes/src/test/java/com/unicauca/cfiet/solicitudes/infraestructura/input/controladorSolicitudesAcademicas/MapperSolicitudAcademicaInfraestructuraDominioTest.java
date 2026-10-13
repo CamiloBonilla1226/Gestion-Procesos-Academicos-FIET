@@ -110,6 +110,25 @@ class MapperSolicitudAcademicaInfraestructuraDominioTest {
     }
 
     @Test
+    void elCodigoEstudiantilSaleDelEstudianteDuenoEnElResumenYEnElDetalle() {
+        SolicitudAcademica solicitud = solicitud("s1", "RADICADA");
+        solicitud.setEstudiante(Estudiante.builder().codigoEstudiantil("104622010148")
+                .usuario(Usuario.builder().nombres("Laura").apellidos("Muñoz").build()).build());
+
+        SolicitudAcademicaResumenDTORespuesta resumen = mapper.mapearResumenARespuesta(ResumenSolicitudAcademica.builder()
+                .solicitudAcademica(solicitud).etiqueta("Pendiente").numeroDocumento("1061789234").build());
+        SolicitudAcademicaDetalleDTORespuesta detalle = mapper.mapearDetalleARespuesta(DetalleSolicitudAcademica.builder()
+                .solicitudAcademica(solicitud).etiqueta("Pendiente").numeroDocumento("1061789234").build());
+        SolicitudAcademicaDetalleDTORespuesta sinEstudiante = mapper.mapearDetalleARespuesta(DetalleSolicitudAcademica.builder()
+                .solicitudAcademica(solicitud("s2", "RADICADA")).etiqueta("Pendiente").build());
+
+        assertEquals("104622010148", resumen.getCodigoEstudiantil());
+        assertEquals("104622010148", detalle.getCodigoEstudiantil());
+        assertEquals("104622010148", detalle.getEstudiante().getCodigoEstudiantil());
+        assertNull(sinEstudiante.getCodigoEstudiantil());
+    }
+
+    @Test
     void cadaFilaDelHistorialTraeElCodigoDeLaEtapaALaQueLlevo() {
         List<HistorialSolicitudAcademicaDTORespuesta> historial = mapper.mapearHistorialARespuesta(List.of(
                 HistorialSolicitudAcademica.builder().accion("RADICAR").etapaCodigo("RADICADA").observaciones("Radicada").build(),

@@ -365,7 +365,7 @@ ninguna FK de la extensión apunta al Decano (el historial apunta a
 ## Procesos académicos: piezas y máquina de etapas
 
 Las reglas de negocio de los tres procesos (etapas, transiciones, anexos,
-plazos y decisiones P4 a P44) están en `docs/database/etapas-por-proceso.md`;
+plazos y decisiones P4 a P45) están en `docs/database/etapas-por-proceso.md`;
 el contrato HTTP, en `docs/api/contrato-api-procesos-academicos.md`.
 
 ### Casos de uso por área
@@ -425,8 +425,10 @@ el código real.
 El resumen de las bandejas lleva `numeroDocumento` del estudiante para
 Funcionario y Decano y nulo para el Estudiante (P42). Lo decide `resumir` en
 el caso de uso y va en `ResumenSolicitudAcademica.numeroDocumento`; el mapper
-lo copia de ahí, no del usuario de la solicitud. El detalle común hace lo
-mismo (P43): `getDetalle` lo pone en `DetalleSolicitudAcademica.numeroDocumento`
+lo copia de ahí, no del usuario de la solicitud. `codigoEstudiantil` va en el
+resumen y en el nivel superior del detalle común para los tres roles; el
+mapper lo toma del estudiante de la solicitud. El detalle común hace lo
+mismo con el documento (P43): `getDetalle` lo pone en `DetalleSolicitudAcademica.numeroDocumento`
 según el rol del acceso y los detalles de los tres procesos lo heredan en su
 bloque `solicitud`.
 
@@ -756,16 +758,31 @@ El resto de `cancelaciones-matricula/**` es `denyAll()`.
   nota de texto no tiene esa restricción); si no cumple, la
   observación es obligatoria (máximo 255); al menos una debe cumplir, si no
   el error pide rechazar la solicitud.
-- `aprobarPorDecano(uuid, decisiones, observacion, token)`: cada
-  `DecisionAsignatura` trae `aprobada`, `uuidSituacionCancelar` y
-  `observacionDecision` (opcional, también al rechazar). Solo se aprueba una
-  asignatura que cumple; la situación al cancelar se guarda solo en las
-  aprobadas; al menos una
-  aprobada, si no el error pide usar `rechazarPorDecano`. La etapa pasa por
-  APROBAR_DECANO como en matrícula.
+- `aprobarPorDecano(uuid, aceptarEvaluacion, decisiones, observacion, token)`:
+  viene `aceptarEvaluacion` verdadero (cada asignatura queda con
+  `aprobadaPorDecano` igual a `cumpleCondiciones`) o `decisiones`, una
+  `DecisionAsignatura` (`uuidAsignaturaSolicitud`, `aprobada`) por
+  asignatura; nunca las dos ni ninguna. El Decano puede contradecir la
+  evaluación en los dos sentidos. No recibe situación ni observación por
+  asignatura: las rechazadas pierden la situación al cancelar y todas quedan
+  con `observacionDecision` nula. Al menos una aprobada, si no el error pide
+  usar `rechazarPorDecano`. La etapa pasa por APROBAR_DECANO como en
+  matrícula.
+- `AsignaturaSolicitudAcademica.decisionCambiadaPorDecano()` es nulo sin
+  decisión o sin evaluación y verdadero cuando `aprobadaPorDecano` difiere de
+  `cumpleCondiciones`. No tiene columna.
 - `rechazarPorFuncionario` y `rechazarPorDecano` actúan sobre la solicitud
   completa, como en matrícula.
-- `enviarRespuesta`: en APROBADA pasan a `cancelada` solo las asignaturas con
+- `enviarRespuesta(uuid, observacion, ajustes, token)` (P45): valida actor y
+  transición con `solicitudValidada` antes de leer los ajustes. Cada
+  `AjusteAsignatura` (`uuidAsignaturaSolicitud`, `uuidSituacionCancelar`,
+  `observacionDecision`) es de una asignatura propia y sin repetir. Toda
+  asignatura con la decisión cambiada exige su ajuste; el de una aprobada
+  exige situación del catálogo y el de una rechazada exige observación (255)
+  y no admite situación. Con alguna rechazada o desde RECHAZADA_POR_DECANO la
+  observación general es obligatoria, y desde RECHAZADA_POR_DECANO no se
+  aceptan ajustes. Después de `cambiarEtapa` guarda las filas si hubo
+  ajustes. En APROBADA pasan a `cancelada` solo las asignaturas con
   `aprobadaPorDecano` verdadero que sigan `activa`; con rechazo no se toca
   ninguna.
 
@@ -783,8 +800,8 @@ usuario.
 | `GET /{uuid}` | los tres | Detalle de `solicitudes-academicas` más motivo y asignaturas, según rol y etapa |
 | `POST /{uuid}/funcionario/rechazar` | Funcionario Académico | Cuerpo `observacion` |
 | `POST /{uuid}/funcionario/remitir` | Funcionario Académico | Cuerpo `observacion` opcional y `evaluaciones` (`asignaturaSolicitudUuid`, `numeroFaltas`, `nota`, `situacionMatriculaUuid`, `cumpleCondiciones`, `observacionEvaluacion`) |
-| `POST /{uuid}/funcionario/responder` | Funcionario Académico | Cuerpo opcional `observacion` |
-| `POST /{uuid}/decano/aprobar` | Decano | Cuerpo `decisiones` (`asignaturaSolicitudUuid`, `aprobada`, `situacionCancelarUuid`, `observacionDecision`) y `observacion` opcional |
+| `POST /{uuid}/funcionario/responder` | Funcionario Académico | Cuerpo opcional `observacion` y `ajustes` (`asignaturaSolicitudUuid`, `situacionCancelarUuid`, `observacionDecision`) |
+| `POST /{uuid}/decano/aprobar` | Decano | Cuerpo `aceptarEvaluacion` o `decisiones` (`asignaturaSolicitudUuid`, `aprobada`), y `observacion` opcional |
 | `POST /{uuid}/decano/rechazar` | Decano | Cuerpo opcional `observacion` |
 
 El resto de `cancelaciones-asignatura/**` es `denyAll()`.
@@ -797,11 +814,12 @@ El resto de `cancelaciones-asignatura/**` es `denyAll()`.
   también responde como inexistente.
 - El Funcionario asignado y el Decano ven de cada asignatura faltas, nota,
   situación en la matrícula, `cumpleCondiciones`, `observacionEvaluacion` y,
-  cuando existen, `aprobadaPorDecano`, `observacionDecision` y la situación al
-  cancelar. El Estudiante ve solo uuid de la fila, código y nombre; en
-  `APROBADA` o `RECHAZADA` ve además `aprobadaPorDecano`.
-  `observacionDecision` le llega siempre nula y nunca ve
-  `observacionEvaluacion`. La vista del
+  cuando existen, `aprobadaPorDecano`, `observacionDecision`,
+  `decisionCambiadaPorDecano` y la situación al cancelar. El Estudiante ve
+  solo uuid de la fila, código y nombre; en `APROBADA` o `RECHAZADA` ve además
+  `aprobadaPorDecano` y `observacionDecision` (la del ajuste del Funcionario).
+  Nunca ve `observacionEvaluacion` ni `decisionCambiadaPorDecano`, que sale
+  nulo porque su copia no lleva `cumpleCondiciones`. La vista del
   Estudiante es una copia: no modifica las filas leídas.
 - No hay filas de `TIPO_ANEXO_ACADEMICO` para este proceso; el soporte libre
   del formulario sale de `AnexoAcademicoConstantes`

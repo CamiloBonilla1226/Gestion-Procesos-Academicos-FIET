@@ -18,4 +18,9 @@ public class AsignaturaSolicitudAcademica {
     private String observacionEvaluacion;
     private Boolean aprobadaPorDecano;
     private String observacionDecision;
+
+    public Boolean decisionCambiadaPorDecano() {
+        if (aprobadaPorDecano == null || cumpleCondiciones == null) return null;
+        return !aprobadaPorDecano.equals(cumpleCondiciones);
+    }
 }

@@ -11,10 +11,12 @@ import com.unicauca.cfiet.solicitudes.dominio.servicios.TramiteCancelacion;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.MensajesError;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.APROBADA;
+import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.RECHAZADA_POR_DECANO;
 
 public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCancelacionAsignaturaCUIntPuerto {
     private static final String CANCELACION_ASIGNATURA = "Solicitud de cancelación de asignatura";
@@ -24,6 +26,7 @@ public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCance
     private static final String DECISION = "la decisión del Decano";
     private static final String OBSERVACION_EVALUACION = "La observación de la evaluación";
     private static final String OBSERVACION_DECISION = "La observación de la decisión";
+    private static final String OBSERVACION_DECISION_FALTANTE = "la observación de la decisión";
     private static final BigDecimal NOTA_MINIMA_CUMPLE = new BigDecimal("3.0");
     private static final int MAXIMO_OBSERVACION = 255;
 
@@ -101,33 +104,32 @@ public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCance
     }
 
     @Override
-    public SolicitudCancelacionAsignatura aprobarPorDecano(String uuidSolicitudAcademica, List<DecisionAsignatura> decisiones,
-                                                           String observacion, String token) {
+    public SolicitudCancelacionAsignatura aprobarPorDecano(String uuidSolicitudAcademica, Boolean aceptarEvaluacion,
+                                                           List<DecisionAsignatura> decisiones, String observacion, String token) {
         ActorSolicitud actor = tramite.actorDe(token, RolEtiquetaEtapa.DECANO);
         SolicitudCancelacionAsignatura cancelacion = cancelacionDe(uuidSolicitudAcademica);
         SolicitudAcademica solicitud = tramite.solicitudValidada(TipoProcesoAcademico.CANCELACION_ASIGNATURA, uuidSolicitudAcademica,
                 AccionEtapa.APROBAR_DECANO, actor);
 
-        Map<String, SituacionAcademicaAsignatura> catalogo = tramite.catalogoSituaciones();
-        Map<String, DecisionAsignatura> porAsignatura = tramite.cobertura(cancelacion.getAsignaturas(), solicitud.getRadicado(), decisiones,
-                DecisionAsignatura::getUuidAsignaturaSolicitud);
+        boolean acepta = Boolean.TRUE.equals(aceptarEvaluacion);
+        boolean conDecisiones = decisiones != null && !decisiones.isEmpty();
+        if (acepta == conDecisiones)
+            formateadorExcepciones.lanzarReglaNegocioViolada(MensajesError.FORMA_APROBACION_DECANO);
+        Map<String, DecisionAsignatura> porAsignatura = acepta ? Map.of()
+                : tramite.cobertura(cancelacion.getAsignaturas(), solicitud.getRadicado(), decisiones, DecisionAsignatura::getUuidAsignaturaSolicitud);
         int aprobadas = 0;
         for (AsignaturaSolicitudAcademica asignatura : cancelacion.getAsignaturas()) {
-            DecisionAsignatura decision = porAsignatura.get(asignatura.getUuidAsignaturaSolicitud());
-            String nombre = tramite.nombreDe(asignatura);
-            if (decision.getAprobada() == null)
-                formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.DATO_ASIGNATURA_FALTANTE, DECISION, nombre));
-            String observacionDecision = tramite.textoAcotado(decision.getObservacionDecision(), MAXIMO_OBSERVACION, OBSERVACION_DECISION, nombre);
-            if (decision.getAprobada()) {
-                if (!Boolean.TRUE.equals(asignatura.getCumpleCondiciones()))
-                    formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.ASIGNATURA_NO_APROBABLE, nombre));
-                asignatura.setSituacionCancelar(tramite.situacionDe(catalogo, decision.getUuidSituacionCancelar(), SITUACION_CANCELAR, nombre));
+            Boolean aprobada = acepta ? Boolean.valueOf(Boolean.TRUE.equals(asignatura.getCumpleCondiciones()))
+                    : porAsignatura.get(asignatura.getUuidAsignaturaSolicitud()).getAprobada();
+            if (aprobada == null)
+                formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.DATO_ASIGNATURA_FALTANTE, DECISION,
+                        tramite.nombreDe(asignatura)));
+            if (aprobada)
                 aprobadas++;
-            } else {
+            else
                 asignatura.setSituacionCancelar(null);
-            }
-            asignatura.setAprobadaPorDecano(decision.getAprobada());
-            asignatura.setObservacionDecision(observacionDecision);
+            asignatura.setAprobadaPorDecano(aprobada);
+            asignatura.setObservacionDecision(null);
         }
         if (aprobadas == 0)
             formateadorExcepciones.lanzarReglaNegocioViolada(MensajesError.NINGUNA_ASIGNATURA_APROBADA);
@@ -150,10 +152,32 @@ public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCance
     }
 
     @Override
-    public SolicitudCancelacionAsignatura enviarRespuesta(String uuidSolicitudAcademica, String observacion, String token) {
+    public SolicitudCancelacionAsignatura enviarRespuesta(String uuidSolicitudAcademica, String observacion, List<AjusteAsignatura> ajustes,
+                                                          String token) {
         ActorSolicitud actor = tramite.actorDe(token, RolEtiquetaEtapa.FUNCIONARIO);
         SolicitudCancelacionAsignatura cancelacion = cancelacionDe(uuidSolicitudAcademica);
+        SolicitudAcademica solicitud = tramite.solicitudValidada(TipoProcesoAcademico.CANCELACION_ASIGNATURA, uuidSolicitudAcademica,
+                AccionEtapa.ENVIAR_RESPUESTA, actor);
+
+        List<AjusteAsignatura> recibidos = ajustes == null ? List.of() : ajustes;
+        boolean rechazadaPorDecano = RECHAZADA_POR_DECANO.equals(solicitud.getEtapa().getCodigo());
+        if (rechazadaPorDecano && !recibidos.isEmpty())
+            formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.AJUSTES_SOLICITUD_RECHAZADA, solicitud.getRadicado()));
+        if (!rechazadaPorDecano)
+            aplicarAjustes(cancelacion.getAsignaturas(), solicitud.getRadicado(), recibidos);
+        boolean hayRechazos = rechazadaPorDecano || cancelacion.getAsignaturas().stream()
+                .anyMatch(asignatura -> Boolean.FALSE.equals(asignatura.getAprobadaPorDecano()));
+        if (hayRechazos && !tramite.tieneTexto(observacion))
+            formateadorExcepciones.lanzarReglaNegocioViolada(MensajesError.OBSERVACION_RESPUESTA_REQUERIDA);
+
         SolicitudAcademica actualizada = solicitudCU.cambiarEtapa(uuidSolicitudAcademica, AccionEtapa.ENVIAR_RESPUESTA, actor, observacion, token);
+        if (!recibidos.isEmpty()) {
+            tramite.guardarAsignaturas(cancelacion.getAsignaturas());
+            log.crearLog("Ajustar asignaturas de cancelación de asignatura",
+                    String.format("Solicitud académica %s, acción %s: %d asignaturas ajustadas", actualizada.getRadicado(),
+                            AccionEtapa.ENVIAR_RESPUESTA, recibidos.size()),
+                    token);
+        }
         if (APROBADA.equals(actualizada.getEtapa().getCodigo())) {
             int canceladas = tramite.cancelarActivas(cancelacion.getAsignaturas().stream()
                     .filter(asignatura -> Boolean.TRUE.equals(asignatura.getAprobadaPorDecano()))
@@ -164,6 +188,45 @@ public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCance
                     token);
         }
         return conSolicitud(cancelacion, actualizada);
+    }
+
+    private void aplicarAjustes(List<AsignaturaSolicitudAcademica> asignaturas, String radicado, List<AjusteAsignatura> ajustes) {
+        Map<String, AsignaturaSolicitudAcademica> propias = new HashMap<>();
+        asignaturas.forEach(asignatura -> propias.put(asignatura.getUuidAsignaturaSolicitud(), asignatura));
+        Map<String, AjusteAsignatura> porAsignatura = new HashMap<>();
+        for (AjusteAsignatura ajuste : ajustes) {
+            String uuid = ajuste == null ? null : ajuste.getUuidAsignaturaSolicitud();
+            if (uuid == null || !propias.containsKey(uuid))
+                formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.ASIGNATURA_AJENA, uuid, radicado));
+            if (porAsignatura.put(uuid, ajuste) != null)
+                formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.ASIGNATURA_REPETIDA, tramite.nombreDe(propias.get(uuid))));
+        }
+        Map<String, SituacionAcademicaAsignatura> catalogo = porAsignatura.isEmpty() ? Map.of() : tramite.catalogoSituaciones();
+        for (AsignaturaSolicitudAcademica asignatura : asignaturas) {
+            String nombre = tramite.nombreDe(asignatura);
+            AjusteAsignatura ajuste = porAsignatura.get(asignatura.getUuidAsignaturaSolicitud());
+            if (ajuste == null) {
+                if (Boolean.TRUE.equals(asignatura.decisionCambiadaPorDecano()))
+                    formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.AJUSTE_ASIGNATURA_FALTANTE, nombre));
+                continue;
+            }
+            String observacionDecision = tramite.textoAcotado(ajuste.getObservacionDecision(), MAXIMO_OBSERVACION, OBSERVACION_DECISION, nombre);
+            if (Boolean.TRUE.equals(asignatura.getAprobadaPorDecano())) {
+                if (tramite.tieneTexto(ajuste.getUuidSituacionCancelar()))
+                    asignatura.setSituacionCancelar(tramite.situacionDe(catalogo, ajuste.getUuidSituacionCancelar(), SITUACION_CANCELAR, nombre));
+            } else {
+                if (tramite.tieneTexto(ajuste.getUuidSituacionCancelar()))
+                    formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.SITUACION_CANCELAR_RECHAZADA, nombre));
+                if (observacionDecision == null)
+                    formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.DATO_ASIGNATURA_FALTANTE,
+                            OBSERVACION_DECISION_FALTANTE, nombre));
+            }
+            asignatura.setObservacionDecision(observacionDecision);
+        }
+        for (AsignaturaSolicitudAcademica asignatura : asignaturas)
+            if (Boolean.TRUE.equals(asignatura.getAprobadaPorDecano()) && asignatura.getSituacionCancelar() == null)
+                formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.DATO_ASIGNATURA_FALTANTE, SITUACION_CANCELAR,
+                        tramite.nombreDe(asignatura)));
     }
 
     private Boolean cumpleDe(EvaluacionAsignatura evaluacion, String nota, String nombre) {

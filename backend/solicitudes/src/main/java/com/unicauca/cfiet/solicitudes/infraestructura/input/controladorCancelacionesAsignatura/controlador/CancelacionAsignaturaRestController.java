@@ -7,6 +7,7 @@ import com.unicauca.cfiet.solicitudes.dominio.helper.constantes.ApplicationConst
 import com.unicauca.cfiet.solicitudes.dominio.modelos.SolicitudCancelacionAsignatura;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTOPeticion.AprobacionCancelacionAsignaturaDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTOPeticion.RemisionCancelacionAsignaturaDTOPeticion;
+import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTOPeticion.RespuestaCancelacionAsignaturaDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTORespuesta.CancelacionAsignaturaDetalleDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTORespuesta.FormularioCancelacionAsignaturaDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTORespuesta.RadicacionCancelacionAsignaturaDTORespuesta;
@@ -98,10 +99,11 @@ public class CancelacionAsignaturaRestController {
     @Transactional
     @PostMapping(UUID_SOLICITUD + "/funcionario/responder")
     public ResponseEntity<?> enviarRespuesta(@PathVariable String uuidSolicitud,
-                                             @RequestBody(required = false) ObservacionDTOPeticion peticion,
+                                             @RequestBody(required = false) RespuestaCancelacionAsignaturaDTOPeticion peticion,
                                              @RequestHeader("Authorization") String token) {
         return accion(uuidSolicitud, token, () -> tramiteCU.enviarRespuesta(uuidSolicitud,
-                peticion == null ? null : peticion.getObservacion(), token.substring(7)));
+                peticion == null ? null : peticion.getObservacion(),
+                peticion == null ? null : mapper.mapearAjustes(peticion.getAjustes()), token.substring(7)));
     }
 
     @PreAuthorize(ApplicationConstantes.DECANO_ACCESO)
@@ -110,7 +112,7 @@ public class CancelacionAsignaturaRestController {
     public ResponseEntity<?> aprobarPorDecano(@PathVariable String uuidSolicitud,
                                               @Valid @RequestBody AprobacionCancelacionAsignaturaDTOPeticion peticion,
                                               @RequestHeader("Authorization") String token) {
-        return accion(uuidSolicitud, token, () -> tramiteCU.aprobarPorDecano(uuidSolicitud,
+        return accion(uuidSolicitud, token, () -> tramiteCU.aprobarPorDecano(uuidSolicitud, peticion.getAceptarEvaluacion(),
                 mapper.mapearDecisiones(peticion.getDecisiones()), peticion.getObservacion(), token.substring(7)));
     }
 

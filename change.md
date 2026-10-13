@@ -2,6 +2,35 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-13 - Decisión del Decano y ajustes del Funcionario en Cancelación de Asignatura, código estudiantil en el detalle (Tarea T12.9 backend)
+- Qué se hizo:
+  - `decano/aprobar` de Cancelación de Asignatura recibe `aceptarEvaluacion` (cada asignatura queda aprobada si cumple) o `decisiones` (`asignaturaSolicitudUuid`, `aprobada`), una de las dos. El Decano puede aprobar una que no cumple y rechazar una que cumple; ya no envía `situacionCancelarUuid` ni `observacionDecision`. Se mantiene su `observacion` general opcional.
+  - `decisionCambiadaPorDecano` se calcula (`aprobadaPorDecano` distinto de `cumpleCondiciones`) y sale en cada asignatura del detalle; para el Estudiante llega nulo.
+  - `funcionario/responder` de Cancelación de Asignatura acepta `observacion` y `ajustes` (`asignaturaSolicitudUuid`, `situacionCancelarUuid`, `observacionDecision`): ajuste obligatorio por cada decisión cambiada, situación para las aprobadas, observación para las rechazadas, y observación general obligatoria si el Decano rechazó algo. Errores con código 4.
+  - El Estudiante ve `observacionDecision` en APROBADA o RECHAZADA (P15).
+  - `codigoEstudiantil` se agrega al nivel superior del detalle común; en el resumen de bandejas ya salía para los tres roles.
+  - Documentación: P9, P14, P15, P39, P44, tabla 3.1 y sección 4.2 de `etapas-por-proceso.md`, nueva P45; contrato (secciones 1.6, 2, 3.7, 4.2 y 5) y `backend/CLAUDE.md`.
+- Archivos:
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/modelos/AjusteAsignatura.java` (creado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/modelos/DecisionAsignatura.java`, `AsignaturaSolicitudAcademica.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/aplicacion/input/TramiteCancelacionAsignaturaCUIntPuerto.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/TramiteCancelacionAsignaturaCUImplAdaptador.java`, `ConsultaCancelacionAsignaturaCUImplAdaptador.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorCancelacionesAsignatura/DTOPeticion/AjusteAsignaturaDTOPeticion.java`, `RespuestaCancelacionAsignaturaDTOPeticion.java` (creado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorCancelacionesAsignatura/DTOPeticion/AprobacionCancelacionAsignaturaDTOPeticion.java`, `DecisionAsignaturaDTOPeticion.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorCancelacionesAsignatura/DTORespuesta/AsignaturaSolicitadaDTORespuesta.java`, `mapeador/MapperCancelacionAsignaturaInfraestructuraDominio.java`, `controlador/CancelacionAsignaturaRestController.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorSolicitudesAcademicas/DTORespuesta/SolicitudAcademicaDetalleDTORespuesta.java`, `mapeador/MapperSolicitudAcademicaInfraestructuraDominio.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/output/manejadorExcepciones/MensajesError.java` (modificado: cinco mensajes nuevos, se quita `ASIGNATURA_NO_APROBABLE`)
+  - `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/TramiteCancelacionAsignaturaCUImplAdaptadorTest.java`, `ConsultaCancelacionAsignaturaCUImplAdaptadorTest.java` (modificado)
+  - `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorCancelacionesAsignatura/MapperCancelacionAsignaturaInfraestructuraDominioTest.java`, `controladorSolicitudesAcademicas/MapperSolicitudAcademicaInfraestructuraDominioTest.java` (modificado)
+  - `backend/pruebas/t7_cancelacion_asignatura.ps1` (modificado)
+  - `docs/database/etapas-por-proceso.md`, `docs/api/contrato-api-procesos-academicos.md`, `backend/CLAUDE.md` (modificado)
+- Notas:
+  - La decisión nueva queda como P45 porque P44 ya existía (situación al cancelar del Funcionario, T12.8).
+  - Las bandejas no tienen paginación ni búsqueda en el servidor: el filtro por código estudiantil es del cliente y no se agregó parámetro.
+  - La situación al cancelar en Cancelación de Asignatura la captura hoy el Funcionario al remitir (`situacionCancelarUuid` opcional en cada evaluación, P44); se deja así. Una asignatura aprobada sin cambio puede llegar a APROBADA sin situación al cancelar si el Funcionario no la envió al remitir ni en un ajuste.
+  - Spring ignora campos desconocidos: un cliente viejo que mande `situacionCancelarUuid` u `observacionDecision` en `decano/aprobar` no recibe error, pero sin `aceptarEvaluacion` ni `decisiones` recibe código 4.
+  - Remitir y rechazar no cambian: remitir lleva una sola `observacion` opcional para el Decano y rechazar exige la suya, visible al Estudiante.
+
 ## 2026-10-13 - Tabla de asignaturas con evaluación en línea (Tarea T12.8)
 - Qué se hizo:
   - Cancelación de Matrícula y Cancelación de Asignatura pintan su propia tabla de asignaturas con encabezado agrupado gris (Código, Asignatura, "Espacio a diligenciar por la Facultad..." con No. faltas, Nota y "Situación académica" con En la matrícula y Al cancelar) y "—" sin dato, para todos los roles.

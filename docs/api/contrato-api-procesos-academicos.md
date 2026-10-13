@@ -158,9 +158,9 @@ código se ejecuta con este endpoint (`<proceso>` es `cancelaciones-matricula`,
 | --- | --- | --- | --- |
 | RECHAZAR_FUNCIONARIO | `POST <proceso>/{uuid}/funcionario/rechazar` | Funcionario Académico | Observación; en cancelaciones, escaneo de la Resolución subido antes |
 | REMITIR_DECANO | `POST <proceso>/{uuid}/funcionario/remitir` | Funcionario Académico | Evaluaciones (cancelaciones) o `requisitosVerificados` (supletorio). Una sola `observacion`, opcional, para el Decano |
-| APROBAR_DECANO | `POST <proceso>/{uuid}/decano/aprobar` | Decano | Situaciones al cancelar (matrícula) o decisiones por asignatura (asignatura). `observacion` opcional |
+| APROBAR_DECANO | `POST <proceso>/{uuid}/decano/aprobar` | Decano | Situaciones al cancelar (matrícula) o `aceptarEvaluacion` o `decisiones` por asignatura (asignatura). `observacion` opcional |
 | RECHAZAR_DECANO | `POST <proceso>/{uuid}/decano/rechazar` | Decano | Nada: `observacion` opcional |
-| ENVIAR_RESPUESTA | `POST <proceso>/{uuid}/funcionario/responder` | Funcionario Académico | En cancelaciones, escaneo de la Resolución subido antes. `observacion` opcional: mensaje para el Estudiante |
+| ENVIAR_RESPUESTA | `POST <proceso>/{uuid}/funcionario/responder` | Funcionario Académico | En cancelaciones, escaneo de la Resolución subido antes. `observacion`: mensaje para el Estudiante, opcional salvo en Cancelación de Asignatura con rechazos del Decano; en ese proceso, además, `ajustes` (sección 3.7) |
 | ENVIAR_RECIBO | `POST examenes-supletorios/{uuid}/funcionario/recibo` | Funcionario Académico | Recibo de pago subido antes |
 | SUBIR_COMPROBANTE | `POST examenes-supletorios/{uuid}/estudiante/comprobante` | Estudiante | Comprobante de pago subido antes |
 | APROBAR_COMPROBANTE | `POST examenes-supletorios/{uuid}/funcionario/comprobante/aprobar` | Funcionario Académico | Fecha acordada opcional |
@@ -171,8 +171,9 @@ de `REMITIR_DECANO`, `APROBAR_DECANO` y `RECHAZAR_DECANO` son opcionales y
 solo las ven el Funcionario Académico y el Decano: al Estudiante el historial
 le entrega la fila `REMITIR_DECANO` con `observaciones` nulo y no le entrega
 las filas `APROBAR_DECANO` ni `RECHAZAR_DECANO`, en ninguno de los tres
-procesos. La de `ENVIAR_RESPUESTA` es el mensaje opcional del Funcionario al
-Estudiante y él sí la ve.
+procesos. La de `ENVIAR_RESPUESTA` es el mensaje del Funcionario al
+Estudiante y él sí la ve. La de `RECHAZAR_FUNCIONARIO` es obligatoria, es
+para el Estudiante y también la ve en su historial.
 
 Los endpoints cuyo cuerpo es opcional (`funcionario/responder`,
 `decano/rechazar` y `decano/aprobar` del supletorio, `comprobante/aprobar`)
@@ -240,6 +241,7 @@ filtro se hace en el cliente.
 | `etiqueta` | texto | Etiqueta de la etapa para el rol que consulta |
 | `etapaCodigo` | texto | Código de la etapa (sección 1.5); al Estudiante, `EN_REVISION_DECANO` en lugar de la decisión del Decano |
 | `numeroDocumento` | texto | Número de documento del estudiante; llega al Funcionario Académico y al Decano y sale `null` al Estudiante (P43). Viene también en el `solicitud` de los detalles de cada proceso |
+| `codigoEstudiantil` | texto | Código estudiantil del estudiante dueño de la solicitud, para los tres roles. Viene también en el `solicitud` de los detalles de cada proceso |
 | `estudiante` | objeto | `uuidUsuario`, `nombres`, `apellidos`, `codigoEstudiantil`, `programaAcademico`, `semestre`, `correoElectronico` |
 | `anexos` | lista | AnexoAcademicoDTORespuesta, de la subida más antigua a la más reciente |
 | `tieneResolucion` | booleano | Hay escaneo de la Resolución |
@@ -609,8 +611,8 @@ Errores de las evaluaciones y situaciones (además de los de la sección 1.6):
 | `GET cancelaciones-asignatura/{uuidSolicitud}` | Estudiante, Funcionario Académico, Decano | | CancelacionAsignaturaDetalle |
 | `POST cancelaciones-asignatura/{uuidSolicitud}/funcionario/rechazar` | Funcionario Académico | `{observacion}` | CancelacionAsignaturaDetalle |
 | `POST cancelaciones-asignatura/{uuidSolicitud}/funcionario/remitir` | Funcionario Académico | `{observacion, evaluaciones}` | CancelacionAsignaturaDetalle |
-| `POST cancelaciones-asignatura/{uuidSolicitud}/funcionario/responder` | Funcionario Académico | `{observacion}` opcional (mensaje al Estudiante, máximo 500), `{}` o sin cuerpo | CancelacionAsignaturaDetalle |
-| `POST cancelaciones-asignatura/{uuidSolicitud}/decano/aprobar` | Decano | `{decisiones, observacion}`; `observacion` opcional | CancelacionAsignaturaDetalle |
+| `POST cancelaciones-asignatura/{uuidSolicitud}/funcionario/responder` | Funcionario Académico | `{observacion, ajustes}` (ver abajo), `{}` o sin cuerpo | CancelacionAsignaturaDetalle |
+| `POST cancelaciones-asignatura/{uuidSolicitud}/decano/aprobar` | Decano | `{aceptarEvaluacion}` o `{decisiones}`, con `observacion` opcional | CancelacionAsignaturaDetalle |
 | `POST cancelaciones-asignatura/{uuidSolicitud}/decano/rechazar` | Decano | `{observacion}` opcional, `{}` o sin cuerpo | CancelacionAsignaturaDetalle |
 
 Radicación (`multipart/form-data`):
@@ -640,7 +642,10 @@ Errores de la radicación, en orden:
 `asignaturas` con `uuidAsignaturaSolicitud`, `codigoAsignatura`,
 `nombreAsignatura`, `numeroFaltas`, `nota`, `situacionMatricula`,
 `cumpleCondiciones` (booleano), `observacionEvaluacion`, `aprobadaPorDecano`
-(booleano), `observacionDecision` y `situacionCancelar`. Lo que llega depende
+(booleano), `observacionDecision`, `decisionCambiadaPorDecano` (booleano) y
+`situacionCancelar`. `decisionCambiadaPorDecano` se calcula, no se guarda: es
+`true` cuando `aprobadaPorDecano` es distinto de `cumpleCondiciones`, `false`
+cuando coinciden y `null` mientras el Decano no decide. Lo que llega depende
 del rol (sección 5).
 
 Cuerpos de las acciones:
@@ -654,15 +659,35 @@ Cuerpos de las acciones:
   restricción); si es `false`,
   `observacionEvaluacion` es obligatoria (máximo 255). Al menos una
   asignatura debe cumplir.
-- `aprobar`: `decisiones`, una por asignatura: `{asignaturaSolicitudUuid,
-  aprobada, situacionCancelarUuid, observacionDecision}`. `aprobada` es
-  obligatorio; solo se aprueba una asignatura que cumple, y la aprobada exige
-  `situacionCancelarUuid`. `observacionDecision` es opcional (máximo 255),
-  también en la rechazada, y el Estudiante nunca la ve. Además del arreglo,
-  el cuerpo admite una `observacion` general opcional. Al menos una debe
-  aprobarse; para negarlas todas se usa `decano/rechazar`.
-- `rechazar` y `responder`: como en Cancelación de Matrícula. `responder`
-  desde APROBADA_POR_DECANO cancela solo las asignaturas aprobadas que sigan
+- `aprobar` (P14): una de dos formas, nunca las dos ni ninguna.
+  - `{aceptarEvaluacion: true}`: cada asignatura queda con `aprobadaPorDecano`
+    igual a su `cumpleCondiciones`.
+  - `{decisiones}`: una por asignatura, `{asignaturaSolicitudUuid, aprobada}`,
+    con `aprobada` obligatorio. El Decano puede aprobar una que el
+    Funcionario marcó como que no cumple y rechazar una que marcó como que
+    cumple. Al menos una debe aprobarse; para negarlas todas se usa
+    `decano/rechazar`.
+
+  El cuerpo ya no lleva `situacionCancelarUuid` ni `observacionDecision`. La
+  `observacion` general es opcional y solo la ven el Funcionario y el Decano.
+  Las rechazadas pierden la situación al cancelar; las aprobadas conservan la
+  que dejó el Funcionario al remitir (P44, P9).
+- `rechazar`: como en Cancelación de Matrícula.
+- `responder` (P45): `observacion` (máximo 500, la ve el Estudiante) y
+  `ajustes`, una entrada por asignatura `{asignaturaSolicitudUuid,
+  situacionCancelarUuid, observacionDecision}` (observación de máximo 255).
+  Reglas:
+  - Cada asignatura con `decisionCambiadaPorDecano` necesita su ajuste. Las
+    demás pueden traer uno, con las mismas reglas.
+  - El ajuste de una aprobada por el Decano exige `situacionCancelarUuid`
+    (`observacionDecision` opcional).
+  - El ajuste de una rechazada exige `observacionDecision` y no acepta
+    situación. Esa observación la ve el Estudiante en APROBADA o RECHAZADA.
+  - Si el Decano rechazó alguna asignatura, o la solicitud completa, la
+    `observacion` general es obligatoria.
+  - Desde RECHAZADA_POR_DECANO no se aceptan ajustes.
+
+  Desde APROBADA_POR_DECANO cancela solo las asignaturas aprobadas que sigan
   activas.
 
 Errores propios de esta evaluación y decisión (además de los de la tabla de
@@ -674,9 +699,17 @@ la sección 3.6 y de la 1.6):
 | 4 | `La asignatura <nombre> tiene nota <nota>, menor a 3.0, y no puede marcarse como que cumple las condiciones...` |
 | 4 | `La asignatura <nombre> no cumple las condiciones y requiere una observación de la evaluación...` |
 | 4 | `Ninguna asignatura cumple las condiciones: en lugar de remitir la solicitud al Decano debe rechazarla...` |
-| 4 | `Falta la decisión del Decano de la asignatura <nombre>...` |
-| 4 | `La asignatura <nombre> no cumple las condiciones y su cancelación no se puede aprobar...` |
+| 4 | `Debe aceptar la evaluación del funcionario (aceptarEvaluacion) o enviar la decisión de cada asignatura (decisiones), una de las dos...` |
+| 4 | `Faltan datos de las asignaturas de la solicitud: <nombres>...` (falta la decisión de alguna asignatura) |
+| 4 | `Falta la decisión del Decano de la asignatura <nombre>...` (`aprobada` nulo) |
 | 4 | `No se aprobó ninguna asignatura: para negar la solicitud completa use el rechazo del Decano...` |
+| 4 | `El Decano cambió la evaluación de la asignatura <nombre> y falta su ajuste...` |
+| 4 | `Falta la situación al cancelar de la asignatura <nombre>...` (ajuste de una aprobada) |
+| 4 | `Falta la observación de la decisión de la asignatura <nombre>...` (ajuste de una rechazada) |
+| 4 | `La asignatura <nombre> fue rechazada por el Decano y no lleva situación al cancelar...` |
+| 4 | `La solicitud <radicado> fue rechazada por el Decano y no admite ajustes por asignatura...` |
+| 4 | `El Decano rechazó la solicitud o alguna de sus asignaturas: la respuesta al estudiante requiere una observación...` |
+| 4 | `La asignatura <uuid> no pertenece a la solicitud <radicado>...` y `La asignatura <nombre> viene más de una vez...` (decisiones y ajustes) |
 | 6 | `La observación de la evaluación de la asignatura <nombre> supera los 255 caracteres permitidos...` (o `La observación de la decisión`) |
 | 6 | `El número de faltas de la asignatura <nombre> es numérico y debe ser un entero mayor o igual a 0; si no es un número se guarda como texto...` |
 | 6 | `La nota de la asignatura <nombre> es numérica y debe estar entre 0.0 y 5.0 con un decimal, con punto o coma; si no es un número se guarda como texto...` |
@@ -812,8 +845,8 @@ detalle (las acciones ya lo devuelven) y mostrar los botones según
 | 3 | Funcionario Académico | `GET solicitudes-academicas/funcionario` y `GET cancelaciones-asignatura/{uuid}` |
 | 4a | Funcionario Académico | Rechazo completo: escaneo con `POST solicitudes-academicas/{uuid}/resolucion` y `POST .../funcionario/rechazar` |
 | 4b | Funcionario Académico | Remisión: `POST .../funcionario/remitir` con faltas, nota, situación, `cumpleCondiciones` y observación de cada asignatura |
-| 5 | Decano | `POST .../decano/aprobar` con la decisión de cada asignatura (aprobación parcial), o `POST .../decano/rechazar` para negar la solicitud completa |
-| 6 | Funcionario Académico | Escaneo y `POST .../funcionario/responder`. En APROBADA solo se cancelan las asignaturas aprobadas |
+| 5 | Decano | `POST .../decano/aprobar` con `aceptarEvaluacion: true` o con la decisión de cada asignatura (aprobación parcial), o `POST .../decano/rechazar` para negar la solicitud completa |
+| 6 | Funcionario Académico | Escaneo y `POST .../funcionario/responder` con `observacion` y un ajuste por cada asignatura con `decisionCambiadaPorDecano`. En APROBADA solo se cancelan las asignaturas aprobadas |
 | 7 | Estudiante | `GET cancelaciones-asignatura/{uuid}` y, en etapa final, la Resolución |
 
 ### 4.3 Examen Supletorio
@@ -836,7 +869,7 @@ detalle (las acciones ya lo devuelven) y mostrar los botones según
 | --- | --- | --- | --- |
 | Común (`solicitudes-academicas/{uuid}`) | Todo el detalle desde RADICADA; `puedeDescargarResolucion` solo en APROBADA o RECHAZADA | Todo, en todas las etapas | Todo, desde EN_REVISION_DECANO; no ve RADICADA |
 | Cancelación de Matrícula | Todo, salvo `situacionCancelar`, que llega nula hasta que la solicitud está en APROBADA o RECHAZADA | Todo | Todo |
-| Cancelación de Asignatura | Antes de la etapa final, de cada asignatura solo `uuidAsignaturaSolicitud`, `codigoAsignatura` y `nombreAsignatura`. En APROBADA o RECHAZADA, además `aprobadaPorDecano`. `observacionDecision` llega siempre nula. Nunca faltas, nota, situaciones, `cumpleCondiciones` ni `observacionEvaluacion` | Todo | Todo |
+| Cancelación de Asignatura | Antes de la etapa final, de cada asignatura solo `uuidAsignaturaSolicitud`, `codigoAsignatura` y `nombreAsignatura`. En APROBADA o RECHAZADA, además `aprobadaPorDecano` y `observacionDecision` (la que escribe el Funcionario en el ajuste). Nunca faltas, nota, situaciones, `cumpleCondiciones`, `observacionEvaluacion` ni `decisionCambiadaPorDecano` (llega nulo) | Todo | Todo |
 | Examen Supletorio | Todo | Todo | Todo |
 
 El historial y las descargas de anexos siguen la misma visibilidad que el

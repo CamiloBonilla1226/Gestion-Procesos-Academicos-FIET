@@ -1,6 +1,7 @@
 package com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura;
 
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
+import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTOPeticion.AjusteAsignaturaDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTOPeticion.DecisionAsignaturaDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTOPeticion.EvaluacionCancelacionAsignaturaDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTORespuesta.AsignaturaSolicitadaDTORespuesta;
@@ -48,7 +49,9 @@ class MapperCancelacionAsignaturaInfraestructuraDominioTest {
                 .asignaturaSolicitudUuid("as-1").numeroFaltas("3").nota("2.5").situacionMatriculaUuid("sit-1")
                 .cumpleCondiciones(false).observacionEvaluacion("Nota baja").build()));
         List<DecisionAsignatura> decisiones = mapper.mapearDecisiones(List.of(DecisionAsignaturaDTOPeticion.builder()
-                .asignaturaSolicitudUuid("as-1").aprobada(false).situacionCancelarUuid("sit-2").observacionDecision("No procede").build()));
+                .asignaturaSolicitudUuid("as-1").aprobada(false).build()));
+        List<AjusteAsignatura> ajustes = mapper.mapearAjustes(List.of(AjusteAsignaturaDTOPeticion.builder()
+                .asignaturaSolicitudUuid("as-1").situacionCancelarUuid("sit-2").observacionDecision("No procede").build()));
 
         EvaluacionAsignatura evaluacion = evaluaciones.get(0);
         assertEquals("as-1", evaluacion.getUuidAsignaturaSolicitud());
@@ -60,10 +63,12 @@ class MapperCancelacionAsignaturaInfraestructuraDominioTest {
         DecisionAsignatura decision = decisiones.get(0);
         assertEquals("as-1", decision.getUuidAsignaturaSolicitud());
         assertFalse(decision.getAprobada());
-        assertEquals("sit-2", decision.getUuidSituacionCancelar());
-        assertEquals("No procede", decision.getObservacionDecision());
+        assertEquals("as-1", ajustes.get(0).getUuidAsignaturaSolicitud());
+        assertEquals("sit-2", ajustes.get(0).getUuidSituacionCancelar());
+        assertEquals("No procede", ajustes.get(0).getObservacionDecision());
         assertNull(mapper.mapearEvaluaciones(null));
         assertNull(mapper.mapearDecisiones(null));
+        assertNull(mapper.mapearAjustes(null));
         assertNull(mapper.mapearDecisiones(Arrays.asList((DecisionAsignaturaDTOPeticion) null)).get(0));
     }
 
@@ -126,6 +131,22 @@ class MapperCancelacionAsignaturaInfraestructuraDominioTest {
         assertTrue(asignatura.getAprobadaPorDecano());
         assertEquals("Procede", asignatura.getObservacionDecision());
         assertEquals("R1", asignatura.getSituacionCancelar().getCodigo());
+        assertFalse(asignatura.getDecisionCambiadaPorDecano());
+    }
+
+    @Test
+    void laDecisionCambiadaSeCalculaYQuedaNulaSinDecisionOSinEvaluacion() {
+        CancelacionAsignaturaDetalleDTORespuesta respuesta = mapper.mapearDetalleARespuesta(DetalleCancelacionAsignatura.builder()
+                .detalle(DetalleSolicitudAcademica.builder().solicitudAcademica(SolicitudAcademica.builder().uuidSolicitudAcademica("sol-1").build()).build())
+                .asignaturas(List.of(
+                        AsignaturaSolicitudAcademica.builder().uuidAsignaturaSolicitud("as-1").cumpleCondiciones(false).aprobadaPorDecano(true).build(),
+                        AsignaturaSolicitudAcademica.builder().uuidAsignaturaSolicitud("as-2").cumpleCondiciones(true).aprobadaPorDecano(false).build(),
+                        AsignaturaSolicitudAcademica.builder().uuidAsignaturaSolicitud("as-3").cumpleCondiciones(true).build(),
+                        AsignaturaSolicitudAcademica.builder().uuidAsignaturaSolicitud("as-4").aprobadaPorDecano(true).build()))
+                .build());
+
+        assertEquals(Arrays.asList(true, true, null, null), respuesta.getAsignaturas().stream()
+                .map(AsignaturaSolicitadaDTORespuesta::getDecisionCambiadaPorDecano).toList());
     }
 
     @Test

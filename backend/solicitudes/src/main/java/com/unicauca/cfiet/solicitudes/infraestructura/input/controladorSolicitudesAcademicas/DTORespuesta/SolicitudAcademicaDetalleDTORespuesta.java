@@ -22,6 +22,7 @@ public class SolicitudAcademicaDetalleDTORespuesta {
     private String etiqueta;
     private String etapaCodigo;
     private String numeroDocumento;
+    private String codigoEstudiantil;
     private EstudianteSolicitudDTORespuesta estudiante;
     @Builder.Default
     private List<AnexoAcademicoDTORespuesta> anexos = new ArrayList<>();
