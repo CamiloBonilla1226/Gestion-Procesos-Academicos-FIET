@@ -1,6 +1,7 @@
 import { DecisionAsignaturaDTOPeticion } from './DecisionAsignaturaDTOPeticion';
 
 export interface AprobacionCancelacionAsignaturaDTOPeticion {
-  decisiones: DecisionAsignaturaDTOPeticion[];
+  aceptarEvaluacion?: boolean | null;
+  decisiones?: DecisionAsignaturaDTOPeticion[] | null;
   observacion?: string | null;
 }

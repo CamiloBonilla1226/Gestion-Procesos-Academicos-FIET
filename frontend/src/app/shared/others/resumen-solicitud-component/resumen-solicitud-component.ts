@@ -20,7 +20,7 @@ export class ResumenSolicitudComponent {
     return [
       { etiqueta: 'Estudiante', valor: nombre },
       { etiqueta: 'Número de CC', valor: this.solicitud?.numeroDocumento ?? '' },
-      { etiqueta: 'Código estudiantil', valor: estudiante?.codigoEstudiantil ?? '' },
+      { etiqueta: 'Código estudiantil', valor: this.solicitud?.codigoEstudiantil ?? estudiante?.codigoEstudiantil ?? '' },
       { etiqueta: 'Tipo de proceso', valor: this.solicitud?.tipoSolicitud ?? '' },
       { etiqueta: 'Número de radicado', valor: this.solicitud?.radicado ?? '' }
     ].filter(fila => fila.valor.trim() !== '');

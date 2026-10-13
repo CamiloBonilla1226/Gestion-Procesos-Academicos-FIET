@@ -24,6 +24,18 @@ describe('ResumenSolicitudComponent', () => {
     expect(textos(fixture, 'dd')).toEqual(['Laura Muñoz', '1061789234', '104622010148', 'Cancelación de Asignatura', '2026-CA-0003']);
   });
 
+  it('toma el codigo estudiantil del nivel superior del detalle', () => {
+    const fixture = TestBed.createComponent(ResumenSolicitudComponent);
+    fixture.componentRef.setInput('solicitud', {
+      uuidSolicitudAcademica: 's', radicado: 'R', uuidTipoSolicitudAcademica: 't', tipoSolicitud: 'T', fechaCreacion: '',
+      etiqueta: 'Pendiente', etapaCodigo: 'RADICADA', codigoEstudiantil: '104600000001',
+      estudiante: { uuidUsuario: 'e', nombres: 'Ana', apellidos: 'Ruiz', codigoEstudiantil: '', programaAcademico: 'P', semestre: '1', correoElectronico: '' },
+      anexos: [], tieneResolucion: false, puedeDescargarResolucion: false, accionesDisponibles: []
+    });
+    fixture.detectChanges();
+    expect(textos(fixture, 'dd')).toContain('104600000001');
+  });
+
   it('no muestra los campos que no llegan', () => {
     const filas = textos(crear(''), 'dt');
     expect(filas).not.toContain('Código estudiantil');

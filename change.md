@@ -2,6 +2,37 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-13 - Etiqueta del rechazo del comprobante de pago (Tarea T12.10b frontend)
+- Qué se hizo: el modal de rechazar el comprobante en Examen Supletorio usa `ETIQUETA_OBSERVACION_ESTUDIANTE` ("Observación solo para el estudiante (se entrega como respuesta)"), obligatoria, igual que los demás rechazos del Funcionario.
+- Archivos: `frontend/src/app/core/constantes/etiquetas-academicas.ts` y su spec, `frontend/src/app/shared/pages/content/examen-supletorio-proceso-component/examen-supletorio-proceso-component.spec.ts` (modificado)
+- Notas: revisados los modales que dejan la solicitud en RECHAZADA por acción del Funcionario (RECHAZAR_FUNCIONARIO en los tres procesos, ENVIAR_RESPUESTA desde RECHAZADA_POR_DECANO y RECHAZAR_COMPROBANTE); todos toman la etiqueta de `campoObservacion`. Specs de `core/constantes` y del componente de Examen Supletorio: 33 en verde.
+
+## 2026-10-13 - Código estudiantil, decisión del Decano por asignatura, ajustes del Funcionario y observaciones unificadas (Tarea T12.10 frontend)
+- Qué se hizo:
+  - Código estudiantil: el detalle (Datos generales) y el resumen de los modales toman `codigoEstudiantil` del nivel superior del detalle (con el del objeto `estudiante` de respaldo). La bandeja del Funcionario tiene un filtro propio "Código estudiantil" (cliente, coincidencia parcial), aparte de "Número de identificación"; "Limpiar filtros" lo vacía. El Decano y el Estudiante no lo tienen.
+  - Decano, Cancelación de Asignatura: la tabla muestra la evaluación del Funcionario (cumple y observación de la evaluación) y una columna "Decisión del Decano" con un interruptor Aprobar / Rechazar por asignatura que parte de `cumpleCondiciones`. Botones "Aceptar tal como está" (`{aceptarEvaluacion: true}`, solo sin cambios) y "Enviar decisión modificada" (`{decisiones: [{asignaturaSolicitudUuid, aprobada}]}`, solo con cambios). Si todas quedan en Rechazar, ese botón abre el rechazo completo (`decano/rechazar`). El Decano ya no ve ni llena situación al cancelar ni observación por asignatura. Se mantiene la observación general opcional.
+  - Funcionario, respuesta final: la columna "Decisión del Decano" marca "Cambiada por el Decano". El modal de "Enviar respuesta" lista las aprobadas sin situación guardada y las cambiadas: aprobada con selector obligatorio de situación al cancelar, rechazada cambiada con observación obligatoria (máx 255). Envía `{observacion, ajustes}` (sin `ajustes` si no hay). La observación general es obligatoria si hay alguna asignatura rechazada por el Decano o si rechazó la solicitud.
+  - Observaciones de los tres procesos: al remitir queda un solo campo, "Observación solo para el Decano (el estudiante no la verá)". En Cancelación de Asignatura desaparece el campo "Observación de la evaluación" bajo la tabla: la observación única del modal es obligatoria (máx 255) si alguna asignatura no cumple y se envía también como `observacionEvaluacion` de esas asignaturas. Rechazar en el Funcionario y enviar la respuesta usan "Observación solo para el estudiante (se entrega como respuesta)". Las etiquetas salen de `campoObservacion`, así que son idénticas en los tres procesos; se quitan los avisos que repetían lo que dice la etiqueta.
+  - Modelos: `AjusteAsignaturaDTOPeticion` y `RespuestaCancelacionAsignaturaDTOPeticion` nuevos; `DecisionAsignaturaDTOPeticion` queda en `{asignaturaSolicitudUuid, aprobada}`; `AprobacionCancelacionAsignaturaDTOPeticion` suma `aceptarEvaluacion`; `decisionCambiadaPorDecano` y `codigoEstudiantil` en las respuestas.
+- Archivos:
+  - `frontend/src/app/core/models/CancelacionAsignatura/DTORequest/AjusteAsignaturaDTOPeticion.ts`, `RespuestaCancelacionAsignaturaDTOPeticion.ts` (creado)
+  - `frontend/src/app/core/models/CancelacionAsignatura/DTORequest/AprobacionCancelacionAsignaturaDTOPeticion.ts`, `DecisionAsignaturaDTOPeticion.ts` (modificado)
+  - `frontend/src/app/core/models/CancelacionAsignatura/DTOResponse/AsignaturaSolicitadaDTORespuesta.ts`, `frontend/src/app/core/models/SolicitudAcademica/DTOResponse/SolicitudAcademicaDetalleDTORespuesta.ts` (modificado)
+  - `frontend/src/app/core/services/cancelacion-asignatura-service.ts` (modificado)
+  - `frontend/src/app/core/constantes/etiquetas-academicas.ts` y su spec, `frontend/src/app/core/utils/validaciones-academicas.ts` y su spec, `frontend/src/app/core/utils/bandeja-solicitudes.ts` y su spec (modificado)
+  - `frontend/src/app/shared/others/resumen-solicitud-component/resumen-solicitud-component.ts` y su spec (modificado)
+  - `frontend/src/app/shared/pages/content/detalle-solicitud-academica-component/detalle-solicitud-academica-component.ts` y su spec (modificado)
+  - `frontend/src/app/shared/pages/content/bandeja-solicitudes-academicas-component/` `.ts`, `.html` y spec (modificado)
+  - `frontend/src/app/shared/pages/content/cancelacion-asignatura-proceso-component/` `.ts`, `.html` y spec (modificado)
+  - `frontend/src/app/shared/pages/content/tabla-asignaturas.css` (modificado)
+  - `frontend/src/app/shared/pages/content/cancelacion-matricula-proceso-component/cancelacion-matricula-proceso-component.spec.ts`, `examen-supletorio-proceso-component/examen-supletorio-proceso-component.spec.ts` (modificado)
+  - `frontend/CLAUDE.md` (modificado)
+- Notas:
+  - D-F35 en `frontend/CLAUDE.md`.
+  - D.1 pedía eliminar el campo de observaciones bajo la tabla, pero el backend exige `observacionEvaluacion` en cada asignatura que no cumple. Decisión del autor: una sola observación por solicitud; el frontend la copia en esas asignaturas.
+  - Specs: 191 de constantes, utils, resumen, detalle, bandeja y los tres componentes de proceso, todos en verde. `npm run build` con código 0; bundle inicial 836,45 kB.
+  - El filtro "Número de identificación" sigue buscando también por radicado, nombre y código, como antes.
+
 ## 2026-10-13 - Situación al cancelar obligatoria al responder la aprobación de Cancelación de Asignatura (Tarea T12.9b backend)
 - Qué se hizo:
   - En `funcionario/responder` desde APROBADA_POR_DECANO, toda asignatura aprobada por el Decano debe tener situación al cancelar, la guardada al remitir o la del ajuste. Si falta, código 4 con el nombre de la asignatura, antes de cambiar la etapa. El ajuste de una aprobada ya no exige `situacionCancelarUuid` si la asignatura ya tenía una guardada; si la trae, la reemplaza.

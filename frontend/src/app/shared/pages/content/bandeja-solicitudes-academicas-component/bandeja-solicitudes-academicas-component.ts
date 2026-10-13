@@ -61,6 +61,7 @@ export class BandejaSolicitudesAcademicasComponent implements OnInit {
   tipoFiltro: string = TODOS_LOS_TIPOS;
   estadoFiltro: string = TODOS_LOS_TIPOS;
   textoFiltro = '';
+  codigoFiltro = '';
   campoOrden: CampoOrden | null = null;
   direccionOrden: DireccionOrden = 'asc';
   paginaActual = 1;
@@ -86,8 +87,17 @@ export class BandejaSolicitudesAcademicasComponent implements OnInit {
     return this.rol === ROLES_ETIQUETA.DECANO ? 'Decisión' : 'Estado';
   }
 
+  get filtraPorCodigo(): boolean {
+    return this.rol === ROLES_ETIQUETA.FUNCIONARIO;
+  }
+
   get hayFiltros(): boolean {
-    return this.tipoFiltro !== TODOS_LOS_TIPOS || this.estadoFiltro !== TODOS_LOS_TIPOS || !!this.textoFiltro.trim();
+    return (
+      this.tipoFiltro !== TODOS_LOS_TIPOS ||
+      this.estadoFiltro !== TODOS_LOS_TIPOS ||
+      !!this.textoFiltro.trim() ||
+      !!this.codigoFiltro.trim()
+    );
   }
 
   ngOnInit(): void {
@@ -137,10 +147,18 @@ export class BandejaSolicitudesAcademicasComponent implements OnInit {
     this.aplicarFiltros();
   }
 
+  onCodigoChange(codigo: string): void {
+    const nuevo = codigo ?? '';
+    if (nuevo === this.codigoFiltro) return;
+    this.codigoFiltro = nuevo;
+    this.aplicarFiltros();
+  }
+
   limpiarFiltros(): void {
     this.tipoFiltro = TODOS_LOS_TIPOS;
     this.estadoFiltro = TODOS_LOS_TIPOS;
     this.textoFiltro = '';
+    this.codigoFiltro = '';
     this.aplicarFiltros();
   }
 
@@ -164,7 +182,8 @@ export class BandejaSolicitudesAcademicasComponent implements OnInit {
   }
 
   private aplicarFiltros(): void {
-    const filtradas = filtrarSolicitudes(this.solicitudes, this.tipoFiltro, this.textoFiltro, this.estadoFiltro);
+    const codigo = this.filtraPorCodigo ? this.codigoFiltro : null;
+    const filtradas = filtrarSolicitudes(this.solicitudes, this.tipoFiltro, this.textoFiltro, this.estadoFiltro, codigo);
     this.filtradas = ordenarSolicitudes(filtradas, this.campoOrden, this.direccionOrden);
     this.paginaActual = 1;
     this.actualizarPagina();

@@ -6,6 +6,7 @@ import { ObservacionDTOPeticion } from '../models/CancelacionMatricula/DTOReques
 import { AprobacionCancelacionAsignaturaDTOPeticion } from '../models/CancelacionAsignatura/DTORequest/AprobacionCancelacionAsignaturaDTOPeticion';
 import { RadicacionCancelacionAsignaturaDTOPeticion } from '../models/CancelacionAsignatura/DTORequest/RadicacionCancelacionAsignaturaDTOPeticion';
 import { RemisionCancelacionAsignaturaDTOPeticion } from '../models/CancelacionAsignatura/DTORequest/RemisionCancelacionAsignaturaDTOPeticion';
+import { RespuestaCancelacionAsignaturaDTOPeticion } from '../models/CancelacionAsignatura/DTORequest/RespuestaCancelacionAsignaturaDTOPeticion';
 import { CancelacionAsignaturaDetalleDTORespuesta } from '../models/CancelacionAsignatura/DTOResponse/CancelacionAsignaturaDetalleDTORespuesta';
 import { FormularioCancelacionAsignaturaDTORespuesta } from '../models/CancelacionAsignatura/DTOResponse/FormularioCancelacionAsignaturaDTORespuesta';
 import { RadicacionCancelacionAsignaturaDTORespuesta } from '../models/CancelacionAsignatura/DTOResponse/RadicacionCancelacionAsignaturaDTORespuesta';
@@ -44,7 +45,10 @@ export class CancelacionAsignaturaService {
     return this.http.post<CancelacionAsignaturaDetalleDTORespuesta>(`${this.url}/${uuidSolicitud}/funcionario/remitir`, peticion);
   }
 
-  enviarRespuesta(uuidSolicitud: string, peticion?: ObservacionDTOPeticion): Observable<CancelacionAsignaturaDetalleDTORespuesta> {
+  enviarRespuesta(
+    uuidSolicitud: string,
+    peticion?: RespuestaCancelacionAsignaturaDTOPeticion
+  ): Observable<CancelacionAsignaturaDetalleDTORespuesta> {
     return this.http.post<CancelacionAsignaturaDetalleDTORespuesta>(`${this.url}/${uuidSolicitud}/funcionario/responder`, peticion ?? null);
   }
 

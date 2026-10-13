@@ -385,20 +385,23 @@ ancho de 70px de siempre, así los diálogos de Julián no cambian) (D-F12), y e
 T12.2-C `textoCancelar` y `cerrarConEscape` (D-F31), que los diálogos de los
 procesos pasan como "Cancelar" y `true`.
 Nuestros diálogos pasan un texto por acción: "Rechazar solicitud",
-"Remitir al Decano", "Aprobar solicitud", "Registrar decisiones" (decisión
-por asignatura), "Enviar respuesta", "Enviar recibo", "Subir comprobante",
+"Remitir al Decano", "Aprobar solicitud", "Aceptar evaluación" y "Enviar
+decisión" (Decano en Cancelación de Asignatura), "Enviar respuesta", "Enviar recibo", "Subir comprobante",
 "Aprobar comprobante", "Rechazar comprobante", "Crear", "Guardar cambios",
 "Cambiar responsable" y "Cargar archivo". Cada envío lleva su propia bandera
 `enviando` que bloquea el doble envío (D-F7).
 
 El campo de observación de cada acción sale de `campoObservacion`
-(`core/constantes/etiquetas-academicas.ts`) y se valida con
-`errorDeObservacion`: obligatoria al rechazar en el Funcionario y al rechazar
-el comprobante; opcional al remitir ("Observación para el Decano"), al
-aprobar y rechazar en el Decano (aviso "Esta observación solo será visible
-para el Funcionario Académico.") y al enviar la respuesta ("Mensaje para el
-estudiante", hasta 500 caracteres, lo único que el Estudiante recibe sobre el
-motivo). Las situaciones académicas salen del catálogo, sin lista fija.
+(`core/constantes/etiquetas-academicas.ts`), con la misma etiqueta en los tres
+procesos (D-F35), y se valida con `errorDeObservacion`: "Observación solo para
+el estudiante (se entrega como respuesta)" obligatoria al rechazar en el
+Funcionario y opcional al enviar la respuesta (hasta 500); "Observación solo
+para el Decano (el estudiante no la verá)" opcional al remitir, y es el único
+campo de observación al remitir; "Observación (opcional)" al aprobar y rechazar
+en el Decano, con el aviso "Esta observación solo será visible para el
+Funcionario Académico."; y "Observación" obligatoria al rechazar el
+comprobante. Cancelación de Asignatura cambia la obligatoriedad según la tabla
+(ver D-F35). Las situaciones académicas salen del catálogo, sin lista fija.
 
 Un diálogo que depende de un catálogo (situaciones académicas para remitir o
 aprobar una cancelación, tipos de anexo para el recibo y el comprobante) se
@@ -497,13 +500,16 @@ Las reglas que no son "obligatorio" viven en
 | D-F32 | El estilo compartido de detalle, procesos y formularios vive en `shared/pages/content/estilos-academicos.css` y `estilos-formularios.css`, que cada componente incluye en `styleUrls` (carga diferida, no toca el bundle inicial) |
 | D-F33 | Los formularios del Estudiante siguen siendo de una sola página; el stepper solo guía. Los datos del primer bloque salen del usuario de la sesión, no del formulario |
 | D-F34 | Catálogo del Estudiante en `/estudiante/catalogo` (ítem "Solicitudes" del menú), con los textos oficiales en `TRAMITES_ESTUDIANTE`. Sus botones son `<a href>` con `router.navigateByUrl` en `(click)`, no `routerLink`: `RouterLink` subía 4,5 kB el bundle inicial. `BotonSidebar.activaEn` (opcional) marca un ítem en rutas que no cuelgan de la suya |
+| D-F35 | Observaciones y decisión por asignatura (T12.10). Una sola observación por solicitud al remitir, "Observación solo para el Decano (el estudiante no la verá)"; en Cancelación de Asignatura es obligatoria (máx 255) si alguna no cumple y se copia como `observacionEvaluacion` de esas asignaturas, sin campo bajo la tabla. Decano: interruptor Aprobar / Rechazar por fila que parte de `cumpleCondiciones`; "Aceptar tal como está" (`aceptarEvaluacion`, solo sin cambios) o "Enviar decisión modificada" (`decisiones`, solo con cambios, y `decano/rechazar` si todas quedan en Rechazar); sin situación al cancelar ni observación por asignatura. Funcionario: "Cambiada por el Decano" en la tabla; la respuesta pide situación a las aprobadas sin ella y observación a las rechazadas cambiadas (`ajustes`), y la observación general es obligatoria con cualquier rechazo del Decano. Código estudiantil del nivel superior del detalle |
 
 Otras decisiones tomadas en las tareas, sin número:
 
 - Bandejas: una tarjeta por rol ("Solicitudes remitidas por el Funcionario
   Académico", "Gestión de solicitudes", "Mis trámites radicados"). Filtros de
   tipo de proceso, estado (decisión en el Decano, con las etiquetas presentes)
-  y "Número de identificación" (no en el Estudiante), con "Limpiar filtros".
+  y "Número de identificación" (no en el Estudiante), con "Limpiar filtros". El
+  Funcionario tiene además "Código estudiantil" (T12.10), en el cliente y con
+  coincidencia parcial sobre `codigoEstudiantil`.
   Columnas: Radicado, Estudiante, Documento (`numeroDocumento` del resumen,
   P42 del backend), Tipo de proceso, Fecha de radicación,
   Estado y Acciones (ojo); el Estudiante ve Radicado, Tipo de proceso, Fecha de
@@ -538,14 +544,11 @@ Otras decisiones tomadas en las tareas, sin número:
   situación en la matrícula y al cancelar como select del mismo catálogo (al
   cancelar es opcional y viaja como `situacionCancelarUuid`, P44). En
   Cancelación de Asignatura se suma la columna "Cumple condiciones" bajo
-  "Evaluación del Funcionario", y la observación de la evaluación es un solo
-  campo debajo de la tabla, obligatorio si alguna no cumple, que se envía como
-  `observacionEvaluacion` de cada asignatura que no cumple. Al pulsar "Remitir
-  al Decano" se validan las filas con los mismos mensajes, que se pintan en la
-  celda; si todo está bien se abre el diálogo, que solo pide la observación
-  para el Decano. El Decano sigue registrando la situación al cancelar en su
-  diálogo, con lo que dejó el Funcionario como valor inicial. Bajo 992 px la
-  tabla hace scroll dentro de su tarjeta.
+  "Evaluación del Funcionario". Al pulsar "Remitir al Decano" se validan las
+  filas con los mismos mensajes, que se pintan en la celda; si todo está bien
+  se abre el diálogo con un solo campo de observación (D-F35). El Decano y el
+  Funcionario en la respuesta final siguen D-F35. Bajo 992 px la tabla hace
+  scroll dentro de su tarjeta.
 - Modales: barra navy con ×, resumen de la solicitud
   (`ResumenSolicitudComponent`: Estudiante, Número de CC si llega, Código
   estudiantil, Tipo de proceso, Número de radicado), notas grises y botones Cancelar y confirmar. Cierran con

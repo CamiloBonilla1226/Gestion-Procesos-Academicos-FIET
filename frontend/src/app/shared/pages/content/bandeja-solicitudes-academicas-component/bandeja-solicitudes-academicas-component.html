@@ -32,6 +32,14 @@
         </app-barra-busqueda-component>
       </div>
       }
+      @if (filtraPorCodigo) {
+      <div class="campo" data-filtro-codigo>
+        <span class="campo-etiqueta">Código estudiantil</span>
+        <app-barra-busqueda-component placeholder="Ej. 104618021" [value]="codigoFiltro"
+          (valueChange)="onCodigoChange($event)">
+        </app-barra-busqueda-component>
+      </div>
+      }
       <button type="button" class="btn-limpiar" [disabled]="!hayFiltros" (click)="limpiarFiltros()">Limpiar filtros</button>
     </div>
 

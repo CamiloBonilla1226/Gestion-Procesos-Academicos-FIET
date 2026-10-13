@@ -11,5 +11,6 @@ export interface AsignaturaSolicitadaDTORespuesta {
   observacionEvaluacion: string | null;
   aprobadaPorDecano: boolean | null;
   observacionDecision: string | null;
+  decisionCambiadaPorDecano?: boolean | null;
   situacionCancelar: SituacionAsignaturaDTORespuesta | null;
 }

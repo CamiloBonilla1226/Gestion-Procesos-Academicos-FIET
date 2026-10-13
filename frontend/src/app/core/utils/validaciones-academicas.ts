@@ -85,9 +85,7 @@ export function leerFaltas(valor: string | null | undefined): number | null {
 export function errorDeObservacion(accion: AccionAcademica, valor: string | null | undefined): string | null {
   const campo = campoObservacion(accion);
   if (!campo) return null;
-  return campo.esMensaje
-    ? errorDeTexto(valor, MAXIMO_CARACTERES_OBSERVACION, campo.obligatoria, 'El mensaje')
-    : errorDeTexto(valor, MAXIMO_CARACTERES_OBSERVACION, campo.obligatoria, 'La observación', true);
+  return errorDeTexto(valor, MAXIMO_CARACTERES_OBSERVACION, campo.obligatoria, 'La observación', true);
 }
 
 const VALOR_NUMERICO = /^[+-]?\d+([.,]\d+)?$/;

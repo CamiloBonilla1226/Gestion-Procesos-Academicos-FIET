@@ -181,7 +181,7 @@ describe('CancelacionMatriculaProcesoComponent', () => {
     fixture.detectChanges();
     expect(componente.dialogoVisible).toBeTrue();
     expect(document.querySelectorAll('[data-campo-observacion]').length).toBe(1);
-    expect(document.querySelector('[data-campo-observacion]')?.textContent).toContain('Observación para el Decano (opcional)');
+    expect(document.querySelector('[data-campo-observacion]')?.textContent).toContain('Observación solo para el Decano (el estudiante no la verá)');
     expect(document.querySelector('[data-dialogo] [data-evaluacion]')).toBeNull();
     componente.observacion = ' Para revisar ';
     componente.confirmar();
@@ -270,7 +270,7 @@ describe('CancelacionMatriculaProcesoComponent', () => {
     const componente = fixture.componentInstance;
     componente.abrir('ENVIAR_RESPUESTA');
     fixture.detectChanges();
-    expect(document.querySelector('[data-campo-observacion]')?.textContent).toContain('Mensaje para el estudiante (opcional)');
+    expect(document.querySelector('[data-campo-observacion]')?.textContent).toContain('Observación solo para el estudiante (se entrega como respuesta)');
     componente.observacion = 'x'.repeat(501);
     componente.confirmar();
     expect(componente.errores['observacion']).toContain('500');
@@ -469,7 +469,7 @@ describe('CancelacionMatriculaProcesoComponent', () => {
     fixture.componentInstance.abrir('ENVIAR_RESPUESTA');
     fixture.componentInstance.observacion = 'Hola';
     fixture.detectChanges();
-    expect(document.querySelector('[data-campo-observacion]')?.textContent).toContain('Mensaje para el estudiante (opcional)');
+    expect(document.querySelector('[data-campo-observacion]')?.textContent).toContain('Observación solo para el estudiante (se entrega como respuesta)');
     expect(document.querySelector('[data-campo-observacion] [data-contador]')?.textContent?.trim()).toBe('4/500');
   });
 });

@@ -126,6 +126,17 @@ describe('DetalleSolicitudAcademicaComponent', () => {
     expect(delEstudiante.nativeElement.textContent).not.toContain('1061789234');
   });
 
+  it('Funcionario y Decano ven el codigo estudiantil del nivel superior del detalle', () => {
+    const datos = detalle(false, false);
+    const conCodigo = { ...datos, codigoEstudiantil: '104699990001', estudiante: { ...datos.estudiante, codigoEstudiantil: '' } };
+    for (const rol of ['FUNCIONARIO', 'DECANO']) {
+      const fixture = crear(conCodigo, rol);
+      const etiquetas = texto(fixture, '[data-datos-generales] dt');
+      expect(texto(fixture, '[data-datos-generales] dd')[etiquetas.indexOf('Código estudiantil')]).toBe('104699990001');
+      fixture.destroy();
+    }
+  });
+
   it('el titulo de los anexos depende del proceso y muestra cuantos hay', () => {
     const matricula = crear(detalle(false, false));
     expect(texto(matricula, '[data-tarjeta-anexos] h3')).toEqual(['Documentación requerida']);

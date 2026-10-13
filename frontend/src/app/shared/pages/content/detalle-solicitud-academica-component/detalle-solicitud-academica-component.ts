@@ -112,7 +112,7 @@ export class DetalleSolicitudAcademicaComponent implements OnInit {
     return [
       { etiqueta: 'Nombre', valor: `${estudiante.nombres ?? ''} ${estudiante.apellidos ?? ''}`.trim() },
       { etiqueta: 'Número de CC', valor: this.esEstudiante ? '' : this.solicitud.numeroDocumento ?? '' },
-      { etiqueta: 'Código estudiantil', valor: estudiante.codigoEstudiantil ?? '' },
+      { etiqueta: 'Código estudiantil', valor: this.solicitud.codigoEstudiantil ?? estudiante.codigoEstudiantil ?? '' },
       { etiqueta: 'Programa académico', valor: estudiante.programaAcademico ?? '' },
       { etiqueta: 'Semestre', valor: estudiante.semestre ?? '' },
       { etiqueta: 'Correo electrónico', valor: estudiante.correoElectronico ?? '' },

@@ -51,25 +51,18 @@ export interface CampoObservacion {
   etiqueta: string;
   obligatoria: boolean;
   aviso: string | null;
-  esMensaje?: boolean;
 }
 
+export const ETIQUETA_OBSERVACION_DECANO = 'Observación solo para el Decano (el estudiante no la verá)';
+export const ETIQUETA_OBSERVACION_ESTUDIANTE = 'Observación solo para el estudiante (se entrega como respuesta)';
+
 const CAMPOS_OBSERVACION: Partial<Record<AccionAcademica, CampoObservacion>> = {
-  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: { etiqueta: 'Observación', obligatoria: true, aviso: null },
-  [ACCIONES_ACADEMICAS.REMITIR_DECANO]: {
-    etiqueta: 'Observación para el Decano',
-    obligatoria: false,
-    aviso: 'El estudiante no verá esta observación.'
-  },
-  [ACCIONES_ACADEMICAS.APROBAR_DECANO]: { etiqueta: 'Observación', obligatoria: false, aviso: AVISO_OBSERVACION_DECANO },
-  [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: { etiqueta: 'Observación', obligatoria: false, aviso: AVISO_OBSERVACION_DECANO },
-  [ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA]: {
-    etiqueta: 'Mensaje para el estudiante',
-    obligatoria: false,
-    aviso: 'Es lo único que el estudiante recibe sobre el motivo de la decisión.',
-    esMensaje: true
-  },
-  [ACCIONES_ACADEMICAS.RECHAZAR_COMPROBANTE]: { etiqueta: 'Observación', obligatoria: true, aviso: null }
+  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: { etiqueta: ETIQUETA_OBSERVACION_ESTUDIANTE, obligatoria: true, aviso: null },
+  [ACCIONES_ACADEMICAS.REMITIR_DECANO]: { etiqueta: ETIQUETA_OBSERVACION_DECANO, obligatoria: false, aviso: null },
+  [ACCIONES_ACADEMICAS.APROBAR_DECANO]: { etiqueta: 'Observación (opcional)', obligatoria: false, aviso: AVISO_OBSERVACION_DECANO },
+  [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: { etiqueta: 'Observación (opcional)', obligatoria: false, aviso: AVISO_OBSERVACION_DECANO },
+  [ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA]: { etiqueta: ETIQUETA_OBSERVACION_ESTUDIANTE, obligatoria: false, aviso: null },
+  [ACCIONES_ACADEMICAS.RECHAZAR_COMPROBANTE]: { etiqueta: ETIQUETA_OBSERVACION_ESTUDIANTE, obligatoria: true, aviso: null }
 };
 
 export function campoObservacion(accion: AccionAcademica | null | undefined): CampoObservacion | null {
@@ -77,7 +70,7 @@ export function campoObservacion(accion: AccionAcademica | null | undefined): Ca
 }
 
 export function etiquetaCampoObservacion(campo: CampoObservacion): string {
-  return campo.obligatoria ? campo.etiqueta : `${campo.etiqueta} (opcional)`;
+  return campo.etiqueta;
 }
 
 const ESPACIO_FACULTAD = 'Espacio a diligenciar por la Facultad a la que pertenece el estudiante';

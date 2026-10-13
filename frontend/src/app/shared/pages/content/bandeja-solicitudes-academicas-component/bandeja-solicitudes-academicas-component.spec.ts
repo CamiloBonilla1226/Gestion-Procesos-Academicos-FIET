@@ -96,6 +96,31 @@ describe('BandejaSolicitudesAcademicasComponent', () => {
     expect(filas(fixture)[0].querySelector('.radicado')?.textContent?.trim()).toBe('2026-CA-0002');
   });
 
+  it('el Funcionario tiene un filtro propio de codigo estudiantil con coincidencia parcial', () => {
+    const lista = solicitudes(12);
+    servicio.getSolicitudesFuncionario.and.returnValue(of(lista));
+    const fixture = crear('FUNCIONARIO');
+    const etiquetas = Array.from(fixture.nativeElement.querySelectorAll('.filtros .campo-etiqueta')).map((e: any) => e.textContent.trim());
+    expect(etiquetas).toEqual(['Número de identificación', 'Código estudiantil']);
+    expect(fixture.nativeElement.querySelectorAll('app-barra-busqueda-component').length).toBe(2);
+
+    fixture.componentInstance.onCodigoChange('6111');
+    fixture.detectChanges();
+    expect(filas(fixture).map(f => f.querySelector('.radicado')?.textContent?.trim())).toEqual(['2026-CA-0011']);
+    expect(fixture.componentInstance.hayFiltros).toBeTrue();
+
+    fixture.componentInstance.limpiarFiltros();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.codigoFiltro).toBe('');
+    expect(filas(fixture).length).toBe(10);
+  });
+
+  it('el Decano no tiene el filtro de codigo estudiantil', () => {
+    servicio.getSolicitudesDecano.and.returnValue(of(solicitudes(2)));
+    const fixture = crear('DECANO');
+    expect(fixture.nativeElement.querySelector('[data-filtro-codigo]')).toBeNull();
+  });
+
   it('el Estudiante solo ve sus columnas y no tiene filtro por codigo', () => {
     servicio.getSolicitudesEstudiante.and.returnValue(of(solicitudes(2)));
     const fixture = crear('ESTUDIANTE');

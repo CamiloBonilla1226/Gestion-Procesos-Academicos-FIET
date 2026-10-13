@@ -38,11 +38,18 @@ describe('etiquetas academicas', () => {
   });
 
   it('define el campo de observacion de cada accion', () => {
-    expect(etiquetaCampoObservacion(campoObservacion('REMITIR_DECANO')!)).toBe('Observación para el Decano (opcional)');
-    expect(etiquetaCampoObservacion(campoObservacion('RECHAZAR_FUNCIONARIO')!)).toBe('Observación');
+    expect(etiquetaCampoObservacion(campoObservacion('REMITIR_DECANO')!)).toBe('Observación solo para el Decano (el estudiante no la verá)');
+    expect(campoObservacion('REMITIR_DECANO')!.obligatoria).toBeFalse();
+    expect(campoObservacion('REMITIR_DECANO')!.aviso).toBeNull();
+    expect(etiquetaCampoObservacion(campoObservacion('RECHAZAR_FUNCIONARIO')!)).toBe('Observación solo para el estudiante (se entrega como respuesta)');
+    expect(campoObservacion('RECHAZAR_FUNCIONARIO')!.obligatoria).toBeTrue();
+    expect(etiquetaCampoObservacion(campoObservacion('RECHAZAR_DECANO')!)).toBe('Observación (opcional)');
     expect(campoObservacion('RECHAZAR_DECANO')!.aviso).toBe('Esta observación solo será visible para el Funcionario Académico.');
     expect(campoObservacion('RECHAZAR_DECANO')!.obligatoria).toBeFalse();
-    expect(etiquetaCampoObservacion(campoObservacion('ENVIAR_RESPUESTA')!)).toBe('Mensaje para el estudiante (opcional)');
+    expect(etiquetaCampoObservacion(campoObservacion('ENVIAR_RESPUESTA')!)).toBe('Observación solo para el estudiante (se entrega como respuesta)');
+    expect(campoObservacion('ENVIAR_RESPUESTA')!.obligatoria).toBeFalse();
+    expect(etiquetaCampoObservacion(campoObservacion('RECHAZAR_COMPROBANTE')!)).toBe('Observación solo para el estudiante (se entrega como respuesta)');
+    expect(campoObservacion('RECHAZAR_COMPROBANTE')!.obligatoria).toBeTrue();
     expect(campoObservacion('ENVIAR_RECIBO')).toBeNull();
     expect(campoObservacion(null)).toBeNull();
   });

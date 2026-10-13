@@ -18,14 +18,17 @@ export function filtrarSolicitudes(
   solicitudes: SolicitudAcademicaResumenDTORespuesta[],
   tipo: string | null | undefined,
   texto: string | null | undefined,
-  estado: string | null | undefined = null
+  estado: string | null | undefined = null,
+  codigo: string | null | undefined = null
 ): SolicitudAcademicaResumenDTORespuesta[] {
   const buscado = normalizarTexto(texto);
+  const codigoBuscado = normalizarTexto(codigo);
   const filtrarTipo = !!tipo && tipo !== TODOS_LOS_TIPOS;
   const filtrarEstado = !!estado && estado !== TODOS_LOS_TIPOS;
   return solicitudes.filter(solicitud => {
     if (filtrarTipo && solicitud.tipoSolicitud !== tipo) return false;
     if (filtrarEstado && solicitud.etiqueta !== estado) return false;
+    if (codigoBuscado && !normalizarTexto(solicitud.codigoEstudiantil).includes(codigoBuscado)) return false;
     if (!buscado) return true;
     return [solicitud.radicado, solicitud.nombreEstudiante, solicitud.codigoEstudiantil, solicitud.numeroDocumento]
       .some(campo => normalizarTexto(campo).includes(buscado));

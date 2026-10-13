@@ -109,7 +109,7 @@ describe('validaciones academicas', () => {
     expect(errorDeObservacion('APROBAR_DECANO', '')).toBeNull();
     expect(errorDeObservacion('REMITIR_DECANO', '')).toBeNull();
     expect(errorDeObservacion('ENVIAR_RESPUESTA', '')).toBeNull();
-    expect(errorDeObservacion('ENVIAR_RESPUESTA', 'm'.repeat(501))).toBe('El mensaje supera los 500 caracteres permitidos.');
+    expect(errorDeObservacion('ENVIAR_RESPUESTA', 'm'.repeat(501))).toBe('La observación supera los 500 caracteres permitidos.');
     expect(errorDeObservacion('RECHAZAR_DECANO', 'o'.repeat(501))).toContain('500');
     expect(errorDeObservacion('ENVIAR_RECIBO', 'o'.repeat(501))).toBeNull();
   });

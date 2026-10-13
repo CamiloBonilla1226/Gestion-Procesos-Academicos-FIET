@@ -64,6 +64,13 @@ describe('filtrarSolicitudes', () => {
       .toEqual(['2026-CA-0001', '2026-CA-0002']);
     expect(filtrarSolicitudes(conEstados, TODOS_LOS_TIPOS, '', TODOS_LOS_TIPOS).length).toBe(4);
   });
+
+  it('filtra por codigo estudiantil con coincidencia parcial, aparte del texto', () => {
+    expect(filtrarSolicitudes(lista, TODOS_LOS_TIPOS, '', null, '61802').length).toBe(4);
+    expect(filtrarSolicitudes(lista, TODOS_LOS_TIPOS, '', null, '8022').map(s => s.radicado)).toEqual(['2026-CA-0001']);
+    expect(filtrarSolicitudes(lista, TODOS_LOS_TIPOS, 'maria', null, '8022')).toEqual([]);
+    expect(filtrarSolicitudes(lista, TODOS_LOS_TIPOS, '', null, '  ')).toEqual(lista);
+  });
 });
 
 describe('opciones y orden de la bandeja', () => {

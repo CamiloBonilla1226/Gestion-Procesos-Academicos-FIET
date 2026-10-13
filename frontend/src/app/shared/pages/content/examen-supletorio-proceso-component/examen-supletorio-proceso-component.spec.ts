@@ -176,6 +176,21 @@ describe('ExamenSupletorioProcesoComponent', () => {
     terminar(req);
   });
 
+  it('remitir y rechazar usan las mismas etiquetas de observacion que las cancelaciones', () => {
+    const fixture = crear(solicitud(['RECHAZAR_FUNCIONARIO', 'REMITIR_DECANO']));
+    const componente = fixture.componentInstance;
+    componente.abrir('REMITIR_DECANO');
+    fixture.detectChanges();
+    expect(document.querySelectorAll('[data-campo-observacion]').length).toBe(1);
+    expect(document.querySelector('[data-campo-observacion]')?.textContent).toContain('Observación solo para el Decano (el estudiante no la verá)');
+    componente.cerrar(false);
+    componente.abrir('RECHAZAR_FUNCIONARIO');
+    fixture.detectChanges();
+    expect(document.querySelector('[data-campo-observacion]')?.textContent).toContain('Observación solo para el estudiante (se entrega como respuesta)');
+    componente.confirmar();
+    expect(componente.errores['observacion']).toContain('obligatoria');
+  });
+
   it('el Decano aprueba sin cuerpo o con observacion, y rechaza con observacion opcional', () => {
     const componente = crear(solicitud(['APROBAR_DECANO', 'RECHAZAR_DECANO'], 'EN_REVISION_DECANO'), 'DECANO').componentInstance;
     componente.abrir('APROBAR_DECANO');
@@ -216,7 +231,7 @@ describe('ExamenSupletorioProcesoComponent', () => {
     const componente = fixture.componentInstance;
     componente.abrir('ENVIAR_RESPUESTA');
     fixture.detectChanges();
-    expect(document.querySelector('[data-campo-observacion]')?.textContent).toContain('Mensaje para el estudiante (opcional)');
+    expect(document.querySelector('[data-campo-observacion]')?.textContent).toContain('Observación solo para el estudiante (se entrega como respuesta)');
     componente.confirmar();
     const sinMensaje = accion('funcionario/responder');
     expect(sinMensaje.request.body).toEqual({ observacion: null });
@@ -311,10 +326,16 @@ describe('ExamenSupletorioProcesoComponent', () => {
     terminar(req);
   });
 
-  it('rechazar el comprobante exige observacion', () => {
-    const componente = crear(solicitud(['RECHAZAR_COMPROBANTE'], 'EN_VERIFICACION_PAGO')).componentInstance;
+  it('rechazar el comprobante exige la observacion para el estudiante con la etiqueta compartida', () => {
+    const fixture = crear(solicitud(['RECHAZAR_COMPROBANTE'], 'EN_VERIFICACION_PAGO'));
+    const componente = fixture.componentInstance;
     componente.abrir('RECHAZAR_COMPROBANTE');
+    fixture.detectChanges();
+    const campo = document.querySelector('[data-campo-observacion]') as HTMLElement;
+    expect(campo.textContent).toContain('Observación solo para el estudiante (se entrega como respuesta)');
+    expect(campo.textContent).toContain('*');
     componente.confirmar();
+    expect(componente.errores['observacion']).toContain('obligatoria');
     http.expectNone(`${URL}/funcionario/comprobante/rechazar`);
     componente.observacion = 'El valor pagado no coincide';
     componente.confirmar();
