@@ -281,6 +281,22 @@ class ConsultaSolicitudAcademicaCUImplAdaptadorTest {
     }
 
     @Test
+    void elFuncionarioYElDecanoVenElNumeroDeDocumentoEnElDetalleYElEstudianteNo() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(conDocumento(EN_REVISION_DECANO, "1061789234"));
+
+        assertNull(casoDeUso.getDetalle(SOLICITUD, token(ESTUDIANTE)).getNumeroDocumento());
+        assertEquals("1061789234", casoDeUso.getDetalle(SOLICITUD, token(FUNCIONARIO)).getNumeroDocumento());
+        assertEquals("1061789234", casoDeUso.getDetalle(SOLICITUD, token(DECANO)).getNumeroDocumento());
+    }
+
+    @Test
+    void sinUsuarioDelEstudianteElNumeroDeDocumentoDelDetalleQuedaNulo() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(EN_REVISION_DECANO));
+
+        assertNull(casoDeUso.getDetalle(SOLICITUD, token(DECANO)).getNumeroDocumento());
+    }
+
+    @Test
     void enElDetalleElEstudianteVeLaDecisionDelDecanoComoEnRevisionYLosDemasElCodigoReal() {
         for (String etapa : List.of(APROBADA_POR_DECANO, RECHAZADA_POR_DECANO)) {
             when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(etapa));

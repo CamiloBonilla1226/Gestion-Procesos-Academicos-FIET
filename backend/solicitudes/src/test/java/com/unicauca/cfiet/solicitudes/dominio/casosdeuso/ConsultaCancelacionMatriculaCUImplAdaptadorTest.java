@@ -92,6 +92,7 @@ class ConsultaCancelacionMatriculaCUImplAdaptadorTest {
                         .etapa(EtapaSolicitudAcademica.builder().uuidEtapa("et-" + etapa).codigo(etapa).build())
                         .build())
                 .etiqueta("Etiqueta")
+                .numeroDocumento("1061789234")
                 .build());
         when(consultaCU.resolverActor(SOLICITUD, TOKEN)).thenReturn(ActorSolicitud.builder().uuidUsuario("u-1").rol(rol).build());
     }
@@ -159,6 +160,7 @@ class ConsultaCancelacionMatriculaCUImplAdaptadorTest {
         DetalleCancelacionMatricula detalle = casoDeUso.getDetalle(SOLICITUD, TOKEN);
 
         assertEquals("Etiqueta", detalle.getDetalle().getEtiqueta());
+        assertEquals("1061789234", detalle.getDetalle().getNumeroDocumento());
         assertEquals("Motivos personales", detalle.getMotivoCancelacion());
         assertEquals(1, detalle.getAsignaturas().size());
         assertEquals("sit-r1", detalle.getAsignaturas().get(0).getSituacionCancelar().getUuidSituacionAcademica());

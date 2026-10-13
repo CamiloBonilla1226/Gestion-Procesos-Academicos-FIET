@@ -62,6 +62,7 @@ public class MapperSolicitudAcademicaInfraestructuraDominio {
                 .fechaCreacion(solicitud.getFechaCreacion())
                 .etiqueta(detalle.getEtiqueta())
                 .etapaCodigo(detalle.getEtapaCodigo() != null ? detalle.getEtapaCodigo() : codigoEtapa(solicitud))
+                .numeroDocumento(detalle.getNumeroDocumento())
                 .estudiante(mapearEstudianteARespuesta(solicitud.getEstudiante()))
                 .anexos(detalle.getAnexos() == null ? new ArrayList<>() : detalle.getAnexos().stream().map(this::mapearAnexoARespuesta).toList())
                 .tieneResolucion(detalle.isTieneResolucion())

@@ -246,6 +246,10 @@ try {
     $detalle = Leer-Json $r
     Escribir-Resultado "el Decano ve el detalle en revision con sus acciones (obtuvo $($detalle.accionesDisponibles -join ','))" (($r.Status -eq 200) -and ($detalle.etiqueta -eq "Pendiente") -and (($detalle.accionesDisponibles -join ',') -eq "APROBAR_DECANO,RECHAZAR_DECANO"))
     Escribir-Resultado "el detalle del Decano trae etapaCodigo EN_REVISION_DECANO con su etiqueta (obtuvo $($detalle.etapaCodigo))" (($detalle.etapaCodigo -eq "EN_REVISION_DECANO") -and ($detalle.etiqueta -eq "Pendiente"))
+    Escribir-Resultado "el detalle del Decano trae el numeroDocumento del estudiante (obtuvo $($detalle.numeroDocumento))" ($detalle.numeroDocumento -eq $est2.Documento)
+    $r = Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$s3" -Token $est2.Token
+    $detalle = Leer-Json $r
+    Escribir-Resultado "el detalle del estudiante no trae numeroDocumento (obtuvo $($detalle.numeroDocumento))" (($r.Status -eq 200) -and ($null -eq $detalle.numeroDocumento) -and ($r.Body -notmatch [regex]::Escape($est2.Documento)))
 
     $r = Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$s1" -Token $est1.Token
     $detalle = Leer-Json $r
@@ -258,6 +262,7 @@ try {
     $detalle = Leer-Json $r
     Escribir-Resultado "el funcionario asignado ve sus acciones en RADICADA (obtuvo $($detalle.accionesDisponibles -join ','))" (($detalle.accionesDisponibles -join ',') -eq "RECHAZAR_FUNCIONARIO,REMITIR_DECANO")
     Escribir-Resultado "el detalle del funcionario trae etapaCodigo RADICADA con su etiqueta Pendiente (obtuvo $($detalle.etapaCodigo))" (($detalle.etapaCodigo -eq "RADICADA") -and ($detalle.etiqueta -eq "Pendiente"))
+    Escribir-Resultado "el detalle del funcionario trae el numeroDocumento del estudiante (obtuvo $($detalle.numeroDocumento))" ($detalle.numeroDocumento -eq $est1.Documento)
 
     $pdfAnexo = Nuevo-Pdf "anexo"; $archivos += $pdfAnexo
     $r = Subir-Multipart -Ruta "$Global:Ruta/$s1/anexos" -Archivo $pdfAnexo -Token $est1.Token -TipoAnexo $tipoPaz

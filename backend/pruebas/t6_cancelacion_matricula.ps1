@@ -49,6 +49,7 @@ function Nuevo-Estudiante {
     return [pscustomobject]@{
         Uuid    = (Leer-Json $r).uuidUsuario
         Codigos = @($asignaturas | ForEach-Object { $_.codigoAsignatura })
+        Documento = $cuerpo.numeroDocumento
         Token   = Iniciar-Sesion -Usuario "can$s" -Clave "Clave12345"
     }
 }
@@ -338,6 +339,12 @@ try {
     $detalle = if ($r.Status -eq 200) { Leer-Json $r } else { $null }
     Escribir-Resultado "remitir correcto pasa a EN_REVISION_DECANO (obtuvo $($r.Status), etapa $(Etapa-De $sol1))" (($r.Status -eq 200) -and ((Etapa-De $sol1) -eq "EN_REVISION_DECANO"))
     Verificar-EtapaHttp -Solicitud $sol1 -Esperada "EN_REVISION_DECANO" -Estudiante $est1.Token -Funcionario $fa1.Token -Decano $decano.Token
+    $vistaFa = Leer-Json (Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$sol1" -Token $fa1.Token)
+    $vistaDec = Leer-Json (Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$sol1" -Token $decano.Token)
+    $r = Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$sol1" -Token $est1.Token
+    $vistaEst = Leer-Json $r
+    Escribir-Resultado "el detalle comun trae el numeroDocumento al funcionario y al Decano (obtuvo $($vistaFa.solicitud.numeroDocumento)/$($vistaDec.solicitud.numeroDocumento))" (($vistaFa.solicitud.numeroDocumento -eq $est1.Documento) -and ($vistaDec.solicitud.numeroDocumento -eq $est1.Documento))
+    Escribir-Resultado "el detalle comun del estudiante no trae numeroDocumento (obtuvo $($vistaEst.solicitud.numeroDocumento))" (($r.Status -eq 200) -and ($null -eq $vistaEst.solicitud.numeroDocumento) -and ($r.Body -notmatch [regex]::Escape($est1.Documento)))
     $guardadas = Ejecutar-Sql "select count(*) from ASIGNATURA_SOLICITUD_ACADEMICA where SolicitudAcademica_uuid = '$sol1' and numeroFaltas is not null and nota is not null and SituacionMatricula_uuid = '$($situaciones[0])' and SituacionCancelar_uuid is null"
     Escribir-Resultado "las tres evaluaciones quedaron en MySQL (obtuvo $guardadas)" ($guardadas -eq "3")
     $notaFila = Ejecutar-Sql "select concat(numeroFaltas, '|', nota) from ASIGNATURA_SOLICITUD_ACADEMICA where uuidAsignaturaSolicitud = '$($filas1[1])'"

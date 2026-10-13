@@ -95,6 +95,7 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
                 .solicitudAcademica(solicitud)
                 .etiqueta(acceso.etiqueta())
                 .etapaCodigo(etapaVisible(etapa, acceso.rol()))
+                .numeroDocumento(acceso.rol() == RolEtiquetaEtapa.ESTUDIANTE ? null : numeroDocumento(solicitud))
                 .anexos(anexoGateway.getPorSolicitud(uuid))
                 .tieneResolucion(tieneResolucion)
                 .puedeDescargarResolucion(puedeDescargar)

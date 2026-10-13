@@ -2,6 +2,21 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-13 - numeroDocumento en el detalle de la solicitud (Tarea T12.6)
+- Qué se hizo: el detalle común (`GET solicitudes-academicas/{uuid}`) y el bloque `solicitud` de los detalles de Cancelación de Matrícula, Cancelación de Asignatura y Examen Supletorio traen `numeroDocumento` del estudiante para Funcionario Académico y Decano; para el Estudiante sale nulo. `getDetalle` lo decide por el rol del acceso y el mapper lo copia de `DetalleSolicitudAcademica`, nunca del usuario de la solicitud.
+- Archivos:
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/modelos/DetalleSolicitudAcademica.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/ConsultaSolicitudAcademicaCUImplAdaptador.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorSolicitudesAcademicas/DTORespuesta/SolicitudAcademicaDetalleDTORespuesta.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorSolicitudesAcademicas/mapeador/MapperSolicitudAcademicaInfraestructuraDominio.java` (modificado)
+  - `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/ConsultaSolicitudAcademicaCUImplAdaptadorTest.java` (modificado)
+  - `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/ConsultaCancelacionMatriculaCUImplAdaptadorTest.java` (modificado)
+  - `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorSolicitudesAcademicas/MapperSolicitudAcademicaInfraestructuraDominioTest.java` (modificado)
+  - `backend/pruebas/t5_solicitudes.ps1`, `backend/pruebas/t6_cancelacion_matricula.ps1` (modificado)
+  - `docs/api/contrato-api-procesos-academicos.md`, `docs/database/etapas-por-proceso.md` (modificado, P43)
+  - `backend/CLAUDE.md` (modificado)
+- Notas: el campo va en el nivel superior del detalle, como en el resumen, y no dentro de `estudiante`. Los detalles de proceso lo heredan porque reciben el detalle común de `ConsultaSolicitudAcademicaCU.getDetalle`. `.\mvnw.cmd test`: 1210 pruebas, 0 fallos; `todo.ps1`: 1241 PASS, 0 FAIL. El modelo TypeScript del detalle y la vista del frontend no se tocaron.
+
 ## 2026-10-13 - Rediseño visual, parte 2: detalle, modales y formularios (Tarea T12.2-C)
 - Qué se hizo:
   - Ajuste 2: las bandejas del Funcionario y del Decano muestran la columna "Documento" con `numeroDocumento` (T12.5) y el filtro pasa a "NÚMERO DE IDENTIFICACIÓN" con placeholder "Ej. 1061789234"; la búsqueda cubre radicado, nombre, código y documento. El Estudiante no ve ni la columna ni el filtro.

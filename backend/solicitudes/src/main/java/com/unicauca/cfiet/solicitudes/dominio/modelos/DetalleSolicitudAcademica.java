@@ -14,6 +14,7 @@ public class DetalleSolicitudAcademica {
     private SolicitudAcademica solicitudAcademica;
     private String etiqueta;
     private String etapaCodigo;
+    private String numeroDocumento;
     @Builder.Default
     private List<AnexoAcademico> anexos = new ArrayList<>();
     private boolean tieneResolucion;

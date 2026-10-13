@@ -365,7 +365,7 @@ ninguna FK de la extensión apunta al Decano (el historial apunta a
 ## Procesos académicos: piezas y máquina de etapas
 
 Las reglas de negocio de los tres procesos (etapas, transiciones, anexos,
-plazos y decisiones P4 a P42) están en `docs/database/etapas-por-proceso.md`;
+plazos y decisiones P4 a P43) están en `docs/database/etapas-por-proceso.md`;
 el contrato HTTP, en `docs/api/contrato-api-procesos-academicos.md`.
 
 ### Casos de uso por área
@@ -425,7 +425,10 @@ el código real.
 El resumen de las bandejas lleva `numeroDocumento` del estudiante para
 Funcionario y Decano y nulo para el Estudiante (P42). Lo decide `resumir` en
 el caso de uso y va en `ResumenSolicitudAcademica.numeroDocumento`; el mapper
-lo copia de ahí, no del usuario de la solicitud.
+lo copia de ahí, no del usuario de la solicitud. El detalle común hace lo
+mismo (P43): `getDetalle` lo pone en `DetalleSolicitudAcademica.numeroDocumento`
+según el rol del acceso y los detalles de los tres procesos lo heredan en su
+bloque `solicitud`.
 
 Los archivos los guarda `AlmacenamientoAnexosImplAdaptador`
 (`infraestructura/output/almacenamiento`) sobre el `AlmacenadorArchivos` de
@@ -1179,7 +1182,7 @@ propia clase de prueba. Usan el `ExcepcionesFormateadorImplAdaptador` y la
 - `infraestructura/configuracion/lectorArchivos/AgrupadorEstudiantesExcelTest`
   y `DuplicadosFuncionariosAcademicosExcelTest`.
 
-Hoy `.\mvnw.cmd test` corre 1207 pruebas. `AsignaturaCUImplAdaptadorTest`
+Hoy `.\mvnw.cmd test` corre 1210 pruebas. `AsignaturaCUImplAdaptadorTest`
 cubre el consecutivo, el paso de 999 a 1000, la no reutilización, el orden
 bloqueo y luego nombre, y 40 creaciones simultáneas sobre un gateway falso con
 bloqueo que no repiten código.

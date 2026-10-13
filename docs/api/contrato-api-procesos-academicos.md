@@ -239,6 +239,7 @@ filtro se hace en el cliente.
 | `fechaCreacion` | fecha y hora | |
 | `etiqueta` | texto | Etiqueta de la etapa para el rol que consulta |
 | `etapaCodigo` | texto | Código de la etapa (sección 1.5); al Estudiante, `EN_REVISION_DECANO` en lugar de la decisión del Decano |
+| `numeroDocumento` | texto | Número de documento del estudiante; llega al Funcionario Académico y al Decano y sale `null` al Estudiante (P43). Viene también en el `solicitud` de los detalles de cada proceso |
 | `estudiante` | objeto | `uuidUsuario`, `nombres`, `apellidos`, `codigoEstudiantil`, `programaAcademico`, `semestre`, `correoElectronico` |
 | `anexos` | lista | AnexoAcademicoDTORespuesta, de la subida más antigua a la más reciente |
 | `tieneResolucion` | booleano | Hay escaneo de la Resolución |
