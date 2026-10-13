@@ -530,6 +530,22 @@ Otras decisiones tomadas en las tareas, sin número:
   `core/utils/encabezado-agrupado.ts` y `RUTAS_ENCABEZADO_ASIGNATURAS`). En
   Cancelación de Asignatura "Situación al cancelar" va junto a "Situación en la
   matrícula".
+- Tabla de asignaturas en línea (T12.8): cada componente de proceso pinta su
+  propia tabla (ya no usa `TableGenericComponent`) con el estilo de
+  `shared/pages/content/tabla-asignaturas.css`: encabezado gris en mayúscula
+  pequeña y celdas con "—" cuando no hay dato. Si `accionesDisponibles` trae
+  `REMITIR_DECANO`, la tabla es editable: No. faltas y Nota como texto, y la
+  situación en la matrícula y al cancelar como select del mismo catálogo (al
+  cancelar es opcional y viaja como `situacionCancelarUuid`, P44). En
+  Cancelación de Asignatura se suma la columna "Cumple condiciones" bajo
+  "Evaluación del Funcionario", y la observación de la evaluación es un solo
+  campo debajo de la tabla, obligatorio si alguna no cumple, que se envía como
+  `observacionEvaluacion` de cada asignatura que no cumple. Al pulsar "Remitir
+  al Decano" se validan las filas con los mismos mensajes, que se pintan en la
+  celda; si todo está bien se abre el diálogo, que solo pide la observación
+  para el Decano. El Decano sigue registrando la situación al cancelar en su
+  diálogo, con lo que dejó el Funcionario como valor inicial. Bajo 992 px la
+  tabla hace scroll dentro de su tarjeta.
 - Modales: barra navy con ×, resumen de la solicitud
   (`ResumenSolicitudComponent`: Estudiante, Número de CC si llega, Código
   estudiantil, Tipo de proceso, Número de radicado), notas grises y botones Cancelar y confirmar. Cierran con

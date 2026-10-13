@@ -1,7 +1,6 @@
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { Observable, finalize, map, of, switchMap, tap } from 'rxjs';
 import { GenericDialogFormComponent } from '../../../generic-dialog-form-component/generic-dialog-form-component';
-import { TableGenericComponent, TableHeader } from '../../../table-generic-component/table-generic-component';
 import { SimpleButtonComponent } from '../../../buttons/simple-button-component/simple-button-component';
 import { InputTextComponent } from '../../../inputs/input-text-component/input-text-component';
 import { InputTextTareaComponent } from '../../../inputs/input-text-tarea-component/input-text-tarea-component';
@@ -53,8 +52,8 @@ interface EvaluacionEnEdicion {
   faltas: string;
   nota: string;
   situacion: string | null;
+  cancelar: string | null;
   cumple: boolean | null;
-  observacion: string;
 }
 
 interface DecisionEnEdicion {
@@ -63,8 +62,11 @@ interface DecisionEnEdicion {
   observacion: string;
 }
 
+type CampoEvaluacion = 'faltas' | 'nota' | 'situacion' | 'cancelar' | 'cumple';
+
 interface Columna {
   titulo: string;
+  campo?: CampoEvaluacion;
   valor: (a: AsignaturaSolicitadaDTORespuesta) => string | null;
 }
 
@@ -109,6 +111,7 @@ const MENSAJES_EXITO: Partial<Record<AccionAcademica, string>> = {
 };
 
 const SIN_REGISTRAR = 'Sin registrar';
+const SIN_DATO = '—';
 
 function textoSiNo(valor: boolean | null, si: string, no: string): string | null {
   if (valor === null || valor === undefined) return null;
@@ -133,22 +136,22 @@ const COLUMNAS_ESTUDIANTE_EN_CURSO: Columna[] = [COLUMNA_CODIGO, COLUMNA_NOMBRE]
 const COLUMNAS_COMPLETAS: Columna[] = [
   COLUMNA_CODIGO,
   COLUMNA_NOMBRE,
-  { titulo: 'Faltas', valor: a => textoLibre(a.numeroFaltas) },
-  { titulo: 'Nota', valor: a => textoLibre(a.nota) },
-  { titulo: 'Situación en la matrícula', valor: a => textoSituacion(a.situacionMatricula) },
-  { titulo: 'Situación al cancelar', valor: a => textoSituacion(a.situacionCancelar) },
-  { titulo: 'Cumple condiciones', valor: a => textoSiNo(a.cumpleCondiciones, 'Sí', 'No') },
+  { titulo: 'Faltas', campo: 'faltas', valor: a => textoLibre(a.numeroFaltas) },
+  { titulo: 'Nota', campo: 'nota', valor: a => textoLibre(a.nota) },
+  { titulo: 'Situación en la matrícula', campo: 'situacion', valor: a => textoSituacion(a.situacionMatricula) },
+  { titulo: 'Situación al cancelar', campo: 'cancelar', valor: a => textoSituacion(a.situacionCancelar) },
+  { titulo: 'Cumple condiciones', campo: 'cumple', valor: a => textoSiNo(a.cumpleCondiciones, 'Sí', 'No') },
   { titulo: 'Observación de la evaluación', valor: a => textoLibre(a.observacionEvaluacion) },
   COLUMNA_DECISION,
   COLUMNA_OBSERVACION_DECISION
 ];
+const COLUMNAS_EDICION: Columna[] = COLUMNAS_COMPLETAS.filter(c => c.campo || c === COLUMNA_CODIGO || c === COLUMNA_NOMBRE);
 const COLUMNAS_FIJAS = new Set([COLUMNA_CODIGO.titulo, COLUMNA_NOMBRE.titulo]);
 
 @Component({
   selector: 'app-cancelacion-asignatura-proceso-component',
   imports: [
     GenericDialogFormComponent,
-    TableGenericComponent,
     SimpleButtonComponent,
     InputTextComponent,
     InputTextTareaComponent,
@@ -157,7 +160,7 @@ const COLUMNAS_FIJAS = new Set([COLUMNA_CODIGO.titulo, COLUMNA_NOMBRE.titulo]);
     ResumenSolicitudComponent
   ],
   templateUrl: './cancelacion-asignatura-proceso-component.html',
-  styleUrl: '../estilos-academicos.css'
+  styleUrls: ['../estilos-academicos.css', '../tabla-asignaturas.css']
 })
 export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   @Input({ required: true }) uuidSolicitud!: string;
@@ -172,11 +175,12 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   readonly tipoResolucion = comoTipoAnexo('resolucion', 'Escaneo de la Resolución firmada', FORMATOS_RESOLUCION, true);
   readonly textoLibre = textoLibre;
   readonly notaAprobarDecano = NOTA_APROBAR_DECANO;
+  readonly sinDato = SIN_DATO;
 
   detalle: CancelacionAsignaturaDetalleDTORespuesta | null = null;
-  encabezados: TableHeader[] = [];
+  columnas: Columna[] = [];
   encabezadoAgrupado: CeldaEncabezado[][] = [];
-  filasAsignaturas: Record<string, string>[] = [];
+  faltanDatosTabla = false;
   cargando = false;
   errorCarga = false;
 
@@ -190,6 +194,7 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   archivoResolucion: File | null = null;
   resolucionSubida = false;
   evaluaciones: Record<string, EvaluacionEnEdicion> = {};
+  observacionEvaluacion = '';
   decisiones: Record<string, DecisionEnEdicion> = {};
   errores: Record<string, string> = {};
   erroresServidor: string[] = [];
@@ -242,6 +247,10 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
     return campo ? etiquetaCampoObservacion(campo) : '';
   }
 
+  get algunaNoCumple(): boolean {
+    return Object.values(this.evaluaciones).some(e => e.cumple === false);
+  }
+
   get ningunaCumple(): boolean {
     const lista = Object.values(this.evaluaciones);
     return lista.length > 0 && lista.every(e => e.cumple === false);
@@ -250,6 +259,22 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   get ningunaAprobada(): boolean {
     const lista = Object.values(this.decisiones);
     return lista.length > 0 && lista.every(d => d.aprobada === false);
+  }
+
+  get editable(): boolean {
+    return this.accionesVisibles.includes(ACCIONES_ACADEMICAS.REMITIR_DECANO);
+  }
+
+  valorDe(evento: Event): string {
+    return (evento.target as HTMLInputElement | HTMLSelectElement).value;
+  }
+
+  valorCumple(valor: string): boolean | null {
+    return valor === 'si' ? true : valor === 'no' ? false : null;
+  }
+
+  errorCelda(columna: Columna, a: AsignaturaSolicitadaDTORespuesta): string {
+    return this.editable && columna.campo ? this.errores[`${columna.campo}-${a.uuidAsignaturaSolicitud}`] ?? '' : '';
   }
 
   esRechazo(accion: AccionAcademica): boolean {
@@ -278,9 +303,9 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
         },
         error: err => {
           this.detalle = null;
-          this.encabezados = [];
+          this.columnas = [];
           this.encabezadoAgrupado = [];
-          this.filasAsignaturas = [];
+          this.evaluaciones = {};
           this.errorCarga = true;
           this.errorHandlerService.handleError(err, 'Error', 'No se pudo cargar la cancelación de asignatura');
         }
@@ -294,16 +319,27 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
     this.archivoResolucion = null;
     this.errores = {};
     this.erroresServidor = [];
-    this.evaluaciones = {};
+    this.faltanDatosTabla = false;
     this.decisiones = {};
     if (accion === ACCIONES_ACADEMICAS.REMITIR_DECANO) {
-      this.evaluaciones = Object.fromEntries(this.asignaturas.map(a => [a.uuidAsignaturaSolicitud, this.evaluacionInicial(a)]));
-      this.abrirConSituaciones();
+      this.asegurarSituaciones(() => this.abrirRemision());
       return;
     }
     if (accion === ACCIONES_ACADEMICAS.APROBAR_DECANO) {
       this.decisiones = Object.fromEntries(this.asignaturas.map(a => [a.uuidAsignaturaSolicitud, this.decisionInicial(a)]));
-      this.abrirConSituaciones();
+      this.asegurarSituaciones(() => (this.dialogoVisible = true));
+      return;
+    }
+    this.dialogoVisible = true;
+  }
+
+  private abrirRemision(): void {
+    const errores: Record<string, string> = {};
+    this.validarEvaluaciones(errores);
+    this.errores = errores;
+    if (Object.keys(errores).length > 0) {
+      this.faltanDatosTabla = true;
+      this.accionActiva = null;
       return;
     }
     this.dialogoVisible = true;
@@ -355,14 +391,20 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   }
 
   private armarTabla(detalle: CancelacionAsignaturaDetalleDTORespuesta): void {
-    const columnas = this.columnasDelRol().filter(
-      columna => COLUMNAS_FIJAS.has(columna.titulo) || detalle.asignaturas.some(a => columna.valor(a) !== null)
-    );
-    this.encabezados = columnas.map(columna => ({ title: columna.titulo }));
-    this.encabezadoAgrupado = agruparEncabezados(columnas.map(columna => columna.titulo), RUTAS_ENCABEZADO_ASIGNATURAS);
-    this.filasAsignaturas = detalle.asignaturas.map(a =>
-      Object.fromEntries(columnas.map(columna => [columna.titulo, columna.valor(a) ?? SIN_REGISTRAR]))
-    );
+    this.faltanDatosTabla = false;
+    this.columnas = this.editable
+      ? COLUMNAS_EDICION
+      : this.columnasDelRol().filter(
+          columna => COLUMNAS_FIJAS.has(columna.titulo) || detalle.asignaturas.some(a => columna.valor(a) !== null)
+        );
+    this.encabezadoAgrupado = agruparEncabezados(this.columnas.map(columna => columna.titulo), RUTAS_ENCABEZADO_ASIGNATURAS);
+    this.evaluaciones = this.editable
+      ? Object.fromEntries(detalle.asignaturas.map(a => [a.uuidAsignaturaSolicitud, this.evaluacionInicial(a)]))
+      : {};
+    this.observacionEvaluacion = this.editable
+      ? detalle.asignaturas.map(a => textoLibre(a.observacionEvaluacion)).find(texto => texto !== null) ?? ''
+      : '';
+    if (this.editable) this.asegurarSituaciones(() => undefined);
   }
 
   private columnasDelRol(): Columna[] {
@@ -375,8 +417,8 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
       faltas: a.numeroFaltas ?? '',
       nota: a.nota ?? '',
       situacion: a.situacionMatricula?.uuidSituacionAcademica ?? null,
-      cumple: a.cumpleCondiciones,
-      observacion: a.observacionEvaluacion ?? ''
+      cancelar: a.situacionCancelar?.uuidSituacionAcademica ?? null,
+      cumple: a.cumpleCondiciones
     };
   }
 
@@ -426,16 +468,17 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   }
 
   private armarEvaluaciones(): EvaluacionCancelacionAsignaturaDTOPeticion[] {
+    const observacion = this.observacionEvaluacion.trim();
     return this.asignaturas.map(a => {
       const evaluacion = this.evaluaciones[a.uuidAsignaturaSolicitud];
-      const observacion = evaluacion.observacion.trim();
       return {
         asignaturaSolicitudUuid: a.uuidAsignaturaSolicitud,
         numeroFaltas: evaluacion.faltas.trim(),
         nota: evaluacion.nota.trim(),
         situacionMatriculaUuid: evaluacion.situacion!,
+        situacionCancelarUuid: evaluacion.cancelar,
         cumpleCondiciones: evaluacion.cumple!,
-        observacionEvaluacion: observacion === '' ? null : observacion
+        observacionEvaluacion: evaluacion.cumple === false && observacion !== '' ? observacion : null
       };
     });
   }
@@ -484,15 +527,15 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
       } else if (evaluacion.cumple && nota !== null && nota < NOTA_MINIMA_PARA_CUMPLIR) {
         errores[`cumple-${uuid}`] = 'Con una nota numérica menor a 3.0 no puede marcarse que cumple las condiciones.';
       }
-      const errorObservacion = errorDeTexto(
-        evaluacion?.observacion,
-        MAXIMO_CARACTERES_OBSERVACION_ASIGNATURA,
-        evaluacion?.cumple === false,
-        'La observación de la evaluación',
-        true
-      );
-      if (errorObservacion) errores[`observacion-${uuid}`] = errorObservacion;
     }
+    const errorObservacion = errorDeTexto(
+      this.observacionEvaluacion,
+      MAXIMO_CARACTERES_OBSERVACION_ASIGNATURA,
+      Object.values(this.evaluaciones).some(e => e.cumple === false),
+      'La observación de la evaluación',
+      true
+    );
+    if (errorObservacion) errores['observacionEvaluacion'] = errorObservacion;
     if (!Object.values(this.evaluaciones).some(e => e.cumple === true)) {
       errores['ninguna'] = 'Ninguna asignatura cumple las condiciones: en lugar de remitir la solicitud al Decano debes rechazarla.';
     }
@@ -524,9 +567,9 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
     }
   }
 
-  private abrirConSituaciones(): void {
+  private asegurarSituaciones(alListo: () => void): void {
     if (this.opcionesSituacion.length > 0) {
-      this.dialogoVisible = true;
+      alListo();
       return;
     }
     this.cargandoSituaciones = true;
@@ -545,7 +588,7 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
             );
             return;
           }
-          this.dialogoVisible = true;
+          alListo();
         },
         error: err => {
           this.accionActiva = null;

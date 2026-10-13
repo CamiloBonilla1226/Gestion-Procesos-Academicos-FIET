@@ -304,6 +304,32 @@ class TramiteCancelacionMatriculaCUImplAdaptadorTest {
     }
 
     @Test
+    void remitirGuardaLaSituacionAlCancelarSiElFuncionarioLaRegistra() {
+        enEtapa(RADICADA);
+        EvaluacionAsignatura conCancelar = evaluacion("as-1", 0, "4.5", "sit-a");
+        conCancelar.setUuidSituacionCancelar("sit-c");
+
+        casoDeUso.remitirADecano(SOLICITUD, List.of(conCancelar, evaluacion("as-2", 3, "2.0", "sit-c")), null, TOKEN_FUNCIONARIO);
+
+        List<AsignaturaSolicitudAcademica> guardadas = asignaturasGuardadas();
+        assertEquals("sit-c", guardadas.get(0).getSituacionCancelar().getUuidSituacionAcademica());
+        assertNull(guardadas.get(1).getSituacionCancelar());
+    }
+
+    @Test
+    void remitirConSituacionAlCancelarQueNoExisteNoGuardaNada() {
+        enEtapa(RADICADA);
+        EvaluacionAsignatura conCancelar = evaluacion("as-2", 1, "3.0", "sit-a");
+        conCancelar.setUuidSituacionCancelar("sit-x");
+
+        ErrorEntidadNoExisteExcepcion error = assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso.remitirADecano(SOLICITUD,
+                List.of(evaluacion("as-1", 0, "4.0", "sit-a"), conCancelar), null, TOKEN_FUNCIONARIO));
+
+        assertTrue(error.getMessage().contains("sit-x"));
+        verificarQueNoSeEscribioNada();
+    }
+
+    @Test
     void remitirBorraElEscaneoViejo() {
         enEtapa(RADICADA);
         when(resolucionGateway.getPorSolicitud(SOLICITUD)).thenReturn(ResolucionAcademica.builder().urlArchivo("res/vieja.pdf").build());

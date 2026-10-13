@@ -96,8 +96,9 @@ describe('CancelacionMatriculaProcesoComponent', () => {
     expect(filas.length).toBe(2);
     expect(filas[1].textContent).toContain('3.5');
     expect(filas[1].textContent).toContain('R1 - Aprobada');
-    expect(filas[0].textContent).toContain('Sin registrar');
+    expect(filas[0].textContent).toContain('—');
     expect(fixture.nativeElement.querySelector('[data-acciones]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-tabla-asignaturas] input, [data-tabla-asignaturas] select')).toBeNull();
   });
 
   it('el Funcionario solo ve los botones que trae accionesDisponibles', () => {
@@ -170,22 +171,25 @@ describe('CancelacionMatriculaProcesoComponent', () => {
     cancelaciones.remitirADecano.and.returnValue(of(DETALLE));
     const fixture = crear(solicitud(['REMITIR_DECANO']));
     const componente = fixture.componentInstance;
+    componente.evaluaciones['as-1'] = { faltas: 'f'.repeat(21), nota: 'Sin nota', situacion: 'r0', cancelar: null };
     componente.abrir('REMITIR_DECANO');
-    fixture.detectChanges();
-    expect(document.querySelectorAll('[data-campo-observacion]').length).toBe(1);
-    expect(document.querySelector('[data-campo-observacion]')?.textContent).toContain('Observación para el Decano (opcional)');
-    componente.evaluaciones['as-1'] = { faltas: 'f'.repeat(21), nota: 'Sin nota', situacion: 'r0' };
-    componente.confirmar();
     expect(componente.errores['faltas-as-1']).toContain('20');
     expect(componente.errores['nota-as-1']).toBeUndefined();
-    componente.evaluaciones['as-1'] = { faltas: 'No registra', nota: 'Sin nota', situacion: 'r0' };
+    expect(componente.dialogoVisible).toBeFalse();
+    componente.evaluaciones['as-1'] = { faltas: 'No registra', nota: 'Sin nota', situacion: 'r0', cancelar: null };
+    componente.abrir('REMITIR_DECANO');
+    fixture.detectChanges();
+    expect(componente.dialogoVisible).toBeTrue();
+    expect(document.querySelectorAll('[data-campo-observacion]').length).toBe(1);
+    expect(document.querySelector('[data-campo-observacion]')?.textContent).toContain('Observación para el Decano (opcional)');
+    expect(document.querySelector('[data-dialogo] [data-evaluacion]')).toBeNull();
     componente.observacion = ' Para revisar ';
     componente.confirmar();
     expect(cancelaciones.remitirADecano).toHaveBeenCalledWith('s-1', {
       observacion: 'Para revisar',
       evaluaciones: [
-        { asignaturaSolicitudUuid: 'as-1', numeroFaltas: 'No registra', nota: 'Sin nota', situacionMatriculaUuid: 'r0' },
-        { asignaturaSolicitudUuid: 'as-2', numeroFaltas: '2', nota: '3.5', situacionMatriculaUuid: 'r1' }
+        { asignaturaSolicitudUuid: 'as-1', numeroFaltas: 'No registra', nota: 'Sin nota', situacionMatriculaUuid: 'r0', situacionCancelarUuid: null },
+        { asignaturaSolicitudUuid: 'as-2', numeroFaltas: '2', nota: '3.5', situacionMatriculaUuid: 'r1', situacionCancelarUuid: null }
       ]
     });
   });
@@ -193,22 +197,23 @@ describe('CancelacionMatriculaProcesoComponent', () => {
   it('remitir valida faltas, nota y situacion de cada asignatura y envia los numeros', () => {
     cancelaciones.remitirADecano.and.returnValue(of(DETALLE));
     const componente = crear(solicitud(['REMITIR_DECANO'])).componentInstance;
-    componente.abrir('REMITIR_DECANO');
     expect(catalogo.getSituaciones).toHaveBeenCalled();
-    componente.evaluaciones['as-1'] = { faltas: '-1', nota: '5.5', situacion: null };
-    componente.confirmar();
+    componente.evaluaciones['as-1'] = { faltas: '-1', nota: '5.5', situacion: null, cancelar: null };
+    componente.abrir('REMITIR_DECANO');
     expect(componente.errores['faltas-as-1']).toBeTruthy();
     expect(componente.errores['nota-as-1']).toBeTruthy();
     expect(componente.errores['situacion-as-1']).toBeTruthy();
+    expect(componente.dialogoVisible).toBeFalse();
     expect(cancelaciones.remitirADecano).not.toHaveBeenCalled();
 
-    componente.evaluaciones['as-1'] = { faltas: '4', nota: '2,8', situacion: 'r0' };
+    componente.evaluaciones['as-1'] = { faltas: '4', nota: '2,8', situacion: 'r0', cancelar: null };
+    componente.abrir('REMITIR_DECANO');
     componente.confirmar();
     expect(cancelaciones.remitirADecano).toHaveBeenCalledWith('s-1', {
       observacion: null,
       evaluaciones: [
-        { asignaturaSolicitudUuid: 'as-1', numeroFaltas: '4', nota: '2,8', situacionMatriculaUuid: 'r0' },
-        { asignaturaSolicitudUuid: 'as-2', numeroFaltas: '2', nota: '3.5', situacionMatriculaUuid: 'r1' }
+        { asignaturaSolicitudUuid: 'as-1', numeroFaltas: '4', nota: '2,8', situacionMatriculaUuid: 'r0', situacionCancelarUuid: null },
+        { asignaturaSolicitudUuid: 'as-2', numeroFaltas: '2', nota: '3.5', situacionMatriculaUuid: 'r1', situacionCancelarUuid: null }
       ]
     });
     expect(recargar).toHaveBeenCalled();
@@ -325,8 +330,8 @@ describe('CancelacionMatriculaProcesoComponent', () => {
     })));
     const fixture = crear(solicitud(['REMITIR_DECANO']));
     const componente = fixture.componentInstance;
+    componente.evaluaciones['as-1'] = { faltas: '1', nota: '3.0', situacion: 'r0', cancelar: null };
     componente.abrir('REMITIR_DECANO');
-    componente.evaluaciones['as-1'] = { faltas: '1', nota: '3.0', situacion: 'r0' };
     componente.confirmar();
     fixture.detectChanges();
     expect(componente.erroresServidor).toEqual(['evaluaciones[0].nota: debe ser menor o igual a 5.0']);
@@ -341,7 +346,7 @@ describe('CancelacionMatriculaProcesoComponent', () => {
     const fixture = crear(solicitud([]), 'ESTUDIANTE');
     const encabezados = Array.from(fixture.nativeElement.querySelectorAll('thead th')).map((th: any) => th.textContent.trim());
     expect(encabezados).toEqual(['Código', 'Asignatura']);
-    expect(fixture.nativeElement.querySelector('tbody').textContent).not.toContain('Sin registrar');
+    expect(fixture.nativeElement.querySelector('tbody').textContent).not.toContain('—');
   });
 
   it('el Funcionario sigue viendo todas las columnas aunque esten vacias', () => {
@@ -350,7 +355,7 @@ describe('CancelacionMatriculaProcesoComponent', () => {
       asignaturas: DETALLE.asignaturas.map(a => ({ ...a, numeroFaltas: null, nota: null, situacionMatricula: null }))
     }));
     const fixture = crear(solicitud([]));
-    expect(fixture.componentInstance.encabezados.length).toBe(6);
+    expect(fixture.componentInstance.columnas.length).toBe(6);
     const grupos = Array.from(fixture.nativeElement.querySelectorAll('thead tr')).map((tr: any) =>
       Array.from(tr.querySelectorAll('th')).map((th: any) => [th.textContent.trim(), th.getAttribute('colspan'), th.getAttribute('rowspan')]));
     expect(grupos).toEqual([
@@ -366,6 +371,7 @@ describe('CancelacionMatriculaProcesoComponent', () => {
     fixture.detectChanges();
     expect((document.querySelector('[data-boton-dialogo] button')?.textContent ?? '').trim()).toBe('Rechazar solicitud');
     fixture.componentInstance.cerrar(false);
+    fixture.componentInstance.evaluaciones['as-1'] = { faltas: '0', nota: '4.0', situacion: 'r0', cancelar: null };
     fixture.componentInstance.abrir('REMITIR_DECANO');
     fixture.detectChanges();
     expect((document.querySelector('[data-boton-dialogo] button')?.textContent ?? '').trim()).toBe('Remitir al Decano');
@@ -396,6 +402,66 @@ describe('CancelacionMatriculaProcesoComponent', () => {
     (document.querySelector('[data-boton-cancelar] button') as HTMLButtonElement).click();
     fixture.detectChanges();
     expect(fixture.componentInstance.dialogoVisible).toBeFalse();
+  });
+
+  it('el Funcionario que puede remitir diligencia la tabla en linea y al cancelar queda de solo lectura', () => {
+    const fixture = crear(solicitud(['RECHAZAR_FUNCIONARIO', 'REMITIR_DECANO']));
+    const tabla = fixture.nativeElement.querySelector('[data-tabla-asignaturas]') as HTMLElement;
+    expect(tabla.getAttribute('data-editable')).toBe('si');
+    const fila = tabla.querySelector('[data-fila="as-1"]') as HTMLElement;
+    expect(fila.querySelectorAll('input').length).toBe(2);
+    expect(fila.querySelectorAll('select').length).toBe(2);
+    const celdas = fila.querySelectorAll('td');
+    expect(celdas[0].textContent?.trim()).toBe('A1');
+    for (const campo of ['situacion', 'cancelar']) {
+      const opciones = Array.from(fila.querySelectorAll(`[data-campo="${campo}"] option`)).map(o => o.textContent?.trim());
+      expect(opciones).toEqual(['—', 'R0 - No cursada', 'R1 - Aprobada']);
+    }
+
+    const faltas = fila.querySelector('[data-campo="faltas"]') as HTMLInputElement;
+    faltas.value = 'No registra';
+    faltas.dispatchEvent(new Event('input'));
+    const situacion = fila.querySelector('[data-campo="situacion"]') as HTMLSelectElement;
+    situacion.value = 'r0';
+    situacion.dispatchEvent(new Event('change'));
+    expect(fixture.componentInstance.evaluaciones['as-1'].faltas).toBe('No registra');
+    expect(fixture.componentInstance.evaluaciones['as-1'].situacion).toBe('r0');
+    const cancelar = fila.querySelector('[data-campo="cancelar"]') as HTMLSelectElement;
+    cancelar.value = 'r1';
+    cancelar.dispatchEvent(new Event('change'));
+    expect(fixture.componentInstance.evaluaciones['as-1'].cancelar).toBe('r1');
+    const fila2 = tabla.querySelector('[data-fila="as-2"]') as HTMLElement;
+    expect((fila2.querySelector('[data-campo="nota"]') as HTMLInputElement).value).toBe('3.5');
+  });
+
+  it('remitir envia la situacion al cancelar que registre el Funcionario', () => {
+    cancelaciones.remitirADecano.and.returnValue(of(DETALLE));
+    const componente = crear(solicitud(['REMITIR_DECANO'])).componentInstance;
+    componente.evaluaciones['as-1'] = { faltas: '0', nota: '4.0', situacion: 'r0', cancelar: 'r1' };
+    componente.abrir('REMITIR_DECANO');
+    componente.confirmar();
+    expect(cancelaciones.remitirADecano.calls.mostRecent().args[1].evaluaciones.map(e => e.situacionCancelarUuid)).toEqual(['r1', null]);
+  });
+
+  it('remitir con datos faltantes resalta la celda con el mismo mensaje y no abre el dialogo', () => {
+    const fixture = crear(solicitud(['REMITIR_DECANO']));
+    (fixture.nativeElement.querySelector('[data-accion="REMITIR_DECANO"] button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.dialogoVisible).toBeFalse();
+    const fila = fixture.nativeElement.querySelector('[data-fila="as-1"]') as HTMLElement;
+    expect(fila.querySelectorAll('td.con-error').length).toBe(3);
+    expect(fila.querySelector('[data-error-celda="situacion"]')?.textContent).toContain('Elige la situación en la matrícula.');
+    expect(fila.querySelector('[data-campo="faltas"]')?.getAttribute('aria-invalid')).toBe('true');
+    expect(fixture.nativeElement.querySelector('[data-error="tabla"]')).toBeTruthy();
+  });
+
+  it('el Decano ve la tabla de solo lectura con el encabezado agrupado', () => {
+    const fixture = crear(solicitud(['APROBAR_DECANO'], false, 'EN_REVISION_DECANO'), 'DECANO');
+    const tabla = fixture.nativeElement.querySelector('[data-tabla-asignaturas]') as HTMLElement;
+    expect(tabla.getAttribute('data-editable')).toBeNull();
+    expect(tabla.querySelector('input, select')).toBeNull();
+    expect(tabla.querySelectorAll('thead tr').length).toBe(3);
+    expect(tabla.querySelector('[data-fila="as-2"]')?.textContent).toContain('R1 - Aprobada');
   });
 
   it('el mensaje para el estudiante lleva contador dentro del dialogo de respuesta', () => {

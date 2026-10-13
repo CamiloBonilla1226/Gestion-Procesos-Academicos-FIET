@@ -82,12 +82,14 @@ export function etiquetaCampoObservacion(campo: CampoObservacion): string {
 
 const ESPACIO_FACULTAD = 'Espacio a diligenciar por la Facultad a la que pertenece el estudiante';
 const SITUACION_ACADEMICA = 'Situación Académica de la(s) Asignatura(s)';
+const EVALUACION_FUNCIONARIO = 'Evaluación del Funcionario';
 
 export const RUTAS_ENCABEZADO_ASIGNATURAS: Record<string, string[]> = {
   'Faltas': [ESPACIO_FACULTAD, 'No. Faltas'],
   'Nota': [ESPACIO_FACULTAD, 'Nota'],
   'Situación en la matrícula': [ESPACIO_FACULTAD, SITUACION_ACADEMICA, 'En la Matrícula'],
-  'Situación al cancelar': [ESPACIO_FACULTAD, SITUACION_ACADEMICA, 'Al Cancelar']
+  'Situación al cancelar': [ESPACIO_FACULTAD, SITUACION_ACADEMICA, 'Al Cancelar'],
+  'Cumple condiciones': [EVALUACION_FUNCIONARIO, 'Cumple condiciones']
 };
 
 export const NOTA_APROBAR_DECANO = 'Al aprobar, quedará registrada tu decisión. El Funcionario Académico se encargará de redactar la Resolución correspondiente (si aplica) y de enviar la respuesta al Estudiante.';

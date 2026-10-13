@@ -1,9 +1,7 @@
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { Observable, finalize, map, of, switchMap, tap } from 'rxjs';
 import { GenericDialogFormComponent } from '../../../generic-dialog-form-component/generic-dialog-form-component';
-import { TableGenericComponent, TableHeader } from '../../../table-generic-component/table-generic-component';
 import { SimpleButtonComponent } from '../../../buttons/simple-button-component/simple-button-component';
-import { InputTextComponent } from '../../../inputs/input-text-component/input-text-component';
 import { InputTextTareaComponent } from '../../../inputs/input-text-tarea-component/input-text-tarea-component';
 import { InputSelectComponent } from '../../../inputs/input-select-component/input-select-component';
 import { InputAnexoUploadComponent } from '../../../inputs/input-anexo-upload-component/input-anexo-upload-component';
@@ -46,7 +44,33 @@ interface EvaluacionEnEdicion {
   faltas: string;
   nota: string;
   situacion: string | null;
+  cancelar: string | null;
 }
+
+type CampoEvaluacion = 'faltas' | 'nota' | 'situacion' | 'cancelar';
+
+interface ColumnaAsignatura {
+  titulo: string;
+  campo: CampoEvaluacion | null;
+  valor: (a: AsignaturaCancelacionDTORespuesta) => string | null;
+}
+
+function textoLibre(valor: string | null | undefined): string | null {
+  return valor !== null && valor !== undefined && String(valor).trim() !== '' ? String(valor) : null;
+}
+
+function textoSituacion(situacion: { codigo: string; nombre: string } | null): string | null {
+  return situacion ? `${situacion.codigo} - ${situacion.nombre}` : null;
+}
+
+const COLUMNAS: ColumnaAsignatura[] = [
+  { titulo: 'Código', campo: null, valor: a => a.codigoAsignatura },
+  { titulo: 'Asignatura', campo: null, valor: a => a.nombreAsignatura },
+  { titulo: 'Faltas', campo: 'faltas', valor: a => textoLibre(a.numeroFaltas) },
+  { titulo: 'Nota', campo: 'nota', valor: a => textoLibre(a.nota) },
+  { titulo: 'Situación en la matrícula', campo: 'situacion', valor: a => textoSituacion(a.situacionMatricula) },
+  { titulo: 'Situación al cancelar', campo: 'cancelar', valor: a => textoSituacion(a.situacionCancelar) }
+];
 
 const ACCIONES_DEL_PROCESO: AccionAcademica[] = [
   ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO,
@@ -88,24 +112,20 @@ const MENSAJES_EXITO: Partial<Record<AccionAcademica, string>> = {
   [ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA]: 'La respuesta fue enviada al estudiante.'
 };
 
-const SIN_REGISTRAR = 'Sin registrar';
-const TITULOS_COLUMNAS = ['Código', 'Asignatura', 'Faltas', 'Nota', 'Situación en la matrícula', 'Situación al cancelar'];
 const COLUMNAS_FIJAS = ['Código', 'Asignatura'];
 
 @Component({
   selector: 'app-cancelacion-matricula-proceso-component',
   imports: [
     GenericDialogFormComponent,
-    TableGenericComponent,
     SimpleButtonComponent,
-    InputTextComponent,
     InputTextTareaComponent,
     InputSelectComponent,
     InputAnexoUploadComponent,
     ResumenSolicitudComponent
   ],
   templateUrl: './cancelacion-matricula-proceso-component.html',
-  styleUrl: '../estilos-academicos.css'
+  styleUrls: ['../estilos-academicos.css', '../tabla-asignaturas.css']
 })
 export class CancelacionMatriculaProcesoComponent implements OnChanges {
   @Input({ required: true }) uuidSolicitud!: string;
@@ -119,11 +139,11 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
 
   readonly notaAprobarDecano = NOTA_APROBAR_DECANO;
 
-  encabezados: TableHeader[] = TITULOS_COLUMNAS.map(title => ({ title }));
-  encabezadoAgrupado: CeldaEncabezado[][] = agruparEncabezados(TITULOS_COLUMNAS, RUTAS_ENCABEZADO_ASIGNATURAS);
+  columnas: ColumnaAsignatura[] = COLUMNAS;
+  encabezadoAgrupado: CeldaEncabezado[][] = agruparEncabezados(COLUMNAS.map(c => c.titulo), RUTAS_ENCABEZADO_ASIGNATURAS);
 
   detalle: CancelacionMatriculaDetalleDTORespuesta | null = null;
-  filasAsignaturas: Record<string, string>[] = [];
+  faltanDatosTabla = false;
   cargando = false;
   errorCarga = false;
 
@@ -194,8 +214,16 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
     return ETIQUETAS_BOTON[accion] ?? accion;
   }
 
-  textoValor(valor: number | string | null | undefined): string {
-    return valor === null || valor === undefined || valor === '' ? 'Sin registrar' : String(valor);
+  get editable(): boolean {
+    return this.accionesVisibles.includes(ACCIONES_ACADEMICAS.REMITIR_DECANO);
+  }
+
+  valorDe(evento: Event): string {
+    return (evento.target as HTMLInputElement | HTMLSelectElement).value;
+  }
+
+  errorCelda(columna: ColumnaAsignatura, a: AsignaturaCancelacionDTORespuesta): string {
+    return this.editable && columna.campo ? this.errores[`${columna.campo}-${a.uuidAsignaturaSolicitud}`] ?? '' : '';
   }
 
   cargarDetalle(): void {
@@ -208,21 +236,15 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
       .subscribe({
         next: detalle => {
           this.detalle = detalle;
-          this.filasAsignaturas = detalle.asignaturas.map(a => ({
-            'Código': a.codigoAsignatura,
-            'Asignatura': a.nombreAsignatura,
-            'Faltas': this.textoValor(a.numeroFaltas),
-            'Nota': this.textoValor(a.nota),
-            'Situación en la matrícula': a.situacionMatricula ? `${a.situacionMatricula.codigo} - ${a.situacionMatricula.nombre}` : SIN_REGISTRAR,
-            'Situación al cancelar': a.situacionCancelar ? `${a.situacionCancelar.codigo} - ${a.situacionCancelar.nombre}` : SIN_REGISTRAR
-          }));
-          const titulos = this.titulosVisibles();
-          this.encabezados = titulos.map(title => ({ title }));
-          this.encabezadoAgrupado = agruparEncabezados(titulos, RUTAS_ENCABEZADO_ASIGNATURAS);
+          this.faltanDatosTabla = false;
+          this.columnas = this.columnasVisibles(detalle.asignaturas);
+          this.encabezadoAgrupado = agruparEncabezados(this.columnas.map(c => c.titulo), RUTAS_ENCABEZADO_ASIGNATURAS);
+          this.evaluaciones = this.editable ? this.evaluacionesIniciales(detalle.asignaturas) : {};
+          if (this.editable) this.asegurarSituaciones(() => undefined);
         },
         error: err => {
           this.detalle = null;
-          this.filasAsignaturas = [];
+          this.evaluaciones = {};
           this.errorCarga = true;
           this.errorHandlerService.handleError(err, 'Error', 'No se pudo cargar la cancelación de matrícula');
         }
@@ -236,24 +258,43 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
     this.archivoResolucion = null;
     this.errores = {};
     this.erroresServidor = [];
-    this.evaluaciones = Object.fromEntries(
-      this.asignaturas.map(a => [
+    this.faltanDatosTabla = false;
+    this.situacionesCancelar = Object.fromEntries(
+      this.asignaturas.map(a => [a.uuidAsignaturaSolicitud, a.situacionCancelar?.uuidSituacionAcademica ?? null])
+    );
+    if (accion === ACCIONES_ACADEMICAS.REMITIR_DECANO) {
+      this.asegurarSituaciones(() => this.abrirRemision());
+      return;
+    }
+    if (accion === ACCIONES_ACADEMICAS.APROBAR_DECANO) {
+      this.asegurarSituaciones(() => (this.dialogoVisible = true));
+      return;
+    }
+    this.dialogoVisible = true;
+  }
+
+  private abrirRemision(): void {
+    this.errores = this.erroresDeEvaluacion();
+    if (Object.keys(this.errores).length > 0) {
+      this.faltanDatosTabla = true;
+      this.accionActiva = null;
+      return;
+    }
+    this.dialogoVisible = true;
+  }
+
+  private evaluacionesIniciales(asignaturas: AsignaturaCancelacionDTORespuesta[]): Record<string, EvaluacionEnEdicion> {
+    return Object.fromEntries(
+      asignaturas.map(a => [
         a.uuidAsignaturaSolicitud,
         {
           faltas: a.numeroFaltas ?? '',
           nota: a.nota ?? '',
-          situacion: a.situacionMatricula?.uuidSituacionAcademica ?? null
+          situacion: a.situacionMatricula?.uuidSituacionAcademica ?? null,
+          cancelar: a.situacionCancelar?.uuidSituacionAcademica ?? null
         }
       ])
     );
-    this.situacionesCancelar = Object.fromEntries(
-      this.asignaturas.map(a => [a.uuidAsignaturaSolicitud, a.situacionCancelar?.uuidSituacionAcademica ?? null])
-    );
-    if (accion === ACCIONES_ACADEMICAS.REMITIR_DECANO || accion === ACCIONES_ACADEMICAS.APROBAR_DECANO) {
-      this.abrirConSituaciones();
-      return;
-    }
-    this.dialogoVisible = true;
   }
 
   cerrar(visible: boolean): void {
@@ -301,10 +342,10 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
       });
   }
 
-  private titulosVisibles(): string[] {
-    if (this.rol !== ROLES_ETIQUETA.ESTUDIANTE) return TITULOS_COLUMNAS;
-    return TITULOS_COLUMNAS.filter(
-      titulo => COLUMNAS_FIJAS.includes(titulo) || this.filasAsignaturas.some(fila => fila[titulo] !== SIN_REGISTRAR)
+  private columnasVisibles(asignaturas: AsignaturaCancelacionDTORespuesta[]): ColumnaAsignatura[] {
+    if (this.rol !== ROLES_ETIQUETA.ESTUDIANTE) return COLUMNAS;
+    return COLUMNAS.filter(
+      columna => COLUMNAS_FIJAS.includes(columna.titulo) || asignaturas.some(a => columna.valor(a) !== null)
     );
   }
 
@@ -351,7 +392,8 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
         asignaturaSolicitudUuid: a.uuidAsignaturaSolicitud,
         numeroFaltas: evaluacion.faltas.trim(),
         nota: evaluacion.nota.trim(),
-        situacionMatriculaUuid: evaluacion.situacion!
+        situacionMatriculaUuid: evaluacion.situacion!,
+        situacionCancelarUuid: evaluacion.cancelar
       };
     });
   }
@@ -374,18 +416,7 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
       errores['resolucion'] = 'Debes subir el escaneo de la Resolución firmada (PDF).';
     }
 
-    if (accion === ACCIONES_ACADEMICAS.REMITIR_DECANO) {
-      for (const a of this.asignaturas) {
-        const evaluacion = this.evaluaciones[a.uuidAsignaturaSolicitud];
-        const errorFaltas = errorDeFaltas(evaluacion?.faltas);
-        const errorNota = errorDeNotaAsignatura(evaluacion?.nota);
-        if (errorFaltas) errores[`faltas-${a.uuidAsignaturaSolicitud}`] = errorFaltas;
-        if (errorNota) errores[`nota-${a.uuidAsignaturaSolicitud}`] = errorNota;
-        if (!evaluacion?.situacion) {
-          errores[`situacion-${a.uuidAsignaturaSolicitud}`] = 'Elige la situación en la matrícula.';
-        }
-      }
-    }
+    if (accion === ACCIONES_ACADEMICAS.REMITIR_DECANO) Object.assign(errores, this.erroresDeEvaluacion());
 
     if (accion === ACCIONES_ACADEMICAS.APROBAR_DECANO) {
       for (const a of this.asignaturas) {
@@ -397,9 +428,24 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
     return errores;
   }
 
-  private abrirConSituaciones(): void {
+  private erroresDeEvaluacion(): Record<string, string> {
+    const errores: Record<string, string> = {};
+    for (const a of this.asignaturas) {
+      const evaluacion = this.evaluaciones[a.uuidAsignaturaSolicitud];
+      const errorFaltas = errorDeFaltas(evaluacion?.faltas);
+      const errorNota = errorDeNotaAsignatura(evaluacion?.nota);
+      if (errorFaltas) errores[`faltas-${a.uuidAsignaturaSolicitud}`] = errorFaltas;
+      if (errorNota) errores[`nota-${a.uuidAsignaturaSolicitud}`] = errorNota;
+      if (!evaluacion?.situacion) {
+        errores[`situacion-${a.uuidAsignaturaSolicitud}`] = 'Elige la situación en la matrícula.';
+      }
+    }
+    return errores;
+  }
+
+  private asegurarSituaciones(alListo: () => void): void {
     if (this.opcionesSituacion.length > 0) {
-      this.dialogoVisible = true;
+      alListo();
       return;
     }
     this.cargandoSituaciones = true;
@@ -418,7 +464,7 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
             );
             return;
           }
-          this.dialogoVisible = true;
+          alListo();
         },
         error: err => {
           this.accionActiva = null;

@@ -41,6 +41,7 @@ public class MapperCancelacionAsignaturaInfraestructuraDominio {
                         .numeroFaltas(evaluacion.getNumeroFaltas())
                         .nota(evaluacion.getNota())
                         .uuidSituacionMatricula(evaluacion.getSituacionMatriculaUuid())
+                        .uuidSituacionCancelar(evaluacion.getSituacionCancelarUuid())
                         .cumpleCondiciones(evaluacion.getCumpleCondiciones())
                         .observacionEvaluacion(evaluacion.getObservacionEvaluacion())
                         .build())

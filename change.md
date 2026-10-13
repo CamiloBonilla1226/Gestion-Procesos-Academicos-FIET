@@ -2,6 +2,27 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-13 - Tabla de asignaturas con evaluación en línea (Tarea T12.8)
+- Qué se hizo:
+  - Cancelación de Matrícula y Cancelación de Asignatura pintan su propia tabla de asignaturas con encabezado agrupado gris (Código, Asignatura, "Espacio a diligenciar por la Facultad..." con No. faltas, Nota y "Situación académica" con En la matrícula y Al cancelar) y "—" sin dato, para todos los roles.
+  - Cuando `accionesDisponibles` trae `REMITIR_DECANO`, la tabla es editable: faltas y nota como texto, situación en la matrícula como select del catálogo y, en Cancelación de Asignatura, "Cumple condiciones" y "Observación" bajo "Evaluación del Funcionario". Los campos salen del diálogo de remitir, que ahora solo pide la observación para el Decano.
+  - Al remitir se validan las filas con los mismos mensajes, resaltando la celda.
+  - Ajuste pedido tras ver la tabla: "Al cancelar" es editable para el Funcionario con las mismas opciones que "En la matrícula" y viaja como `situacionCancelarUuid` opcional en cada evaluación de remitir (backend nuevo, P44). En Cancelación de Asignatura la observación de la evaluación pasa a ser un solo campo general bajo la tabla, que se envía en cada asignatura que no cumple; "Cumple condiciones" queda como columna a la derecha.
+- Archivos:
+  - `frontend/src/app/shared/pages/content/tabla-asignaturas.css` (creado)
+  - `frontend/src/app/shared/pages/content/cancelacion-matricula-proceso-component/cancelacion-matricula-proceso-component.ts`, `.html`, `.spec.ts` (modificado)
+  - `frontend/src/app/shared/pages/content/cancelacion-asignatura-proceso-component/cancelacion-asignatura-proceso-component.ts`, `.html`, `.spec.ts` (modificado)
+  - `frontend/src/app/core/constantes/etiquetas-academicas.ts` (modificado)
+  - `frontend/src/app/core/models/CancelacionMatricula/DTORequest/EvaluacionAsignaturaDTOPeticion.ts`, `CancelacionAsignatura/DTORequest/EvaluacionCancelacionAsignaturaDTOPeticion.ts` (modificado)
+  - `frontend/CLAUDE.md` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/modelos/EvaluacionAsignatura.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/TramiteCancelacionMatriculaCUImplAdaptador.java`, `TramiteCancelacionAsignaturaCUImplAdaptador.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorCancelacionesMatricula/DTOPeticion/EvaluacionAsignaturaDTOPeticion.java`, `mapeador/MapperCancelacionMatriculaInfraestructuraDominio.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorCancelacionesAsignatura/DTOPeticion/EvaluacionCancelacionAsignaturaDTOPeticion.java`, `mapeador/MapperCancelacionAsignaturaInfraestructuraDominio.java` (modificado)
+  - `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/TramiteCancelacionMatriculaCUImplAdaptadorTest.java`, `TramiteCancelacionAsignaturaCUImplAdaptadorTest.java` (modificado)
+  - `docs/api/contrato-api-procesos-academicos.md`, `docs/database/etapas-por-proceso.md` (modificado, P44), `backend/CLAUDE.md` (modificado)
+- Notas: el Decano sigue registrando la situación al cancelar al aprobar, con el valor del Funcionario como inicial; la decisión por asignatura de Cancelación de Asignatura sigue en su diálogo. `TableGenericComponent` no se tocó. Bundle inicial 836,50 kB. Specs de los archivos tocados: 69 en verde; pruebas del backend de las clases de cancelación: 183, 0 fallos. Sin verificar: la suite completa del frontend y del backend, las pruebas de humo, los 58 de Julián y lo visual.
+
 ## 2026-10-13 - Catálogo del Estudiante, número de CC en el detalle y bandejas sin código (Tarea T12.7)
 - Qué se hizo:
   - Catálogo en `/estudiante/catalogo` con las tres tarjetas y los textos oficiales; "Iniciar solicitud →" es un `<a href>` con `router.navigateByUrl`. El menú del Estudiante cambia los tres ítems de formulario por "Solicitudes" y las migas de los formularios apuntan al catálogo. `BotonSidebar.activaEn` opcional para resaltar "Solicitudes" dentro de los formularios.

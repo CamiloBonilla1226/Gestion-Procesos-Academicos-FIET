@@ -565,12 +565,15 @@ Cuerpos de las acciones:
 
 - `remitir`: `observacion` opcional y `evaluaciones`, una por asignatura de la
   solicitud: `{asignaturaSolicitudUuid, numeroFaltas, nota,
-  situacionMatriculaUuid}`. `numeroFaltas` y `nota` se envían como texto o
+  situacionMatriculaUuid, situacionCancelarUuid}`. `numeroFaltas` y `nota` se envían como texto o
   como número y se guardan como texto de hasta 20 caracteres: si son
   numéricos, `numeroFaltas` debe ser entero mayor o igual a 0 y `nota` de 0.0
   a 5.0 con un decimal, con punto o coma (se guarda con punto, `3,5` queda
   `3.5`); si no son numéricos (por ejemplo `Sin registro`) se aceptan tal
   cual. `situacionMatriculaUuid` sale de `GET catalogos-academicos/situaciones`.
+  `situacionCancelarUuid` es opcional (P44): si llega se valida contra el
+  mismo catálogo y se guarda como situación al cancelar; el Decano la
+  confirma o la cambia al aprobar.
   La `observacion` de la remisión es la única observación general del cuerpo,
   va para el Decano y el Estudiante no la ve.
 - `aprobar`: `situaciones`, una por asignatura:
@@ -644,8 +647,9 @@ Cuerpos de las acciones:
 
 - `remitir`: `observacion` opcional y `evaluaciones`, una por asignatura:
   `{asignaturaSolicitudUuid, numeroFaltas, nota, situacionMatriculaUuid,
-  cumpleCondiciones, observacionEvaluacion}`. Faltas y nota como en
-  Cancelación de Matrícula. `cumpleCondiciones` es obligatorio; con una nota
+  situacionCancelarUuid, cumpleCondiciones, observacionEvaluacion}`. Faltas,
+  nota y `situacionCancelarUuid` (opcional, P44) como en Cancelación de
+  Matrícula. `cumpleCondiciones` es obligatorio; con una nota
   numérica menor a 3.0 no puede ser `true` (una nota de texto no tiene esa
   restricción); si es `false`,
   `observacionEvaluacion` es obligatoria (máximo 255). Al menos una

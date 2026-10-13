@@ -27,8 +27,72 @@
       <h3>Asignaturas matriculadas</h3>
     </header>
     <div class="tarjeta-body">
-      <app-table-generic-component [headers]="encabezados" [data]="filasAsignaturas" [encabezadoAgrupado]="encabezadoAgrupado">
-      </app-table-generic-component>
+      @if (editable) {
+      <p class="ayuda-tabla">
+        Diligencia los datos de la Facultad en cada fila. Las faltas y la nota aceptan un número o un texto de hasta 20
+        caracteres.
+      </p>
+      }
+      <div class="tabla-scroll">
+        <table class="tabla-asignaturas" data-tabla-asignaturas [attr.data-editable]="editable ? 'si' : null">
+          <thead>
+            @for (fila of encabezadoAgrupado; track $index) {
+            <tr>
+              @for (celda of fila; track $index) {
+              <th scope="col" [attr.colspan]="celda.colspan > 1 ? celda.colspan : null"
+                [attr.rowspan]="celda.rowspan > 1 ? celda.rowspan : null">{{ celda.titulo }}</th>
+              }
+            </tr>
+            }
+          </thead>
+          <tbody>
+            @for (asignatura of asignaturas; track asignatura.uuidAsignaturaSolicitud) {
+            @let uuid = asignatura.uuidAsignaturaSolicitud;
+            @let evaluacion = evaluaciones[uuid];
+            <tr [attr.data-fila]="uuid">
+              @for (columna of columnas; track columna.titulo) {
+              <td [class.con-error]="errorCelda(columna, asignatura) !== ''">
+                @if (editable && evaluacion && columna.campo === 'faltas') {
+                <input type="text" class="celda-campo" data-campo="faltas" [attr.aria-label]="'No. faltas de ' + asignatura.nombreAsignatura"
+                  [attr.aria-invalid]="errorCelda(columna, asignatura) !== '' ? 'true' : null" [disabled]="enviando"
+                  [value]="evaluacion.faltas" (input)="evaluacion.faltas = valorDe($event)">
+                } @else if (editable && evaluacion && columna.campo === 'nota') {
+                <input type="text" class="celda-campo" data-campo="nota" [attr.aria-label]="'Nota de ' + asignatura.nombreAsignatura"
+                  [attr.aria-invalid]="errorCelda(columna, asignatura) !== '' ? 'true' : null" [disabled]="enviando"
+                  [value]="evaluacion.nota" (input)="evaluacion.nota = valorDe($event)">
+                } @else if (editable && evaluacion && columna.campo === 'situacion') {
+                <select class="celda-campo" data-campo="situacion" [attr.aria-label]="'Situación en la matrícula de ' + asignatura.nombreAsignatura"
+                  [attr.aria-invalid]="errorCelda(columna, asignatura) !== '' ? 'true' : null" [disabled]="enviando"
+                  (change)="evaluacion.situacion = valorDe($event) || null">
+                  <option value="" [selected]="!evaluacion.situacion">—</option>
+                  @for (opcion of opcionesSituacion; track opcion.value) {
+                  <option [value]="opcion.value" [selected]="opcion.value === evaluacion.situacion">{{ opcion.label }}</option>
+                  }
+                </select>
+                } @else if (editable && evaluacion && columna.campo === 'cancelar') {
+                <select class="celda-campo" data-campo="cancelar" [attr.aria-label]="'Situación al cancelar de ' + asignatura.nombreAsignatura"
+                  [disabled]="enviando" (change)="evaluacion.cancelar = valorDe($event) || null">
+                  <option value="" [selected]="!evaluacion.cancelar">—</option>
+                  @for (opcion of opcionesSituacion; track opcion.value) {
+                  <option [value]="opcion.value" [selected]="opcion.value === evaluacion.cancelar">{{ opcion.label }}</option>
+                  }
+                </select>
+                } @else {
+                {{ columna.valor(asignatura) ?? '—' }}
+                }
+                @if (errorCelda(columna, asignatura); as error) {
+                <small class="texto-error d-block" [attr.data-error-celda]="columna.campo">{{ error }}</small>
+                }
+              </td>
+              }
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      @if (editable && faltanDatosTabla) {
+      <p class="nota-error mt-3" data-error="tabla">Completa los datos resaltados en la tabla antes de remitir la solicitud al Decano.</p>
+      }
     </div>
   </section>
   }
@@ -57,37 +121,11 @@
     </p>
     }
     @case (acciones.REMITIR_DECANO) {
-    <p class="nota-gris">
-      Registra la evaluación de cada asignatura antes de remitir la solicitud al Decano. Las faltas y la nota aceptan un
-      número o un texto de hasta 20 caracteres.
+    <p class="nota-gris" data-nota-remitir>
+      Se enviará al Decano la evaluación registrada en la tabla de asignaturas.
     </p>
     @if (solicitud.tieneResolucion) {
     <p class="nota-aviso">Al remitir se retira el escaneo de la Resolución que estaba cargado.</p>
-    }
-    @for (asignatura of asignaturas; track asignatura.uuidAsignaturaSolicitud) {
-    <div class="bloque-edicion" [attr.data-evaluacion]="asignatura.uuidAsignaturaSolicitud">
-      <strong>{{ asignatura.codigoAsignatura }} - {{ asignatura.nombreAsignatura }}</strong>
-      <div class="row g-2">
-        <div class="col-md-3">
-          <app-input-text-component label="Faltas" [required]="true"
-            [(value)]="evaluaciones[asignatura.uuidAsignaturaSolicitud].faltas">
-          </app-input-text-component>
-          <small class="texto-error">{{ errores['faltas-' + asignatura.uuidAsignaturaSolicitud] || '' }}</small>
-        </div>
-        <div class="col-md-3">
-          <app-input-text-component label="Nota" [required]="true"
-            [(value)]="evaluaciones[asignatura.uuidAsignaturaSolicitud].nota">
-          </app-input-text-component>
-          <small class="texto-error">{{ errores['nota-' + asignatura.uuidAsignaturaSolicitud] || '' }}</small>
-        </div>
-        <div class="col-md-6">
-          <app-input-select-component label="Situación en la matrícula" [required]="true" [options]="opcionesSituacion"
-            [(value)]="evaluaciones[asignatura.uuidAsignaturaSolicitud].situacion">
-          </app-input-select-component>
-          <small class="texto-error">{{ errores['situacion-' + asignatura.uuidAsignaturaSolicitud] || '' }}</small>
-        </div>
-      </div>
-    </div>
     }
     }
     @case (acciones.APROBAR_DECANO) {

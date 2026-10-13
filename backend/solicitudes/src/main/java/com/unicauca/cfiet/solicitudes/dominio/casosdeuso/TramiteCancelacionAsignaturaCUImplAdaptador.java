@@ -78,6 +78,8 @@ public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCance
             asignatura.setNumeroFaltas(tramite.faltasDe(evaluacion.getNumeroFaltas(), nombre));
             asignatura.setNota(tramite.notaDe(evaluacion.getNota(), nombre));
             asignatura.setSituacionMatricula(tramite.situacionDe(catalogo, evaluacion.getUuidSituacionMatricula(), SITUACION_MATRICULA, nombre));
+            asignatura.setSituacionCancelar(tramite.tieneTexto(evaluacion.getUuidSituacionCancelar())
+                    ? tramite.situacionDe(catalogo, evaluacion.getUuidSituacionCancelar(), SITUACION_CANCELAR, nombre) : null);
             asignatura.setCumpleCondiciones(cumpleDe(evaluacion, asignatura.getNota(), nombre));
             asignatura.setObservacionEvaluacion(tramite.textoAcotado(evaluacion.getObservacionEvaluacion(), MAXIMO_OBSERVACION,
                     OBSERVACION_EVALUACION, nombre));

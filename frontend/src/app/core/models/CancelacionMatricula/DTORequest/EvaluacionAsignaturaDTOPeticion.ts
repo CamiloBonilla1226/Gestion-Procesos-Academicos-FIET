@@ -3,4 +3,5 @@ export interface EvaluacionAsignaturaDTOPeticion {
   numeroFaltas: string;
   nota: string;
   situacionMatriculaUuid: string;
+  situacionCancelarUuid: string | null;
 }

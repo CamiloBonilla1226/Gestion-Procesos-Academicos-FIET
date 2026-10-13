@@ -27,8 +27,103 @@
       <h3>Asignaturas a cancelar</h3>
     </header>
     <div class="tarjeta-body">
-      <app-table-generic-component [headers]="encabezados" [data]="filasAsignaturas" [encabezadoAgrupado]="encabezadoAgrupado">
-      </app-table-generic-component>
+      @if (editable) {
+      <p class="ayuda-tabla">
+        Diligencia los datos de la Facultad y la evaluación en cada fila. Las faltas y la nota aceptan un número o un
+        texto de hasta 20 caracteres. Con una nota numérica menor a 3.0 no se puede marcar que cumple.
+      </p>
+      }
+      <div class="tabla-scroll">
+        <table class="tabla-asignaturas" data-tabla-asignaturas [attr.data-editable]="editable ? 'si' : null">
+          <thead>
+            @for (fila of encabezadoAgrupado; track $index) {
+            <tr>
+              @for (celda of fila; track $index) {
+              <th scope="col" [attr.colspan]="celda.colspan > 1 ? celda.colspan : null"
+                [attr.rowspan]="celda.rowspan > 1 ? celda.rowspan : null">{{ celda.titulo }}</th>
+              }
+            </tr>
+            }
+          </thead>
+          <tbody>
+            @for (asignatura of asignaturas; track asignatura.uuidAsignaturaSolicitud) {
+            @let uuid = asignatura.uuidAsignaturaSolicitud;
+            @let evaluacion = evaluaciones[uuid];
+            <tr [attr.data-fila]="uuid">
+              @for (columna of columnas; track columna.titulo) {
+              <td [class.con-error]="errorCelda(columna, asignatura) !== ''">
+                @if (editable && evaluacion && columna.campo === 'faltas') {
+                <input type="text" class="celda-campo" data-campo="faltas" [attr.aria-label]="'No. faltas de ' + asignatura.nombreAsignatura"
+                  [attr.aria-invalid]="errorCelda(columna, asignatura) !== '' ? 'true' : null" [disabled]="enviando"
+                  [value]="evaluacion.faltas" (input)="evaluacion.faltas = valorDe($event)">
+                } @else if (editable && evaluacion && columna.campo === 'nota') {
+                <input type="text" class="celda-campo" data-campo="nota" [attr.aria-label]="'Nota de ' + asignatura.nombreAsignatura"
+                  [attr.aria-invalid]="errorCelda(columna, asignatura) !== '' ? 'true' : null" [disabled]="enviando"
+                  [value]="evaluacion.nota" (input)="evaluacion.nota = valorDe($event)">
+                } @else if (editable && evaluacion && columna.campo === 'situacion') {
+                <select class="celda-campo" data-campo="situacion" [attr.aria-label]="'Situación en la matrícula de ' + asignatura.nombreAsignatura"
+                  [attr.aria-invalid]="errorCelda(columna, asignatura) !== '' ? 'true' : null" [disabled]="enviando"
+                  (change)="evaluacion.situacion = valorDe($event) || null">
+                  <option value="" [selected]="!evaluacion.situacion">—</option>
+                  @for (opcion of opcionesSituacion; track opcion.value) {
+                  <option [value]="opcion.value" [selected]="opcion.value === evaluacion.situacion">{{ opcion.label }}</option>
+                  }
+                </select>
+                } @else if (editable && evaluacion && columna.campo === 'cumple') {
+                <select class="celda-campo" data-campo="cumple" [attr.aria-label]="'Cumple condiciones ' + asignatura.nombreAsignatura"
+                  [attr.aria-invalid]="errorCelda(columna, asignatura) !== '' ? 'true' : null" [disabled]="enviando"
+                  (change)="evaluacion.cumple = valorCumple(valorDe($event))">
+                  <option value="" [selected]="evaluacion.cumple === null">—</option>
+                  <option value="si" [selected]="evaluacion.cumple === true">Sí</option>
+                  <option value="no" [selected]="evaluacion.cumple === false">No</option>
+                </select>
+                } @else if (editable && evaluacion && columna.campo === 'cancelar') {
+                <select class="celda-campo" data-campo="cancelar" [attr.aria-label]="'Situación al cancelar de ' + asignatura.nombreAsignatura"
+                  [disabled]="enviando" (change)="evaluacion.cancelar = valorDe($event) || null">
+                  <option value="" [selected]="!evaluacion.cancelar">—</option>
+                  @for (opcion of opcionesSituacion; track opcion.value) {
+                  <option [value]="opcion.value" [selected]="opcion.value === evaluacion.cancelar">{{ opcion.label }}</option>
+                  }
+                </select>
+                } @else {
+                {{ columna.valor(asignatura) ?? sinDato }}
+                }
+                @if (errorCelda(columna, asignatura); as error) {
+                <small class="texto-error d-block" [attr.data-error-celda]="columna.campo">{{ error }}</small>
+                }
+              </td>
+              }
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      @if (editable) {
+      <div class="observacion-evaluacion" data-observacion-evaluacion>
+        <label for="observacion-evaluacion" class="etiqueta-observacion">
+          Observación de la evaluación{{ algunaNoCumple ? '' : ' (opcional)' }}
+          @if (algunaNoCumple) {
+          <span class="texto-error" aria-hidden="true">*</span>
+          }
+        </label>
+        <textarea id="observacion-evaluacion" class="celda-campo campo-observacion" rows="3" [disabled]="enviando"
+          [attr.aria-required]="algunaNoCumple ? 'true' : null" [attr.aria-invalid]="errores['observacionEvaluacion'] ? 'true' : null"
+          [value]="observacionEvaluacion" (input)="observacionEvaluacion = valorDe($event)"></textarea>
+        <div class="fila-ayuda">
+          <small class="texto-error" data-error="observacionEvaluacion">{{ errores['observacionEvaluacion'] || '' }}</small>
+          <small class="contador" [class.excedido]="observacionEvaluacion.length > maximoObservacionAsignatura">{{ observacionEvaluacion.length }}/{{ maximoObservacionAsignatura }}</small>
+        </div>
+        <p class="ayuda-tabla mb-0">Es obligatoria si alguna asignatura no cumple; se guarda en cada asignatura que no cumple.</p>
+      </div>
+      }
+      @if (editable && (ningunaCumple || errores['ninguna'])) {
+      <div class="nota-error mt-3" data-error="ninguna">
+        Ninguna asignatura cumple las condiciones: en lugar de remitir la solicitud al Decano debes rechazarla.
+      </div>
+      }
+      @if (editable && faltanDatosTabla) {
+      <p class="nota-error mt-3" data-error="tabla">Completa los datos resaltados en la tabla antes de remitir la solicitud al Decano.</p>
+      }
     </div>
   </section>
   }
@@ -57,60 +152,11 @@
     </p>
     }
     @case (acciones.REMITIR_DECANO) {
-    <p class="nota-gris">
-      Registra la evaluación de cada asignatura. Las faltas y la nota aceptan un número o un texto de hasta 20
-      caracteres. Con una nota numérica menor a 3.0 no se puede marcar que cumple, y si no cumple la observación de la
-      evaluación es obligatoria.
+    <p class="nota-gris" data-nota-remitir>
+      Se enviará al Decano la evaluación registrada en la tabla de asignaturas.
     </p>
     @if (solicitud.tieneResolucion) {
     <div class="nota-aviso">Al remitir se retira el escaneo de la Resolución que estaba cargado.</div>
-    }
-    @for (asignatura of asignaturas; track asignatura.uuidAsignaturaSolicitud) {
-    <div class="bloque-edicion" [attr.data-evaluacion]="asignatura.uuidAsignaturaSolicitud">
-      <strong>{{ asignatura.codigoAsignatura }} - {{ asignatura.nombreAsignatura }}</strong>
-      <div class="row g-2">
-        <div class="col-md-2">
-          <app-input-text-component label="Faltas" [required]="true"
-            [(value)]="evaluaciones[asignatura.uuidAsignaturaSolicitud].faltas">
-          </app-input-text-component>
-          <small class="texto-error">{{ errores['faltas-' + asignatura.uuidAsignaturaSolicitud] || '' }}</small>
-        </div>
-        <div class="col-md-2">
-          <app-input-text-component label="Nota" [required]="true"
-            [(value)]="evaluaciones[asignatura.uuidAsignaturaSolicitud].nota">
-          </app-input-text-component>
-          <small class="texto-error">{{ errores['nota-' + asignatura.uuidAsignaturaSolicitud] || '' }}</small>
-        </div>
-        <div class="col-md-5">
-          <app-input-select-component label="Situación en la matrícula" [required]="true" [options]="opcionesSituacion"
-            [(value)]="evaluaciones[asignatura.uuidAsignaturaSolicitud].situacion">
-          </app-input-select-component>
-          <small class="texto-error">{{ errores['situacion-' + asignatura.uuidAsignaturaSolicitud] || '' }}</small>
-        </div>
-        <div class="col-md-3">
-          <app-input-select-component label="Cumple condiciones" [required]="true" [options]="opcionesSiNo"
-            [(value)]="evaluaciones[asignatura.uuidAsignaturaSolicitud].cumple">
-          </app-input-select-component>
-          <small class="texto-error" data-error-cumple>{{ errores['cumple-' + asignatura.uuidAsignaturaSolicitud] || '' }}</small>
-        </div>
-        <div class="col-12">
-          <app-input-text-component
-            [label]="evaluaciones[asignatura.uuidAsignaturaSolicitud].cumple === false ? 'Observación de la evaluación' : 'Observación de la evaluación (opcional)'"
-            [required]="evaluaciones[asignatura.uuidAsignaturaSolicitud].cumple === false"
-            [(value)]="evaluaciones[asignatura.uuidAsignaturaSolicitud].observacion">
-          </app-input-text-component>
-          <div class="fila-ayuda">
-            <small class="texto-error">{{ errores['observacion-' + asignatura.uuidAsignaturaSolicitud] || '' }}</small>
-            <small class="contador">{{ evaluaciones[asignatura.uuidAsignaturaSolicitud].observacion.length }}/{{ maximoObservacionAsignatura }}</small>
-          </div>
-        </div>
-      </div>
-    </div>
-    }
-    @if (ningunaCumple || errores['ninguna']) {
-    <div class="nota-error" data-error="ninguna">
-      Ninguna asignatura cumple las condiciones: en lugar de remitir la solicitud al Decano debes rechazarla.
-    </div>
     }
     }
     @case (acciones.APROBAR_DECANO) {

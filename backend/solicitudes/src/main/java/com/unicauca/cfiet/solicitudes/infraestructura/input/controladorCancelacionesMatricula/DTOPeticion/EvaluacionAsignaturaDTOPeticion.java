@@ -14,4 +14,5 @@ public class EvaluacionAsignaturaDTOPeticion {
     private String numeroFaltas;
     private String nota;
     private String situacionMatriculaUuid;
+    private String situacionCancelarUuid;
 }

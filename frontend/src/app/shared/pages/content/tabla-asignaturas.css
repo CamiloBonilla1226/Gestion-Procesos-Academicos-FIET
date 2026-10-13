@@ -1,0 +1,99 @@
+.tabla-asignaturas {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.tabla-asignaturas th {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  background: #F1F3F7;
+  color: var(--navy-ink);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+  vertical-align: middle;
+}
+
+.tabla-asignaturas td {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  background: #fff;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.tabla-asignaturas td.con-error {
+  background: #FDF3F2;
+}
+
+.tabla-asignaturas[data-editable] td {
+  min-width: 96px;
+}
+
+.tabla-asignaturas[data-editable] td:nth-child(2) {
+  min-width: 150px;
+}
+
+.celda-campo {
+  display: block;
+  width: 100%;
+  min-width: 80px;
+  height: 30px;
+  padding: 3px 7px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+}
+
+select.celda-campo {
+  min-width: 140px;
+}
+
+.celda-campo:focus-visible {
+  outline: 2px solid #B9C7EE;
+  outline-offset: 1px;
+  border-color: var(--navy-700);
+}
+
+.celda-campo[aria-invalid="true"] {
+  border-color: var(--accent);
+}
+
+.celda-campo:disabled {
+  background: var(--panel);
+}
+
+.ayuda-tabla {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.observacion-evaluacion {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.etiqueta-observacion {
+  margin: 0;
+  color: var(--navy-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.campo-observacion {
+  height: auto;
+  min-height: 72px;
+  resize: vertical;
+}

@@ -40,6 +40,7 @@ public class MapperCancelacionMatriculaInfraestructuraDominio {
                         .numeroFaltas(evaluacion.getNumeroFaltas())
                         .nota(evaluacion.getNota())
                         .uuidSituacionMatricula(evaluacion.getSituacionMatriculaUuid())
+                        .uuidSituacionCancelar(evaluacion.getSituacionCancelarUuid())
                         .build())
                 .toList();
     }

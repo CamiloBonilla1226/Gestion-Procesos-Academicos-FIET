@@ -291,6 +291,19 @@ class TramiteCancelacionAsignaturaCUImplAdaptadorTest {
     }
 
     @Test
+    void remitirGuardaLaSituacionAlCancelarSiElFuncionarioLaRegistra() {
+        enEtapa(RADICADA);
+        List<EvaluacionAsignatura> evaluaciones = evaluacionesValidas();
+        evaluaciones.get(0).setUuidSituacionCancelar("sit-b");
+
+        casoDeUso.remitirADecano(SOLICITUD, evaluaciones, null, TOKEN_FUNCIONARIO);
+
+        List<AsignaturaSolicitudAcademica> guardadas = asignaturasGuardadas();
+        assertEquals("sit-b", guardadas.get(0).getSituacionCancelar().getUuidSituacionAcademica());
+        assertNull(guardadas.get(1).getSituacionCancelar());
+    }
+
+    @Test
     void remitirBorraElEscaneoViejo() {
         enEtapa(RADICADA);
         when(resolucionGateway.getPorSolicitud(SOLICITUD)).thenReturn(ResolucionAcademica.builder().urlArchivo("res/vieja.pdf").build());
