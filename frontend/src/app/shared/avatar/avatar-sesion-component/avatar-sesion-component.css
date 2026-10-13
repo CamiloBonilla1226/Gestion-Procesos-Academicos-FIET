@@ -1,44 +1,96 @@
+.user-chip-btn {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    background: none;
+    border: 0;
+    cursor: pointer;
+    padding: 6px 8px;
+    border-radius: 5px;
+    font-family: var(--fuente);
+}
+
+.user-chip-btn:hover {
+    background: var(--panel);
+}
+
+.user-chip-btn:focus-visible {
+    outline: 2px solid #B9C7EE;
+    outline-offset: 1px;
+}
+
 .avatar-custom {
-    width: 55px;            
-    height: 55px;           
-    border: 2px solid #1E257B; 
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    border: 1.5px solid var(--navy-ink);
     border-radius: 50%;
-    background-color: white; 
-    color: #1E257B;   
-    font-family: 'Titillium Web', sans-serif;
-    font-size: 16px;
-    font-weight: bold;
-    letter-spacing: 0.35;     
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: white;
+    color: var(--navy-ink);
+    font-size: 12.5px;
+    font-weight: 700;
+}
+
+.user-meta {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.35;
+    text-align: left;
 }
 
 .user-name {
-    font-size: 1rem;           
-    color: #1E257B;    
-    font-family: 'Titillium Web', sans-serif;
-    font-weight: bold;
-    letter-spacing: 0.35;         
+    font-size: 13px;
+    color: var(--navy-ink);
+    font-weight: 700;
 }
 
-.dropdown-custom {
-    font-size: 0.85rem;  
-    padding: 0.25rem 0.5rem;
-    background-color: #fff !important; 
-    color: #1E257B !important; 
-    font-family: 'Titillium Web', sans-serif;
-    border-color: #928F9A;    
+.user-role {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12.5px;
+    color: var(--navy-ink);
 }
 
-.dropdown-menu-white .dropdown-item{
-    background-color: #fff !important;
-    color: #454444 !important;
-    font-family: 'Titillium Web', sans-serif;
-    font-size: 12px;
-    font-size: 0.85rem;  
+.user-chip-btn[aria-expanded="true"] .user-role svg {
+    transform: rotate(180deg);
+}
+
+.dropdown-menu-white {
+    min-width: 190px;
+    max-width: calc(100vw - 32px);
+    padding: 6px;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    box-shadow: 0 12px 28px rgba(20, 26, 56, .2);
+}
+
+.dropdown-menu-white .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 11px;
+    border-radius: 3px;
+    background-color: #fff;
+    color: var(--navy-ink);
+    font-family: var(--fuente);
+    font-size: 13px;
+    font-weight: 600;
 }
 
 .dropdown-menu-white .dropdown-item:hover,
-.dropdown-menu-white .dropdown-item:focus,
-.dropdown-menu-white .dropdown-item:active {
-  background-color: #FFB000 !important;
-  color: #fff !important;
+.dropdown-menu-white .dropdown-item:focus {
+    background-color: var(--panel);
+}
+
+.dropdown-menu-white .item-salir {
+    color: var(--red);
+}
+
+.dropdown-menu-white .item-salir:hover,
+.dropdown-menu-white .item-salir:focus {
+    background-color: #FBE9E7;
 }

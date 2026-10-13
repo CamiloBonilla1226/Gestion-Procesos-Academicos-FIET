@@ -1,6 +1,6 @@
 import {
   campoObservacion,
-  claseInsigniaDecisionDecano,
+  categoriaEstado,
   claseInsigniaEtiquetaEstudiante,
   esEtiqueta,
   etiquetaCampoObservacion
@@ -20,10 +20,21 @@ describe('etiquetas academicas', () => {
     expect(esEtiqueta(null, 'Aprobada')).toBeFalse();
   });
 
-  it('la insignia de decision del Decano solo aplica a sus dos etiquetas', () => {
-    expect(claseInsigniaDecisionDecano('Aprobada por el Decano')).toBe('text-bg-success');
-    expect(claseInsigniaDecisionDecano('Rechazada por el Decano')).toBe('text-bg-danger');
-    expect(claseInsigniaDecisionDecano('Pendiente')).toBeNull();
+  it('clasifica cada etiqueta de estado para su icono', () => {
+    expect(categoriaEstado('Pendiente')).toBe('pendiente');
+    expect(categoriaEstado('En Gestión')).toBe('gestion');
+    expect(categoriaEstado('En trámite')).toBe('gestion');
+    expect(categoriaEstado('Pendiente de Verificación')).toBe('gestion');
+    expect(categoriaEstado('En verificación de pago')).toBe('gestion');
+    expect(categoriaEstado('Aprobada por el Decano')).toBe('aprobada');
+    expect(categoriaEstado('Rechazada por el Decano')).toBe('rechazada');
+    expect(categoriaEstado('Respondida')).toBe('aprobada');
+    expect(categoriaEstado('Aprobada')).toBe('aprobada');
+    expect(categoriaEstado('Rechazada')).toBe('rechazada');
+    expect(categoriaEstado('Pendiente de pago')).toBe('pago');
+    expect(categoriaEstado('Enviar Recibo')).toBe('notificar');
+    expect(categoriaEstado('Otra cosa')).toBe('otro');
+    expect(categoriaEstado(null)).toBe('otro');
   });
 
   it('define el campo de observacion de cada accion', () => {

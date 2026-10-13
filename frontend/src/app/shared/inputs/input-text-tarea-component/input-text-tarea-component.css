@@ -5,7 +5,7 @@
   color: #454444;
   border-radius: 6px;
   box-shadow: none;
-  font-family: 'Titillium Web', sans-serif;
+  font-family: var(--fuente);
   min-height: 80px;
   resize: vertical; 
 }
@@ -19,6 +19,6 @@
   font-size: 13px;
   color: #1E257B;
   font-weight: 600;
-  font-family: 'Titillium Web', sans-serif;
+  font-family: var(--fuente);
   padding-left: 0.5rem;
 }

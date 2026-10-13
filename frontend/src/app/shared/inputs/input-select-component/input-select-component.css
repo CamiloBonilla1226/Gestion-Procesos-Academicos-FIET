@@ -14,7 +14,7 @@
   border-radius: 6px;
   border: 1px solid #ccc;
   box-shadow: none;
-  font-family: 'Titillium Web', sans-serif;
+  font-family: var(--fuente);
   appearance: none;      
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -30,13 +30,13 @@
   font-size: 13px;
   color: #1E257B;
   font-weight: 600;
-  font-family: 'Titillium Web', sans-serif;
+  font-family: var(--fuente);
 }
 
 .small-input .form-select option {
   background-color: #fff;
   color: #454444;
-  font-family: 'Titillium Web', sans-serif;
+  font-family: var(--fuente);
 }
 
 .small-input .form-select::-webkit-scrollbar {

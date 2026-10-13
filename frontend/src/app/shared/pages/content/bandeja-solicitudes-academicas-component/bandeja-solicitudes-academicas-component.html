@@ -1,47 +1,116 @@
-<div class="d-flex flex-column gap-3">
-  <div class="row g-3 align-items-center">
-    <div class="col-md-4">
-      <app-input-select-component label="Tipo de solicitud" [options]="opcionesTipo" [value]="tipoFiltro"
-        (valueChange)="onTipoChange($event)">
-      </app-input-select-component>
-    </div>
-    <div class="col-md-8">
-      <app-barra-busqueda-component placeholder="Buscar por radicado, nombre o código estudiantil"
-        (valueChange)="onBusquedaChange($event)">
-      </app-barra-busqueda-component>
-    </div>
-  </div>
+<section class="tarjeta">
+  <header class="tarjeta-head">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+    <h2>{{ tituloTarjeta }}</h2>
+  </header>
 
-  @if (cargando) {
-  <div class="d-flex align-items-center gap-2 text-secondary" data-estado="cargando">
-    <div class="spinner-border spinner-border-sm" role="status"></div>
-    <span>Cargando solicitudes...</span>
+  <div class="tarjeta-body">
+    <div class="filtros">
+      <div class="campo">
+        <label for="filtro-tipo">Tipo de proceso académico</label>
+        <select id="filtro-tipo" class="form-select" (change)="onTipoChange($any($event.target).value)">
+          <option [value]="todos" [selected]="tipoFiltro === todos">Todos</option>
+          @for (tipo of opcionesTipo; track tipo) {
+          <option [value]="tipo" [selected]="tipoFiltro === tipo">{{ tipo }}</option>
+          }
+        </select>
+      </div>
+      <div class="campo">
+        <label for="filtro-estado">{{ columnaEstado }}</label>
+        <select id="filtro-estado" class="form-select" (change)="onEstadoChange($any($event.target).value)">
+          <option [value]="todos" [selected]="estadoFiltro === todos">Todos</option>
+          @for (estado of opcionesEstado; track estado) {
+          <option [value]="estado" [selected]="estadoFiltro === estado">{{ estado }}</option>
+          }
+        </select>
+      </div>
+      @if (!esEstudiante) {
+      <div class="campo">
+        <span class="campo-etiqueta">Código estudiantil</span>
+        <app-barra-busqueda-component placeholder="Ej. 104622010148" [value]="textoFiltro"
+          (valueChange)="onBusquedaChange($event)">
+        </app-barra-busqueda-component>
+      </div>
+      }
+      <button type="button" class="btn-limpiar" [disabled]="!hayFiltros" (click)="limpiarFiltros()">Limpiar filtros</button>
+    </div>
+
+    @if (cargando) {
+    <div class="d-flex align-items-center gap-2 text-secondary pb-3" data-estado="cargando">
+      <div class="spinner-border spinner-border-sm" role="status"></div>
+      <span>Cargando solicitudes...</span>
+    </div>
+    } @else if (errorCarga) {
+    <div class="alert alert-danger d-flex justify-content-between align-items-center" data-estado="error">
+      <span>No se pudieron cargar las solicitudes.</span>
+      <app-simple-button-component label="Reintentar" width="100px" height="30px" (clicked)="cargarSolicitudes()">
+      </app-simple-button-component>
+    </div>
+    } @else if (solicitudes.length === 0) {
+    <p class="vacio" data-estado="vacio">No hay solicitudes para mostrar</p>
+    } @else if (filtradas.length === 0) {
+    <div class="vacio" data-estado="sin-resultados">
+      <p>No se encontraron solicitudes con esos filtros</p>
+      <button type="button" class="btn-limpiar" (click)="limpiarFiltros()">Limpiar filtros</button>
+    </div>
+    } @else {
+    <app-table-generic-component [headers]="headers" [data]="filas" [actionTemplate]="acciones">
+    </app-table-generic-component>
+    <div class="pie">
+      <small class="text-secondary">{{ filtradas.length }} {{ filtradas.length === 1 ? 'solicitud' : 'solicitudes' }}</small>
+      <app-paginator [totalPages]="totalDePaginas" [currentPage]="paginaActual" (pageChange)="onPageChange($event)">
+      </app-paginator>
+    </div>
+    }
   </div>
-  } @else if (errorCarga) {
-  <div class="alert alert-danger d-flex justify-content-between align-items-center mb-0" data-estado="error">
-    <span>No se pudieron cargar las solicitudes.</span>
-    <app-simple-button-component label="Reintentar" width="100px" height="30px" (clicked)="cargarSolicitudes()">
-    </app-simple-button-component>
-  </div>
-  } @else if (filtradas.length === 0) {
-  <p class="text-secondary mb-0" data-estado="vacio">No hay solicitudes para mostrar</p>
-  } @else {
-  <app-table-generic-component [headers]="headers" [data]="filas" [actionTemplate]="acciones">
-  </app-table-generic-component>
-  <div class="d-flex justify-content-between align-items-center">
-    <small class="text-secondary">{{ filtradas.length }} {{ filtradas.length === 1 ? 'solicitud' : 'solicitudes' }}</small>
-    <app-paginator [totalPages]="totalDePaginas" [currentPage]="paginaActual" (pageChange)="onPageChange($event)">
-    </app-paginator>
-  </div>
-  }
-</div>
+</section>
+
+<ng-template #celdaRadicado let-valor="valor">
+  <span class="radicado">{{ valor }}</span>
+</ng-template>
+
+<ng-template #celdaEstado let-valor="valor">
+  <span class="estado" [attr.data-categoria]="categoria(valor)">
+    @switch (categoria(valor)) {
+    @case ('pendiente') {
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E0952B" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+    }
+    @case ('gestion') {
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B6FD4" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 10h8l-2-2M16 14H8l2 2"/></svg>
+    }
+    @case ('notificar') {
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A4FC2" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M13 8l4 4-4 4"/></svg>
+    }
+    @case ('aprobada') {
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2E9E6B" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.6 2.5L16 9.5"/></svg>
+    }
+    @case ('rechazada') {
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D0463B" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg>
+    }
+    @case ('pago') {
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E0952B" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg>
+    }
+    @default {
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6E7480" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg>
+    }
+    }
+    {{ valor }}
+  </span>
+</ng-template>
+
+<ng-template #ordenFecha>
+  <button type="button" class="orden" [class.activo]="campoOrden === 'fecha'"
+    aria-label="Ordenar por fecha de radicación" (click)="ordenarPor('fecha')">&#8645;</button>
+</ng-template>
+
+<ng-template #ordenEstado>
+  <button type="button" class="orden" [class.activo]="campoOrden === 'estado'"
+    [attr.aria-label]="'Ordenar por ' + columnaEstado.toLowerCase()" (click)="ordenarPor('estado')">&#8645;</button>
+</ng-template>
 
 <ng-template #acciones let-fila>
-  <div class="d-flex flex-wrap align-items-center gap-2">
-    @if (insigniaDecision(fila); as clase) {
-    <span class="badge" [ngClass]="clase" [attr.data-decision-decano]="fila.uuid">{{ fila['Estado'] }}</span>
-    }
-    <app-simple-button-component label="Ver" width="60px" height="30px" (clicked)="verSolicitud(fila)">
-    </app-simple-button-component>
-  </div>
+  <button type="button" class="btn-ojo" [attr.aria-label]="'Ver solicitud ' + fila['Radicado']" title="Ver solicitud"
+    (click)="verSolicitud(fila)">
+    <img src="buttons/eye.svg" alt="" width="20" height="20">
+  </button>
 </ng-template>

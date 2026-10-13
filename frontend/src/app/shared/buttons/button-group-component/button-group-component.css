@@ -5,7 +5,7 @@
   padding: 8px 12px;
   border-radius: 6px;
   transition: background 0.3s;
-  font-family: 'Titillium Web', sans-serif;
+  font-family: var(--fuente);
   font-size: large;
   font-weight: semi-bold;
   letter-spacing: 0.35;

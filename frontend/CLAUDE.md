@@ -203,8 +203,12 @@ No hay un reparto limpio entre las tres librerías; el patrón real es:
   tenga ningún efecto en la aplicación; no se usa para código nuevo.
 - Lo demás son estilos propios por componente en su `.css` (colores
   de marca como `#1E257B` pasados incluso como `@Input` a
-  `SimpleButtonComponent`) y `src/styles.css`, que solo importa
-  `primeicons` y resetea `html, body`.
+  `SimpleButtonComponent`) y `src/styles.css`, que importa `primeicons`,
+  resetea `html, body` y, desde T12.2-B, define los tokens del diseño en
+  `:root` (`--navy-900`, `--navy-700`, `--navy-ink`, `--accent`, `--panel`,
+  `--line`, `--text`, `--muted`, `--sidebar-w`, `--fuente`...). Todo lo demás
+  va en el CSS de cada componente: el CSS global entra en el bundle inicial y
+  el de los componentes no (D-F27).
 
 Regla para código nuevo: layout, utilidades, tablas y campos con Bootstrap;
 diálogos y botones con los componentes compartidos que ya envuelven PrimeNG;
@@ -280,7 +284,7 @@ debe pasar de 840 kB.
 | --- | --- | --- |
 | Estudiante | `estudiante`, `estudiante/solicitudes`, `estudiante/solicitudes/:uuid`, `estudiante/cancelacion-matricula`, `estudiante/cancelacion-asignatura`, `estudiante/examen-supletorio` | Mi Usuario, Mis solicitudes, Cancelar matrícula, Cancelar asignatura, Examen supletorio |
 | Funcionario Académico | `funcionario-academico`, `funcionario-academico/solicitudes`, `funcionario-academico/solicitudes/:uuid` | Mi Usuario, Solicitudes |
-| Decano | `decano`, `decano/solicitudes`, `decano/solicitudes/:uuid`, `decano/solicitudes-consejo`, `decano/administracion-academica` | Mi Usuario, Solicitudes académicas, Solicitudes del Consejo, Administración académica |
+| Decano | `decano`, `decano/solicitudes`, `decano/solicitudes/:uuid`, `decano/solicitudes-consejo`, `decano/administracion-academica` | Mi Usuario, Gestión académica (Solicitudes académicas, Administración académica), Solicitudes del Consejo |
 | Secretario General | `sec-general/administracion-academica` (más las de Julián) | Una línea agregada al menú de Julián: Administración académica |
 
 El login (`shared/login-form-component`) redirige por rol en este orden:
@@ -361,11 +365,17 @@ en su propio chunk diferido.
   `errorDeNotaAsignatura`); la regla "nota menor a 3.0 no cumple" solo aplica
   a una nota numérica (`numeroDeValor`). Se envían tal como se escriben,
   recortadas; el backend normaliza "3,5" a "3.5".
-- Funcionario: la bandeja pinta una insignia junto a "Ver" cuando la etiqueta
-  es "Aprobada por el Decano" o "Rechazada por el Decano" (la tabla de Julián
-  solo pinta texto), y el detalle muestra el bloque "Decisión del Decano" con
-  la observación que trae la última fila `APROBAR_DECANO` o `RECHAZAR_DECANO`
-  del historial.
+- Bandejas (D-F28): la columna Estado (Decisión en el Decano) se pinta con
+  ícono y texto según `categoriaEstado(etiqueta)`
+  (`core/constantes/etiquetas-academicas.ts`), en los tres roles y sin mirar
+  `etapaCodigo`: reloj ámbar (Pendiente), flechas azules (En Gestión, En
+  trámite, verificación), flecha morada (por notificar, enviar recibo), check
+  verde (Aprobada, Aprobada por el Decano, Respondida), x roja (Rechazada,
+  Rechazada por el Decano) y exclamación ámbar (Pendiente de pago). En el
+  Funcionario, "Aprobada por el Decano" y "Rechazada por el Decano" se ven así
+  en Estado, sin insignia aparte. El detalle del Funcionario muestra el bloque
+  "Decisión del Decano" con la observación que trae la última fila
+  `APROBAR_DECANO` o `RECHAZAR_DECANO` del historial.
 
 ### Diálogos
 
@@ -477,11 +487,23 @@ Las reglas que no son "obligatorio" viven en
 | D-F24 | La edición de estudiante y funcionario académico abre con los valores actuales y envía solo lo que cambió; `DatosUsuarioAcademicoComponent` recibe `edicion` para ocultar usuario y contraseña y quitar los obligatorios |
 | D-F25 | Los procesos a cargo se ven de solo lectura al editar un funcionario: el `PUT` no los recibe y se cambian en la pestaña Responsable por proceso |
 | D-F26 | La facultad del estudiante es siempre FIET: se muestra de solo lectura y no se envía |
+| D-F27 | Rediseño visual (T12.2-B): tokens en `:root` de `src/styles.css` y el resto del estilo en el CSS de cada componente compartido, que carga en diferido, para no subir el bundle inicial. Fuente `var(--fuente)` en todos los `.css` |
+| D-F28 | Estado de las bandejas con ícono y texto por `categoriaEstado(etiqueta)`, nunca por `etapaCodigo`; sin insignia aparte de decisión del Decano |
+| D-F29 | `TableGenericComponent` acepta `cellTemplate` opcional por columna (contexto `$implicit` = fila, `valor` = celda); sin plantilla pinta el texto como antes |
+| D-F30 | `SidebarComponent` acepta `children` por ítem (submenú desplegable con ">") y resalta la ruta más específica que coincide con la URL. El Decano agrupa Solicitudes académicas y Administración académica en "Gestión académica" |
 
 Otras decisiones tomadas en las tareas, sin número:
 
-- La columna Estado de las bandejas es texto plano, sin insignia; la del
-  Funcionario suma junto a "Ver" la insignia de la decisión del Decano.
+- Bandejas: una tarjeta por rol ("Solicitudes remitidas por el Funcionario
+  Académico", "Gestión de solicitudes", "Mis trámites radicados"). Filtros de
+  tipo de proceso, estado (decisión en el Decano, con las etiquetas presentes)
+  y código estudiantil (no en el Estudiante), con "Limpiar filtros". Columnas:
+  Radicado, Estudiante, Código estudiantil, Tipo de proceso, Fecha de
+  radicación, Estado y Acciones (ojo); el Estudiante ve Radicado, Tipo de
+  proceso, Fecha de radicación, Estado y Acciones. Fecha y Estado se ordenan
+  con ⇅. El resumen no trae número de documento ni fechas de remisión o
+  decisión, por eso se usan el código estudiantil y la fecha de radicación. La
+  búsqueda sigue cubriendo radicado, nombre y código.
 - Tras radicar, la pantalla reemplaza el formulario por el radicado y un botón
   "Ver solicitud", y además navega al detalle.
 - Examen Supletorio:
@@ -595,8 +617,13 @@ npx ng test --watch=false --browsers=ChromeHeadless --include=src/app/shared/pag
 - Por debajo de 992 px el encabezado de Julián (`navbar-expand-lg` con
   `navbar-collapse` y sin botón para desplegarlo) oculta el avatar y con él
   "Cerrar sesión".
-- Los roles del menú del avatar son enlaces `href="#"` sin acción: recargan la
-  raíz, que ahora lleva al inicio del rol.
+- El menú del chip de usuario tiene "Mi usuario" (inicio del rol actual con
+  `rutaDeInicio`) y "Cerrar sesión"; ya no lista los roles.
+- Mi usuario muestra solo lo que entrega la API: datos del usuario y roles; el
+  Funcionario Académico suma Cargo y procesos asignados
+  (`GET funcionarios-academicos/{uuid}`). El Estudiante no tiene endpoint para
+  leer su programa ni su semestre, y ningún DTO trae la fecha de creación
+  ("Te uniste el"), así que no se muestran.
 - D-F13: no hay aviso previo de que el estudiante ya tiene una solicitud en
   curso del mismo tipo; se entera por el error del backend al radicar.
 - El reintento de la acción de recibo o de comprobante no consulta si el

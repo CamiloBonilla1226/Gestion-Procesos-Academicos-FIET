@@ -27,7 +27,7 @@
   font-size: 13px;
   color: #1E257B;    
   font-weight: 600; 
-  font-family: 'Titillium Web', sans-serif;
+  font-family: var(--fuente);
 }
 
 .anexo-item .anexo-btn { cursor: pointer; }

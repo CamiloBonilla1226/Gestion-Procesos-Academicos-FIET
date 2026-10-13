@@ -1,3 +1,4 @@
+<div class="tabla-scroll">
 <table class="table table-bordered">
   <thead>
     <tr>
@@ -13,10 +14,16 @@
   </thead>
   <tbody>
     <tr *ngFor="let row of data">
-      <td *ngFor="let header of headers">{{ row[header.title] }}</td>
+      <td *ngFor="let header of headers">
+        <ng-container *ngIf="header.cellTemplate; else valorPlano" [ngTemplateOutlet]="header.cellTemplate"
+          [ngTemplateOutletContext]="{ $implicit: row, valor: row[header.title] }">
+        </ng-container>
+        <ng-template #valorPlano>{{ row[header.title] }}</ng-template>
+      </td>
       <td *ngIf="actionTemplate">
         <ng-container *ngTemplateOutlet="actionTemplate; context: { $implicit: row }"></ng-container>
       </td>
     </tr>
   </tbody>
 </table>
+</div>

@@ -1,32 +1,115 @@
 .user-card {
-  max-width: 400px;
-  margin: 2rem auto;
-  padding: 1.5rem;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  background-color: #fefefe;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-  font-family: 'Titillium Web', sans-serif;
-  color: #454444;
-  text-align: left; 
+  max-width: 680px;
+  margin: 0 auto 26px;
+  padding: 32px 36px 34px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  box-shadow: 0 1px 3px rgba(27, 38, 96, .06);
+  font-family: var(--fuente);
+  color: var(--text);
 }
 
-.title{
-  font-weight: 600;
-  color: #1E257B;
+.user-welcome {
+  text-align: center;
+  color: var(--navy-ink);
+  font-size: 19px;
+  font-weight: 700;
+  margin: 0 0 28px;
 }
 
-.user-card h2 {
-  text-align: center; 
-  margin-bottom: 1rem;
-  color: #1E257B;
+.user-grid {
+  display: flex;
+  gap: 36px;
+  align-items: flex-start;
 }
 
-.user-card p {
-  margin: 0.5rem 0;
-  font-size: 16px;
+.user-side {
+  flex: 0 0 108px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
 }
 
-.user-card strong {
-  color: #1E257B;
+.user-avatar-big {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  border: 1.5px solid var(--navy-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--navy-ink);
+}
+
+.user-fields {
+  flex: 1;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 9px 10px;
+  margin: 4px 0 0;
+  font-size: 13.5px;
+}
+
+.user-fields dt {
+  font-weight: 700;
+  color: var(--navy-ink);
+  white-space: nowrap;
+}
+
+.user-fields dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.user-sep {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 26px 0 18px;
+  opacity: 1;
+}
+
+.user-roles {
+  margin-bottom: 14px;
+  font-size: 13.5px;
+}
+
+.user-roles-title {
+  font-weight: 700;
+  color: var(--navy-ink);
+  margin-bottom: 5px;
+}
+
+.user-procesos {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.user-password {
+  margin-top: 18px;
+}
+
+@media (max-width: 767.98px) {
+  .user-card {
+    padding: 24px 18px;
+  }
+
+  .user-grid {
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .user-fields {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 2px;
+  }
+
+  .user-fields dd {
+    margin-bottom: 8px;
+  }
 }

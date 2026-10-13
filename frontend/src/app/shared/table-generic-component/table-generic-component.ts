@@ -14,6 +14,8 @@ export interface TableHeader {
    * Template opcional para personalizar el contenido del encabezado.
    */
   headerTemplate?: TemplateRef<any>;
+
+  cellTemplate?: TemplateRef<any>;
 }
 
 /**

@@ -12,4 +12,6 @@ import { Component } from '@angular/core';
   templateUrl: './footer-simple-component.html',
   styleUrl: './footer-simple-component.css'
 })
-export class FooterSimpleComponent {}
+export class FooterSimpleComponent {
+  readonly anio = new Date().getFullYear();
+}

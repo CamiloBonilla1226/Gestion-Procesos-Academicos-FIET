@@ -2,6 +2,50 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-13 - Rediseño visual, parte 1: base, layout, listados y Mi usuario (Tarea T12.2-B)
+- Qué se hizo:
+  - Base: tokens del diseño en `:root` de `src/styles.css` (navy, acento, panel, líneas, texto, fuente "Segoe UI"/"Nunito Sans"/sistema) y ajuste de PrimeNG con variables; la fuente `var(--fuente)` reemplaza a Titillium Web en todos los `.css`.
+  - B1: layout con sidebar navy fijo de 210 px (64 px de solo íconos bajo 992 px), escudo, ítems "ícono | Texto", ítem activo resaltado y submenú con ">" ("Gestión académica" del Decano con Solicitudes académicas y Administración académica). Header blanco con "Gestión de Procesos Académicos FIET" y chip de usuario (iniciales, nombre, rol, chevron) con menú "Mi usuario" y "Cerrar sesión". Breadcrumb "Rol > Sección", título con subrayado rojo, contenido sobre fondo panel y footer con el año actual. El colapso de Julián bajo 992 px se mantiene.
+  - B2: bandejas en tarjeta con ícono y título por rol, filtros (tipo de proceso, estado o decisión, código estudiantil salvo en el Estudiante, "Limpiar filtros"), tabla con encabezado navy, cebra, radicado en negrita, orden ⇅ por fecha y estado, ojo en Acciones y paginación "‹ Anterior | n | Siguiente ›". Estado con ícono y texto según la etiqueta (`categoriaEstado`), nunca según `etapaCodigo`. Se quita la insignia de decisión del Decano junto a "Ver": ahora va en Estado con check verde o x roja. El bloque "Decisión del Decano" del detalle se mantiene.
+  - B5: Mi usuario en tarjeta centrada con "Bienvenid@, {nombre}!", iniciales, campos con etiqueta navy, Roles y, para el Funcionario Académico, Cargo y "Procesos académicos asignados".
+  - B8: tablas, paginador, búsqueda y tarjetas de Julián (`TableGenericComponent`, `Paginator`, `BarraBusquedaComponent`, `CardMainComponent`, `ContentComponent`) con el mismo estilo, sin cambiar funcionalidad.
+  - `TableGenericComponent` gana `cellTemplate` opcional por columna y `SidebarComponent` gana `children` opcional; quien no los pasa se ve igual que antes.
+- Archivos:
+  - `frontend/src/styles.css` (modificado)
+  - `frontend/src/app/layouts/layout-component/layout-component.html`, `.css` (modificado)
+  - `frontend/src/app/shared/sidebars/sidebar-component/sidebar-component.ts`, `.html`, `.css` (modificado)
+  - `frontend/src/app/shared/sidebars/sidebar-component/sidebar-menu.spec.ts` (creado)
+  - `frontend/src/app/core/decano/components/side-bar-decano-component/side-bar-decano-component.html` (modificado)
+  - `frontend/src/app/shared/headers/header-main-component/header-main-component.html`, `.css` (modificado)
+  - `frontend/src/app/shared/avatar/avatar-sesion-component/avatar-sesion-component.ts`, `.html`, `.css` (modificado)
+  - `frontend/src/app/shared/avatar/avatar-sesion-component/avatar-sesion-menu.spec.ts` (creado)
+  - `frontend/src/app/shared/breadcrumb/breadcrumb-component/breadcrumb-component.html`, `.css` (modificado)
+  - `frontend/src/app/shared/pages/content/content-component/content-component.html`, `.css` (modificado)
+  - `frontend/src/app/shared/footers/footer-simple-component/footer-simple-component.ts`, `.html`, `.css` (modificado)
+  - `frontend/src/app/shared/footers/footer-simple-component/footer-simple-anio.spec.ts` (creado)
+  - `frontend/src/app/shared/table-generic-component/table-generic-component.ts`, `.html`, `.css` (modificado)
+  - `frontend/src/app/shared/table-generic-component/table-generic-celdas.spec.ts` (creado)
+  - `frontend/src/app/shared/paginator/paginator.html`, `.css` (modificado)
+  - `frontend/src/app/shared/paginator/paginator-texto.spec.ts` (creado)
+  - `frontend/src/app/shared/search/barra-busqueda-component/barra-busqueda-component.css` (modificado)
+  - `frontend/src/app/shared/card-main-component/card-main-component.css` (modificado)
+  - `frontend/src/app/shared/pages/content/bandeja-solicitudes-academicas-component/bandeja-solicitudes-academicas-component.ts`, `.html`, `.spec.ts` (modificado)
+  - `frontend/src/app/shared/pages/content/bandeja-solicitudes-academicas-component/bandeja-solicitudes-academicas-component.css` (creado)
+  - `frontend/src/app/shared/pages/content/info-usuario-content-component/info-usuario-content-component.ts`, `.html`, `.css` (modificado)
+  - `frontend/src/app/shared/pages/content/info-usuario-content-component/info-usuario-mi-usuario.spec.ts` (creado)
+  - `frontend/src/app/core/constantes/etiquetas-academicas.ts`, `.spec.ts` (modificado)
+  - `frontend/src/app/core/utils/bandeja-solicitudes.ts`, `.spec.ts` (modificado)
+  - 22 `.css` de componentes compartidos y de Julián, solo con el cambio de fuente a `var(--fuente)` (modificado)
+  - `frontend/CLAUDE.md` (modificado)
+- Notas:
+  - Decisiones confirmadas por el usuario: columna y filtro "Código estudiantil" en lugar de "Documento" (el resumen no trae número de documento); una bandeja por rol sin vistas de Respuestas (no hay rutas y no se crean); "Fecha de radicación" en todas las bandejas (no hay fecha de remisión ni de decisión).
+  - Mi usuario del Estudiante no muestra programa ni semestre (no tiene endpoint para leerlos) y nadie muestra "Te uniste el" (ningún DTO trae la fecha).
+  - No existe un diálogo de cierre de sesión: es una opción del menú del chip, alineado a la derecha y limitado al ancho de la pantalla.
+  - El menú del chip ya no lista los roles (eran enlaces sin acción).
+  - `claseInsigniaDecisionDecano` se eliminó y la reemplaza `categoriaEstado`.
+  - Bundle inicial: 836,06 kB (antes 835,42; tope 840).
+  - Nuevas decisiones D-F27 a D-F30 en `frontend/CLAUDE.md`.
+
 ## 2026-10-13 - Ajustes funcionales del frontend tras T12.1 (Tarea T12.2-A)
 - Qué se hizo:
   - A1: funcionario académico con `cargo` en vez de `dependencia` en tabla, filtro (`?cargo=`), alta, edición, Excel y en el select de responsables.

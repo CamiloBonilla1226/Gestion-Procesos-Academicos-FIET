@@ -1,15 +1,27 @@
 .breadcrumb {
-  --bs-breadcrumb-divider: '>'; 
-  color: #928F9A; 
-  font-size: 14px;
-  height: 0px;
-  font-family: 'Titillium Web', sans-serif;
-  font-size: small;
-  font-weight: semi-bold;
-  letter-spacing: 0.35;
+  --bs-breadcrumb-divider: '>';
+  --bs-breadcrumb-item-padding-x: 7px;
+  margin: 0 0 18px;
+  color: var(--muted);
+  font-family: var(--fuente);
+  font-size: 12.5px;
 }
 
+.breadcrumb-item:first-child {
+  color: var(--navy-ink);
+  font-weight: 600;
+}
 
 .breadcrumb-item + .breadcrumb-item::before {
-  color: #DB141C;
+  color: var(--navy-ink);
+  font-weight: 700;
+}
+
+.breadcrumb-link {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.breadcrumb-link:hover {
+  color: var(--link);
 }

@@ -1,11 +1,9 @@
-import { Component, Input, OnInit } from '@angular/core';
-import { NgClass } from '@angular/common';
+import { Component, Input, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { TableGenericComponent, TableHeader } from '../../../table-generic-component/table-generic-component';
 import { Paginator } from '../../../paginator/paginator';
 import { BarraBusquedaComponent } from '../../../search/barra-busqueda-component/barra-busqueda-component';
-import { InputSelectComponent } from '../../../inputs/input-select-component/input-select-component';
 import { SimpleButtonComponent } from '../../../buttons/simple-button-component/simple-button-component';
 import { SolicitudAcademicaService } from '../../../../core/services/solicitud-academica-service';
 import { ErrorHandlerService } from '../../../../core/services/error-handler-service';
@@ -16,31 +14,55 @@ import {
   RolEtiqueta,
   TIPOS_SOLICITUD_ACADEMICA
 } from '../../../../core/constantes/procesos-academicos';
-import { claseInsigniaDecisionDecano } from '../../../../core/constantes/etiquetas-academicas';
-import { TODOS_LOS_TIPOS, filtrarSolicitudes, paginar, totalPaginas } from '../../../../core/utils/bandeja-solicitudes';
+import { CategoriaEstado, categoriaEstado } from '../../../../core/constantes/etiquetas-academicas';
+import {
+  CampoOrden,
+  DireccionOrden,
+  TODOS_LOS_TIPOS,
+  etiquetasDisponibles,
+  filtrarSolicitudes,
+  ordenarSolicitudes,
+  paginar,
+  totalPaginas
+} from '../../../../core/utils/bandeja-solicitudes';
 import { formatearFechaHora } from '../../../../core/utils/formato';
+
+const TITULOS_BANDEJA: Record<RolEtiqueta, string> = {
+  ESTUDIANTE: 'Mis trámites radicados',
+  FUNCIONARIO: 'Gestión de solicitudes',
+  DECANO: 'Solicitudes remitidas por el Funcionario Académico'
+};
+
+const COLUMNA_FECHA = 'Fecha de radicación';
 
 @Component({
   selector: 'app-bandeja-solicitudes-academicas-component',
-  imports: [NgClass, TableGenericComponent, Paginator, BarraBusquedaComponent, InputSelectComponent, SimpleButtonComponent],
-  templateUrl: './bandeja-solicitudes-academicas-component.html'
+  imports: [TableGenericComponent, Paginator, BarraBusquedaComponent, SimpleButtonComponent],
+  templateUrl: './bandeja-solicitudes-academicas-component.html',
+  styleUrl: './bandeja-solicitudes-academicas-component.css'
 })
 export class BandejaSolicitudesAcademicasComponent implements OnInit {
   @Input({ required: true }) rol!: RolEtiqueta;
 
-  readonly tamanioPagina = 10;
+  @ViewChild('celdaRadicado', { static: true }) celdaRadicado!: TemplateRef<unknown>;
+  @ViewChild('celdaEstado', { static: true }) celdaEstado!: TemplateRef<unknown>;
+  @ViewChild('ordenFecha', { static: true }) ordenFecha!: TemplateRef<unknown>;
+  @ViewChild('ordenEstado', { static: true }) ordenEstado!: TemplateRef<unknown>;
 
-  readonly opcionesTipo = [
-    { label: 'Todos', value: TODOS_LOS_TIPOS },
-    ...Object.values(TIPOS_SOLICITUD_ACADEMICA).map(tipo => ({ label: tipo, value: tipo }))
-  ];
+  readonly tamanioPagina = 10;
+  readonly todos = TODOS_LOS_TIPOS;
+  readonly opcionesTipo = Object.values(TIPOS_SOLICITUD_ACADEMICA);
 
   headers: TableHeader[] = [];
   solicitudes: SolicitudAcademicaResumenDTORespuesta[] = [];
   filtradas: SolicitudAcademicaResumenDTORespuesta[] = [];
   filas: Record<string, string>[] = [];
+  opcionesEstado: string[] = [];
   tipoFiltro: string = TODOS_LOS_TIPOS;
+  estadoFiltro: string = TODOS_LOS_TIPOS;
   textoFiltro = '';
+  campoOrden: CampoOrden | null = null;
+  direccionOrden: DireccionOrden = 'asc';
   paginaActual = 1;
   totalDePaginas = 1;
   cargando = false;
@@ -52,8 +74,24 @@ export class BandejaSolicitudesAcademicasComponent implements OnInit {
     private router: Router
   ) {}
 
+  get esEstudiante(): boolean {
+    return this.rol === ROLES_ETIQUETA.ESTUDIANTE;
+  }
+
+  get tituloTarjeta(): string {
+    return TITULOS_BANDEJA[this.rol];
+  }
+
+  get columnaEstado(): string {
+    return this.rol === ROLES_ETIQUETA.DECANO ? 'Decisión' : 'Estado';
+  }
+
+  get hayFiltros(): boolean {
+    return this.tipoFiltro !== TODOS_LOS_TIPOS || this.estadoFiltro !== TODOS_LOS_TIPOS || !!this.textoFiltro.trim();
+  }
+
   ngOnInit(): void {
-    this.headers = this.columnas().map(title => ({ title }));
+    this.headers = this.columnas();
     this.cargarSolicitudes();
   }
 
@@ -64,10 +102,12 @@ export class BandejaSolicitudesAcademicasComponent implements OnInit {
       next: solicitudes => {
         this.solicitudes = solicitudes ?? [];
         this.cargando = false;
+        this.opcionesEstado = etiquetasDisponibles(this.solicitudes);
         this.aplicarFiltros();
       },
       error: err => {
         this.solicitudes = [];
+        this.opcionesEstado = [];
         this.cargando = false;
         this.errorCarga = true;
         this.aplicarFiltros();
@@ -77,9 +117,16 @@ export class BandejaSolicitudesAcademicasComponent implements OnInit {
   }
 
   onTipoChange(tipo: string | null): void {
-    const nuevo = tipo ?? TODOS_LOS_TIPOS;
+    const nuevo = tipo || TODOS_LOS_TIPOS;
     if (nuevo === this.tipoFiltro) return;
     this.tipoFiltro = nuevo;
+    this.aplicarFiltros();
+  }
+
+  onEstadoChange(estado: string | null): void {
+    const nuevo = estado || TODOS_LOS_TIPOS;
+    if (nuevo === this.estadoFiltro) return;
+    this.estadoFiltro = nuevo;
     this.aplicarFiltros();
   }
 
@@ -90,13 +137,26 @@ export class BandejaSolicitudesAcademicasComponent implements OnInit {
     this.aplicarFiltros();
   }
 
+  limpiarFiltros(): void {
+    this.tipoFiltro = TODOS_LOS_TIPOS;
+    this.estadoFiltro = TODOS_LOS_TIPOS;
+    this.textoFiltro = '';
+    this.aplicarFiltros();
+  }
+
+  ordenarPor(campo: CampoOrden): void {
+    this.direccionOrden = this.campoOrden === campo && this.direccionOrden === 'asc' ? 'desc' : 'asc';
+    this.campoOrden = campo;
+    this.aplicarFiltros();
+  }
+
   onPageChange(pagina: number): void {
     this.paginaActual = pagina;
     this.actualizarPagina();
   }
 
-  insigniaDecision(fila: Record<string, string>): string | null {
-    return this.rol === ROLES_ETIQUETA.FUNCIONARIO ? claseInsigniaDecisionDecano(fila['Estado']) : null;
+  categoria(etiqueta: string): CategoriaEstado {
+    return categoriaEstado(etiqueta);
   }
 
   verSolicitud(fila: Record<string, string>): void {
@@ -104,7 +164,8 @@ export class BandejaSolicitudesAcademicasComponent implements OnInit {
   }
 
   private aplicarFiltros(): void {
-    this.filtradas = filtrarSolicitudes(this.solicitudes, this.tipoFiltro, this.textoFiltro);
+    const filtradas = filtrarSolicitudes(this.solicitudes, this.tipoFiltro, this.textoFiltro, this.estadoFiltro);
+    this.filtradas = ordenarSolicitudes(filtradas, this.campoOrden, this.direccionOrden);
     this.paginaActual = 1;
     this.actualizarPagina();
   }
@@ -115,21 +176,24 @@ export class BandejaSolicitudesAcademicasComponent implements OnInit {
     this.filas = paginar(this.filtradas, this.paginaActual, this.tamanioPagina).map(solicitud => this.fila(solicitud));
   }
 
-  private columnas(): string[] {
-    const comunes = ['Radicado', 'Tipo de solicitud', 'Fecha', 'Estado'];
-    if (this.rol === ROLES_ETIQUETA.ESTUDIANTE) return comunes;
-    return [...comunes, 'Estudiante', 'Código estudiantil'];
+  private columnas(): TableHeader[] {
+    const radicado: TableHeader = { title: 'Radicado', cellTemplate: this.celdaRadicado };
+    const tipo: TableHeader = { title: 'Tipo de proceso' };
+    const fecha: TableHeader = { title: COLUMNA_FECHA, headerTemplate: this.ordenFecha };
+    const estado: TableHeader = { title: this.columnaEstado, headerTemplate: this.ordenEstado, cellTemplate: this.celdaEstado };
+    if (this.esEstudiante) return [radicado, tipo, fecha, estado];
+    return [radicado, { title: 'Estudiante' }, { title: 'Código estudiantil' }, tipo, fecha, estado];
   }
 
   private fila(solicitud: SolicitudAcademicaResumenDTORespuesta): Record<string, string> {
     return {
       uuid: solicitud.uuidSolicitudAcademica,
       'Radicado': solicitud.radicado,
-      'Tipo de solicitud': solicitud.tipoSolicitud,
-      'Fecha': formatearFechaHora(solicitud.fechaCreacion),
-      'Estado': solicitud.etiqueta,
       'Estudiante': solicitud.nombreEstudiante,
-      'Código estudiantil': solicitud.codigoEstudiantil
+      'Código estudiantil': solicitud.codigoEstudiantil,
+      'Tipo de proceso': solicitud.tipoSolicitud,
+      [COLUMNA_FECHA]: formatearFechaHora(solicitud.fechaCreacion),
+      [this.columnaEstado]: solicitud.etiqueta
     };
   }
 

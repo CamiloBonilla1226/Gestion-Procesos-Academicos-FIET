@@ -54,7 +54,12 @@ describe('BandejaSolicitudesAcademicasComponent', () => {
   }
 
   function encabezados(fixture: ComponentFixture<BandejaSolicitudesAcademicasComponent>): string[] {
-    return Array.from(fixture.nativeElement.querySelectorAll('thead th')).map((th: any) => th.textContent.trim());
+    return Array.from(fixture.nativeElement.querySelectorAll('thead th'))
+      .map((th: any) => th.textContent.replace('⇅', '').trim());
+  }
+
+  function estados(fixture: ComponentFixture<BandejaSolicitudesAcademicasComponent>): (string | null)[] {
+    return Array.from(fixture.nativeElement.querySelectorAll('tbody .estado')).map((e: any) => e.getAttribute('data-categoria'));
   }
 
   it('el Funcionario ve 10 filas por pagina con las columnas del estudiante', () => {
@@ -64,20 +69,34 @@ describe('BandejaSolicitudesAcademicasComponent', () => {
     expect(servicio.getSolicitudesFuncionario).toHaveBeenCalledTimes(1);
     expect(filas(fixture).length).toBe(10);
     expect(encabezados(fixture)).toEqual([
-      'Radicado', 'Tipo de solicitud', 'Fecha', 'Estado', 'Estudiante', 'Código estudiantil', 'Acciones'
+      'Radicado', 'Estudiante', 'Código estudiantil', 'Tipo de proceso', 'Fecha de radicación', 'Estado', 'Acciones'
     ]);
     expect(filas(fixture)[0].textContent).toContain('31/12/2026 23:59');
+    expect(filas(fixture)[0].querySelector('.radicado')?.textContent?.trim()).toBe('2026-CA-0001');
+    expect(fixture.nativeElement.querySelector('.tarjeta-head h2').textContent.trim()).toBe('Gestión de solicitudes');
+    expect(fixture.nativeElement.querySelector('app-barra-busqueda-component')).toBeTruthy();
 
     fixture.componentInstance.onPageChange(3);
     fixture.detectChanges();
     expect(filas(fixture).length).toBe(3);
   });
 
-  it('el Estudiante no ve las columnas del estudiante', () => {
+  it('el Estudiante solo ve sus columnas y no tiene filtro por codigo', () => {
     servicio.getSolicitudesEstudiante.and.returnValue(of(solicitudes(2)));
     const fixture = crear('ESTUDIANTE');
-    expect(encabezados(fixture)).toEqual(['Radicado', 'Tipo de solicitud', 'Fecha', 'Estado', 'Acciones']);
+    expect(encabezados(fixture)).toEqual(['Radicado', 'Tipo de proceso', 'Fecha de radicación', 'Estado', 'Acciones']);
     expect(filas(fixture).length).toBe(2);
+    expect(fixture.nativeElement.querySelector('app-barra-busqueda-component')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.tarjeta-head h2').textContent.trim()).toBe('Mis trámites radicados');
+  });
+
+  it('el Decano ve la columna y el filtro de decision', () => {
+    servicio.getSolicitudesDecano.and.returnValue(of(solicitudes(1)));
+    const fixture = crear('DECANO');
+    expect(encabezados(fixture)).toContain('Decisión');
+    expect(fixture.nativeElement.querySelector('label[for="filtro-estado"]').textContent.trim()).toBe('Decisión');
+    expect(fixture.nativeElement.querySelector('.tarjeta-head h2').textContent.trim())
+      .toBe('Solicitudes remitidas por el Funcionario Académico');
   });
 
   it('filtrar vuelve a la pagina 1', () => {
@@ -93,40 +112,93 @@ describe('BandejaSolicitudesAcademicasComponent', () => {
     expect(componente.filtradas.length).toBe(11);
     expect(filas(fixture).length).toBe(10);
 
-    componente.onBusquedaChange('2026-CA-0004');
+    componente.onBusquedaChange('104614');
     fixture.detectChanges();
     expect(filas(fixture).length).toBe(1);
   });
 
-  it('Ver navega al detalle del rol', () => {
+  it('filtra por estado con las etiquetas presentes y limpia los filtros', () => {
+    const lista = solicitudes(4);
+    lista[1].etiqueta = 'En Gestión';
+    lista[3].etiqueta = 'En Gestión';
+    servicio.getSolicitudesFuncionario.and.returnValue(of(lista));
+    const fixture = crear('FUNCIONARIO');
+    const componente = fixture.componentInstance;
+    expect(componente.opcionesEstado).toEqual(['En Gestión', 'Pendiente']);
+
+    const select = fixture.nativeElement.querySelector('#filtro-estado') as HTMLSelectElement;
+    select.value = 'En Gestión';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(filas(fixture).length).toBe(2);
+
+    componente.onBusquedaChange('sin coincidencias');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-estado="sin-resultados"]')).toBeTruthy();
+
+    (fixture.nativeElement.querySelector('[data-estado="sin-resultados"] .btn-limpiar') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(componente.estadoFiltro).toBe('TODOS');
+    expect(componente.textoFiltro).toBe('');
+    expect(filas(fixture).length).toBe(4);
+  });
+
+  it('ordena por fecha al pulsar el encabezado y alterna la direccion', () => {
+    const lista = solicitudes(3);
+    lista[0].fechaCreacion = '2026-10-02T10:00:00';
+    lista[1].fechaCreacion = '2026-10-01T10:00:00';
+    lista[2].fechaCreacion = '2026-10-03T10:00:00';
+    servicio.getSolicitudesDecano.and.returnValue(of(lista));
+    const fixture = crear('DECANO');
+    const radicados = () => filas(fixture).map(f => f.querySelector('.radicado')?.textContent?.trim());
+
+    const boton = fixture.nativeElement.querySelector('button[aria-label="Ordenar por fecha de radicación"]') as HTMLButtonElement;
+    boton.click();
+    fixture.detectChanges();
+    expect(radicados()).toEqual(['2026-CA-0002', '2026-CA-0001', '2026-CA-0003']);
+
+    boton.click();
+    fixture.detectChanges();
+    expect(radicados()).toEqual(['2026-CA-0003', '2026-CA-0001', '2026-CA-0002']);
+  });
+
+  it('el ojo de Acciones navega al detalle del rol', () => {
     servicio.getSolicitudesDecano.and.returnValue(of(solicitudes(1)));
     const fixture = crear('DECANO');
-    (fixture.nativeElement.querySelector('tbody tr button') as HTMLButtonElement).click();
+    const ojo = fixture.nativeElement.querySelector('tbody tr .btn-ojo') as HTMLButtonElement;
+    expect(ojo.getAttribute('aria-label')).toBe('Ver solicitud 2026-CA-0001');
+    ojo.click();
     expect(router.navigate).toHaveBeenCalledWith(['/decano/solicitudes', 'uuid-1']);
   });
 
-  it('el Funcionario ve una insignia con la decision del Decano que trae la etiqueta', () => {
+  it('el Funcionario ve la decision del Decano en Estado con su icono y sin insignia aparte', () => {
     const lista = solicitudes(3);
     lista[0].etiqueta = 'Aprobada por el Decano';
     lista[1].etiqueta = 'Rechazada por el Decano';
     servicio.getSolicitudesFuncionario.and.returnValue(of(lista));
     const fixture = crear('FUNCIONARIO');
-    const aprobada = fixture.nativeElement.querySelector('[data-decision-decano="uuid-1"]');
-    const rechazada = fixture.nativeElement.querySelector('[data-decision-decano="uuid-2"]');
-    expect(aprobada.textContent.trim()).toBe('Aprobada por el Decano');
-    expect(aprobada.classList).toContain('text-bg-success');
-    expect(rechazada.textContent.trim()).toBe('Rechazada por el Decano');
-    expect(rechazada.classList).toContain('text-bg-danger');
-    expect(fixture.nativeElement.querySelector('[data-decision-decano="uuid-3"]')).toBeNull();
+    expect(estados(fixture)).toEqual(['aprobada', 'rechazada', 'pendiente']);
+    expect(filas(fixture)[0].querySelector('.estado')?.textContent?.trim()).toBe('Aprobada por el Decano');
+    expect(filas(fixture)[1].querySelector('.estado')?.textContent?.trim()).toBe('Rechazada por el Decano');
+    expect(fixture.nativeElement.querySelector('[data-decision-decano]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.badge')).toBeNull();
   });
 
-  it('el Estudiante y el Decano no ven insignias de decision', () => {
-    const lista = solicitudes(1);
-    lista[0].etiqueta = 'Aprobada por el Decano';
+  it('el icono del Estudiante sale solo de la etiqueta, nunca de etapaCodigo', () => {
+    const lista = solicitudes(4);
+    lista[0].etiqueta = 'En trámite';
+    lista[0].etapaCodigo = 'APROBADA';
+    lista[1].etiqueta = 'Pendiente de pago';
+    lista[1].etapaCodigo = 'RECHAZADA';
+    lista[2].etiqueta = 'Aprobada';
+    lista[2].etapaCodigo = 'RADICADA';
+    lista[3].etiqueta = 'Rechazada';
+    lista[3].etapaCodigo = 'RADICADA';
     servicio.getSolicitudesEstudiante.and.returnValue(of(lista));
-    servicio.getSolicitudesDecano.and.returnValue(of(lista));
-    expect(crear('ESTUDIANTE').nativeElement.querySelector('[data-decision-decano]')).toBeNull();
-    expect(crear('DECANO').nativeElement.querySelector('[data-decision-decano]')).toBeNull();
+    const fixture = crear('ESTUDIANTE');
+    expect(estados(fixture)).toEqual(['gestion', 'pago', 'aprobada', 'rechazada']);
+    expect(fixture.nativeElement.textContent).not.toContain('APROBADA');
+    expect(fixture.nativeElement.textContent).not.toContain('RADICADA');
   });
 
   it('muestra el estado vacio', () => {

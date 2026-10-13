@@ -1,9 +1,43 @@
-<div class="sidebar d-flex flex-column align-items-center text-center">
-  <img src="logos/unicauca-big.png" alt="logo" class="mb-4 mt-3" style="width: 100px; height: auto;">
+<div class="sidebar d-flex flex-column">
+  <div class="crest">
+    <img src="logos/unicauca-big.png" alt="Escudo Universidad del Cauca">
+  </div>
 
-  @for (btn of buttons; track btn) {
-  <app-button-group-component class="w-100 mb-2" [label]="btn.label"
-    [imgUrl]="btn.imgUrl !== undefined ? btn.imgUrl : ''" (clicked)="onButtonClick(btn.route)">
-  </app-button-group-component>
-  }
+  <nav class="nav-lista" aria-label="Menú principal">
+    @for (btn of buttons; track btn.label) {
+    @if (btn.children?.length) {
+    <button type="button" class="nav-item" [class.is-grupo-activo]="grupoActivo(btn)"
+      [attr.aria-expanded]="estaAbierto(btn)" [title]="texto(btn.label)" (click)="alternar(btn)">
+      <ng-container *ngTemplateOutlet="contenido; context: { $implicit: btn }"></ng-container>
+      <span class="chevron" [class.abierto]="estaAbierto(btn)" aria-hidden="true">
+        <svg width="10" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 1l4 4 4-4"/></svg>
+      </span>
+    </button>
+    @if (estaAbierto(btn)) {
+    @for (hijo of btn.children; track hijo.label) {
+    <button type="button" class="nav-item nav-subitem" [class.is-active]="esActivo(hijo.route)"
+      [attr.aria-current]="esActivo(hijo.route) ? 'page' : null" [title]="texto(hijo.label)"
+      (click)="onButtonClick(hijo.route)">
+      <span class="sub-marca" aria-hidden="true">&gt;</span>
+      <ng-container *ngTemplateOutlet="contenido; context: { $implicit: hijo }"></ng-container>
+    </button>
+    }
+    }
+    } @else {
+    <button type="button" class="nav-item" [class.is-active]="esActivo(btn.route)"
+      [attr.aria-current]="esActivo(btn.route) ? 'page' : null" [title]="texto(btn.label)"
+      (click)="onButtonClick(btn.route)">
+      <ng-container *ngTemplateOutlet="contenido; context: { $implicit: btn }"></ng-container>
+    </button>
+    }
+    }
+  </nav>
 </div>
+
+<ng-template #contenido let-boton>
+  @if (boton.imgUrl) {
+  <img [src]="boton.imgUrl" alt="" class="nav-icono">
+  }
+  <span class="bar" aria-hidden="true">|</span>
+  <span class="nav-texto">{{ texto(boton.label) }}</span>
+</ng-template>

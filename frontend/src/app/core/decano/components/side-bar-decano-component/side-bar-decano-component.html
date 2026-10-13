@@ -1,7 +1,9 @@
 <app-sidebar-component [buttons]="[
     { label: '| Mi Usuario', imgUrl: 'buttons/usuario.svg', route: '/decano' },
-    { label: '| Solicitudes académicas', imgUrl: 'buttons/solicitudes.svg', route: '/decano/solicitudes' },
-    { label: '| Solicitudes del Consejo', imgUrl: 'buttons/meeting.svg', route: '/decano/solicitudes-consejo' },
-    { label: '| Administración académica', imgUrl: 'buttons/configuracion.svg', route: '/decano/administracion-academica' },
+    { label: '| Gestión académica', imgUrl: 'buttons/configuracion.svg', children: [
+      { label: '| Solicitudes académicas', imgUrl: 'buttons/solicitudes.svg', route: '/decano/solicitudes' },
+      { label: '| Administración académica', imgUrl: 'buttons/configuracion.svg', route: '/decano/administracion-academica' }
+    ] },
+    { label: '| Solicitudes del Consejo', imgUrl: 'buttons/meeting.svg', route: '/decano/solicitudes-consejo' }
   ]" (buttonClicked)="onSidebarButtonClick($event)">
 </app-sidebar-component>

@@ -1,9 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, Input } from '@angular/core';
-import { AvatarModule } from 'primeng/avatar';
-import { AvatarGroupModule } from 'primeng/avatargroup';
 import { AuthService } from '../../../core/services/auth-service';
 import { Router } from '@angular/router';
+import { rutaDeInicio } from '../../../core/utils/rutas-por-rol';
 
 /**
  * Componente encargado de mostrar el avatar de sesión del usuario autenticado,
@@ -13,7 +12,7 @@ import { Router } from '@angular/router';
  */
 @Component({
   selector: 'app-avatar-sesion-component',
-  imports: [AvatarModule, AvatarGroupModule, CommonModule],
+  imports: [CommonModule],
   templateUrl: './avatar-sesion-component.html',
   styleUrl: './avatar-sesion-component.css'
 })
@@ -49,6 +48,12 @@ export class AvatarSesionComponent {
     private authService: AuthService,
     private router: Router
   ) {}
+
+  irAMiUsuario(evento?: Event): void {
+    evento?.preventDefault();
+    const ruta = rutaDeInicio(this.currentRole ? [this.currentRole] : []);
+    if (ruta) this.router.navigate([ruta]);
+  }
 
   /**
    * Cierra la sesión del usuario actual y redirige a la pantalla de login.

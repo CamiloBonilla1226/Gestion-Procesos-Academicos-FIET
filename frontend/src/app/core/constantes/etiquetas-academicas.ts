@@ -32,10 +32,19 @@ export function claseInsigniaEtiquetaEstudiante(etiqueta: string | null | undefi
   return 'text-bg-secondary';
 }
 
-export function claseInsigniaDecisionDecano(etiqueta: string | null | undefined): string | null {
-  if (esEtiqueta(etiqueta, ETIQUETAS_DECISION_DECANO.APROBADA)) return 'text-bg-success';
-  if (esEtiqueta(etiqueta, ETIQUETAS_DECISION_DECANO.RECHAZADA)) return 'text-bg-danger';
-  return null;
+export type CategoriaEstado = 'pendiente' | 'gestion' | 'notificar' | 'aprobada' | 'rechazada' | 'pago' | 'otro';
+
+const CATEGORIAS_ESTADO: [CategoriaEstado, string[]][] = [
+  ['aprobada', [ETIQUETAS_ESTUDIANTE.APROBADA, ETIQUETAS_DECISION_DECANO.APROBADA, 'Respondida']],
+  ['rechazada', [ETIQUETAS_ESTUDIANTE.RECHAZADA, ETIQUETAS_DECISION_DECANO.RECHAZADA]],
+  ['pago', [ETIQUETAS_ESTUDIANTE.PENDIENTE_PAGO]],
+  ['notificar', ['Pendiente de Respuesta', 'Pendiente Notificar', 'Por notificar', 'Enviar Recibo']],
+  ['gestion', [ETIQUETAS_ESTUDIANTE.EN_TRAMITE, ETIQUETAS_ESTUDIANTE.EN_VERIFICACION_PAGO, 'En Gestión', 'Pendiente de Verificación']],
+  ['pendiente', ['Pendiente']]
+];
+
+export function categoriaEstado(etiqueta: string | null | undefined): CategoriaEstado {
+  return CATEGORIAS_ESTADO.find(([, etiquetas]) => esEtiqueta(etiqueta, ...etiquetas))?.[0] ?? 'otro';
 }
 
 export interface CampoObservacion {

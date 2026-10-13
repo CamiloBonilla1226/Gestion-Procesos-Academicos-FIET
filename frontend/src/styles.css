@@ -1,8 +1,42 @@
 @import "primeicons/primeicons.css";
 
+:root {
+  --navy-900: #1B2660;
+  --navy-800: #232F6E;
+  --navy-700: #2A3A86;
+  --navy-ink: #1F2A6D;
+  --card-navy: #1E257B;
+  --accent: #B23B2E;
+  --link: #2F6FD0;
+  --green: #2E9E6B;
+  --red: #D0463B;
+  --panel: #F4F5F8;
+  --line: #E3E6EC;
+  --line-soft: #EDEFF3;
+  --text: #2C3038;
+  --muted: #6E7480;
+  --zebra: #FAFBFC;
+  --sidebar-w: 210px;
+  --fuente: "Segoe UI", "Nunito Sans", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  --bs-body-font-family: var(--fuente);
+  --bs-body-color: var(--text);
+  --bs-link-color-rgb: 47, 111, 208;
+  --p-primary-color: var(--navy-700);
+  --p-primary-hover-color: var(--navy-800);
+  --p-primary-active-color: var(--navy-900);
+}
+
 html, body {
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100%;
+}
+
+body {
+  font-family: var(--fuente);
+  color: var(--text);
+  background: var(--panel);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
 }

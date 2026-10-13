@@ -1,25 +1,30 @@
-<div class="d-flex align-items-center">
-  <p-avatar [label]="avatarLabel" class="avatar-custom me-3">
-  </p-avatar>
-
-  <div class="d-flex flex-column">
-    <span class="user-name mb-1">{{ nombre }}</span>
-
-    <div class="dropdown">
-      <button class="btn btn-secondary btn-sm dropdown-toggle dropdown-custom" type="button" data-bs-toggle="dropdown">
+<div class="dropdown user-chip">
+  <button class="user-chip-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false"
+    aria-label="Menú de usuario">
+    <span class="avatar-custom" aria-hidden="true">{{ avatarLabel }}</span>
+    <span class="user-meta">
+      <span class="user-name">{{ nombre }}</span>
+      <span class="user-role">
         {{ currentRole }}
-      </button>
-      <ul class="dropdown-menu dropdown-menu-end dropdown-menu-white">
-        <li *ngFor="let role of roles">
-          <a class="dropdown-item" href="#">{{ role }}</a>
-        </li>
-        <li>
-          <hr class="dropdown-divider">
-        </li>
-        <li>
-          <a class="dropdown-item" href="#" (click)="cerrarSesion($event)">Cerrar sesión</a>
-        </li>
-      </ul>
-    </div>
-  </div>
+        <svg width="9" height="6" viewBox="0 0 10 6" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg>
+      </span>
+    </span>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-end dropdown-menu-white">
+    <li>
+      <a class="dropdown-item" href="#" (click)="irAMiUsuario($event)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="10" r="3"/><path d="M6.5 19a6 6 0 0 1 11 0"/></svg>
+        Mi usuario
+      </a>
+    </li>
+    <li>
+      <hr class="dropdown-divider">
+    </li>
+    <li>
+      <a class="dropdown-item item-salir" href="#" (click)="cerrarSesion($event)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+        Cerrar sesión
+      </a>
+    </li>
+  </ul>
 </div>

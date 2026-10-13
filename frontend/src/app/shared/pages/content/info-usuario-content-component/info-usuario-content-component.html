@@ -1,32 +1,61 @@
-<div class="user-card" *ngIf="usuario">
-  <h2 class="title">Bienvenid@, {{ usuario.username }}</h2>
+<section class="user-card" *ngIf="usuario">
+  <h2 class="user-welcome">Bienvenid&#64;, {{ usuario.nombres }}!</h2>
 
-  <div class="user-info">
-    <p><strong>Nombre completo:</strong> {{ usuario.nombres }} {{ usuario.apellidos }}</p>
-    <p><strong>Username:</strong> {{ usuario.username }}</p>
-    <p><strong>Tipo de documento:</strong> {{ usuario.tipoDocumento }}</p>
-    <p><strong>Número de documento:</strong> {{ usuario.numeroDocumento }}</p>
-    <p><strong>Correo electrónico:</strong> {{ usuario.correoElectronico }}</p>
-    <p><strong>Teléfono:</strong> {{ usuario.telefono || 'No registrado' }}</p>
+  <div class="user-grid">
+    <div class="user-side">
+      <div class="user-avatar-big" aria-hidden="true">{{ iniciales }}</div>
+    </div>
 
-    <p>
-      <strong>Estado:</strong>
-      <span [ngClass]="usuario.estado ? 'activo' : 'inactivo'">
-        {{ usuario.estado ? '✅ Activo' : '❌ Inactivo' }}
-      </span>
-    </p>
+    <dl class="user-fields">
+      <dt>Nombres</dt>
+      <dd>{{ usuario.nombres }}</dd>
+      <dt>Apellidos</dt>
+      <dd>{{ usuario.apellidos }}</dd>
+      <ng-container *ngIf="usuario.tipoDocumento">
+        <dt>Tipo de documento</dt>
+        <dd>{{ usuario.tipoDocumento }}</dd>
+      </ng-container>
+      <ng-container *ngIf="usuario.numeroDocumento">
+        <dt>N° identificación</dt>
+        <dd>{{ usuario.numeroDocumento }}</dd>
+      </ng-container>
+      <ng-container *ngIf="usuario.telefono">
+        <dt>Teléfono</dt>
+        <dd>{{ usuario.telefono }}</dd>
+      </ng-container>
+      <ng-container *ngIf="usuario.username">
+        <dt>Usuario</dt>
+        <dd>{{ usuario.username }}</dd>
+      </ng-container>
+      <ng-container *ngIf="usuario.correoElectronico">
+        <dt>Correo</dt>
+        <dd>{{ usuario.correoElectronico }}</dd>
+      </ng-container>
+      <ng-container *ngIf="cargo">
+        <dt>Cargo</dt>
+        <dd>{{ cargo }}</dd>
+      </ng-container>
+    </dl>
+  </div>
 
-    <p *ngIf="usuario.objTipoUsuario">
-      <strong>Tipo de usuario:</strong> {{ usuario.objTipoUsuario.nombre }}
-    </p>
+  <hr class="user-sep">
 
-    <p *ngIf="usuario.roles?.length">
-      <strong>Roles:</strong>
-      <span *ngFor="let rol of usuario.roles; let last = last">
-        {{ rol.nombre }}<span *ngIf="!last">, </span>
-      </span>
-    </p>
+  <div class="user-roles" *ngIf="nombresRoles">
+    <div class="user-roles-title">Roles</div>
+    <div>{{ nombresRoles }}</div>
+  </div>
 
+  <div class="user-roles" *ngIf="funcionarioAcademico" data-seccion="procesos-asignados">
+    <div class="user-roles-title">Procesos académicos asignados</div>
+    <ul class="user-procesos" *ngIf="procesosAsignados.length; else sinProcesos">
+      <li *ngFor="let proceso of procesosAsignados">{{ proceso }}</li>
+    </ul>
+    <ng-template #sinProcesos>
+      <div class="text-muted">Sin procesos asignados</div>
+    </ng-template>
+  </div>
+
+  <div class="user-password">
     <app-change-password-component [uuidUsuario]="usuario.uuidUsuario"></app-change-password-component>
   </div>
-</div>
+</section>

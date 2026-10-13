@@ -1,5 +1,5 @@
 .btn.custom-btn {
-  font-family: 'Titillium Web', sans-serif;
+  font-family: var(--fuente);
   font-size:small;
   color: white;
   font-weight:regular;

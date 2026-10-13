@@ -1,5 +1,12 @@
 import { SolicitudAcademicaResumenDTORespuesta } from '../models/SolicitudAcademica/DTOResponse/SolicitudAcademicaResumenDTORespuesta';
-import { TODOS_LOS_TIPOS, filtrarSolicitudes, paginar, totalPaginas } from './bandeja-solicitudes';
+import {
+  TODOS_LOS_TIPOS,
+  etiquetasDisponibles,
+  filtrarSolicitudes,
+  ordenarSolicitudes,
+  paginar,
+  totalPaginas
+} from './bandeja-solicitudes';
 
 function solicitud(radicado: string, tipo: string, nombre: string, codigo: string): SolicitudAcademicaResumenDTORespuesta {
   return {
@@ -43,6 +50,33 @@ describe('filtrarSolicitudes', () => {
   it('combina tipo y texto', () => {
     expect(filtrarSolicitudes(lista, 'Cancelación de Asignatura', 'juan').map(s => s.radicado)).toEqual(['2026-CA-0002']);
     expect(filtrarSolicitudes(lista, 'Examen Supletorio', 'juan')).toEqual([]);
+  });
+
+  it('filtra por la etiqueta exacta del estado', () => {
+    const conEstados = lista.map((s, i) => ({ ...s, etiqueta: i % 2 === 0 ? 'Pendiente' : 'En Gestión' }));
+    expect(filtrarSolicitudes(conEstados, TODOS_LOS_TIPOS, '', 'En Gestión').map(s => s.radicado))
+      .toEqual(['2026-CA-0001', '2026-CA-0002']);
+    expect(filtrarSolicitudes(conEstados, TODOS_LOS_TIPOS, '', TODOS_LOS_TIPOS).length).toBe(4);
+  });
+});
+
+describe('opciones y orden de la bandeja', () => {
+  const lista = [
+    { ...solicitud('2026-CA-0001', 'Cancelación de Asignatura', 'A', '1'), etiqueta: 'Pendiente', fechaCreacion: '2026-10-02T10:00:00' },
+    { ...solicitud('2026-CA-0002', 'Cancelación de Asignatura', 'B', '2'), etiqueta: 'En Gestión', fechaCreacion: '2026-10-01T10:00:00' },
+    { ...solicitud('2026-CA-0003', 'Cancelación de Asignatura', 'C', '3'), etiqueta: 'Pendiente', fechaCreacion: '2026-10-03T10:00:00' }
+  ];
+
+  it('lista las etiquetas presentes sin repetir y en orden', () => {
+    expect(etiquetasDisponibles(lista)).toEqual(['En Gestión', 'Pendiente']);
+  });
+
+  it('ordena por fecha y por estado sin cambiar la lista original', () => {
+    expect(ordenarSolicitudes(lista, 'fecha', 'asc').map(s => s.radicado)).toEqual(['2026-CA-0002', '2026-CA-0001', '2026-CA-0003']);
+    expect(ordenarSolicitudes(lista, 'fecha', 'desc').map(s => s.radicado)).toEqual(['2026-CA-0003', '2026-CA-0001', '2026-CA-0002']);
+    expect(ordenarSolicitudes(lista, 'estado', 'asc')[0].etiqueta).toBe('En Gestión');
+    expect(ordenarSolicitudes(lista, null, 'asc')).toBe(lista);
+    expect(lista[0].radicado).toBe('2026-CA-0001');
   });
 });
 

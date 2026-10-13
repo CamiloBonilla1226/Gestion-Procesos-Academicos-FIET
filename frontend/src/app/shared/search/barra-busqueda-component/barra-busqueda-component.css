@@ -3,25 +3,30 @@
 }
 
 input.form-control {
-    height: 30px;
-    font-size: 14px;
-    color: #454444;  
-    font-family: 'Titillium Web', sans-serif; 
+    height: 34px;
+    font-size: 13px;
+    color: var(--text);
+    font-family: var(--fuente);
+    border-color: var(--line);
+    border-radius: 3px;
 }
 
 .input-group-text {
     background-color: white;
+    border-color: var(--line);
     border-left: 0;
-    padding: 4px;
+    padding: 4px 8px;
 }
 
 .icon-lupa {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
+    opacity: .6;
 }
 
 input.form-control:focus {
     box-shadow: none;
-    outline: none;
-    border-color: #1E257B; 
+    outline: 2px solid #B9C7EE;
+    outline-offset: 0;
+    border-color: var(--navy-700);
 }

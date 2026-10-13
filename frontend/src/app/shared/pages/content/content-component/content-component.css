@@ -1,19 +1,25 @@
-.title-wrapper {
-  display: inline-block;  /* 🔹 se ajusta al ancho del título */
+.contenedor {
+  max-width: 1020px;
+  margin: 0 auto;
+  padding: 0;
 }
 
-.title {    
-  color: #1E257B;      
-  font-family: 'Titillium Web', sans-serif;
-  font-size: 20px;
-  font-weight: bold;
-  letter-spacing: 0.35px;    
-  margin: 0;  
+.title-wrapper {
+  display: inline-block;
+  margin-bottom: 22px;
+}
+
+.title {
+  color: var(--navy-ink);
+  font-family: var(--fuente);
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+  padding-bottom: 7px;
 }
 
 .line {
-  height: 3px;             
-  background-color: #DB141C;   
-  width: 100%;              
-  margin-top: 0.25rem;   
+  height: 3px;
+  background-color: var(--accent);
+  width: 100%;
 }
