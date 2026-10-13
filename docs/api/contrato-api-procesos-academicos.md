@@ -679,11 +679,15 @@ Cuerpos de las acciones:
   Reglas:
   - Cada asignatura con `decisionCambiadaPorDecano` necesita su ajuste. Las
     demás pueden traer uno, con las mismas reglas.
-  - El ajuste de una aprobada por el Decano exige `situacionCancelarUuid`
-    (`observacionDecision` opcional).
+  - Desde APROBADA_POR_DECANO, toda asignatura aprobada por el Decano debe
+    tener situación al cancelar: la guardada al remitir o el
+    `situacionCancelarUuid` de su ajuste, que la reemplaza. Si falta, código
+    4 con el nombre de la asignatura, haya cambiado o no la decisión. En el
+    ajuste de una aprobada `observacionDecision` es opcional.
   - El ajuste de una rechazada exige `observacionDecision` y no acepta
     situación. Esa observación la ve el Estudiante en APROBADA o RECHAZADA.
-  - Si el Decano rechazó alguna asignatura, o la solicitud completa, la
+  - Si el Decano rechazó alguna asignatura (`aprobadaPorDecano` falso,
+    coincida o no con la evaluación), o la solicitud completa, la
     `observacion` general es obligatoria.
   - Desde RECHAZADA_POR_DECANO no se aceptan ajustes.
 
@@ -704,7 +708,7 @@ la sección 3.6 y de la 1.6):
 | 4 | `Falta la decisión del Decano de la asignatura <nombre>...` (`aprobada` nulo) |
 | 4 | `No se aprobó ninguna asignatura: para negar la solicitud completa use el rechazo del Decano...` |
 | 4 | `El Decano cambió la evaluación de la asignatura <nombre> y falta su ajuste...` |
-| 4 | `Falta la situación al cancelar de la asignatura <nombre>...` (ajuste de una aprobada) |
+| 4 | `Falta la situación al cancelar de la asignatura <nombre>...` (aprobada sin situación guardada ni en su ajuste) |
 | 4 | `Falta la observación de la decisión de la asignatura <nombre>...` (ajuste de una rechazada) |
 | 4 | `La asignatura <nombre> fue rechazada por el Decano y no lleva situación al cancelar...` |
 | 4 | `La solicitud <radicado> fue rechazada por el Decano y no admite ajustes por asignatura...` |

@@ -2,6 +2,20 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-13 - Situación al cancelar obligatoria al responder la aprobación de Cancelación de Asignatura (Tarea T12.9b backend)
+- Qué se hizo:
+  - En `funcionario/responder` desde APROBADA_POR_DECANO, toda asignatura aprobada por el Decano debe tener situación al cancelar, la guardada al remitir o la del ajuste. Si falta, código 4 con el nombre de la asignatura, antes de cambiar la etapa. El ajuste de una aprobada ya no exige `situacionCancelarUuid` si la asignatura ya tenía una guardada; si la trae, la reemplaza.
+  - Pruebas unitarias nuevas: aprobada sin situación, situación guardada al remitir que basta sin ajuste, y observación general obligatoria con una rechazada contra la evaluación. `t7` cubre la aprobada sin cambio y sin situación, la aprobada contra la evaluación sin situación y la situación guardada al remitir.
+  - Documentación: P9 y P45 de `etapas-por-proceso.md` y sección 3.7 del contrato.
+- Archivos:
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/TramiteCancelacionAsignaturaCUImplAdaptador.java` (modificado)
+  - `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/TramiteCancelacionAsignaturaCUImplAdaptadorTest.java` (modificado)
+  - `backend/pruebas/t7_cancelacion_asignatura.ps1` (modificado)
+  - `docs/database/etapas-por-proceso.md`, `docs/api/contrato-api-procesos-academicos.md` (modificado)
+- Notas:
+  - Cancelación de Matrícula no cambia: `decano/aprobar` exige la situación al cancelar de todas las asignaturas y es la única vía a APROBADA_POR_DECANO, así que la respuesta aprobada no puede dejar asignaturas sin situación.
+  - La observación general ya era obligatoria con cualquier asignatura con `aprobadaPorDecano` falso, haya cambiado o no la decisión; se agregó la prueba del caso cambiado.
+
 ## 2026-10-13 - Decisión del Decano y ajustes del Funcionario en Cancelación de Asignatura, código estudiantil en el detalle (Tarea T12.9 backend)
 - Qué se hizo:
   - `decano/aprobar` de Cancelación de Asignatura recibe `aceptarEvaluacion` (cada asignatura queda aprobada si cumple) o `decisiones` (`asignaturaSolicitudUuid`, `aprobada`), una de las dos. El Decano puede aprobar una que no cumple y rechazar una que cumple; ya no envía `situacionCancelarUuid` ni `observacionDecision`. Se mantiene su `observacion` general opcional.
