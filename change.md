@@ -2,6 +2,16 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-14 - Textos informativos de Cancelación de Asignatura (Tarea T12.19)
+- Qué se hizo: textos del formato PA-GA-4.2-FOR-9, sin cambiar reglas ni validaciones. El Artículo 5 del Acuerdo 002 de 1988 va al inicio del formulario del Estudiante, antes de los datos del estudiante; la notificación por correo institucional va justo debajo de la lista de asignaturas del formulario; la nota SIMCA va justo encima de la tabla del detalle, solo para Funcionario y Decano, reutilizando `NOTA_SIMCA`.
+- Archivos:
+  - `frontend/src/app/core/constantes/textos-cancelacion-asignatura.ts` (creado)
+  - `frontend/src/app/shared/pages/content/est-cancelacion-asignatura-content-component` (`.ts`, `.html` y spec) (modificado)
+  - `frontend/src/app/shared/pages/content/cancelacion-asignatura-proceso-component` (`.ts`, `.html` y spec) (modificado)
+  - `frontend/src/app/shared/pages/content/est-cancelacion-matricula-content-component/est-cancelacion-matricula-content-component.spec.ts`, `est-examen-supletorio-content-component/est-examen-supletorio-content-component.spec.ts`, `examen-supletorio-proceso-component/examen-supletorio-proceso-component.spec.ts` (modificado)
+  - `frontend/CLAUDE.md` (D-F43) (modificado)
+- Notas: el formulario de Cancelación de Asignatura no lleva la nota SIMCA porque el estudiante solo marca asignaturas y no escribe faltas ni nota. El spec que decía que la nota SIMCA no aparecía en el detalle de Cancelación de Asignatura se invirtió. Sin bloque "Normativa aplicable" en este proceso; Cancelación de Matrícula no cambia.
+
 ## 2026-10-14 - Vigencia de los paz y salvos solo en el formulario (Tarea T12.18b)
 - Qué se hizo: se quita el aviso de la vigencia de los paz y salvos de la ficha de Cancelación de Matrícula del catálogo del estudiante; queda solo en la sección de anexos del formulario. El catálogo deja de cargar `estilos-academicos.css` y se quitan `notaAnexos` de `TramiteCatalogo` y la regla `.nota-anexos`. El resto de T12.18 no cambia.
 - Archivos:

@@ -48,6 +48,9 @@
       @if (resultadoResaltado) {
       <p class="nota-gris mb-2" data-resaltado>{{ textoResaltado }}</p>
       }
+      @if (muestraNotaSimca) {
+      <p class="nota-aviso mb-3" data-nota="simca">{{ notaSimca }}</p>
+      }
       <div class="tabla-scroll">
         <table class="tabla-asignaturas" data-tabla-asignaturas [attr.data-editable]="editable ? 'si' : null">
           <thead>

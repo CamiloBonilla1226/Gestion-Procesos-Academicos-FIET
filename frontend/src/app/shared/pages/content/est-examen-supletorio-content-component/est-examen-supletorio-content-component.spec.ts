@@ -139,6 +139,18 @@ describe('EstExamenSupletorioContentComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-seccion-cruce]')).toBeNull();
   });
 
+  it('no muestra los textos informativos de las cancelaciones', () => {
+    const fixture = crear();
+    fixture.componentInstance.alCambiarCausa('cruce');
+    fixture.detectChanges();
+    const texto = fixture.nativeElement.textContent;
+    expect(fixture.nativeElement.querySelector('[data-nota="articulo-5"], [data-nota="notificacion"], [data-nota="simca"], [data-normativa]')).toBeNull();
+    expect(texto).not.toContain('Acuerdo No. 002 de 1988');
+    expect(texto).not.toContain('Código Contencioso Administrativo');
+    expect(texto).not.toContain('SIMCA');
+    expect(texto).not.toContain('Normativa aplicable');
+  });
+
   it('muestra los anexos y los campos de cruce segun la causa', () => {
     const fixture = crear();
     fixture.componentInstance.alCambiarCausa('cruce');

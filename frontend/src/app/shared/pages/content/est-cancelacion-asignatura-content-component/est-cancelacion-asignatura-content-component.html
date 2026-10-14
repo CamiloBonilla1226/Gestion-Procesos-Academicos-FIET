@@ -24,6 +24,8 @@
     No tienes asignaturas activas, por eso no puedes radicar una Cancelación de Asignatura.
   </p>
   } @else {
+  <p class="nota-aviso" data-nota="articulo-5"><b>{{ articulo5.encabezado }}</b> {{ articulo5.texto }}</p>
+
   <app-stepper-formulario-component [pasos]="pasos"></app-stepper-formulario-component>
 
   <section class="tarjeta">
@@ -55,6 +57,7 @@
       @if (errores['asignaturas'] || erroresServidor['asignaturas']) {
       <small class="texto-error d-block mt-1" data-error="asignaturas">{{ errores['asignaturas'] || erroresServidor['asignaturas'] }}</small>
       }
+      <p class="nota-gris mt-3" data-nota="notificacion">{{ notificacion }}</p>
     </div>
   </section>
 

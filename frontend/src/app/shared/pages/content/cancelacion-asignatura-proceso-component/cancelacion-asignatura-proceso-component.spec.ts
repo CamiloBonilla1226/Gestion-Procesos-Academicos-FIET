@@ -15,6 +15,7 @@ import { CancelacionAsignaturaDetalleDTORespuesta } from '../../../../core/model
 import { AsignaturaSolicitadaDTORespuesta } from '../../../../core/models/CancelacionAsignatura/DTOResponse/AsignaturaSolicitadaDTORespuesta';
 import { InputAnexoUploadComponent } from '../../../inputs/input-anexo-upload-component/input-anexo-upload-component';
 import { environment } from '../../../../../enviroments/environment';
+import { NOTA_SIMCA } from '../../../../core/constantes/textos-cancelacion-matricula';
 
 function solicitud(acciones: string[], etapaCodigo = 'RADICADA', tieneResolucion = false, etiqueta = 'Pendiente'): SolicitudAcademicaDetalleDTORespuesta {
   return {
@@ -185,14 +186,25 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-tabla-asignaturas] input, [data-tabla-asignaturas] select')).toBeNull();
   });
 
-  it('no muestra la nota de SIMCA de Cancelacion de Matricula a ningun rol', () => {
-    for (const rol of ['FUNCIONARIO', 'DECANO', 'ESTUDIANTE']) {
+  it('el Funcionario y el Decano ven la nota de SIMCA justo encima de la tabla de asignaturas', () => {
+    for (const rol of ['FUNCIONARIO', 'DECANO']) {
       const fixture = crear(solicitud([], 'EN_REVISION_DECANO'), EVALUADAS, rol);
-      expect(fixture.nativeElement.querySelector('[data-tabla-asignaturas]')).toBeTruthy();
-      expect(fixture.nativeElement.querySelector('[data-nota="simca"]')).toBeNull();
-      expect(fixture.nativeElement.textContent).not.toContain('SIMCA');
+      const nota = fixture.nativeElement.querySelector('[data-nota="simca"]') as HTMLElement;
+      expect(nota.textContent!.trim()).toBe(NOTA_SIMCA);
+      expect(nota.textContent!.trim()).toBe('NOTA: La información de faltas y notas corresponde a la registrada en el Sistema Integrado de Matrícula y Control Académico – SIMCA a la fecha en que se recibe la solicitud de cancelación.');
+      expect(nota.classList).toContain('nota-aviso');
+      const tabla = fixture.nativeElement.querySelector('[data-tabla-asignaturas]') as HTMLElement;
+      expect(nota.nextElementSibling).toBe(tabla.parentElement);
+      expect(fixture.nativeElement.textContent).not.toContain('Normativa aplicable');
       fixture.destroy();
     }
+  });
+
+  it('el Estudiante no ve la nota de SIMCA en el detalle', () => {
+    const fixture = crear(solicitud([], 'EN_REVISION_DECANO'), EVALUADAS, 'ESTUDIANTE');
+    expect(fixture.nativeElement.querySelector('[data-tabla-asignaturas]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('[data-nota="simca"]')).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('SIMCA');
   });
 
   it('solo pinta los botones que vienen en accionesDisponibles', () => {

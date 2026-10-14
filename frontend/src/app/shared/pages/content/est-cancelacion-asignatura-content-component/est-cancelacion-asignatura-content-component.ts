@@ -17,6 +17,10 @@ import {
   TAMANIO_MAXIMO_ARCHIVO_BYTES,
   TAMANIO_MAXIMO_PETICION_BYTES
 } from '../../../../core/constantes/procesos-academicos';
+import {
+  ARTICULO_5_CANCELACION_ASIGNATURA,
+  NOTIFICACION_CORREO_INSTITUCIONAL
+} from '../../../../core/constantes/textos-cancelacion-asignatura';
 import { comoTipoAnexo, errorDeArchivo, errorDeTexto, erroresDeCampos } from '../../../../core/utils/validaciones-academicas';
 import { formatearTamanio } from '../../../../core/utils/formato';
 import { DatosEstudianteSesionComponent } from '../../../others/datos-estudiante-sesion-component/datos-estudiante-sesion-component';
@@ -37,6 +41,8 @@ import { PasoFormulario, StepperFormularioComponent } from '../../../others/step
 export class EstCancelacionAsignaturaContentComponent implements OnInit {
   readonly maximoMotivo = MAXIMO_CARACTERES_MOTIVO;
   readonly formatearTamanio = formatearTamanio;
+  readonly articulo5 = ARTICULO_5_CANCELACION_ASIGNATURA;
+  readonly notificacion = NOTIFICACION_CORREO_INSTITUCIONAL;
 
   formulario: FormularioCancelacionAsignaturaDTORespuesta | null = null;
   cargando = false;

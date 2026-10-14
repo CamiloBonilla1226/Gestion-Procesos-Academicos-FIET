@@ -12,6 +12,7 @@ import { ToastService } from '../../../../core/services/toast-service';
 import { FormularioCancelacionAsignaturaDTORespuesta } from '../../../../core/models/CancelacionAsignatura/DTOResponse/FormularioCancelacionAsignaturaDTORespuesta';
 import { InputAnexoUploadComponent } from '../../../inputs/input-anexo-upload-component/input-anexo-upload-component';
 import { environment } from '../../../../../enviroments/environment';
+import { NOTIFICACION_CORREO_INSTITUCIONAL } from '../../../../core/constantes/textos-cancelacion-asignatura';
 
 function formulario(asignaturas = 3): FormularioCancelacionAsignaturaDTORespuesta {
   return {
@@ -80,13 +81,49 @@ describe('EstCancelacionAsignaturaContentComponent', () => {
     expect(fixture.nativeElement.textContent).not.toContain('primer periodo');
   });
 
-  it('no trae los textos informativos de Cancelacion de Matricula', () => {
+  it('muestra el articulo 5 al inicio, antes de los datos del estudiante', () => {
+    const fixture = crear();
+    const articulo = fixture.nativeElement.querySelector('[data-nota="articulo-5"]') as HTMLElement;
+    expect(articulo.querySelector('b')!.textContent!.trim()).toBe('Acuerdo No. 002 de 1988, Capítulo VIII, Artículo 5.');
+    expect(articulo.textContent!.trim()).toBe('Acuerdo No. 002 de 1988, Capítulo VIII, Artículo 5. El Decano podrá conceder, antes de la terminación del período académico, cancelación de una o varias asignaturas al estudiante que la solicite por escrito aduciendo los motivos que lo inducen a ello, siempre y cuando no se estén cursando en calidad de repitente, no se violen condiciones de co-requisitos y su nota promedio sea igual o superior a tres punto cero.');
+    expect(articulo.classList).toContain('nota-aviso');
+    const primeraSeccion = fixture.nativeElement.querySelector('section.tarjeta') as HTMLElement;
+    expect(primeraSeccion.textContent).toContain('Datos del estudiante');
+    expect(articulo.compareDocumentPosition(primeraSeccion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(articulo.compareDocumentPosition(fixture.nativeElement.querySelector('app-stepper-formulario-component')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('muestra la notificacion justo debajo de la lista de asignaturas, antes de las secciones siguientes', () => {
+    const fixture = crear();
+    const notificacion = fixture.nativeElement.querySelector('[data-nota="notificacion"]') as HTMLElement;
+    expect(notificacion.textContent!.trim()).toBe(NOTIFICACION_CORREO_INSTITUCIONAL);
+    expect(notificacion.textContent!.trim()).toBe('De conformidad a los Artículos 53 y 54 del Código Contencioso Administrativo, será notificado por medio del correo Electrónico institucional.');
+    const lista = fixture.nativeElement.querySelector('[data-asignatura]').parentElement as HTMLElement;
+    expect(lista.nextElementSibling).toBe(notificacion);
+    const motivo = Array.from(fixture.nativeElement.querySelectorAll('section.tarjeta h3')).find((h: any) => h.textContent.includes('Motivo')) as HTMLElement;
+    expect(notificacion.compareDocumentPosition(motivo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(notificacion.compareDocumentPosition(fixture.nativeElement.querySelector('.pie-formulario')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('con un error de asignaturas la notificacion queda despues del mensaje de la lista', () => {
+    const fixture = crear();
+    fixture.componentInstance.radicar();
+    fixture.detectChanges();
+    const error = fixture.nativeElement.querySelector('[data-error="asignaturas"]') as HTMLElement;
+    expect(error.nextElementSibling).toBe(fixture.nativeElement.querySelector('[data-nota="notificacion"]'));
+  });
+
+  it('no muestra la nota de SIMCA porque el estudiante no escribe faltas ni nota, ni la normativa de Matricula', () => {
     const fixture = crear();
     const texto = fixture.nativeElement.textContent;
-    expect(fixture.nativeElement.querySelector('[data-normativa], [data-nota]')).toBeNull();
+    const lista = fixture.nativeElement.querySelector('[data-asignatura]').parentElement as HTMLElement;
+    const tipos = Array.from(lista.querySelectorAll('input, select, textarea')).map((e: any) => e.getAttribute('type'));
+    expect(tipos.length).toBe(3);
+    expect(tipos.every(t => t === 'checkbox')).toBeTrue();
+    expect(fixture.nativeElement.querySelector('[data-nota="simca"], [data-normativa]')).toBeNull();
+    expect(texto).not.toContain('SIMCA');
     expect(texto).not.toContain('Normativa aplicable');
     expect(texto).not.toContain('PAZ Y SALVOS');
-    expect(texto).not.toContain('SIMCA');
   });
 
   it('sin asignaturas activas avisa y deshabilita el envio', () => {

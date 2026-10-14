@@ -124,6 +124,14 @@ describe('EstCancelacionMatriculaContentComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Leí y entiendo la advertencia.');
   });
 
+  it('no muestra el articulo 5 ni la notificacion de Cancelacion de Asignatura', () => {
+    const fixture = crear();
+    const texto = fixture.nativeElement.textContent;
+    expect(fixture.nativeElement.querySelector('[data-nota="articulo-5"], [data-nota="notificacion"]')).toBeNull();
+    expect(texto).not.toContain('Acuerdo No. 002 de 1988');
+    expect(texto).not.toContain('Código Contencioso Administrativo');
+  });
+
   it('sin asignaturas activas avisa y no deja radicar', () => {
     const fixture = crear(formulario(0));
     expect(fixture.nativeElement.querySelector('[data-estado="sin-asignaturas"]')).toBeTruthy();

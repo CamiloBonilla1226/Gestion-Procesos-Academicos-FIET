@@ -127,6 +127,17 @@ describe('ExamenSupletorioProcesoComponent', () => {
     expect(contenido.querySelector('[data-fecha-acordada]')).toBeNull();
   });
 
+  it('ningun rol ve la nota de SIMCA ni los textos de las cancelaciones en el detalle', () => {
+    for (const rol of ['FUNCIONARIO', 'DECANO', 'ESTUDIANTE']) {
+      const fixture = crear(solicitud([]), rol);
+      const texto = fixture.nativeElement.textContent;
+      expect(fixture.nativeElement.querySelector('[data-nota="simca"], [data-nota="articulo-5"], [data-nota="notificacion"]')).toBeNull();
+      expect(texto).not.toContain('SIMCA');
+      expect(texto).not.toContain('Código Contencioso Administrativo');
+      fixture.destroy();
+    }
+  });
+
   it('con causa otra no muestra cruce y muestra la fecha acordada si existe', () => {
     const fixture = crear(solicitud([], 'APROBADA'), 'DECANO', {
       ...detalleCruce(), tipoCausa: 'otra', cruce: null, fechaAcordadaExamen: '2026-10-20'
