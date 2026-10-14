@@ -105,6 +105,41 @@ describe('DetalleSolicitudAcademicaComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-volver]').getAttribute('href')).toBe('/estudiante/solicitudes');
   });
 
+  describe('Volver del Funcionario', () => {
+    function volver(fixture: ComponentFixture<DetalleSolicitudAcademicaComponent>): HTMLAnchorElement {
+      return fixture.nativeElement.querySelector('[data-volver]');
+    }
+
+    it('una solicitud respondida vuelve a Respuestas', () => {
+      for (const etapa of ['APROBADA', 'RECHAZADA']) {
+        const fixture = crear({ ...detalle(false, false), etapaCodigo: etapa }, 'FUNCIONARIO');
+        expect(volver(fixture).getAttribute('href')).withContext(etapa).toBe('/funcionario-academico/respuestas');
+        volver(fixture).click();
+        expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/funcionario-academico/respuestas']);
+      }
+    });
+
+    it('una solicitud en curso vuelve a Solicitudes', () => {
+      const fixture = crear({ ...detalle(false, false), etapaCodigo: 'APROBADA_POR_DECANO', etiqueta: 'Pendiente Notificar' }, 'FUNCIONARIO');
+      expect(volver(fixture).getAttribute('href')).toBe('/funcionario-academico/solicitudes');
+      volver(fixture).click();
+      expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/funcionario-academico/solicitudes']);
+    });
+
+    it('tras enviar la respuesta final y recargar, Volver lleva a Respuestas', () => {
+      const fixture = crear({ ...detalle(false, false), etapaCodigo: 'APROBADA_POR_DECANO', etiqueta: 'Pendiente Notificar' }, 'FUNCIONARIO');
+      servicio.getSolicitud.and.returnValue(of(detalle(true, true)));
+      fixture.componentInstance.cargar();
+      fixture.detectChanges();
+      expect(volver(fixture).getAttribute('href')).toBe('/funcionario-academico/respuestas');
+    });
+
+    it('el Estudiante y el Decano siguen volviendo a su bandeja aunque la solicitud este respondida', () => {
+      expect(volver(crear(detalle(false, false), 'ESTUDIANTE')).getAttribute('href')).toBe('/estudiante/solicitudes');
+      expect(volver(crear(detalle(false, false), 'DECANO')).getAttribute('href')).toBe('/decano/solicitudes');
+    });
+  });
+
   it('Datos generales solo muestra los campos que llegan', () => {
     const datos = detalle(false, false);
     const fixture = crear({ ...datos, estudiante: { ...datos.estudiante, semestre: '', correoElectronico: '' } });

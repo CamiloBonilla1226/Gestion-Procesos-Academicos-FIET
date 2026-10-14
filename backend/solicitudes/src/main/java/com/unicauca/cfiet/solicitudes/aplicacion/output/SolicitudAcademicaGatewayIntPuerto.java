@@ -1,6 +1,7 @@
 package com.unicauca.cfiet.solicitudes.aplicacion.output;
 
 import com.unicauca.cfiet.solicitudes.dominio.modelos.HistorialSolicitudAcademica;
+import com.unicauca.cfiet.solicitudes.dominio.modelos.ResultadoAsignaturaSolicitud;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.SolicitudAcademica;
 
 import java.util.List;
@@ -28,4 +29,6 @@ public interface SolicitudAcademicaGatewayIntPuerto {
     Map<String, String> getUltimaAccion(List<String> uuidsSolicitud, List<String> acciones);
 
     Set<String> getConAsignaturaNoAprobadaPorDecano(List<String> uuidsSolicitud);
+
+    Map<String, List<ResultadoAsignaturaSolicitud>> getResultadosAsignaturas(List<String> uuidsSolicitud);
 }

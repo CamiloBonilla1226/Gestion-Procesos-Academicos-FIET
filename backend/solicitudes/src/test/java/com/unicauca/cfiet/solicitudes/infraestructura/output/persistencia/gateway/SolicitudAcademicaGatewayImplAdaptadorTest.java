@@ -161,4 +161,22 @@ class SolicitudAcademicaGatewayImplAdaptadorTest {
         assertTrue(gateway.getConAsignaturaNoAprobadaPorDecano(List.of()).isEmpty());
         verify(repositorio, times(1)).findConAsignaturaNoAprobadaPorDecano(any());
     }
+
+    @Test
+    void losResultadosPorAsignaturaSeAgrupanPorSolicitudYSoloTrueEsAprobada() {
+        when(repositorio.findResultadosAsignaturas(List.of("s1", "s2", "s3"))).thenReturn(List.of(
+                new Object[]{"s1", "a1", true},
+                new Object[]{"s1", "a2", false},
+                new Object[]{"s2", "a3", null},
+                new Object[]{"s3", "a4", true}));
+
+        java.util.Map<String, List<com.unicauca.cfiet.solicitudes.dominio.modelos.ResultadoAsignaturaSolicitud>> resultados =
+                gateway.getResultadosAsignaturas(List.of("s1", "s2", "s3"));
+
+        assertEquals(List.of("a1=true", "a2=false"), resultados.get("s1").stream().map(r -> r.getAsignaturaSolicitudUuid() + "=" + r.isAprobada()).toList());
+        assertEquals(List.of("a3=false"), resultados.get("s2").stream().map(r -> r.getAsignaturaSolicitudUuid() + "=" + r.isAprobada()).toList());
+        assertEquals(List.of("a4=true"), resultados.get("s3").stream().map(r -> r.getAsignaturaSolicitudUuid() + "=" + r.isAprobada()).toList());
+        assertTrue(gateway.getResultadosAsignaturas(List.of()).isEmpty());
+        verify(repositorio, times(1)).findResultadosAsignaturas(any());
+    }
 }

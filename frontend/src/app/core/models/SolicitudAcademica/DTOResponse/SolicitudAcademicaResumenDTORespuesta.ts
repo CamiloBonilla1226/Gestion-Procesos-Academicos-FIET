@@ -1,3 +1,5 @@
+import { ResultadoAsignaturaDTORespuesta } from './ResultadoAsignaturaDTORespuesta';
+
 export interface SolicitudAcademicaResumenDTORespuesta {
   uuidSolicitudAcademica: string;
   radicado: string;
@@ -10,4 +12,5 @@ export interface SolicitudAcademicaResumenDTORespuesta {
   codigoEstudiantil: string;
   numeroDocumento?: string | null;
   decisionDecano?: string | null;
+  resultadosAsignaturas?: ResultadoAsignaturaDTORespuesta[] | null;
 }

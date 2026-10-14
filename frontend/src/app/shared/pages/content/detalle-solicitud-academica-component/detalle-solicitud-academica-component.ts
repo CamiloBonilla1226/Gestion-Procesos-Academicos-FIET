@@ -12,9 +12,11 @@ import { HistorialSolicitudAcademicaDTORespuesta } from '../../../../core/models
 import {
   ACCIONES_ACADEMICAS,
   CODIGOS_ERROR,
+  ETAPAS_FINALES,
   PROCESOS_ACADEMICOS,
   ProcesoAcademico,
   ROLES_ETIQUETA,
+  RUTA_RESPUESTAS_FUNCIONARIO,
   RUTAS_SOLICITUDES_POR_ROL,
   RolEtiqueta,
   claseInsigniaEtapa,
@@ -90,6 +92,8 @@ export class DetalleSolicitudAcademicaComponent implements OnInit {
   }
 
   get rutaBandeja(): string {
+    const respondida = !!this.solicitud && ETAPAS_FINALES.includes(this.solicitud.etapaCodigo);
+    if (this.rol === ROLES_ETIQUETA.FUNCIONARIO && respondida) return RUTA_RESPUESTAS_FUNCIONARIO;
     return RUTAS_SOLICITUDES_POR_ROL[this.rol];
   }
 

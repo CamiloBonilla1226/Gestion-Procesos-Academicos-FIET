@@ -39,6 +39,9 @@ public class MapperSolicitudAcademicaInfraestructuraDominio {
                 .etapaCodigo(resumen.getEtapaCodigo() != null ? resumen.getEtapaCodigo() : codigoEtapa(solicitud))
                 .numeroDocumento(resumen.getNumeroDocumento())
                 .decisionDecano(resumen.getDecisionDecano())
+                .resultadosAsignaturas(resumen.getResultadosAsignaturas() == null ? null : resumen.getResultadosAsignaturas().stream()
+                        .map(resultado -> new ResultadoAsignaturaDTORespuesta(resultado.getAsignaturaSolicitudUuid(), resultado.isAprobada()))
+                        .toList())
                 .build();
         TipoSolicitudAcademica tipo = solicitud.getTipoSolicitudAcademica();
         if (tipo != null) {

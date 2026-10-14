@@ -30,7 +30,9 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
     private static final Set<AccionEtapa> FILAS_OCULTAS_ESTUDIANTE = EnumSet.of(AccionEtapa.APROBAR_DECANO, AccionEtapa.RECHAZAR_DECANO);
     private static final Set<String> DECISIONES_DECANO =
             Set.of(EtapaSolicitudAcademicaConstantes.APROBADA_POR_DECANO, EtapaSolicitudAcademicaConstantes.RECHAZADA_POR_DECANO);
-    private static final List<String> ACCIONES_DECANO = List.of(AccionEtapa.APROBAR_DECANO.name(), AccionEtapa.RECHAZAR_DECANO.name());
+    private static final Set<String> ETAPAS_RESPONDIDAS =
+            Set.of(EtapaSolicitudAcademicaConstantes.APROBADA, EtapaSolicitudAcademicaConstantes.RECHAZADA);
+    private static final List<String> ACCIONES_DECANO =List.of(AccionEtapa.APROBAR_DECANO.name(), AccionEtapa.RECHAZAR_DECANO.name());
 
     private final SolicitudAcademicaGatewayIntPuerto gateway;
     private final EtapaEtiquetaRolGatewayIntPuerto etiquetaGateway;
@@ -204,6 +206,7 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
                 .filter(solicitud -> solicitud.getEtapa() != null && etiquetas.containsKey(solicitud.getEtapa().getUuidEtapa()))
                 .toList();
         Map<String, String> decisiones = rol == RolEtiquetaEtapa.ESTUDIANTE ? Map.of() : decisionesDecano(visibles);
+        Map<String, List<ResultadoAsignaturaSolicitud>> resultados = rol == RolEtiquetaEtapa.FUNCIONARIO ? resultadosAsignaturas(visibles) : Map.of();
         return visibles.stream()
                 .map(solicitud -> ResumenSolicitudAcademica.builder()
                         .solicitudAcademica(solicitud)
@@ -211,8 +214,21 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
                         .etapaCodigo(etapaVisible(solicitud.getEtapa().getCodigo(), rol))
                         .numeroDocumento(rol == RolEtiquetaEtapa.ESTUDIANTE ? null : numeroDocumento(solicitud))
                         .decisionDecano(decisiones.get(solicitud.getUuidSolicitudAcademica()))
+                        .resultadosAsignaturas(resultados.get(solicitud.getUuidSolicitudAcademica()))
                         .build())
                 .toList();
+    }
+
+    private Map<String, List<ResultadoAsignaturaSolicitud>> resultadosAsignaturas(List<SolicitudAcademica> solicitudes) {
+        List<String> uuids = solicitudes.stream()
+                .filter(solicitud -> procesoDe(solicitud) == TipoProcesoAcademico.CANCELACION_ASIGNATURA)
+                .filter(solicitud -> ETAPAS_RESPONDIDAS.contains(solicitud.getEtapa().getCodigo()))
+                .map(SolicitudAcademica::getUuidSolicitudAcademica)
+                .toList();
+        if (uuids.isEmpty())
+            return Map.of();
+        Map<String, List<ResultadoAsignaturaSolicitud>> resultados = gateway.getResultadosAsignaturas(uuids);
+        return resultados == null ? Map.of() : resultados;
     }
 
     private Map<String, String> decisionesDecano(List<SolicitudAcademica> solicitudes) {

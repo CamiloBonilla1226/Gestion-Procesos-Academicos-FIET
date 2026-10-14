@@ -2,6 +2,7 @@ package com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitu
 
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudesAcademicas.DTORespuesta.HistorialSolicitudAcademicaDTORespuesta;
+import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudesAcademicas.DTORespuesta.ResultadoAsignaturaDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudesAcademicas.DTORespuesta.SolicitudAcademicaDetalleDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudesAcademicas.DTORespuesta.SolicitudAcademicaResumenDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudesAcademicas.mapeador.MapperSolicitudAcademicaInfraestructuraDominio;
@@ -100,6 +101,21 @@ class MapperSolicitudAcademicaInfraestructuraDominioTest {
                 .solicitudAcademica(solicitud).etiqueta("Respondida").decisionDecano("APROBADA_PARCIAL").build()).getDecisionDecano());
         assertNull(mapper.mapearResumenARespuesta(ResumenSolicitudAcademica.builder()
                 .solicitudAcademica(solicitud).etiqueta("Respondida").build()).getDecisionDecano());
+    }
+
+    @Test
+    void losResultadosPorAsignaturaDelResumenPasanEnOrdenYNuloSiNoHay() {
+        SolicitudAcademica solicitud = solicitud("s1", "APROBADA");
+
+        SolicitudAcademicaResumenDTORespuesta conResultados = mapper.mapearResumenARespuesta(ResumenSolicitudAcademica.builder()
+                .solicitudAcademica(solicitud).etiqueta("Respondida")
+                .resultadosAsignaturas(List.of(new ResultadoAsignaturaSolicitud("a1", true), new ResultadoAsignaturaSolicitud("a2", false)))
+                .build());
+
+        assertEquals(List.of("a1", "a2"), conResultados.getResultadosAsignaturas().stream().map(ResultadoAsignaturaDTORespuesta::getAsignaturaSolicitudUuid).toList());
+        assertEquals(List.of(true, false), conResultados.getResultadosAsignaturas().stream().map(ResultadoAsignaturaDTORespuesta::isAprobada).toList());
+        assertNull(mapper.mapearResumenARespuesta(ResumenSolicitudAcademica.builder()
+                .solicitudAcademica(solicitud).etiqueta("Respondida").build()).getResultadosAsignaturas());
     }
 
     @Test

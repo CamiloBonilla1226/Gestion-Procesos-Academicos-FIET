@@ -45,6 +45,9 @@
         como está; si cambias alguna, envía la decisión modificada.
       </p>
       }
+      @if (asignaturaFiltrada) {
+      <p class="nota-gris mb-2" data-asignatura-filtrada>Mostrando 1 de {{ asignaturas.length }} {{ asignaturas.length === 1 ? 'asignatura' : 'asignaturas' }} de la solicitud</p>
+      }
       <div class="tabla-scroll">
         <table class="tabla-asignaturas" data-tabla-asignaturas [attr.data-editable]="editable ? 'si' : null">
           <thead>
@@ -58,7 +61,7 @@
             }
           </thead>
           <tbody>
-            @for (asignatura of asignaturas; track asignatura.uuidAsignaturaSolicitud) {
+            @for (asignatura of asignaturasTabla; track asignatura.uuidAsignaturaSolicitud) {
             @let uuid = asignatura.uuidAsignaturaSolicitud;
             @let evaluacion = evaluaciones[uuid];
             <tr [attr.data-fila]="uuid">

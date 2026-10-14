@@ -238,6 +238,13 @@ Asignatura, una aprobación con alguna asignatura rechazada por el Decano es
 `APROBADA_PARCIAL`. Es `null` si el Decano no ha decidido o si el Funcionario
 rechazó antes de remitir, y siempre `null` en la bandeja del Estudiante. Las
 bandejas no tienen parámetros de búsqueda: el filtro se hace en el cliente.
+`resultadosAsignaturas` (P48): lista de `{asignaturaSolicitudUuid, aprobada}`,
+una por asignatura de la solicitud, ordenada por código de asignatura. Solo
+llega en la bandeja del Funcionario Académico asignado, para Cancelación de
+Asignatura en APROBADA o RECHAZADA; `aprobada` es `true` solo si
+`aprobadaPorDecano` es verdadero (falso o `null`, por ejemplo con el rechazo
+del Funcionario antes del Decano, es `false`). En los demás procesos, etapas y
+en las bandejas del Estudiante y del Decano es `null`.
 
 **SolicitudAcademicaDetalleDTORespuesta** (detalle común):
 

@@ -215,6 +215,68 @@ class ConsultaSolicitudAcademicaCUImplAdaptadorTest {
         verify(gateway, never()).getConAsignaturaNoAprobadaPorDecano(any());
     }
 
+    private ResultadoAsignaturaSolicitud resultado(String uuid, boolean aprobada) {
+        return new ResultadoAsignaturaSolicitud(uuid, aprobada);
+    }
+
+    private List<String> resultados(ResumenSolicitudAcademica resumen) {
+        if (resumen.getResultadosAsignaturas() == null)
+            return null;
+        return resumen.getResultadosAsignaturas().stream().map(r -> r.getAsignaturaSolicitudUuid() + "=" + r.isAprobada()).toList();
+    }
+
+    @Test
+    void elFuncionarioRecibeElResultadoPorAsignaturaSoloEnCancelacionDeAsignaturaRespondida() {
+        List<SolicitudAcademica> solicitudes = List.of(
+                deTipo("parcial", APROBADA, "Cancelación de Asignatura"),
+                deTipo("todas-aprobadas", APROBADA, "Cancelación de Asignatura"),
+                deTipo("todas-rechazadas", RECHAZADA, "Cancelación de Asignatura"),
+                deTipo("rechazo-funcionario", RECHAZADA, "Cancelación de Asignatura"),
+                deTipo("en-decano", EN_REVISION_DECANO, "Cancelación de Asignatura"),
+                deTipo("matricula", APROBADA, "Cancelación de Matrícula"),
+                deTipo("supletorio", RECHAZADA, "Examen Supletorio"));
+        when(gateway.getPorFuncionarioAcademico(FUNCIONARIO)).thenReturn(solicitudes);
+        when(gateway.getResultadosAsignaturas(List.of("parcial", "todas-aprobadas", "todas-rechazadas", "rechazo-funcionario")))
+                .thenReturn(Map.of(
+                        "parcial", List.of(resultado("a1", true), resultado("a2", false)),
+                        "todas-aprobadas", List.of(resultado("a3", true), resultado("a4", true)),
+                        "todas-rechazadas", List.of(resultado("a5", false), resultado("a6", false)),
+                        "rechazo-funcionario", List.of(resultado("a7", false))));
+
+        List<ResumenSolicitudAcademica> bandeja = casoDeUso.getBandejaFuncionario(token(FUNCIONARIO));
+
+        assertEquals(Arrays.asList(
+                List.of("a1=true", "a2=false"),
+                List.of("a3=true", "a4=true"),
+                List.of("a5=false", "a6=false"),
+                List.of("a7=false"),
+                null, null, null), bandeja.stream().map(this::resultados).toList());
+        verify(gateway, times(1)).getResultadosAsignaturas(any());
+    }
+
+    @Test
+    void elEstudianteYElDecanoNoRecibenResultadosPorAsignaturaNiDisparanLaConsulta() {
+        List<SolicitudAcademica> solicitudes = List.of(deTipo("s1", APROBADA, "Cancelación de Asignatura"));
+        when(gateway.getPorEstudiante(ESTUDIANTE)).thenReturn(solicitudes);
+        when(gateway.getTodas()).thenReturn(solicitudes);
+
+        assertNull(casoDeUso.getBandejaEstudiante(token(ESTUDIANTE)).get(0).getResultadosAsignaturas());
+        assertNull(casoDeUso.getBandejaDecano(token(DECANO)).get(0).getResultadosAsignaturas());
+        verify(gateway, never()).getResultadosAsignaturas(any());
+    }
+
+    @Test
+    void sinCancelacionesDeAsignaturaRespondidasNoSeConsultanResultados() {
+        when(gateway.getPorFuncionarioAcademico(FUNCIONARIO)).thenReturn(List.of(
+                deTipo("s1", EN_REVISION_DECANO, "Cancelación de Asignatura"),
+                deTipo("s2", APROBADA, "Cancelación de Matrícula")));
+
+        List<ResumenSolicitudAcademica> bandeja = casoDeUso.getBandejaFuncionario(token(FUNCIONARIO));
+
+        assertTrue(bandeja.stream().allMatch(r -> r.getResultadosAsignaturas() == null));
+        verify(gateway, never()).getResultadosAsignaturas(any());
+    }
+
     @Test
     void laBandejaDelDecanoOcultaLasEtapasSinEtiquetaParaEl() {
         SolicitudAcademica radicada = solicitud("s1", ESTUDIANTE, RADICADA, LocalDateTime.of(2026, 3, 2, 8, 0));

@@ -2,7 +2,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
-import { Subject, of, throwError } from 'rxjs';
+import { ActivatedRoute, ParamMap, convertToParamMap } from '@angular/router';
+import { BehaviorSubject, Subject, of, throwError } from 'rxjs';
 import { CancelacionAsignaturaProcesoComponent } from './cancelacion-asignatura-proceso-component';
 import { CancelacionAsignaturaService } from '../../../../core/services/cancelacion-asignatura-service';
 import { SolicitudAcademicaService } from '../../../../core/services/solicitud-academica-service';
@@ -539,6 +540,20 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
       expect(sinCambios.nativeElement.querySelector('[data-aviso-cambiadas]')).toBeNull();
     });
 
+    it('el aviso de cambios del Decano solo sale en APROBADA_POR_DECANO y RECHAZADA_POR_DECANO, y la marca por fila se mantiene', () => {
+      for (const etapa of ['APROBADA_POR_DECANO', 'RECHAZADA_POR_DECANO']) {
+        const fixture = crear(solicitud([], etapa), DECIDIDAS);
+        expect(fixture.nativeElement.querySelector('[data-aviso-cambiadas]')).withContext(etapa).toBeTruthy();
+      }
+      for (const etapa of ['APROBADA', 'RECHAZADA']) {
+        const fixture = crear(solicitud([], etapa, true, 'Respondida'), DECIDIDAS);
+        expect(fixture.nativeElement.querySelector('[data-aviso-cambiadas]')).withContext(etapa).toBeNull();
+        const marcadas = Array.from(fixture.nativeElement.querySelectorAll('[data-cambiada-decano]'))
+          .map((e: any) => e.closest('tr').getAttribute('data-fila'));
+        expect(marcadas).withContext(etapa).toEqual(['as-2', 'as-3']);
+      }
+    });
+
     it('solo lista las aprobadas sin situacion o cambiadas, con el selector de situacion, y ninguna rechazada', () => {
       responder();
       const listadas = Array.from(document.querySelectorAll('[data-ajuste]')).map(e => e.getAttribute('data-ajuste'));
@@ -724,5 +739,77 @@ describe('CancelacionAsignaturaProcesoComponent con el catalogo real', () => {
       'Error',
       'No se pudieron cargar las situaciones académicas. El catálogo de situaciones académicas está vacío'
     );
+  });
+});
+
+describe('CancelacionAsignaturaProcesoComponent filtrado por asignatura desde Respuestas', () => {
+  const RESPONDIDAS: AsignaturaSolicitadaDTORespuesta[] = [
+    { ...EVALUADAS[0], aprobadaPorDecano: true, decisionCambiadaPorDecano: false },
+    { ...EVALUADAS[1], aprobadaPorDecano: false, decisionCambiadaPorDecano: false }
+  ];
+  let parametros: BehaviorSubject<ParamMap>;
+
+  function crearCon(asignatura: string | null): ComponentFixture<CancelacionAsignaturaProcesoComponent> {
+    const mapa = convertToParamMap(asignatura ? { asignatura } : {});
+    parametros = new BehaviorSubject<ParamMap>(mapa);
+    const cancelaciones = jasmine.createSpyObj<CancelacionAsignaturaService>('CancelacionAsignaturaService', ['getDetalle']);
+    cancelaciones.getDetalle.and.returnValue(of(detalle(RESPONDIDAS)));
+    TestBed.configureTestingModule({
+      imports: [CancelacionAsignaturaProcesoComponent],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideNoopAnimations(),
+        { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: mapa }, queryParamMap: parametros } },
+        { provide: CancelacionAsignaturaService, useValue: cancelaciones },
+        { provide: ToastService, useValue: jasmine.createSpyObj('ToastService', ['showSuccess', 'showError']) }
+      ]
+    });
+    const fixture = TestBed.createComponent(CancelacionAsignaturaProcesoComponent);
+    fixture.componentRef.setInput('uuidSolicitud', 's-1');
+    fixture.componentRef.setInput('solicitud', solicitud([], 'APROBADA', true, 'Respondida'));
+    fixture.componentRef.setInput('rol', 'FUNCIONARIO');
+    fixture.componentRef.setInput('recargar', () => undefined);
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  function filas(fixture: ComponentFixture<CancelacionAsignaturaProcesoComponent>): (string | null)[] {
+    return Array.from(fixture.nativeElement.querySelectorAll('[data-tabla-asignaturas] tbody tr')).map((tr: any) => tr.getAttribute('data-fila'));
+  }
+
+  function aviso(fixture: ComponentFixture<CancelacionAsignaturaProcesoComponent>): string | null {
+    return fixture.nativeElement.querySelector('[data-asignatura-filtrada]')?.textContent.trim() ?? null;
+  }
+
+  it('con el parametro muestra solo esa asignatura y avisa cuantas tiene la solicitud', () => {
+    const fixture = crearCon('as-2');
+    expect(filas(fixture)).toEqual(['as-2']);
+    expect(aviso(fixture)).toBe('Mostrando 1 de 2 asignaturas de la solicitud');
+    expect(fixture.nativeElement.querySelector('[data-motivo]').textContent).toContain('Cruce laboral');
+    expect(fixture.nativeElement.querySelector('[data-tabla-asignaturas] tbody').textContent).toContain('No aprobada');
+  });
+
+  it('sin el parametro muestra todas las asignaturas sin aviso', () => {
+    const fixture = crearCon(null);
+    expect(filas(fixture)).toEqual(['as-1', 'as-2']);
+    expect(aviso(fixture)).toBeNull();
+  });
+
+  it('con un uuid que no es de la solicitud muestra todas sin aviso', () => {
+    const fixture = crearCon('otra');
+    expect(filas(fixture)).toEqual(['as-1', 'as-2']);
+    expect(aviso(fixture)).toBeNull();
+  });
+
+  it('si cambia el parametro en la misma instancia cambia la asignatura mostrada', () => {
+    const fixture = crearCon('as-1');
+    expect(filas(fixture)).toEqual(['as-1']);
+    parametros.next(convertToParamMap({ asignatura: 'as-2' }));
+    fixture.detectChanges();
+    expect(filas(fixture)).toEqual(['as-2']);
+    parametros.next(convertToParamMap({}));
+    fixture.detectChanges();
+    expect(filas(fixture)).toEqual(['as-1', 'as-2']);
   });
 });

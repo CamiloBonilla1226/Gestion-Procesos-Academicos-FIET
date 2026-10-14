@@ -2,6 +2,48 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-13 - Volver a Respuestas y aviso de cambios del Decano solo en su etapa (Tarea T12.13b frontend)
+- Qué se hizo: en el detalle, "Volver" del Funcionario lleva a Respuestas cuando la solicitud está en APROBADA o RECHAZADA y a Solicitudes en otra etapa; como recargar tras una acción vuelve a leer la etapa, después de la respuesta final lleva a Respuestas. El Estudiante y el Decano no cambian. El aviso "El Decano cambió la decisión…" de Cancelación de Asignatura solo sale en APROBADA_POR_DECANO y RECHAZADA_POR_DECANO; la marca "Cambiada por el Decano" por fila se mantiene en todas.
+- Archivos:
+  - `frontend/src/app/core/constantes/procesos-academicos.ts` (modificado)
+  - `detalle-solicitud-academica-component` (`.ts` y spec), `cancelacion-asignatura-proceso-component` (`.ts` y spec) (modificado)
+- Notas: el destino se decide por la etapa y no por un parámetro de origen, porque Respuestas solo lista finalizadas y Solicitudes solo en curso; así también sobrevive a recargar la página. Ninguna acción navega sola: tras rechazar, remitir o responder se queda en el detalle recargado, como antes.
+
+## 2026-10-13 - Una fila por asignatura en Respuestas del Funcionario (Tarea T12.13)
+- Qué se hizo: el resumen de la bandeja del Funcionario asignado trae `resultadosAsignaturas` (`{asignaturaSolicitudUuid, aprobada}`) para Cancelación de Asignatura en APROBADA o RECHAZADA, cargado con una sola consulta; `aprobada` solo es verdadero con `aprobadaPorDecano` verdadero y para los demás casos es nulo. En el frontend, Respuestas expande cada Cancelación de Asignatura en una fila por asignatura con su Aprobada o Rechazada, sin columna nueva; el filtro de estado va por fila y los demás por solicitud; cada fila tiene clave solicitud más asignatura; el ojo abre el detalle con `?asignatura=<uuid>` y la tabla de asignaturas muestra solo esa, con el aviso "Mostrando 1 de N asignaturas de la solicitud". Solicitudes no cambia.
+- Archivos:
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/modelos/ResultadoAsignaturaSolicitud.java` (creado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorSolicitudesAcademicas/DTORespuesta/ResultadoAsignaturaDTORespuesta.java` (creado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/modelos/ResumenSolicitudAcademica.java`, `aplicacion/output/SolicitudAcademicaGatewayIntPuerto.java`, `dominio/casosdeuso/ConsultaSolicitudAcademicaCUImplAdaptador.java`, `infraestructura/output/persistencia/repositorios/SolicitudAcademicaRepositorio.java`, `infraestructura/output/persistencia/gateway/SolicitudAcademicaGatewayImplAdaptador.java`, `infraestructura/input/controladorSolicitudesAcademicas/DTORespuesta/SolicitudAcademicaResumenDTORespuesta.java`, `infraestructura/input/controladorSolicitudesAcademicas/mapeador/MapperSolicitudAcademicaInfraestructuraDominio.java` (modificado)
+  - `backend/solicitudes/src/test/.../ConsultaSolicitudAcademicaCUImplAdaptadorTest.java`, `SolicitudAcademicaGatewayImplAdaptadorTest.java`, `MapperSolicitudAcademicaInfraestructuraDominioTest.java` (modificado)
+  - `backend/pruebas/t7_cancelacion_asignatura.ps1` (modificado)
+  - `frontend/src/app/core/models/SolicitudAcademica/DTOResponse/ResultadoAsignaturaDTORespuesta.ts` (creado)
+  - `frontend/src/app/core/models/SolicitudAcademica/DTOResponse/SolicitudAcademicaResumenDTORespuesta.ts`, `frontend/src/app/core/constantes/procesos-academicos.ts`, `frontend/src/app/core/utils/bandeja-solicitudes.ts` (modificado)
+  - `bandeja-solicitudes-academicas-component` (`.ts`, `.html` y spec), `cancelacion-asignatura-proceso-component` (`.ts`, `.html` y spec) (modificado)
+  - `docs/api/contrato-api-procesos-academicos.md`, `docs/database/etapas-por-proceso.md` (P48), `frontend/CLAUDE.md` (D-F39 y ajuste de D-F38) (modificado)
+- Notas: el pie de la bandeja cuenta solicitudes distintas, no filas. Una Cancelación de Asignatura final sin resultados (no debería pasar) cae en una fila con el estado por `etapaCodigo`. Un `?asignatura` que no es de la solicitud muestra todas las asignaturas. Desde el detalle, "Volver" sigue llevando a Solicitudes.
+
+## 2026-10-13 - Modo reactivo en la bandeja del Funcionario (Tarea T12.12b frontend)
+- Qué se hizo: el contenido del Funcionario lee el modo de `ActivatedRoute.data` como signal y la bandeja recalcula la lista, las opciones de estado y los filtros en `ngOnChanges` cuando cambia el modo, sin volver a pedir al backend; el filtro de estado se reinicia al cambiar de modo. La separación sigue por `etapaCodigo` (APROBADA y RECHAZADA a Respuestas, el resto a Solicitudes), que el backend manda en el resumen del Funcionario con el código real de la etapa.
+- Archivos:
+  - `frontend/src/app/shared/pages/content/fun-acad-solicitudes-content-component/fun-acad-solicitudes-content-component.ts`, `.html` y spec (modificado)
+  - `frontend/src/app/shared/pages/content/bandeja-solicitudes-academicas-component/bandeja-solicitudes-academicas-component.ts` y spec (modificado)
+- Notas: no se pudo reproducir el fallo con el código actual: las dos rutas cargan páginas distintas, Angular no reutiliza la instancia y una navegación con el router real ya separaba bien las listas. El servidor de desarrollo sirve el código nuevo y en la base hay 2 solicitudes abiertas y 3 finalizadas. Lo más probable es una pestaña cargada antes de T12.12. Los specs nuevos cubren el cambio de modo en la misma instancia, el cambio de data de la ruta y la navegación entre las dos páginas.
+
+## 2026-10-13 - Solicitudes y Respuestas en la bandeja del Funcionario (Tarea T12.12 frontend)
+- Qué se hizo: se quita la columna "Decisión del Decano" de la bandeja del Funcionario (el bloque del detalle se queda). La bandeja recibe un `modo`: "Solicitudes" muestra solo las no finalizadas y su filtro de estado ya no trae "Respondida"; "Respuestas", ruta nueva `funcionario-academico/respuestas`, muestra solo las finalizadas con estado "Aprobada" o "Rechazada" por `etapaCodigo`, mismas columnas y filtros y un filtro de estado con solo esas dos opciones. El menú del Funcionario agrupa Solicitudes y Respuestas bajo "Gestión de solicitudes" con los hijos del sidebar. Se quita `textoDecisionDecano`, que quedó sin uso.
+- Archivos:
+  - `frontend/src/app/core/funcionario-academico/pages/funcionario-academico-respuestas-component/` `.ts` y `.html` (creado)
+  - `frontend/src/app/core/funcionario-academico/components/side-bar-funcionario-academico-component/side-bar-funcionario-academico-component.spec.ts` (creado)
+  - `frontend/src/app/shared/pages/content/fun-acad-solicitudes-content-component/fun-acad-solicitudes-content-component.spec.ts` (creado)
+  - `frontend/src/app/app.routes.ts`, `side-bar-funcionario-academico-component.html`, `fun-acad-solicitudes-content-component` (`.ts`, `.html`), `bandeja-solicitudes-academicas-component` (`.ts` y spec), `frontend/src/app/core/constantes/etiquetas-academicas.ts` y su spec (modificado)
+  - `frontend/CLAUDE.md` (D-F38) (modificado)
+- Notas:
+  - Specs: constantes, sidebar del Funcionario, bandeja y contenido del Funcionario, 36 en verde. `npm run build` con código 0, bundle inicial 836,67 kB.
+  - El inicio del Funcionario (Mi usuario) no tiene contadores de solicitudes, así que no cambió nada ahí.
+  - El sidebar con hijos no admite que el padre navegue, por eso "Solicitudes" y "Respuestas" quedaron como hijos del grupo "Gestión de solicitudes".
+  - El detalle abierto desde Respuestas usa la ruta `solicitudes/:uuid`: el menú marca "Solicitudes" y "Volver" regresa a Solicitudes.
+
 ## 2026-10-13 - Decisión del Decano en las bandejas y respuesta sin observación por asignatura rechazada (Tarea T12.11)
 - Qué se hizo:
   - Backend: el resumen de las bandejas del Funcionario y del Decano trae `decisionDecano` (`APROBADA`, `RECHAZADA`, `APROBADA_PARCIAL` o nulo), calculado con dos consultas por lote: la última fila `APROBAR_DECANO`/`RECHAZAR_DECANO` del historial y las cancelaciones de asignatura con alguna asignatura rechazada por el Decano. Se conserva en APROBADA y RECHAZADA; nulo si el Funcionario rechazó antes y siempre nulo para el Estudiante. En `funcionario/responder` de Cancelación de Asignatura, `observacionDecision` de una rechazada pasa a ser opcional y una rechazada cambiada ya no exige ajuste; siguen la observación general obligatoria con rechazos y la situación al cancelar de las aprobadas.

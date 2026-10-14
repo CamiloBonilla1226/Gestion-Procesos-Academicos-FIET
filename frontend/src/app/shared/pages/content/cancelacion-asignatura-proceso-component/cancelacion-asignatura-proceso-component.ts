@@ -1,5 +1,7 @@
-import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
-import { Observable, finalize, map, of, switchMap, tap } from 'rxjs';
+import { Component, Input, OnChanges, SimpleChanges, inject } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute } from '@angular/router';
+import { EMPTY, Observable, finalize, map, of, switchMap, tap } from 'rxjs';
 import { GenericDialogFormComponent } from '../../../generic-dialog-form-component/generic-dialog-form-component';
 import { SimpleButtonComponent } from '../../../buttons/simple-button-component/simple-button-component';
 import { InputTextTareaComponent } from '../../../inputs/input-text-tarea-component/input-text-tarea-component';
@@ -24,6 +26,7 @@ import {
   FORMATOS_RESOLUCION,
   MAXIMO_CARACTERES_OBSERVACION,
   NOTA_MINIMA_PARA_CUMPLIR,
+  PARAMETRO_ASIGNATURA,
   ROLES_ETIQUETA,
   RolEtiqueta
 } from '../../../../core/constantes/procesos-academicos';
@@ -118,6 +121,8 @@ const MENSAJES_EXITO: Partial<Record<AccionAcademica, string>> = {
 
 const SIN_DATO = '—';
 
+const ETAPAS_DECISION_DECANO: (string | undefined)[] = [ETAPAS_ACADEMICAS.APROBADA_POR_DECANO, ETAPAS_ACADEMICAS.RECHAZADA_POR_DECANO];
+
 function textoSiNo(valor: boolean | null, si: string, no: string): string | null {
   if (valor === null || valor === undefined) return null;
   return valor ? si : no;
@@ -182,6 +187,12 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   readonly sinDato = SIN_DATO;
   readonly columnaDecision = COLUMNA_DECISION;
 
+  private readonly ruta = inject(ActivatedRoute, { optional: true });
+  readonly asignaturaPedida = toSignal(
+    (this.ruta?.queryParamMap ?? EMPTY).pipe(map(parametros => parametros.get(PARAMETRO_ASIGNATURA))),
+    { initialValue: this.ruta?.snapshot?.queryParamMap?.get(PARAMETRO_ASIGNATURA) ?? null }
+  );
+
   detalle: CancelacionAsignaturaDetalleDTORespuesta | null = null;
   columnas: Columna[] = [];
   encabezadoAgrupado: CeldaEncabezado[][] = [];
@@ -232,6 +243,16 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
     return this.detalle?.asignaturas ?? [];
   }
 
+  get asignaturaFiltrada(): AsignaturaSolicitadaDTORespuesta | null {
+    const pedida = this.asignaturaPedida();
+    return pedida ? this.asignaturas.find(a => a.uuidAsignaturaSolicitud === pedida) ?? null : null;
+  }
+
+  get asignaturasTabla(): AsignaturaSolicitadaDTORespuesta[] {
+    const filtrada = this.asignaturaFiltrada;
+    return filtrada ? [filtrada] : this.asignaturas;
+  }
+
   get tituloDialogo(): string {
     if (this.accionActiva === ACCIONES_ACADEMICAS.APROBAR_DECANO) return TITULOS_DECISION[this.modoDecision ?? 'aceptar'];
     return this.accionActiva ? TITULOS_DIALOGO[this.accionActiva] ?? '' : '';
@@ -262,6 +283,7 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
 
   get cambiadasPorDecano(): AsignaturaSolicitadaDTORespuesta[] {
     if (this.rol !== ROLES_ETIQUETA.FUNCIONARIO) return [];
+    if (!ETAPAS_DECISION_DECANO.includes(this.solicitud?.etapaCodigo)) return [];
     return this.asignaturas.filter(a => a.decisionCambiadaPorDecano === true);
   }
 

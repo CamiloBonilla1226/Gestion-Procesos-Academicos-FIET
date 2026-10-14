@@ -65,7 +65,7 @@
     <app-table-generic-component [headers]="headers" [data]="filas" [actionTemplate]="acciones">
     </app-table-generic-component>
     <div class="pie">
-      <small class="text-secondary">{{ filtradas.length }} {{ filtradas.length === 1 ? 'solicitud' : 'solicitudes' }}</small>
+      <small class="text-secondary">{{ totalSolicitudes }} {{ totalSolicitudes === 1 ? 'solicitud' : 'solicitudes' }}</small>
       <app-paginator [totalPages]="totalDePaginas" [currentPage]="paginaActual" (pageChange)="onPageChange($event)">
       </app-paginator>
     </div>
@@ -117,7 +117,7 @@
 </ng-template>
 
 <ng-template #acciones let-fila>
-  <button type="button" class="btn-ojo" [attr.aria-label]="'Ver solicitud ' + fila['Radicado']" title="Ver solicitud"
+  <button type="button" class="btn-ojo" [attr.data-clave]="fila['clave']" [attr.aria-label]="'Ver solicitud ' + fila['Radicado']" title="Ver solicitud"
     (click)="verSolicitud(fila)">
     <img src="buttons/eye.svg" alt="" width="20" height="20">
   </button>

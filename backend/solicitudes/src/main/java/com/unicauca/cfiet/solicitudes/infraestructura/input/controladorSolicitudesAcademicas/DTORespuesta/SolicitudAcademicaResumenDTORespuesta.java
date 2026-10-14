@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -23,4 +24,5 @@ public class SolicitudAcademicaResumenDTORespuesta {
     private String codigoEstudiantil;
     private String numeroDocumento;
     private String decisionDecano;
+    private List<ResultadoAsignaturaDTORespuesta> resultadosAsignaturas;
 }

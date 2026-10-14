@@ -253,6 +253,17 @@ function Sin-Resultado {
     return (@($Detalle.asignaturas | Where-Object { ($null -ne $_.aprobadaPorDecano) -or $_.observacionDecision -or ($null -ne $_.decisionCambiadaPorDecano) -or ($null -ne $_.cumpleCondiciones) -or $_.observacionEvaluacion -or ($null -ne $_.nota) -or ($null -ne $_.numeroFaltas) -or $_.situacionMatricula -or $_.situacionCancelar }).Count -eq 0)
 }
 
+function Fila-Bandeja {
+    param([string]$Rol, [string]$Token, [string]$Solicitud)
+    return @(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$Rol" -Token $Token)) | Where-Object { $_.uuidSolicitudAcademica -eq $Solicitud }
+}
+
+function Resultados-De {
+    param($Fila)
+    if ($null -eq $Fila.resultadosAsignaturas) { return "nulo" }
+    return (@($Fila.resultadosAsignaturas | ForEach-Object { "$($_.asignaturaSolicitudUuid)=$($_.aprobada)" }) -join ";")
+}
+
 function Quitar-Trigger {
     Ejecutar-Sql "drop trigger if exists $Global:Trigger" | Out-Null
 }
@@ -434,6 +445,8 @@ try {
 $decisionFa = (@(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/funcionario" -Token $fa1.Token)) | Where-Object { $_.uuidSolicitudAcademica -eq $sol1 }).decisionDecano
 $decisionDec = (@(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/decano" -Token $decano.Token)) | Where-Object { $_.uuidSolicitudAcademica -eq $sol1 }).decisionDecano
 Escribir-Resultado "la bandeja del funcionario y la del Decano traen decisionDecano APROBADA_PARCIAL (obtuvo $decisionFa y $decisionDec)" (($decisionFa -eq "APROBADA_PARCIAL") -and ($decisionDec -eq "APROBADA_PARCIAL"))
+    $resultadosPrevios = Resultados-De (Fila-Bandeja "funcionario" $fa1.Token $sol1)
+    Escribir-Resultado "antes de responder la bandeja del funcionario no trae resultados por asignatura (obtuvo $resultadosPrevios)" ($resultadosPrevios -eq "nulo")
     $decisionesBd = Ejecutar-Sql "select group_concat(concat(aprobadaPorDecano, '|', coalesce(SituacionCancelar_uuid, '-'), '|', coalesce(observacionDecision, '-')) order by field(uuidAsignaturaSolicitud, '$f1', '$f2', '$f3') separator ';') from ASIGNATURA_SOLICITUD_ACADEMICA where SolicitudAcademica_uuid = '$sol1'"
     Escribir-Resultado "quedaron las tres decisiones sin situacion ni observacion por asignatura (obtuvo $decisionesBd)" ($decisionesBd -eq "1|-|-;0|-|-;1|-|-")
     $r = Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$sol1" -Token $est1.Token
@@ -575,6 +588,19 @@ Escribir-Resultado "la bandeja trae RECHAZADA si el Decano rechazo y nula si rec
     $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol4/funcionario/responder" -Token $fa1.Token -Cuerpo @{ ajustes = @((Ajuste $h2 $situaciones[0] "")) }
     $situacionesBd = Ejecutar-Sql "select group_concat(coalesce(SituacionCancelar_uuid, '-') order by field(uuidAsignaturaSolicitud, '$h1', '$h2') separator ';') from ASIGNATURA_SOLICITUD_ACADEMICA where SolicitudAcademica_uuid = '$sol4'"
     Escribir-Resultado "sin cambios del Decano basta la situacion guardada al remitir o la del ajuste, sin observacion, y queda APROBADA (obtuvo $($r.Status), etapa $(Etapa-De $sol4), $situacionesBd)" (($r.Status -eq 200) -and ((Etapa-De $sol4) -eq "APROBADA") -and ((Estados $activas4) -eq "cancelada,cancelada") -and ($situacionesBd -eq "$($situaciones[1]);$($situaciones[0])"))
+
+    $e1 = Fila-De $sol2 $activas2[0]; $e2 = Fila-De $sol2 $activas2[1]
+    $parcial = Resultados-De (Fila-Bandeja "funcionario" $fa1.Token $sol1)
+    Escribir-Resultado "parcial: la bandeja del funcionario trae una fila por asignatura con su resultado (obtuvo $parcial)" ($parcial -eq "$f1=True;$f2=False;$f3=True")
+    $todasAprobadas = Resultados-De (Fila-Bandeja "funcionario" $fa1.Token $sol4)
+    Escribir-Resultado "todas aprobadas: cada asignatura sale aprobada (obtuvo $todasAprobadas)" ($todasAprobadas -eq "$h1=True;$h2=True")
+    $todasRechazadas = Resultados-De (Fila-Bandeja "funcionario" $fa1.Token $sol3)
+    Escribir-Resultado "todas rechazadas por el Decano: cada asignatura sale no aprobada (obtuvo $todasRechazadas)" ($todasRechazadas -eq "$g1=False;$g2=False")
+    $rechazoFuncionario = Resultados-De (Fila-Bandeja "funcionario" $fa1.Token $sol2)
+    Escribir-Resultado "rechazo del funcionario sin Decano: aprobadaPorDecano nulo sale como no aprobada (obtuvo $rechazoFuncionario)" ($rechazoFuncionario -eq "$e1=False;$e2=False")
+    $delEstudiante = Resultados-De (Fila-Bandeja "estudiante" $est1.Token $sol1)
+    $delDecano = Resultados-De (Fila-Bandeja "decano" $decano.Token $sol1)
+    Escribir-Resultado "el estudiante y el Decano no reciben resultados por asignatura (obtuvo $delEstudiante y $delDecano)" (($delEstudiante -eq "nulo") -and ($delDecano -eq "nulo"))
 }
 finally {
     Quitar-Trigger

@@ -3,6 +3,7 @@ package com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.gatew
 import com.unicauca.cfiet.solicitudes.aplicacion.output.ExcepcionesFormateadorIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.SolicitudAcademicaGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.HistorialSolicitudAcademica;
+import com.unicauca.cfiet.solicitudes.dominio.modelos.ResultadoAsignaturaSolicitud;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.SolicitudAcademica;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.MensajesError;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.entidades.HistorialSolicitudAcademicaEntidad;
@@ -21,6 +22,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -107,6 +109,18 @@ public class SolicitudAcademicaGatewayImplAdaptador implements SolicitudAcademic
         if (uuidsSolicitud == null || uuidsSolicitud.isEmpty())
             return Set.of();
         return Set.copyOf(repositorio.findConAsignaturaNoAprobadaPorDecano(uuidsSolicitud));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, List<ResultadoAsignaturaSolicitud>> getResultadosAsignaturas(List<String> uuidsSolicitud) {
+        Map<String, List<ResultadoAsignaturaSolicitud>> resultados = new HashMap<>();
+        if (uuidsSolicitud == null || uuidsSolicitud.isEmpty())
+            return resultados;
+        for (Object[] fila : repositorio.findResultadosAsignaturas(uuidsSolicitud))
+            resultados.computeIfAbsent((String) fila[0], uuid -> new ArrayList<>())
+                    .add(new ResultadoAsignaturaSolicitud((String) fila[1], Boolean.TRUE.equals(fila[2])));
+        return resultados;
     }
 
     @Override

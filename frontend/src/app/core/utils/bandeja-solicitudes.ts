@@ -14,13 +14,13 @@ export type CampoOrden = 'fecha' | 'estado';
 
 export type DireccionOrden = 'asc' | 'desc';
 
-export function filtrarSolicitudes(
-  solicitudes: SolicitudAcademicaResumenDTORespuesta[],
+export function filtrarSolicitudes<T extends SolicitudAcademicaResumenDTORespuesta>(
+  solicitudes: T[],
   tipo: string | null | undefined,
   texto: string | null | undefined,
   estado: string | null | undefined = null,
   codigo: string | null | undefined = null
-): SolicitudAcademicaResumenDTORespuesta[] {
+): T[] {
   const buscado = normalizarTexto(texto);
   const codigoBuscado = normalizarTexto(codigo);
   const filtrarTipo = !!tipo && tipo !== TODOS_LOS_TIPOS;
@@ -40,11 +40,11 @@ export function etiquetasDisponibles(solicitudes: SolicitudAcademicaResumenDTORe
     .sort((a, b) => a.localeCompare(b, 'es'));
 }
 
-export function ordenarSolicitudes(
-  solicitudes: SolicitudAcademicaResumenDTORespuesta[],
+export function ordenarSolicitudes<T extends SolicitudAcademicaResumenDTORespuesta>(
+  solicitudes: T[],
   campo: CampoOrden | null,
   direccion: DireccionOrden
-): SolicitudAcademicaResumenDTORespuesta[] {
+): T[] {
   if (!campo) return solicitudes;
   const signo = direccion === 'asc' ? 1 : -1;
   const valor = (solicitud: SolicitudAcademicaResumenDTORespuesta) =>

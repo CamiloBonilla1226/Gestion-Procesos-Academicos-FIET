@@ -3,8 +3,7 @@ import {
   categoriaEstado,
   claseInsigniaEtiquetaEstudiante,
   esEtiqueta,
-  etiquetaCampoObservacion,
-  textoDecisionDecano
+  etiquetaCampoObservacion
 } from './etiquetas-academicas';
 
 describe('etiquetas academicas', () => {
@@ -38,14 +37,6 @@ describe('etiquetas academicas', () => {
     expect(categoriaEstado('Recibo Pagado')).toBe('gestion');
     expect(categoriaEstado('Otra cosa')).toBe('otro');
     expect(categoriaEstado(null)).toBe('otro');
-  });
-
-  it('traduce la decision del Decano del resumen a texto legible', () => {
-    expect(textoDecisionDecano('APROBADA')).toBe('Aprobada');
-    expect(textoDecisionDecano('RECHAZADA')).toBe('Rechazada');
-    expect(textoDecisionDecano('APROBADA_PARCIAL')).toBe('Aprobada parcial');
-    expect(textoDecisionDecano(null)).toBe('—');
-    expect(textoDecisionDecano('OTRA')).toBe('—');
   });
 
   it('define el campo de observacion de cada accion', () => {

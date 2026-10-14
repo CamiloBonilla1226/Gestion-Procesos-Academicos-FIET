@@ -162,6 +162,12 @@ export const routes: Routes = [
         loadComponent: () => import('./core/funcionario-academico/pages/funcionario-academico-solicitudes-component/funcionario-academico-solicitudes-component').then(m => m.FuncionarioAcademicoSolicitudesComponent)
     },
     {
+        path: 'funcionario-academico/respuestas',
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: [ROLES_ACADEMICOS.FUNCIONARIO_ACADEMICO], modo: 'respuestas' },
+        loadComponent: () => import('./core/funcionario-academico/pages/funcionario-academico-respuestas-component/funcionario-academico-respuestas-component').then(m => m.FuncionarioAcademicoRespuestasComponent)
+    },
+    {
         path: 'funcionario-academico/solicitudes/:uuid',
         canActivate: [AuthGuard, RoleGuard],
         data: { roles: [ROLES_ACADEMICOS.FUNCIONARIO_ACADEMICO] },

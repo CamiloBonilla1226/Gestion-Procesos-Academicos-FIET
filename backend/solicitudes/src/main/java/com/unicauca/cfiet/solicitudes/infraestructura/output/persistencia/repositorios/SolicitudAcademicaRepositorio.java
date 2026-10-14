@@ -28,4 +28,9 @@ public interface SolicitudAcademicaRepositorio extends JpaRepository<SolicitudAc
     @Query("select distinct a.solicitudAcademica.uuidSolicitudAcademica from AsignaturaSolicitudAcademicaEntidad a " +
             "where a.solicitudAcademica.uuidSolicitudAcademica in :uuids and a.aprobadaPorDecano = false")
     List<String> findConAsignaturaNoAprobadaPorDecano(@Param("uuids") Collection<String> uuids);
+
+    @Query("select a.solicitudAcademica.uuidSolicitudAcademica, a.uuidAsignaturaSolicitud, a.aprobadaPorDecano " +
+            "from AsignaturaSolicitudAcademicaEntidad a where a.solicitudAcademica.uuidSolicitudAcademica in :uuids " +
+            "order by a.asignaturaMatriculada.asignatura.codigoAsignatura, a.uuidAsignaturaSolicitud")
+    List<Object[]> findResultadosAsignaturas(@Param("uuids") Collection<String> uuids);
 }

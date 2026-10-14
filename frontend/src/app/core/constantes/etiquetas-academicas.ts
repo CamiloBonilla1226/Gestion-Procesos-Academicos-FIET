@@ -17,16 +17,6 @@ export const ETIQUETAS_DECISION_DECANO = {
   RECHAZADA: 'Rechazada por el Decano'
 } as const;
 
-const TEXTOS_DECISION_DECANO: Record<string, string> = {
-  APROBADA: 'Aprobada',
-  RECHAZADA: 'Rechazada',
-  APROBADA_PARCIAL: 'Aprobada parcial'
-};
-
-export function textoDecisionDecano(decision: string | null | undefined): string {
-  return (decision && TEXTOS_DECISION_DECANO[decision]) || '—';
-}
-
 function mismaEtiqueta(etiqueta: string | null | undefined, esperada: string): boolean {
   return (etiqueta ?? '').trim().normalize('NFC').toLowerCase() === esperada.normalize('NFC').toLowerCase();
 }
