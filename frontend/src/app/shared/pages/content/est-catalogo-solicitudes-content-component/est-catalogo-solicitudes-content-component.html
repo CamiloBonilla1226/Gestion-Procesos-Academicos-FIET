@@ -24,9 +24,6 @@
             </li>
           }
         </ul>
-        @if (tramite.notaAnexos) {
-          <p class="nota-aviso nota-anexos" data-nota="vigencia-paz-y-salvos">{{ tramite.notaAnexos }}</p>
-        }
       </div>
       <div class="tramite-pie">
         <a class="iniciar" [attr.href]="tramite.ruta" (click)="iniciar($event, tramite.ruta)">Iniciar solicitud →</a>

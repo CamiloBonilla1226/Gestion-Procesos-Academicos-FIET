@@ -7,7 +7,7 @@ import { EnlaceFormatoComponent } from '../../../others/enlace-formato-component
   selector: 'app-est-catalogo-solicitudes-content-component',
   imports: [EnlaceFormatoComponent],
   templateUrl: './est-catalogo-solicitudes-content-component.html',
-  styleUrls: ['../estilos-academicos.css', './est-catalogo-solicitudes-content-component.css']
+  styleUrl: './est-catalogo-solicitudes-content-component.css'
 })
 export class EstCatalogoSolicitudesContentComponent {
   tramites = TRAMITES_ESTUDIANTE;

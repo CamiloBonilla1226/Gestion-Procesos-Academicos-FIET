@@ -55,15 +55,12 @@ describe('EstCatalogoSolicitudesContentComponent', () => {
     expect(otras.length).toBe(0);
   });
 
-  it('la ficha de Cancelacion de Matricula avisa la vigencia de los paz y salvos debajo de sus anexos y las demas no', async () => {
+  it('ninguna ficha muestra los textos informativos de Cancelacion de Matricula', async () => {
     const harness = await abrir();
     const raiz = harness.routeNativeElement!;
-    const nota = raiz.querySelector('[data-tramite="/estudiante/cancelacion-matricula"] [data-nota="vigencia-paz-y-salvos"]') as HTMLElement;
-    expect(nota.textContent!.trim()).toBe(VIGENCIA_PAZ_Y_SALVOS);
-    expect(nota.textContent!.trim()).toBe('La vigencia de los PAZ Y SALVOS es de 5 días calendario a partir de la fecha de expedición.');
-    expect(nota.classList).toContain('nota-aviso');
-    expect(nota.previousElementSibling?.getAttribute('data-lista')).toBe('anexos');
-    expect(raiz.querySelectorAll('[data-nota="vigencia-paz-y-salvos"]').length).toBe(1);
+    expect(raiz.querySelector('[data-nota]')).toBeNull();
+    expect(raiz.textContent).not.toContain(VIGENCIA_PAZ_Y_SALVOS);
+    expect(raiz.textContent).not.toContain('PAZ Y SALVOS');
     expect(raiz.textContent).not.toContain('SIMCA');
     expect(raiz.textContent).not.toContain('Normativa aplicable');
   });

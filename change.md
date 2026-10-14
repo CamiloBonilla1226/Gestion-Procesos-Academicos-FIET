@@ -2,6 +2,14 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-14 - Vigencia de los paz y salvos solo en el formulario (Tarea T12.18b)
+- Qué se hizo: se quita el aviso de la vigencia de los paz y salvos de la ficha de Cancelación de Matrícula del catálogo del estudiante; queda solo en la sección de anexos del formulario. El catálogo deja de cargar `estilos-academicos.css` y se quitan `notaAnexos` de `TramiteCatalogo` y la regla `.nota-anexos`. El resto de T12.18 no cambia.
+- Archivos:
+  - `frontend/src/app/core/constantes/catalogo-estudiante.ts` (modificado)
+  - `frontend/src/app/shared/pages/content/est-catalogo-solicitudes-content-component` (`.ts`, `.html`, `.css` y spec) (modificado)
+  - `frontend/CLAUDE.md` (D-F43) (modificado)
+- Notas: el spec del catálogo comprueba que ninguna ficha muestra la vigencia ni la nota de SIMCA.
+
 ## 2026-10-14 - Textos informativos de Cancelación de Matrícula (Tarea T12.18)
 - Qué se hizo: tres textos informativos, sin cambiar reglas ni validaciones. La vigencia de los paz y salvos va en la ficha de Cancelación de Matrícula del catálogo (debajo de los anexos requeridos) y en la sección de anexos del formulario del Estudiante (antes de los campos de carga), como `nota-aviso`. La nota de SIMCA va encima de la tabla de asignaturas del detalle de Cancelación de Matrícula, solo para el Funcionario y el Decano. El bloque "Normativa aplicable" (artículos 1 a 4, parágrafo y literales a a d) va al final del formulario de Cancelación de Matrícula, antes de los botones, con alto máximo de 260 px y scroll propio.
 - Archivos:

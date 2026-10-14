@@ -1,5 +1,4 @@
 import { FORMATO_FIRMA_DOCENTE, FORMATO_FIRMA_DOCENTE_CRUCE } from './formatos-supletorio';
-import { VIGENCIA_PAZ_Y_SALVOS } from './textos-cancelacion-matricula';
 
 export interface AnexoCatalogo {
   texto: string;
@@ -13,7 +12,6 @@ export interface TramiteCatalogo {
   descripcion: string;
   requisitos: string[];
   anexos: AnexoCatalogo[];
-  notaAnexos?: string;
 }
 
 export const TRAMITES_ESTUDIANTE: TramiteCatalogo[] = [
@@ -31,8 +29,7 @@ export const TRAMITES_ESTUDIANTE: TramiteCatalogo[] = [
       { texto: 'Paz y salvo de Bibliotecas, Deportes y Recreación, Salud Integral y División Financiera.' },
       { texto: 'Cupón de Confirmación de la Intervención Psicosocial.' },
       { texto: 'Carné estudiantil o constancia de no trámite.' }
-    ],
-    notaAnexos: VIGENCIA_PAZ_Y_SALVOS
+    ]
   },
   {
     titulo: 'Cancelación de Asignatura',
