@@ -19,9 +19,9 @@ function formulario(asignaturas = 2): FormularioExamenSupletorioDTORespuesta {
     })),
     causas: ['cruce', 'otra'],
     anexos: [
-      { uuidTipoAnexoAcademico: 'for23', nombre: 'Formato PM-FO-4-FOR-23', formatosPermitidos: 'pdf,jpg,png', tamanioMaximoBytes: 5242880, causas: ['cruce', 'otra'] },
-      { uuidTipoAnexoAcademico: 'just', nombre: 'Soporte de la justificación', formatosPermitidos: 'pdf,jpg,png', tamanioMaximoBytes: 5242880, causas: ['otra'] },
-      { uuidTipoAnexoAcademico: 'doc', nombre: 'Formato del docente cruzado', formatosPermitidos: 'pdf,jpg,png', tamanioMaximoBytes: 5242880, causas: ['cruce'] }
+      { uuidTipoAnexoAcademico: 'for23', nombre: 'Formato firmado por el docente que orienta la asignatura', formatosPermitidos: 'pdf,jpg,png', tamanioMaximoBytes: 5242880, causas: ['cruce', 'otra'] },
+      { uuidTipoAnexoAcademico: 'just', nombre: 'Soporte de la justificación de la no presentación', formatosPermitidos: 'pdf,jpg,png', tamanioMaximoBytes: 5242880, causas: ['otra'] },
+      { uuidTipoAnexoAcademico: 'doc', nombre: 'Formato firmado por el docente de la asignatura con la que se cruza', formatosPermitidos: 'pdf,jpg,png', tamanioMaximoBytes: 5242880, causas: ['cruce'] }
     ],
     plazoDiasHabiles: 3
   };
@@ -95,6 +95,41 @@ describe('EstExamenSupletorioContentComponent', () => {
   function partes(req: { request: { body: unknown } }): string[] {
     return Array.from((req.request.body as FormData).keys());
   }
+
+  describe('formatos descargables', () => {
+    function enlaces(fixture: ComponentFixture<EstExamenSupletorioContentComponent>): Record<string, { href: string | null; download: string | null }> {
+      fixture.detectChanges();
+      const resultado: Record<string, { href: string | null; download: string | null }> = {};
+      for (const campo of Array.from(fixture.nativeElement.querySelectorAll('[data-campo-anexo]')) as HTMLElement[]) {
+        const enlace = campo.querySelector('[data-descargar-formato]');
+        if (enlace) resultado[campo.getAttribute('data-campo-anexo')!] = { href: enlace.getAttribute('href'), download: enlace.getAttribute('download') };
+      }
+      return resultado;
+    }
+
+    it('la linea del docente que orienta la asignatura usa la etiqueta nueva y descarga su formato', () => {
+      const fixture = crear();
+      fixture.componentInstance.alCambiarCausa('otra');
+      expect(enlaces(fixture)).toEqual({ for23: { href: 'formatos/formato-firma-docente.doc', download: 'formato-firma-docente.doc' } });
+      const linea = fixture.nativeElement.querySelector('[data-campo-anexo="for23"]').textContent;
+      expect(linea).toContain('Formato firmado por el docente que orienta la asignatura');
+      expect(linea).not.toContain('PM-FO-4-FOR-23');
+      expect(linea).toContain('Descargar formato');
+    });
+
+    it('con cruce las dos lineas de formato tienen su enlace y el soporte no', () => {
+      const fixture = crear();
+      fixture.componentInstance.alCambiarCausa('cruce');
+      expect(enlaces(fixture)).toEqual({
+        for23: { href: 'formatos/formato-firma-docente.doc', download: 'formato-firma-docente.doc' },
+        doc: { href: 'formatos/formato-firma-docente-cruce.doc', download: 'formato-firma-docente-cruce.doc' }
+      });
+      const enlace = fixture.nativeElement.querySelector('[data-campo-anexo="doc"] [data-descargar-formato]');
+      expect(enlace.textContent.trim()).toBe('Descargar formato');
+      expect(enlace.getAttribute('target')).toBeNull();
+      expect(enlace.hasAttribute('routerLink')).toBeFalse();
+    });
+  });
 
   it('muestra el plazo informativo, las asignaturas y el FOR-23 antes de elegir la causa', () => {
     const fixture = crear();

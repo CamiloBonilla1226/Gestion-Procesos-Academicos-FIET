@@ -51,6 +51,38 @@
   background: #F4F6FB;
 }
 
+.normativa {
+  max-height: 260px;
+  overflow-y: auto;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.normativa > p,
+.normativa-literales {
+  max-width: 78ch;
+  margin: 0 0 10px;
+}
+
+.normativa > :last-child {
+  margin-bottom: 0;
+}
+
+.normativa-literales {
+  list-style: none;
+  padding-left: 14px;
+}
+
+.normativa-literales li + li {
+  margin-top: 4px;
+}
+
+.normativa:focus-visible {
+  outline: 2px solid #B9C7EE;
+  outline-offset: -2px;
+}
+
 .pie-formulario {
   display: flex;
   flex-wrap: wrap;

@@ -163,16 +163,30 @@ describe('ExamenSupletorioProcesoComponent', () => {
     expect(componente.dialogoVisible).toBeFalse();
   });
 
-  it('remitir exige la casilla de requisitos verificados y envia true', () => {
-    const componente = crear(solicitud(['REMITIR_DECANO'])).componentInstance;
+  it('remitir no tiene casilla de verificacion y no envia requisitosVerificados', () => {
+    const fixture = crear(solicitud(['REMITIR_DECANO']));
+    const componente = fixture.componentInstance;
     componente.abrir('REMITIR_DECANO');
-    componente.confirmar();
-    expect(componente.errores['requisitos']).toBeTruthy();
-    http.expectNone(`${URL}/funcionario/remitir`);
-    componente.alCambiarVerificacion({ target: { checked: true } } as unknown as Event);
+    fixture.detectChanges();
+    const dialogo = document.querySelector('[data-dialogo]')!;
+    expect(dialogo.querySelector('input[type="checkbox"]')).toBeNull();
+    expect(dialogo.querySelector('[data-campo-requisitos]')).toBeNull();
+    expect(dialogo.querySelector('[data-campo-observacion]')?.textContent).toContain('Observaciones para el Decano');
     componente.confirmar();
     const req = accion('funcionario/remitir');
-    expect(req.request.body).toEqual({ requisitosVerificados: true, observacion: null });
+    expect(req.request.body).toEqual({ observacion: null });
+    expect('requisitosVerificados' in req.request.body).toBeFalse();
+    terminar(req);
+    expect(componente.dialogoVisible).toBeFalse();
+  });
+
+  it('remitir envia la observacion opcional para el Decano', () => {
+    const componente = crear(solicitud(['REMITIR_DECANO'])).componentInstance;
+    componente.abrir('REMITIR_DECANO');
+    componente.observacion = ' Requisitos completos ';
+    componente.confirmar();
+    const req = accion('funcionario/remitir');
+    expect(req.request.body).toEqual({ observacion: 'Requisitos completos' });
     terminar(req);
   });
 

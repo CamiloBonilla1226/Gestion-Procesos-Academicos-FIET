@@ -38,6 +38,35 @@ describe('EstCatalogoSolicitudesContentComponent', () => {
       .toBe('Paz y salvo de Bibliotecas, Deportes y Recreación, Salud Integral y División Financiera.');
   });
 
+  it('la ficha del Examen Supletorio tiene Descargar formato al final de sus dos lineas de anexos', async () => {
+    const harness = await abrir();
+    const lineas: HTMLElement[] = Array.from(harness.routeNativeElement!.querySelectorAll('[data-tramite="/estudiante/examen-supletorio"] [data-lista="anexos"] li'));
+    expect(lineas.length).toBe(2);
+    const enlaces = lineas.map(li => li.querySelector('[data-descargar-formato]') as HTMLAnchorElement);
+    expect(enlaces.map(a => a.textContent!.trim())).toEqual(['Descargar formato', 'Descargar formato']);
+    expect(enlaces.map(a => a.getAttribute('href'))).toEqual(['formatos/formato-firma-docente.doc', 'formatos/formato-firma-docente-cruce.doc']);
+    expect(enlaces.map(a => a.getAttribute('download'))).toEqual(['formato-firma-docente.doc', 'formato-firma-docente-cruce.doc']);
+    expect(lineas[0].textContent).toContain('Formato firmado por el docente que orienta la asignatura');
+    expect(lineas[1].textContent).toContain('docente de la asignatura con la que se presenta el cruce');
+    expect(lineas.every(li => li.lastElementChild?.tagName.toLowerCase() === 'app-enlace-formato-component')).toBeTrue();
+    expect(enlaces.every(a => a.getAttribute('target') === null)).toBeTrue();
+    const otras = harness.routeNativeElement!.querySelectorAll('[data-tramite="/estudiante/cancelacion-matricula"] [data-descargar-formato], [data-tramite="/estudiante/cancelacion-asignatura"] [data-descargar-formato]');
+    expect(otras.length).toBe(0);
+  });
+
+  it('la ficha de Cancelacion de Matricula avisa la vigencia de los paz y salvos debajo de sus anexos y las demas no', async () => {
+    const harness = await abrir();
+    const raiz = harness.routeNativeElement!;
+    const nota = raiz.querySelector('[data-tramite="/estudiante/cancelacion-matricula"] [data-nota="vigencia-paz-y-salvos"]') as HTMLElement;
+    expect(nota.textContent!.trim()).toBe(VIGENCIA_PAZ_Y_SALVOS);
+    expect(nota.textContent!.trim()).toBe('La vigencia de los PAZ Y SALVOS es de 5 días calendario a partir de la fecha de expedición.');
+    expect(nota.classList).toContain('nota-aviso');
+    expect(nota.previousElementSibling?.getAttribute('data-lista')).toBe('anexos');
+    expect(raiz.querySelectorAll('[data-nota="vigencia-paz-y-salvos"]').length).toBe(1);
+    expect(raiz.textContent).not.toContain('SIMCA');
+    expect(raiz.textContent).not.toContain('Normativa aplicable');
+  });
+
   it('cada boton lleva al formulario existente', async () => {
     const harness = await abrir();
     const rutas = ['/estudiante/cancelacion-matricula', '/estudiante/cancelacion-asignatura', '/estudiante/examen-supletorio'];

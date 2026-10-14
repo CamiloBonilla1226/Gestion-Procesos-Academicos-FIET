@@ -18,6 +18,11 @@ import {
   ROLES_ETIQUETA,
   TAMANIO_MAXIMO_PETICION_BYTES
 } from '../../../../core/constantes/procesos-academicos';
+import {
+  NORMATIVA_CANCELACION_MATRICULA,
+  TITULO_NORMATIVA,
+  VIGENCIA_PAZ_Y_SALVOS
+} from '../../../../core/constantes/textos-cancelacion-matricula';
 import { comoTipoAnexo, errorDeArchivo, errorDeTexto, erroresDeCampos } from '../../../../core/utils/validaciones-academicas';
 import { formatearTamanio } from '../../../../core/utils/formato';
 import { DatosEstudianteSesionComponent } from '../../../others/datos-estudiante-sesion-component/datos-estudiante-sesion-component';
@@ -44,6 +49,9 @@ export class EstCancelacionMatriculaContentComponent implements OnInit {
   readonly maximoMotivo = MAXIMO_CARACTERES_MOTIVO;
   readonly tipoSoporte = comoTipoAnexo('soporte', 'Soporte del motivo (opcional)', FORMATOS_SOPORTE_LIBRE, false);
   readonly formatearTamanio = formatearTamanio;
+  readonly vigenciaPazYSalvos = VIGENCIA_PAZ_Y_SALVOS;
+  readonly tituloNormativa = TITULO_NORMATIVA;
+  readonly normativa = NORMATIVA_CANCELACION_MATRICULA;
 
   formulario: FormularioCancelacionMatriculaDTORespuesta | null = null;
   campos: CampoAnexo[] = [];

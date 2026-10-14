@@ -2,6 +2,26 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-13 - Remitir Examen Supletorio sin confirmar requisitos (Tarea T12.16, parte adicional)
+- Qué se hizo: `funcionario/remitir` de Examen Supletorio deja de exigir `requisitosVerificados`; el cuerpo solo lee `observacion`, opcional, para el Decano, y si llega `requisitosVerificados` (verdadero o falso) se ignora sin error. Se quitan el error 4 y el mensaje `REQUISITOS_NO_CONFIRMADOS`. En el frontend, el diálogo de remitir del supletorio ya no tiene la casilla ni su validación y no envía `requisitosVerificados`. Las cancelaciones no cambian.
+- Archivos:
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/aplicacion/input/TramiteExamenSupletorioCUIntPuerto.java`, `dominio/casosdeuso/TramiteExamenSupletorioCUImplAdaptador.java`, `infraestructura/input/controladorExamenesSupletorios/controlador/ExamenSupletorioRestController.java`, `infraestructura/input/controladorExamenesSupletorios/DTOPeticion/RemisionSupletorioDTOPeticion.java`, `infraestructura/output/manejadorExcepciones/MensajesError.java` (modificado)
+  - `backend/solicitudes/src/test/.../TramiteExamenSupletorioCUImplAdaptadorTest.java`, `backend/pruebas/t8_examen_supletorio.ps1` (modificado)
+  - `frontend/src/app/core/models/ExamenSupletorio/DTORequest/RemisionSupletorioDTOPeticion.ts`, `examen-supletorio-proceso-component` (`.ts`, `.html` y spec) (modificado)
+  - `docs/api/contrato-api-procesos-academicos.md`, `docs/database/etapas-por-proceso.md` (P49, P27 marcada como reemplazada), `backend/CLAUDE.md`, `frontend/CLAUDE.md` (D-F42) (modificado)
+- Notas: el cuerpo sigue siendo obligatorio (`{}` sirve); sin cuerpo Spring responde antes de llegar al caso de uso. Los diálogos de remitir de las dos cancelaciones no tienen casilla equivalente; las casillas que existen son de los formularios del Estudiante (advertencia de primer periodo en Cancelación de Matrícula y selección de asignaturas en Cancelación de Asignatura) y el interruptor de decisión del Decano. El cambio pendiente del campo de hora del supletorio no se hizo.
+
+## 2026-10-13 - Formatos descargables de Examen Supletorio y nombre del anexo del docente (Tarea T12.16)
+- Qué se hizo: la ficha del catálogo y el formulario de Examen Supletorio tienen "Descargar formato" en las líneas del formato del docente que orienta la asignatura (`formato-firma-docente.doc`) y del docente de la asignatura del cruce (`formato-firma-docente-cruce.doc`), archivos fijos de `frontend/public/formatos/` que no se modificaron. El nombre del tipo de anexo venía del backend y pasa de "Formato PM-FO-4-FOR-23 firmado por el docente que orienta la asignatura" a "Formato firmado por el docente que orienta la asignatura": seed con `UPDATE` para bases existentes, constante `FORMATO_FOR_23` (el backend busca el anexo por nombre), base local actualizada, pruebas, smoke y documentos.
+- Archivos:
+  - `frontend/src/app/core/constantes/formatos-supletorio.ts`, `frontend/src/app/shared/others/enlace-formato-component/enlace-formato-component.ts` (creado)
+  - `frontend/src/app/core/constantes/catalogo-estudiante.ts`, `est-catalogo-solicitudes-content-component` (`.ts`, `.html` y spec), `est-examen-supletorio-content-component` (`.ts`, `.html` y spec) (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/helper/constantes/AnexoAcademicoConstantes.java` (modificado)
+  - `backend/solicitudes/src/test/.../ExamenSupletorioCUImplAdaptadorTest.java`, `TramiteExamenSupletorioCUImplAdaptadorTest.java`, `ConsultaExamenSupletorioCUImplAdaptadorTest.java`, `AnexoAcademicoCUImplAdaptadorTest.java` (modificado)
+  - `backend/pruebas/t5_catalogos.ps1`, `backend/pruebas/t8_examen_supletorio.ps1` (modificado)
+  - `docs/database/seed-procesos-academicos.sql`, `docs/api/contrato-api-procesos-academicos.md`, `docs/database/etapas-por-proceso.md`, `frontend/CLAUDE.md` (D-F41) (modificado)
+- Notas: en t8 el tipo del docente del cruce se buscaba con `like 'Formato firmado por el docente%'`, que con el nombre nuevo también encontraba el del docente que orienta; ahora se busca por el nombre completo. `etapas-por-proceso.md` conserva la referencia al formato institucional PM-FO-4-FOR-23. Antes de esta tarea ninguna línea del formulario tenía "Descargar formato"; se agregó a las dos.
+
 ## 2026-10-13 - Sin distintivo de resultado en la columna Asignatura (Tarea T12.15b frontend)
 - Qué se hizo: se quita el distintivo Aprobada / Rechazada que el Funcionario veía junto al nombre en la tabla de asignaturas de una Cancelación de Asignatura respondida; la celda queda con el nombre y, en las atenuadas, "Otra asignatura de la solicitud". Se mantienen el orden, el resaltado, el atenuado y la frase de lo resaltado. El resultado de cada asignatura sigue en la columna "Decisión del Decano" (Aprobada / No aprobada), a la derecha, para Funcionario, Decano y Estudiante; el Estudiante y el Decano nunca tuvieron el distintivo.
 - Archivos:

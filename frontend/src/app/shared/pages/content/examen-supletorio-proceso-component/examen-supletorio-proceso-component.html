@@ -98,14 +98,6 @@
     @case (acciones.RECHAZAR_FUNCIONARIO) {
     <p class="nota-gris">La solicitud quedará rechazada y terminará el trámite. Escribe la observación que verá el estudiante.</p>
     }
-    @case (acciones.REMITIR_DECANO) {
-    <div class="form-check" data-campo-requisitos>
-      <input class="form-check-input" type="checkbox" id="requisitos-verificados" [checked]="requisitosVerificados"
-        (change)="alCambiarVerificacion($event)">
-      <label class="form-check-label" for="requisitos-verificados">Verifiqué los requisitos del examen supletorio.</label>
-    </div>
-    <small class="texto-error" data-error="requisitos">{{ errores['requisitos'] || '' }}</small>
-    }
     @case (acciones.APROBAR_DECANO) {
     <p class="nota-gris" data-nota-aprobar>{{ notaAprobarDecano }}</p>
     <p class="mb-0">El Funcionario Académico enviará después el recibo de pago al estudiante.</p>

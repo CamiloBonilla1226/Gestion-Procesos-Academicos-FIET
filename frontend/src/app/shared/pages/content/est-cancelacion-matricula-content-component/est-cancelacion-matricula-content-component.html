@@ -74,6 +74,7 @@
     </header>
     <div class="tarjeta-body d-flex flex-column gap-3">
       <p class="ayuda mb-0">Cada archivo puede pesar máximo 5 MB.</p>
+      <p class="nota-aviso" data-nota="vigencia-paz-y-salvos">{{ vigenciaPazYSalvos }}</p>
       @for (campo of campos; track campo.requerido.uuidTipoAnexoAcademico) {
       <div [attr.data-campo-anexo]="campo.requerido.uuidTipoAnexoAcademico">
         <app-input-anexo-upload-component #entrada [tipoAnexo]="campo.tipo"
@@ -129,6 +130,24 @@
         <small class="texto-error d-block mt-1" data-error="advertencia">{{ errores['advertencia'] }}</small>
         }
       </div>
+    </div>
+  </section>
+
+  <section class="tarjeta" data-normativa>
+    <header class="tarjeta-head">
+      <h3 id="titulo-normativa">{{ tituloNormativa }}</h3>
+    </header>
+    <div class="tarjeta-body normativa" role="region" aria-labelledby="titulo-normativa" tabindex="0">
+      @for (parrafo of normativa; track parrafo.encabezado) {
+      <p data-parrafo-normativa><b>{{ parrafo.encabezado }}</b> {{ parrafo.texto }}</p>
+      @if (parrafo.literales) {
+      <ul class="normativa-literales">
+        @for (literal of parrafo.literales; track literal) {
+        <li>{{ literal }}</li>
+        }
+      </ul>
+      }
+      }
     </div>
   </section>
 

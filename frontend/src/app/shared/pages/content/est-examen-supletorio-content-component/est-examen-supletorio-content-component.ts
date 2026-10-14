@@ -30,10 +30,13 @@ import {
 } from '../../../../core/utils/validaciones-academicas';
 import { DatosEstudianteSesionComponent } from '../../../others/datos-estudiante-sesion-component/datos-estudiante-sesion-component';
 import { PasoFormulario, StepperFormularioComponent } from '../../../others/stepper-formulario-component/stepper-formulario-component';
+import { EnlaceFormatoComponent } from '../../../others/enlace-formato-component/enlace-formato-component';
+import { FORMATOS_POR_ANEXO } from '../../../../core/constantes/formatos-supletorio';
 
 interface CampoAnexo {
   anexo: AnexoSupletorioDTORespuesta;
   tipo: TipoAnexoDTORespuesta;
+  formato: string | null;
 }
 
 const TEXTOS_CAUSA: Record<string, string> = {
@@ -50,7 +53,8 @@ const TEXTOS_CAUSA: Record<string, string> = {
     InputAnexoUploadComponent,
     SimpleButtonComponent,
     DatosEstudianteSesionComponent,
-    StepperFormularioComponent
+    StepperFormularioComponent,
+    EnlaceFormatoComponent
   ],
   templateUrl: './est-examen-supletorio-content-component.html',
   styleUrls: ['../estilos-academicos.css', '../estilos-formularios.css']
@@ -145,7 +149,8 @@ export class EstExamenSupletorioContentComponent implements OnInit {
           this.formulario = formulario;
           this.campos = (formulario.anexos ?? []).map(anexo => ({
             anexo,
-            tipo: comoTipoAnexo(anexo.uuidTipoAnexoAcademico, anexo.nombre, anexo.formatosPermitidos, true)
+            tipo: comoTipoAnexo(anexo.uuidTipoAnexoAcademico, anexo.nombre, anexo.formatosPermitidos, true),
+            formato: FORMATOS_POR_ANEXO[anexo.nombre] ?? null
           }));
           this.archivos = {};
         },

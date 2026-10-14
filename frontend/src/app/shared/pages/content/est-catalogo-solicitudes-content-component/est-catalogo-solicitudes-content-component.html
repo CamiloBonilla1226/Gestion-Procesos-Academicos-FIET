@@ -15,10 +15,18 @@
         </ul>
         <h3>Anexos requeridos</h3>
         <ul data-lista="anexos">
-          @for (anexo of tramite.anexos; track anexo) {
-            <li>{{ anexo }}</li>
+          @for (anexo of tramite.anexos; track anexo.texto) {
+            <li>
+              {{ anexo.texto }}
+              @if (anexo.formato) {
+                <app-enlace-formato-component [archivo]="anexo.formato"></app-enlace-formato-component>
+              }
+            </li>
           }
         </ul>
+        @if (tramite.notaAnexos) {
+          <p class="nota-aviso nota-anexos" data-nota="vigencia-paz-y-salvos">{{ tramite.notaAnexos }}</p>
+        }
       </div>
       <div class="tramite-pie">
         <a class="iniciar" [attr.href]="tramite.ruta" (click)="iniciar($event, tramite.ruta)">Iniciar solicitud →</a>

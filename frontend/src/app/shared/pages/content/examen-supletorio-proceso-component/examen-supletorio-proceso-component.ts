@@ -158,7 +158,6 @@ export class ExamenSupletorioProcesoComponent implements OnChanges {
   dialogoVisible = false;
   enviando = false;
   observacion = '';
-  requisitosVerificados = false;
   fechaAcordada = '';
   tipoAnexoPago: TipoAnexoAcademicoDTORespuesta | null = null;
   campoAnexoPago: TipoAnexoDTORespuesta | null = null;
@@ -263,7 +262,6 @@ export class ExamenSupletorioProcesoComponent implements OnChanges {
     if (!this.accionesVisibles.includes(accion) || this.cargandoTipos) return;
     this.accionActiva = accion;
     this.observacion = '';
-    this.requisitosVerificados = false;
     this.fechaAcordada = '';
     this.archivoPago = null;
     this.tipoAnexoPago = null;
@@ -282,10 +280,6 @@ export class ExamenSupletorioProcesoComponent implements OnChanges {
     if (visible || this.enviando) return;
     this.dialogoVisible = false;
     this.accionActiva = null;
-  }
-
-  alCambiarVerificacion(evento: Event): void {
-    this.requisitosVerificados = (evento.target as HTMLInputElement).checked;
   }
 
   alSeleccionarAnexoPago(archivo: File, entrada: InputAnexoUploadComponent): void {
@@ -373,10 +367,7 @@ export class ExamenSupletorioProcesoComponent implements OnChanges {
       case ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO:
         return this.examenSupletorioService.rechazarPorFuncionario(uuid, { observacion });
       case ACCIONES_ACADEMICAS.REMITIR_DECANO:
-        return this.examenSupletorioService.remitirADecano(uuid, {
-          requisitosVerificados: true,
-          observacion: opcional
-        });
+        return this.examenSupletorioService.remitirADecano(uuid, { observacion: opcional });
       case ACCIONES_ACADEMICAS.APROBAR_DECANO:
         return this.examenSupletorioService.aprobarPorDecano(uuid, opcional === null ? undefined : { observacion: opcional });
       case ACCIONES_ACADEMICAS.RECHAZAR_DECANO:
@@ -413,9 +404,6 @@ export class ExamenSupletorioProcesoComponent implements OnChanges {
     const errores: Record<string, string> = {};
     const errorObservacion = errorDeObservacion(accion, this.observacion);
     if (errorObservacion) errores['observacion'] = errorObservacion;
-    if (accion === ACCIONES_ACADEMICAS.REMITIR_DECANO && !this.requisitosVerificados) {
-      errores['requisitos'] = 'Confirma que verificaste los requisitos; si no se cumplen, rechaza la solicitud.';
-    }
     if (ANEXO_DE_ACCION[accion]) {
       if (this.archivoPago) {
         const error = errorDeArchivo(this.archivoPago, this.tipoAnexoPago?.formatosPermitidos);

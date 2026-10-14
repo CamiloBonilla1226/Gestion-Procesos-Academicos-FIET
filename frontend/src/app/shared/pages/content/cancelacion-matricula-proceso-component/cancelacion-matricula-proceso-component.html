@@ -27,6 +27,9 @@
       <h3>Asignaturas matriculadas</h3>
     </header>
     <div class="tarjeta-body">
+      @if (muestraNotaSimca) {
+      <p class="nota-aviso mb-3" data-nota="simca">{{ notaSimca }}</p>
+      }
       @if (editable) {
       <p class="ayuda-tabla">
         Diligencia los datos de la Facultad en cada fila. Las faltas y la nota aceptan un número o un texto de hasta 20

@@ -29,6 +29,7 @@ import {
   campoObservacion,
   etiquetaCampoObservacion
 } from '../../../../core/constantes/etiquetas-academicas';
+import { NOTA_SIMCA } from '../../../../core/constantes/textos-cancelacion-matricula';
 import { CeldaEncabezado, agruparEncabezados } from '../../../../core/utils/encabezado-agrupado';
 import { ResumenSolicitudComponent } from '../../../others/resumen-solicitud-component/resumen-solicitud-component';
 import {
@@ -138,6 +139,7 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
   readonly tipoResolucion = comoTipoAnexo('resolucion', 'Escaneo de la Resolución firmada', FORMATOS_RESOLUCION, true);
 
   readonly notaAprobarDecano = NOTA_APROBAR_DECANO;
+  readonly notaSimca = NOTA_SIMCA;
 
   columnas: ColumnaAsignatura[] = COLUMNAS;
   encabezadoAgrupado: CeldaEncabezado[][] = agruparEncabezados(COLUMNAS.map(c => c.titulo), RUTAS_ENCABEZADO_ASIGNATURAS);
@@ -179,6 +181,10 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
   get accionesVisibles(): AccionAcademica[] {
     const disponibles = this.solicitud?.accionesDisponibles ?? [];
     return ACCIONES_DEL_PROCESO.filter(accion => disponibles.includes(accion));
+  }
+
+  get muestraNotaSimca(): boolean {
+    return this.rol !== ROLES_ETIQUETA.ESTUDIANTE;
   }
 
   get asignaturas(): AsignaturaCancelacionDTORespuesta[] {

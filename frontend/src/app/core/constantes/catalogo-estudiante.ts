@@ -1,10 +1,19 @@
+import { FORMATO_FIRMA_DOCENTE, FORMATO_FIRMA_DOCENTE_CRUCE } from './formatos-supletorio';
+import { VIGENCIA_PAZ_Y_SALVOS } from './textos-cancelacion-matricula';
+
+export interface AnexoCatalogo {
+  texto: string;
+  formato?: string;
+}
+
 export interface TramiteCatalogo {
   titulo: string;
   icono: string;
   ruta: string;
   descripcion: string;
   requisitos: string[];
-  anexos: string[];
+  anexos: AnexoCatalogo[];
+  notaAnexos?: string;
 }
 
 export const TRAMITES_ESTUDIANTE: TramiteCatalogo[] = [
@@ -19,10 +28,11 @@ export const TRAMITES_ESTUDIANTE: TramiteCatalogo[] = [
       'Encontrarse a paz y salvo con la Universidad.'
     ],
     anexos: [
-      'Paz y salvo de Bibliotecas, Deportes y Recreación, Salud Integral y División Financiera.',
-      'Cupón de Confirmación de la Intervención Psicosocial.',
-      'Carné estudiantil o constancia de no trámite.'
-    ]
+      { texto: 'Paz y salvo de Bibliotecas, Deportes y Recreación, Salud Integral y División Financiera.' },
+      { texto: 'Cupón de Confirmación de la Intervención Psicosocial.' },
+      { texto: 'Carné estudiantil o constancia de no trámite.' }
+    ],
+    notaAnexos: VIGENCIA_PAZ_Y_SALVOS
   },
   {
     titulo: 'Cancelación de Asignatura',
@@ -35,8 +45,8 @@ export const TRAMITES_ESTUDIANTE: TramiteCatalogo[] = [
       'Contar con nota promedio igual o superior a 3.0.'
     ],
     anexos: [
-      'No se exigen documentos obligatorios; solo debes indicar el motivo.',
-      'Soporte que respalde el motivo, de forma opcional.'
+      { texto: 'No se exigen documentos obligatorios; solo debes indicar el motivo.' },
+      { texto: 'Soporte que respalde el motivo, de forma opcional.' }
     ]
   },
   {
@@ -49,8 +59,11 @@ export const TRAMITES_ESTUDIANTE: TramiteCatalogo[] = [
       'Contar con la firma del docente que orienta la asignatura.'
     ],
     anexos: [
-      'Formato firmado por el docente que orienta la asignatura, siempre obligatorio.',
-      'Soporte de la justificación, opcional, o formato firmado por el docente de la asignatura con la que se presenta el cruce si esa es la causa.'
+      { texto: 'Formato firmado por el docente que orienta la asignatura, siempre obligatorio.', formato: FORMATO_FIRMA_DOCENTE },
+      {
+        texto: 'Soporte de la justificación, opcional, o formato firmado por el docente de la asignatura con la que se presenta el cruce si esa es la causa.',
+        formato: FORMATO_FIRMA_DOCENTE_CRUCE
+      }
     ]
   }
 ];
