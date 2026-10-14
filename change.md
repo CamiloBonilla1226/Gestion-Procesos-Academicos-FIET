@@ -2,6 +2,19 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-14 - Textos informativos de Cancelación de Matrícula (Tarea T12.18)
+- Qué se hizo: tres textos informativos, sin cambiar reglas ni validaciones. La vigencia de los paz y salvos va en la ficha de Cancelación de Matrícula del catálogo (debajo de los anexos requeridos) y en la sección de anexos del formulario del Estudiante (antes de los campos de carga), como `nota-aviso`. La nota de SIMCA va encima de la tabla de asignaturas del detalle de Cancelación de Matrícula, solo para el Funcionario y el Decano. El bloque "Normativa aplicable" (artículos 1 a 4, parágrafo y literales a a d) va al final del formulario de Cancelación de Matrícula, antes de los botones, con alto máximo de 260 px y scroll propio.
+- Archivos:
+  - `frontend/src/app/core/constantes/textos-cancelacion-matricula.ts` (creado)
+  - `frontend/src/app/core/constantes/catalogo-estudiante.ts` (modificado)
+  - `frontend/src/app/shared/pages/content/est-catalogo-solicitudes-content-component` (`.ts`, `.html`, `.css` y spec) (modificado)
+  - `frontend/src/app/shared/pages/content/est-cancelacion-matricula-content-component` (`.ts`, `.html` y spec) (modificado)
+  - `frontend/src/app/shared/pages/content/cancelacion-matricula-proceso-component` (`.ts`, `.html` y spec) (modificado)
+  - `frontend/src/app/shared/pages/content/estilos-formularios.css` (modificado)
+  - `frontend/src/app/shared/pages/content/cancelacion-asignatura-proceso-component/cancelacion-asignatura-proceso-component.spec.ts`, `est-cancelacion-asignatura-content-component/est-cancelacion-asignatura-content-component.spec.ts` (modificado)
+  - `frontend/CLAUDE.md` (D-F43) (modificado)
+- Notas: los textos viven solo en `textos-cancelacion-matricula.ts`. El catálogo carga ahora también `estilos-academicos.css` para usar la misma `nota-aviso`. La advertencia y la casilla del artículo 3 del formulario quedan como estaban.
+
 ## 2026-10-13 - Remitir Examen Supletorio sin confirmar requisitos (Tarea T12.16, parte adicional)
 - Qué se hizo: `funcionario/remitir` de Examen Supletorio deja de exigir `requisitosVerificados`; el cuerpo solo lee `observacion`, opcional, para el Decano, y si llega `requisitosVerificados` (verdadero o falso) se ignora sin error. Se quitan el error 4 y el mensaje `REQUISITOS_NO_CONFIRMADOS`. En el frontend, el diálogo de remitir del supletorio ya no tiene la casilla ni su validación y no envía `requisitosVerificados`. Las cancelaciones no cambian.
 - Archivos:

@@ -3,6 +3,7 @@ import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { Component } from '@angular/core';
 import { EstCatalogoSolicitudesContentComponent } from './est-catalogo-solicitudes-content-component';
+import { VIGENCIA_PAZ_Y_SALVOS } from '../../../../core/constantes/textos-cancelacion-matricula';
 
 @Component({ template: '' })
 class FormularioFalso {}

@@ -185,6 +185,16 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-tabla-asignaturas] input, [data-tabla-asignaturas] select')).toBeNull();
   });
 
+  it('no muestra la nota de SIMCA de Cancelacion de Matricula a ningun rol', () => {
+    for (const rol of ['FUNCIONARIO', 'DECANO', 'ESTUDIANTE']) {
+      const fixture = crear(solicitud([], 'EN_REVISION_DECANO'), EVALUADAS, rol);
+      expect(fixture.nativeElement.querySelector('[data-tabla-asignaturas]')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('[data-nota="simca"]')).toBeNull();
+      expect(fixture.nativeElement.textContent).not.toContain('SIMCA');
+      fixture.destroy();
+    }
+  });
+
   it('solo pinta los botones que vienen en accionesDisponibles', () => {
     expect(botones(crear(solicitud(['RECHAZAR_FUNCIONARIO', 'REMITIR_DECANO']), EVALUADAS))).toEqual(['RECHAZAR_FUNCIONARIO', 'REMITIR_DECANO']);
     expect(botones(crear(solicitud(['APROBAR_DECANO', 'RECHAZAR_DECANO'], 'EN_REVISION_DECANO'), EVALUADAS, 'DECANO'))).toEqual([

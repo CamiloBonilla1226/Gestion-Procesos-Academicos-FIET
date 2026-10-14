@@ -11,6 +11,7 @@ import { ErrorHandlerService } from '../../../../core/services/error-handler-ser
 import { ToastService } from '../../../../core/services/toast-service';
 import { FormularioCancelacionMatriculaDTORespuesta } from '../../../../core/models/CancelacionMatricula/DTOResponse/FormularioCancelacionMatriculaDTORespuesta';
 import { InputAnexoUploadComponent } from '../../../inputs/input-anexo-upload-component/input-anexo-upload-component';
+import { VIGENCIA_PAZ_Y_SALVOS } from '../../../../core/constantes/textos-cancelacion-matricula';
 
 const NOMBRES = [
   'Paz y salvo - División de Bibliotecas',
@@ -86,6 +87,41 @@ describe('EstCancelacionMatriculaContentComponent', () => {
     expect(fixture.nativeElement.querySelectorAll('[data-asignatura]').length).toBe(2);
     expect(fixture.nativeElement.textContent).toContain('Carné estudiantil o constancia de no trámite - DARCA');
     expect(botonRadicar(fixture).disabled).toBeFalse();
+  });
+
+  it('la seccion de anexos avisa la vigencia de los paz y salvos antes de los campos de carga', () => {
+    const fixture = crear();
+    const nota = fixture.nativeElement.querySelector('[data-nota="vigencia-paz-y-salvos"]') as HTMLElement;
+    expect(nota.textContent!.trim()).toBe(VIGENCIA_PAZ_Y_SALVOS);
+    expect(nota.classList).toContain('nota-aviso');
+    const primerCampo = fixture.nativeElement.querySelector('[data-campo-anexo]') as HTMLElement;
+    expect(nota.parentElement).toBe(primerCampo.parentElement);
+    expect(nota.compareDocumentPosition(primerCampo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(fixture.nativeElement.textContent).not.toContain('SIMCA');
+  });
+
+  it('al final del formulario muestra la normativa aplicable con sus encabezados en negrita y deja los botones despues', () => {
+    const fixture = crear();
+    const bloque = fixture.nativeElement.querySelector('[data-normativa]') as HTMLElement;
+    expect(bloque.querySelector('h3')!.textContent!.trim()).toBe('Normativa aplicable');
+    const parrafos: HTMLElement[] = Array.from(bloque.querySelectorAll('[data-parrafo-normativa]'));
+    expect(parrafos.map(p => p.querySelector('b')!.textContent!.trim()))
+      .toEqual(['ARTÍCULO 1º:', 'PARÁGRAFO:', 'ARTÍCULO 2:', 'ARTÍCULO 3:', 'ARTÍCULO 4:']);
+    expect(parrafos[0].textContent!.trim()).toBe('ARTÍCULO 1º: Cuando un estudiante desee CANCELAR LA MATRÍCULA, podrá solicitarlo por escrito al Decano de la respectiva facultad, hasta el ÚLTIMO DÍA DE CLASES del periodo lectivo correspondiente, exponiendo los motivos que lo inducen a ello y adjuntando el paz y salvo general de la Universidad, así como el carné estudiantil.');
+    expect(parrafos[1].textContent).toContain('el cupón denominado: “Confirmación de la Intervención Psicosocial”.');
+    expect(parrafos[3].textContent).toContain('sólo podrá ingresar de nuevo al programa sometiéndose al proceso de admisión vigente.');
+    expect(parrafos[4].textContent).toContain('será calificado con nota cero punto cero (0.0) en los exámenes dejados de presentar');
+    const literales: string[] = Array.from(bloque.querySelectorAll('.normativa-literales li')).map((li: any) => li.textContent.trim());
+    expect(literales.map(l => l.slice(0, 2))).toEqual(['a.', 'b.', 'c.', 'd.']);
+    expect(literales[3]).toBe('d. Se consideran como no cursadas las restantes.');
+    expect(parrafos[2].nextElementSibling!.classList).toContain('normativa-literales');
+    const cuerpo = bloque.querySelector('.normativa') as HTMLElement;
+    expect(getComputedStyle(cuerpo).overflowY).toBe('auto');
+    expect(getComputedStyle(cuerpo).maxHeight).toBe('260px');
+    const pie = fixture.nativeElement.querySelector('.pie-formulario') as HTMLElement;
+    expect(bloque.compareDocumentPosition(pie) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('#acepta-advertencia')).toBeTruthy();
+    expect(fixture.nativeElement.textContent).toContain('Leí y entiendo la advertencia.');
   });
 
   it('sin asignaturas activas avisa y no deja radicar', () => {

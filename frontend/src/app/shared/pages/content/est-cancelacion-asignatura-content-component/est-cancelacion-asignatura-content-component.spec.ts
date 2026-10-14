@@ -80,6 +80,15 @@ describe('EstCancelacionAsignaturaContentComponent', () => {
     expect(fixture.nativeElement.textContent).not.toContain('primer periodo');
   });
 
+  it('no trae los textos informativos de Cancelacion de Matricula', () => {
+    const fixture = crear();
+    const texto = fixture.nativeElement.textContent;
+    expect(fixture.nativeElement.querySelector('[data-normativa], [data-nota]')).toBeNull();
+    expect(texto).not.toContain('Normativa aplicable');
+    expect(texto).not.toContain('PAZ Y SALVOS');
+    expect(texto).not.toContain('SIMCA');
+  });
+
   it('sin asignaturas activas avisa y deshabilita el envio', () => {
     const fixture = crear(formulario(0));
     expect(fixture.nativeElement.querySelector('[data-estado="sin-asignaturas"]')).toBeTruthy();
