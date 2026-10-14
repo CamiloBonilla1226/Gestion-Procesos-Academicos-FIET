@@ -35,7 +35,6 @@ import {
   RolEtiqueta
 } from '../../../../core/constantes/procesos-academicos';
 import {
-  ETIQUETAS_ESTUDIANTE,
   ETIQUETAS_FINALES_ESTUDIANTE,
   NOTA_APROBAR_DECANO,
   RUTAS_ENCABEZADO_ASIGNATURAS,
@@ -253,13 +252,9 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
     return ETAPAS_FINALES.includes(this.solicitud?.etapaCodigo ?? '');
   }
 
-  get muestraDistintivo(): boolean {
-    return this.esFinal && this.rol === ROLES_ETIQUETA.FUNCIONARIO;
-  }
-
   get resultadoResaltado(): ResultadoFila | null {
     const pedido = this.resultadoPedido();
-    if (!pedido || !this.muestraDistintivo) return null;
+    if (!pedido || !this.esFinal || this.rol !== ROLES_ETIQUETA.FUNCIONARIO) return null;
     return this.asignaturas.some(a => this.resultadoDe(a) === pedido) ? pedido : null;
   }
 
@@ -279,10 +274,6 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
 
   resultadoDe(a: AsignaturaSolicitadaDTORespuesta): ResultadoFila {
     return a.aprobadaPorDecano === true ? RESULTADOS_FILA.APROBADA : RESULTADOS_FILA.RECHAZADA;
-  }
-
-  textoDistintivo(a: AsignaturaSolicitadaDTORespuesta): string {
-    return this.resultadoDe(a) === RESULTADOS_FILA.APROBADA ? ETIQUETAS_ESTUDIANTE.APROBADA : ETIQUETAS_ESTUDIANTE.RECHAZADA;
   }
 
   esResaltada(a: AsignaturaSolicitadaDTORespuesta): boolean {

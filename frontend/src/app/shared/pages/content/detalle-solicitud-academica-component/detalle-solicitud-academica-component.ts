@@ -35,6 +35,12 @@ export interface DecisionDecano {
 
 const ACCIONES_DECISION_DECANO: string[] = [ACCIONES_ACADEMICAS.APROBAR_DECANO, ACCIONES_ACADEMICAS.RECHAZAR_DECANO];
 
+const ACCIONES_MENSAJE_ESTUDIANTE: string[] = [
+  ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA,
+  ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO,
+  ACCIONES_ACADEMICAS.RECHAZAR_COMPROBANTE
+];
+
 export interface DatoGeneral {
   etiqueta: string;
   valor: string;
@@ -130,11 +136,11 @@ export class DetalleSolicitudAcademicaComponent implements OnInit {
   }
 
   get mensajeEstudiante(): string | null {
-    return this.ultimaObservacion(ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA);
+    return this.ultimaObservacion(...ACCIONES_MENSAJE_ESTUDIANTE);
   }
 
   get decisionDecano(): DecisionDecano | null {
-    if (this.rol !== ROLES_ETIQUETA.FUNCIONARIO) return null;
+    if (this.rol !== ROLES_ETIQUETA.FUNCIONARIO && this.rol !== ROLES_ETIQUETA.DECANO) return null;
     const fila = [...this.historial].reverse().find(entrada => ACCIONES_DECISION_DECANO.includes(entrada.accion));
     if (!fila) return null;
     const aprobada = fila.accion === ACCIONES_ACADEMICAS.APROBAR_DECANO;
@@ -181,10 +187,6 @@ export class DetalleSolicitudAcademicaComponent implements OnInit {
     this.router.navigate([this.rutaBandeja]);
   }
 
-  observacionHistorial(entrada: HistorialSolicitudAcademicaDTORespuesta): string | null {
-    return entrada.accion === ACCIONES_ACADEMICAS.REMITIR_DECANO ? null : entrada.observaciones || null;
-  }
-
   nombreUsuario(entrada: HistorialSolicitudAcademicaDTORespuesta): string {
     return `${entrada.nombresUsuario ?? ''} ${entrada.apellidosUsuario ?? ''}`.trim();
   }
@@ -202,8 +204,8 @@ export class DetalleSolicitudAcademicaComponent implements OnInit {
       });
   }
 
-  private ultimaObservacion(accion: string): string | null {
-    const fila = [...this.historial].reverse().find(entrada => entrada.accion === accion);
+  private ultimaObservacion(...acciones: string[]): string | null {
+    const fila = [...this.historial].reverse().find(entrada => acciones.includes(entrada.accion));
     const texto = (fila?.observaciones ?? '').trim();
     return texto === '' ? null : texto;
   }

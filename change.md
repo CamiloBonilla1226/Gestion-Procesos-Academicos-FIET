@@ -2,6 +2,20 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-13 - Sin distintivo de resultado en la columna Asignatura (Tarea T12.15b frontend)
+- Qué se hizo: se quita el distintivo Aprobada / Rechazada que el Funcionario veía junto al nombre en la tabla de asignaturas de una Cancelación de Asignatura respondida; la celda queda con el nombre y, en las atenuadas, "Otra asignatura de la solicitud". Se mantienen el orden, el resaltado, el atenuado y la frase de lo resaltado. El resultado de cada asignatura sigue en la columna "Decisión del Decano" (Aprobada / No aprobada), a la derecha, para Funcionario, Decano y Estudiante; el Estudiante y el Decano nunca tuvieron el distintivo.
+- Archivos:
+  - `cancelacion-asignatura-proceso-component` (`.ts`, `.html` y spec), `frontend/src/app/shared/pages/content/tabla-asignaturas.css` (modificado)
+  - `frontend/CLAUDE.md` (D-F39) (modificado)
+- Notas: se quitan `muestraDistintivo`, `textoDistintivo`, el import de `ETIQUETAS_ESTUDIANTE` y los estilos `.distintivo-resultado`. Si el Funcionario rechazó antes del Decano no hay decisión por asignatura y la columna "Decisión del Decano" no aparece.
+
+## 2026-10-13 - Historial del detalle sin comentarios (Tarea T12.14, punto 6, frontend)
+- Qué se hizo: las filas del historial ya no muestran observaciones para ningún rol ni proceso; solo acción, usuario, fecha e insignia de etapa (no para el Estudiante). Para no perder ninguna, "Mensaje para el estudiante" toma también la observación de `RECHAZAR_FUNCIONARIO` y `RECHAZAR_COMPROBANTE`, que antes solo se veían en el historial, y "Decisión del Decano" se muestra también al Decano, que antes veía su observación solo en el historial. Se quitan `observacionHistorial` y el estilo `.historial-observacion`.
+- Archivos:
+  - `detalle-solicitud-academica-component` (`.ts`, `.html`, `.css` y spec) (modificado)
+  - `frontend/CLAUDE.md` (D-F40 y descripción del detalle) (modificado)
+- Notas: decidido con el usuario antes de implementar (mismo bloque para los rechazos y bloque de decisión visible al Decano). Sin cambios en el backend.
+
 ## 2026-10-13 - Respuestas agrupadas por resultado y detalle con resaltado (Tarea T12.14 frontend)
 - Qué se hizo: en Respuestas, cada Cancelación de Asignatura da como máximo dos filas (Aprobada y Rechazada) agrupando `resultadosAsignaturas` por `aprobada`, con clave solicitud más resultado; el filtro de estado sigue por fila y el pie cuenta solicitudes. El ojo abre el detalle con `?resultado=aprobada|rechazada` en lugar del uuid de una asignatura. El detalle muestra todas las asignaturas: las del resultado de la fila primero y resaltadas, las demás atenuadas con "Otra asignatura de la solicitud", y la nota "Se resaltan las asignaturas ... de la solicitud". En etapa final, el Funcionario ve un distintivo Aprobada o Rechazada en cada asignatura. Sin cambios en el backend.
 - Archivos:

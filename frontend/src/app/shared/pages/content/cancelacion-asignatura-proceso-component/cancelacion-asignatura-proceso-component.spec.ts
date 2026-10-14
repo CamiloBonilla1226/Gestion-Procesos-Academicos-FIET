@@ -750,7 +750,7 @@ describe('CancelacionAsignaturaProcesoComponent resaltado por resultado desde Re
   ];
   let parametros: BehaviorSubject<ParamMap>;
 
-  function crearCon(resultado: string | null, etapa = 'APROBADA', rol = 'FUNCIONARIO'): ComponentFixture<CancelacionAsignaturaProcesoComponent> {
+  function crearCon(resultado: string | null, etapa = 'APROBADA', rol = 'FUNCIONARIO', etiqueta = 'Respondida'): ComponentFixture<CancelacionAsignaturaProcesoComponent> {
     const mapa = convertToParamMap(resultado ? { resultado } : {});
     parametros = new BehaviorSubject<ParamMap>(mapa);
     const cancelaciones = jasmine.createSpyObj<CancelacionAsignaturaService>('CancelacionAsignaturaService', ['getDetalle']);
@@ -768,7 +768,7 @@ describe('CancelacionAsignaturaProcesoComponent resaltado por resultado desde Re
     });
     const fixture = TestBed.createComponent(CancelacionAsignaturaProcesoComponent);
     fixture.componentRef.setInput('uuidSolicitud', 's-1');
-    fixture.componentRef.setInput('solicitud', solicitud([], etapa, true, 'Respondida'));
+    fixture.componentRef.setInput('solicitud', solicitud([], etapa, true, etiqueta));
     fixture.componentRef.setInput('rol', rol);
     fixture.componentRef.setInput('recargar', () => undefined);
     fixture.detectChanges();
@@ -783,9 +783,14 @@ describe('CancelacionAsignaturaProcesoComponent resaltado por resultado desde Re
     return Array.from(fixture.nativeElement.querySelectorAll(`[data-tabla-asignaturas] tbody tr.${clase}`)).map((tr: any) => tr.getAttribute('data-fila'));
   }
 
-  function distintivos(fixture: ComponentFixture<CancelacionAsignaturaProcesoComponent>): string[] {
+  function celda(fixture: ComponentFixture<CancelacionAsignaturaProcesoComponent>, titulo: string): string[] {
+    const indice = fixture.componentInstance.columnas.findIndex(columna => columna.titulo === titulo);
     return Array.from(fixture.nativeElement.querySelectorAll('[data-tabla-asignaturas] tbody tr'))
-      .map((tr: any) => tr.querySelector('.distintivo-resultado')?.textContent.trim() ?? '');
+      .map((tr: any) => (indice < 0 ? '' : tr.querySelectorAll('td')[indice].textContent.replace(/\s+/g, ' ').trim()));
+  }
+
+  function sinDistintivoEnAsignatura(fixture: ComponentFixture<CancelacionAsignaturaProcesoComponent>): boolean {
+    return celda(fixture, 'Asignatura').every(texto => !/\b(Aprobada|Rechazada)\b/.test(texto));
   }
 
   function otras(fixture: ComponentFixture<CancelacionAsignaturaProcesoComponent>): (string | null)[] {
@@ -804,33 +809,47 @@ describe('CancelacionAsignaturaProcesoComponent resaltado por resultado desde Re
     expect(conClase(fixture, 'fila-atenuada')).toEqual(['as-1']);
     expect(otras(fixture)).toEqual(['as-1']);
     expect(fixture.nativeElement.querySelector('[data-otra-asignatura]').textContent.trim()).toBe('Otra asignatura de la solicitud');
+    expect(celda(fixture, 'Asignatura')).toEqual(['Física', 'Química', 'Cálculo Otra asignatura de la solicitud']);
     expect(aviso(fixture)).toBe('Se resaltan las asignaturas rechazadas de la solicitud');
     expect(fixture.nativeElement.querySelector('[data-motivo]').textContent).toContain('Cruce laboral');
   });
 
-  it('con resultado aprobada las aprobadas van primero y cada asignatura lleva su distintivo', () => {
+  it('con resultado aprobada las aprobadas van primero y el resultado sale en Decision del Decano, no en Asignatura', () => {
     const fixture = crearCon('aprobada');
     expect(filas(fixture)).toEqual(['as-1', 'as-2', 'as-3']);
     expect(conClase(fixture, 'fila-resaltada')).toEqual(['as-1']);
-    expect(distintivos(fixture)).toEqual(['Aprobada', 'Rechazada', 'Rechazada']);
+    expect(sinDistintivoEnAsignatura(fixture)).toBeTrue();
+    const columnas = fixture.componentInstance.columnas.map(columna => columna.titulo);
+    expect(columnas.indexOf('Decisión del Decano')).toBeGreaterThan(columnas.indexOf('Asignatura'));
+    expect(celda(fixture, 'Decisión del Decano')).toEqual(['Aprobada', 'No aprobada', '—']);
+    expect(celda(fixture, 'Código')).toEqual(['A1', 'A2', 'A3']);
     expect(aviso(fixture)).toBe('Se resaltan las asignaturas aprobadas de la solicitud');
   });
 
   for (const valor of [null, 'otra', 'as-1']) {
-    it(`con el parametro ${valor} se ve como desde Solicitudes, con distintivos en etapa final`, () => {
+    it(`con el parametro ${valor} se ve como desde Solicitudes, sin distintivo en Asignatura`, () => {
       const fixture = crearCon(valor);
       expect(filas(fixture)).toEqual(['as-1', 'as-2', 'as-3']);
       expect(conClase(fixture, 'fila-resaltada')).toEqual([]);
       expect(conClase(fixture, 'fila-atenuada')).toEqual([]);
       expect(aviso(fixture)).toBeNull();
-      expect(distintivos(fixture)).toEqual(['Aprobada', 'Rechazada', 'Rechazada']);
+      expect(sinDistintivoEnAsignatura(fixture)).toBeTrue();
     });
   }
 
-  it('fuera de la etapa final no hay distintivos ni resaltado', () => {
+  for (const [rol, etiqueta] of [['ESTUDIANTE', 'Aprobada'], ['DECANO', 'Aprobada por el Decano']]) {
+    it(`${rol} en una solicitud respondida ve el resultado en Decision del Decano y nada en Asignatura`, () => {
+      const fixture = crearCon('aprobada', 'APROBADA', rol, etiqueta);
+      expect(sinDistintivoEnAsignatura(fixture)).toBeTrue();
+      expect(celda(fixture, 'Decisión del Decano').slice(0, 2)).toEqual(['Aprobada', 'No aprobada']);
+      expect(aviso(fixture)).toBeNull();
+    });
+  }
+
+  it('fuera de la etapa final no hay resaltado', () => {
     const fixture = crearCon('aprobada', 'APROBADA_POR_DECANO');
     expect(filas(fixture)).toEqual(['as-1', 'as-2', 'as-3']);
-    expect(distintivos(fixture)).toEqual(['', '', '']);
+    expect(sinDistintivoEnAsignatura(fixture)).toBeTrue();
     expect(aviso(fixture)).toBeNull();
   });
 

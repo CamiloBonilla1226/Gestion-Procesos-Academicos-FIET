@@ -138,9 +138,6 @@
           <div class="historial-texto">
             <div class="historial-accion">{{ textoAccion(entrada.accion) }}</div>
             <small>{{ nombreUsuario(entrada) }} &middot; {{ formatearFechaHora(entrada.fecha) }}</small>
-            @if (observacionHistorial(entrada); as observacion) {
-            <p class="historial-observacion">{{ observacion }}</p>
-            }
           </div>
           @if (!esEstudiante) {
           <span class="badge rounded-pill" [ngClass]="claseInsigniaEtapa(entrada.etapaCodigo)" data-etapa-historial>

@@ -111,9 +111,6 @@
                 }
                 } @else {
                 {{ columna.valor(asignatura) ?? sinDato }}
-                @if (columna === columnaNombre && muestraDistintivo) {
-                <span class="distintivo-resultado" [attr.data-resultado]="resultadoDe(asignatura)">{{ textoDistintivo(asignatura) }}</span>
-                }
                 @if (columna === columnaNombre && esAtenuada(asignatura)) {
                 <small class="d-block text-secondary" data-otra-asignatura>Otra asignatura de la solicitud</small>
                 }

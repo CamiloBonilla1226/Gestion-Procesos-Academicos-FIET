@@ -224,7 +224,7 @@ describe('DetalleSolicitudAcademicaComponent', () => {
     expect(bloque.querySelector('[data-observacion-decano]').textContent).toContain('No hay soporte médico');
   });
 
-  it('el bloque de la decision aprobada sin observacion lo dice, y no aparece para el Estudiante ni el Decano', () => {
+  it('el bloque de la decision aprobada sin observacion lo dice, lo ve tambien el Decano y no el Estudiante', () => {
     const conDecision: HistorialSolicitudAcademicaDTORespuesta[] = [
       { accion: 'APROBAR_DECANO', etapaCodigo: 'APROBADA_POR_DECANO', observaciones: null, fecha: '2026-10-09T15:00:00', nombresUsuario: 'Luis', apellidosUsuario: 'Decano' }
     ];
@@ -236,12 +236,26 @@ describe('DetalleSolicitudAcademicaComponent', () => {
     const bloque = funcionario.nativeElement.querySelector('[data-decision-decano]');
     expect(bloque.querySelector('[data-decision]').textContent.trim()).toBe('Aprobada por el Decano');
     expect(bloque.querySelector('[data-sin-observacion-decano]')).toBeTruthy();
-    for (const rol of ['ESTUDIANTE', 'DECANO']) {
-      const otro = TestBed.createComponent(DetalleSolicitudAcademicaComponent);
-      otro.componentRef.setInput('rol', rol);
-      otro.detectChanges();
-      expect(otro.nativeElement.querySelector('[data-decision-decano]')).toBeNull();
-    }
+    const decano = TestBed.createComponent(DetalleSolicitudAcademicaComponent);
+    decano.componentRef.setInput('rol', 'DECANO');
+    decano.detectChanges();
+    expect(decano.nativeElement.querySelector('[data-decision-decano] [data-decision]').textContent.trim()).toBe('Aprobada por el Decano');
+    const estudiante = TestBed.createComponent(DetalleSolicitudAcademicaComponent);
+    estudiante.componentRef.setInput('rol', 'ESTUDIANTE');
+    estudiante.detectChanges();
+    expect(estudiante.nativeElement.querySelector('[data-decision-decano]')).toBeNull();
+  });
+
+  it('el Decano ve su observacion en el bloque Decision del Decano y no en el historial', () => {
+    servicio.getSolicitud.and.returnValue(of(detalle(false, false)));
+    servicio.getHistorial.and.returnValue(of([
+      { accion: 'RECHAZAR_DECANO', etapaCodigo: 'RECHAZADA_POR_DECANO', observaciones: 'No hay soporte médico', fecha: '2026-10-09T15:00:00', nombresUsuario: 'Luis', apellidosUsuario: 'Decano' }
+    ]));
+    const fixture = TestBed.createComponent(DetalleSolicitudAcademicaComponent);
+    fixture.componentRef.setInput('rol', 'DECANO');
+    fixture.detectChanges();
+    expect(texto(fixture, '[data-observacion-decano]')).toEqual(['No hay soporte médico']);
+    expect(texto(fixture, '[data-historial]')[0]).not.toContain('No hay soporte médico');
   });
 
   it('pinta el historial de la mas antigua a la mas reciente con textos legibles', () => {
@@ -369,12 +383,67 @@ describe('DetalleSolicitudAcademicaComponent', () => {
     expect(crear(detalle(false, false), 'ESTUDIANTE').nativeElement.querySelector('[data-observacion-remision]')).toBeNull();
   });
 
-  it('el historial no repite la observacion para el Decano', () => {
-    for (const rol of ['FUNCIONARIO', 'DECANO']) {
-      const fixture = crear(detalle(false, false), rol);
-      expect(texto(fixture, '[data-historial] .historial-observacion')).not.toContain('Cumple los requisitos');
-      fixture.destroy();
+  describe('historial sin comentarios', () => {
+    const conObservaciones: HistorialSolicitudAcademicaDTORespuesta[] = [
+      { accion: 'RADICAR', etapaCodigo: 'RADICADA', observaciones: null, fecha: '2026-10-08T00:00:00', nombresUsuario: 'María', apellidosUsuario: 'Pérez' },
+      { accion: 'REMITIR_DECANO', etapaCodigo: 'EN_REVISION_DECANO', observaciones: 'Para el Decano', fecha: '2026-10-08T01:00:00', nombresUsuario: 'Ana', apellidosUsuario: 'Ruiz' },
+      { accion: 'APROBAR_DECANO', etapaCodigo: 'APROBADA_POR_DECANO', observaciones: 'Del Decano', fecha: '2026-10-08T02:00:00', nombresUsuario: 'Luis', apellidosUsuario: 'Decano' },
+      { accion: 'ENVIAR_RECIBO', etapaCodigo: 'PENDIENTE_PAGO', observaciones: null, fecha: '2026-10-08T03:00:00', nombresUsuario: 'Ana', apellidosUsuario: 'Ruiz' },
+      { accion: 'SUBIR_COMPROBANTE', etapaCodigo: 'EN_VERIFICACION_PAGO', observaciones: null, fecha: '2026-10-08T04:00:00', nombresUsuario: 'María', apellidosUsuario: 'Pérez' },
+      { accion: 'RECHAZAR_COMPROBANTE', etapaCodigo: 'RECHAZADA', observaciones: 'Comprobante ilegible', fecha: '2026-10-08T05:00:00', nombresUsuario: 'Ana', apellidosUsuario: 'Ruiz' }
+    ];
+
+    function crearCon(entradas: HistorialSolicitudAcademicaDTORespuesta[], rol: string, tipoSolicitud = 'Examen Supletorio') {
+      servicio.getSolicitud.and.returnValue(of({ ...detalle(false, false), tipoSolicitud }));
+      servicio.getHistorial.and.returnValue(of(entradas));
+      const fixture = TestBed.createComponent(DetalleSolicitudAcademicaComponent);
+      fixture.componentRef.setInput('rol', rol);
+      fixture.detectChanges();
+      return fixture;
     }
+
+    for (const rol of ['ESTUDIANTE', 'FUNCIONARIO', 'DECANO']) {
+      it(`para ${rol} cada fila del historial muestra solo accion, usuario y fecha`, () => {
+        const fixture = crearCon(conObservaciones, rol);
+        const filas = texto(fixture, '[data-historial]');
+        expect(filas.length).toBe(6);
+        for (const comentario of ['Para el Decano', 'Del Decano', 'Comprobante ilegible']) {
+          expect(filas.join(' ')).not.toContain(comentario);
+        }
+        expect(fixture.nativeElement.querySelector('[data-historial] p')).toBeNull();
+        expect(filas[5]).toContain('Ana Ruiz');
+        expect(filas[5]).toContain('08/10/2026 05:00');
+      });
+    }
+
+    it('el rechazo del comprobante sale en Mensaje para el estudiante para los tres roles', () => {
+      for (const rol of ['ESTUDIANTE', 'FUNCIONARIO', 'DECANO']) {
+        const fixture = crearCon(conObservaciones, rol);
+        expect(texto(fixture, '[data-mensaje-estudiante] .bloque-texto')).withContext(rol).toEqual(['Comprobante ilegible']);
+        fixture.destroy();
+      }
+    });
+
+    it('el rechazo del Funcionario de una solicitud recien radicada sale en Mensaje para el estudiante', () => {
+      for (const tipo of ['Cancelación de Matrícula', 'Cancelación de Asignatura', 'Examen Supletorio']) {
+        const fixture = crearCon([
+          conObservaciones[0],
+          { accion: 'RECHAZAR_FUNCIONARIO', etapaCodigo: 'RECHAZADA', observaciones: 'Faltan soportes', fecha: '2026-10-08T01:00:00', nombresUsuario: 'Ana', apellidosUsuario: 'Ruiz' }
+        ], 'ESTUDIANTE', tipo);
+        expect(texto(fixture, '[data-mensaje-estudiante] .bloque-texto')).withContext(tipo).toEqual(['Faltan soportes']);
+        expect(texto(fixture, '[data-historial]').join(' ')).not.toContain('Faltan soportes');
+        fixture.destroy();
+      }
+    });
+
+    it('la observacion para el Decano sigue en su tarjeta y no en el historial', () => {
+      for (const rol of ['FUNCIONARIO', 'DECANO']) {
+        const fixture = crear(detalle(false, false), rol);
+        expect(texto(fixture, '[data-observacion-remision] .bloque-texto')).toEqual(['Cumple los requisitos']);
+        expect(texto(fixture, '[data-historial]').join(' ')).not.toContain('Cumple los requisitos');
+        fixture.destroy();
+      }
+    });
   });
 
   it('el mensaje para el estudiante solo aparece cuando existe', () => {
