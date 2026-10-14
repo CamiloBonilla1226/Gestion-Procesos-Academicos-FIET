@@ -38,6 +38,7 @@ public class MapperSolicitudAcademicaInfraestructuraDominio {
                 .etiqueta(resumen.getEtiqueta())
                 .etapaCodigo(resumen.getEtapaCodigo() != null ? resumen.getEtapaCodigo() : codigoEtapa(solicitud))
                 .numeroDocumento(resumen.getNumeroDocumento())
+                .decisionDecano(resumen.getDecisionDecano())
                 .build();
         TipoSolicitudAcademica tipo = solicitud.getTipoSolicitudAcademica();
         if (tipo != null) {

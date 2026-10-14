@@ -57,6 +57,7 @@ public class MapperCancelacionMatriculaInfraestructuraDominio {
 
     public FormularioCancelacionMatriculaDTORespuesta mapearFormularioARespuesta(FormularioCancelacionMatricula formulario) {
         return FormularioCancelacionMatriculaDTORespuesta.builder()
+                .codigoEstudiantil(formulario.getCodigoEstudiantil())
                 .anexosRequeridos(formulario.getAnexos().stream()
                         .map(tipo -> AnexoRequeridoDTORespuesta.builder()
                                 .uuidTipoAnexoAcademico(tipo.getUuidTipoAnexoAcademico())

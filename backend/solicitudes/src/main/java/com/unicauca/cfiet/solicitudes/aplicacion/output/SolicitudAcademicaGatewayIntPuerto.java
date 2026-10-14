@@ -4,6 +4,8 @@ import com.unicauca.cfiet.solicitudes.dominio.modelos.HistorialSolicitudAcademic
 import com.unicauca.cfiet.solicitudes.dominio.modelos.SolicitudAcademica;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public interface SolicitudAcademicaGatewayIntPuerto {
 
@@ -22,4 +24,8 @@ public interface SolicitudAcademicaGatewayIntPuerto {
     SolicitudAcademica crear(SolicitudAcademica solicitud, HistorialSolicitudAcademica historial);
 
     SolicitudAcademica actualizarEtapa(SolicitudAcademica solicitud, HistorialSolicitudAcademica historial);
+
+    Map<String, String> getUltimaAccion(List<String> uuidsSolicitud, List<String> acciones);
+
+    Set<String> getConAsignaturaNoAprobadaPorDecano(List<String> uuidsSolicitud);
 }

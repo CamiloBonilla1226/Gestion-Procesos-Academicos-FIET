@@ -13,6 +13,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class FormularioCancelacionAsignaturaDTORespuesta {
+    private String codigoEstudiantil;
     @Builder.Default
     private List<AsignaturaElegibleDTORespuesta> asignaturas = new ArrayList<>();
     @Builder.Default

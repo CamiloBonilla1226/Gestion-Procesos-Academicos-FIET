@@ -172,9 +172,9 @@ etiqueta del rol. El historial muestra el texto de la etapa del frontend.
 | --- | --- | --- | --- | --- | --- |
 | RADICADA | En trámite | Pendiente | (no la ve) | Radicada | Gris |
 | EN_REVISION_DECANO | En trámite | En Gestión | Pendiente | En revisión del Decano | Gris |
-| APROBADA_POR_DECANO | En trámite | Pendiente de Respuesta | Respondida | Aprobada por el Decano | Gris |
-| RECHAZADA_POR_DECANO | En trámite | Pendiente de Respuesta | Respondida | Rechazada por el Decano | Gris |
+| APROBADA_POR_DECANO | En trámite | Pendiente Notificar (Enviar Recibo en Examen Supletorio) | Respondida | Aprobada por el Decano | Gris |
+| RECHAZADA_POR_DECANO | En trámite | Pendiente Notificar | Respondida | Rechazada por el Decano | Gris |
 | PENDIENTE_PAGO | Pendiente de pago | En Gestión | Respondida | Pendiente de pago | Amarillo |
-| EN_VERIFICACION_PAGO | En verificación de pago | Pendiente de Verificación | Respondida | En verificación de pago | Amarillo |
+| EN_VERIFICACION_PAGO | En verificación de pago | Recibo Pagado | Respondida | En verificación de pago | Amarillo |
 | APROBADA | Aprobada | Respondida | Respondida | Aprobada | Verde |
 | RECHAZADA | Rechazada | Respondida | Respondida | Rechazada | Rojo |

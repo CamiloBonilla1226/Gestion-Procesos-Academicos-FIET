@@ -2,6 +2,8 @@ package com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.repos
 
 import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.entidades.SolicitudAcademicaEntidad;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
@@ -22,4 +24,8 @@ public interface SolicitudAcademicaRepositorio extends JpaRepository<SolicitudAc
             String uuidFuncionarioAcademico);
 
     List<SolicitudAcademicaEntidad> findAllByOrderByFechaCreacionDescRadicadoDesc();
+
+    @Query("select distinct a.solicitudAcademica.uuidSolicitudAcademica from AsignaturaSolicitudAcademicaEntidad a " +
+            "where a.solicitudAcademica.uuidSolicitudAcademica in :uuids and a.aprobadaPorDecano = false")
+    List<String> findConAsignaturaNoAprobadaPorDecano(@Param("uuids") Collection<String> uuids);
 }

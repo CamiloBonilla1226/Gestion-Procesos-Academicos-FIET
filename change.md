@@ -2,6 +2,49 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-13 - Decisión del Decano en las bandejas y respuesta sin observación por asignatura rechazada (Tarea T12.11)
+- Qué se hizo:
+  - Backend: el resumen de las bandejas del Funcionario y del Decano trae `decisionDecano` (`APROBADA`, `RECHAZADA`, `APROBADA_PARCIAL` o nulo), calculado con dos consultas por lote: la última fila `APROBAR_DECANO`/`RECHAZAR_DECANO` del historial y las cancelaciones de asignatura con alguna asignatura rechazada por el Decano. Se conserva en APROBADA y RECHAZADA; nulo si el Funcionario rechazó antes y siempre nulo para el Estudiante. En `funcionario/responder` de Cancelación de Asignatura, `observacionDecision` de una rechazada pasa a ser opcional y una rechazada cambiada ya no exige ajuste; siguen la observación general obligatoria con rechazos y la situación al cancelar de las aprobadas.
+  - Frontend: columna "Decisión del Decano" en la bandeja del Funcionario, a la derecha de Estado (Aprobada, Rechazada, Aprobada parcial, "—"). En "Enviar respuesta" de Cancelación de Asignatura solo las aprobadas sin situación o cambiadas llevan selector; las rechazadas no llevan campo ni van en `ajustes`.
+- Archivos:
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/aplicacion/output/SolicitudAcademicaGatewayIntPuerto.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/ConsultaSolicitudAcademicaCUImplAdaptador.java`, `TramiteCancelacionAsignaturaCUImplAdaptador.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/modelos/ResumenSolicitudAcademica.java`, `dominio/helper/constantes/EtapaSolicitudAcademicaConstantes.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/output/persistencia/gateway/SolicitudAcademicaGatewayImplAdaptador.java`, `repositorios/SolicitudAcademicaRepositorio.java`, `repositorios/HistorialSolicitudAcademicaRepositorio.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorSolicitudesAcademicas/DTORespuesta/SolicitudAcademicaResumenDTORespuesta.java`, `mapeador/MapperSolicitudAcademicaInfraestructuraDominio.java` (modificado)
+  - Pruebas: `ConsultaSolicitudAcademicaCUImplAdaptadorTest`, `TramiteCancelacionAsignaturaCUImplAdaptadorTest`, `SolicitudAcademicaGatewayImplAdaptadorTest`, `MapperSolicitudAcademicaInfraestructuraDominioTest` (modificado)
+  - `backend/pruebas/t7_cancelacion_asignatura.ps1` (modificado)
+  - `frontend/src/app/core/models/SolicitudAcademica/DTOResponse/SolicitudAcademicaResumenDTORespuesta.ts`, `frontend/src/app/core/constantes/etiquetas-academicas.ts` y su spec (modificado)
+  - `frontend/src/app/shared/pages/content/bandeja-solicitudes-academicas-component/` `.ts` y spec, `cancelacion-asignatura-proceso-component/` `.ts`, `.html` y spec (modificado)
+  - `docs/database/etapas-por-proceso.md` (P45 y P47), `docs/api/contrato-api-procesos-academicos.md`, `docs/database/diccionario-datos-extension.md`, `backend/CLAUDE.md`, `frontend/CLAUDE.md` (D-F37) (modificado)
+- Notas:
+  - Pruebas: unitarias de las cuatro clases tocadas, 108 en verde; jar regenerado y `docker compose up --build`; `t5` 42, `t6` 111, `t7` 141 y `t8` 151 PASS, sin FAIL. Frontend: 70 specs (constantes, resumen, bandeja y Cancelación de Asignatura) en verde; `npm run build` con código 0, bundle inicial 836,44 kB.
+  - Para que el frontend no envíe nada por las rechazadas, el backend dejó de exigir el ajuste de una rechazada cambiada (antes respondía "falta su ajuste"); el de una aprobada cambiada se sigue exigiendo.
+  - El Decano no recibe la columna nueva en su bandeja: su columna "Decisión" ya muestra su etiqueta y no estaba en el alcance. El backend sí le envía `decisionDecano`.
+  - No se corrió la suite completa del backend ni la de Julián; el conteo de pruebas de `backend/CLAUDE.md` no se actualizó.
+
+## 2026-10-13 - Observación opcional al remitir, situación al cancelar para el Estudiante, código en el formulario y estados del Funcionario (P46, backend y frontend)
+- Qué se hizo:
+  - Backend: `observacionEvaluacion` deja de ser obligatoria al remitir una Cancelación de Asignatura (se quita `OBSERVACION_EVALUACION_REQUERIDA`). En APROBADA o RECHAZADA el Estudiante recibe `situacionCancelar` de las asignaturas aprobadas. Los tres `GET .../formulario` traen `codigoEstudiantil`. Etiquetas del Funcionario: APROBADA_POR_DECANO y RECHAZADA_POR_DECANO pasan a "Pendiente Notificar" y EN_VERIFICACION_PAGO a "Recibo Pagado" (seed y dos `UPDATE` para bases existentes, ya aplicados en la base local); en un Examen Supletorio en APROBADA_POR_DECANO el Funcionario ve "Enviar Recibo", que pone `ConsultaSolicitudAcademicaCUImplAdaptador` porque `ETAPA_ETIQUETA_ROL` no distingue proceso.
+  - Frontend: al remitir, "Observaciones para el Decano", siempre opcional, sin copiarse a las asignaturas; se quita la columna "Observación de la evaluación"; el historial no repite la observación de la remisión. Aviso al Funcionario cuando el Decano cambió alguna decisión. El Estudiante ve "Situación académica al cancelar" de las aprobadas en la etapa final. El bloque de datos del formulario del Estudiante muestra su código estudiantil. La bandeja del Funcionario suma la columna Código. "Recibo Pagado" con ícono de gestión.
+- Archivos:
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/TramiteCancelacionAsignaturaCUImplAdaptador.java`, `ConsultaCancelacionAsignaturaCUImplAdaptador.java`, `ConsultaCancelacionMatriculaCUImplAdaptador.java`, `ConsultaExamenSupletorioCUImplAdaptador.java`, `ConsultaSolicitudAcademicaCUImplAdaptador.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/modelos/FormularioCancelacionMatricula.java`, `FormularioCancelacionAsignatura.java`, `FormularioExamenSupletorio.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/helper/constantes/EtapaSolicitudAcademicaConstantes.java`, `infraestructura/output/manejadorExcepciones/MensajesError.java` (modificado)
+  - DTO `Formulario*DTORespuesta` y mapeadores de `controladorCancelacionesMatricula`, `controladorCancelacionesAsignatura` y `controladorExamenesSupletorios` (modificado)
+  - Pruebas: `TramiteCancelacionAsignaturaCUImplAdaptadorTest`, `ConsultaCancelacionAsignaturaCUImplAdaptadorTest`, `ConsultaCancelacionMatriculaCUImplAdaptadorTest`, `ConsultaExamenSupletorioCUImplAdaptadorTest`, `ConsultaSolicitudAcademicaCUImplAdaptadorTest` (modificado)
+  - `backend/pruebas/t5_catalogos.ps1`, `t6_cancelacion_matricula.ps1`, `t7_cancelacion_asignatura.ps1`, `t8_examen_supletorio.ps1` (modificado)
+  - `docs/database/seed-procesos-academicos.sql`, `docs/database/etapas-por-proceso.md` (P46), `docs/database/diccionario-datos-extension.md`, `docs/api/contrato-api-procesos-academicos.md`, `docs/frontend/checklist-recorrido-completo.md` (modificado)
+  - `frontend/src/app/core/constantes/etiquetas-academicas.ts` y su spec (modificado)
+  - `frontend/src/app/core/models/` `FormularioCancelacionMatriculaDTORespuesta.ts`, `FormularioCancelacionAsignaturaDTORespuesta.ts`, `FormularioExamenSupletorioDTORespuesta.ts` (modificado)
+  - `frontend/src/app/shared/others/datos-estudiante-sesion-component/` `.ts` y spec (modificado)
+  - `frontend/src/app/shared/pages/content/` html de los tres formularios del Estudiante, `cancelacion-asignatura-proceso-component` (`.ts`, `.html`, spec), `detalle-solicitud-academica-component` (`.ts`, `.html`, spec), `bandeja-solicitudes-academicas-component` (`.ts`, spec), specs de Matrícula y Supletorio (modificado)
+  - `backend/CLAUDE.md`, `frontend/CLAUDE.md` (D-F36) (modificado)
+- Notas:
+  - Verificado: `mvnw test` 1233 pruebas en verde; backend reconstruido con `docker compose up --build`; `t5` 42, `t6` 111, `t7` 138 y `t8` 151 PASS, sin FAIL. Frontend: 189 specs de las carpetas tocadas en verde; `npm run build` con código 0 y bundle inicial 836,45 kB.
+  - La decisión del Decano la ve el Funcionario solo en el detalle (bloque "Decisión del Decano"), como pidió el autor.
+  - Al responder, una asignatura rechazada que el Decano cambió sigue pidiendo su observación para el estudiante, porque el backend la exige (P45).
+
 ## 2026-10-13 - Etiqueta del rechazo del comprobante de pago (Tarea T12.10b frontend)
 - Qué se hizo: el modal de rechazar el comprobante en Examen Supletorio usa `ETIQUETA_OBSERVACION_ESTUDIANTE` ("Observación solo para el estudiante (se entrega como respuesta)"), obligatoria, igual que los demás rechazos del Funcionario.
 - Archivos: `frontend/src/app/core/constantes/etiquetas-academicas.ts` y su spec, `frontend/src/app/shared/pages/content/examen-supletorio-proceso-component/examen-supletorio-proceso-component.spec.ts` (modificado)

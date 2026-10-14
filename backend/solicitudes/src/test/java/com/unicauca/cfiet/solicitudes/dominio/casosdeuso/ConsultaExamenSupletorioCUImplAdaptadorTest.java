@@ -99,7 +99,7 @@ class ConsultaExamenSupletorioCUImplAdaptadorTest {
                 sesionGateway, jwtServicio, consultaCU, new ExcepcionesFormateadorImplAdaptador());
         lenient().when(jwtServicio.getUsername(TOKEN)).thenReturn("alumno");
         lenient().when(sesionGateway.getUsuario("alumno")).thenReturn(usuario(ESTUDIANTE, "Estudiante"));
-        lenient().when(estudianteGateway.getPorUuid(ESTUDIANTE)).thenReturn(Estudiante.builder().uuidUsuario(ESTUDIANTE).build());
+        lenient().when(estudianteGateway.getPorUuid(ESTUDIANTE)).thenReturn(Estudiante.builder().uuidUsuario(ESTUDIANTE).codigoEstudiantil("104618021").build());
         lenient().when(tipoSolicitudGateway.getTodos()).thenReturn(List.of(
                 TipoSolicitudAcademica.builder().uuidTipoSolicitudAcademica("tipo-cm").nombre("Cancelación de Matrícula").build(), supletorio));
     }
@@ -126,6 +126,8 @@ class ConsultaExamenSupletorioCUImplAdaptadorTest {
                 tipoAnexo("an-otro", "Otro documento", "pdf")));
 
         FormularioExamenSupletorio formulario = casoDeUso.getFormulario(TOKEN);
+
+        assertEquals("104618021", formulario.getCodigoEstudiantil());
 
         assertEquals(List.of("am-1", "am-3"), formulario.getAsignaturas().stream().map(AsignaturaMatriculada::getUuidAsignaturaMatriculada).toList());
         assertEquals(List.of(CausaSupletorio.CRUCE, CausaSupletorio.OTRA), formulario.getCausas());

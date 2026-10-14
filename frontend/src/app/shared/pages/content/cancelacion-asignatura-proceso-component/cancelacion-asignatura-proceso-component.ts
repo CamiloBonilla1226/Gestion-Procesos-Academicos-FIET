@@ -23,7 +23,6 @@ import {
   ETAPAS_ACADEMICAS,
   FORMATOS_RESOLUCION,
   MAXIMO_CARACTERES_OBSERVACION,
-  MAXIMO_CARACTERES_OBSERVACION_ASIGNATURA,
   NOTA_MINIMA_PARA_CUMPLIR,
   ROLES_ETIQUETA,
   RolEtiqueta
@@ -58,7 +57,6 @@ interface EvaluacionEnEdicion {
 
 interface AjusteEnEdicion {
   situacion: string | null;
-  observacion: string;
 }
 
 type ModoDecision = 'aceptar' | 'modificar';
@@ -139,8 +137,9 @@ const COLUMNA_CANCELAR: Columna = { titulo: 'Situación al cancelar', campo: 'ca
 const COLUMNA_DECISION: Columna = { titulo: 'Decisión del Decano', valor: a => textoSiNo(a.aprobadaPorDecano, 'Aprobada', 'No aprobada') };
 const COLUMNA_OBSERVACION_DECISION: Columna = { titulo: 'Observación de la decisión', valor: a => textoLibre(a.observacionDecision) };
 const COLUMNA_DECIDIR: Columna = { titulo: 'Decisión del Decano', campo: 'decision', valor: () => null };
+const COLUMNA_SITUACION_ESTUDIANTE: Columna = { titulo: 'Situación académica al cancelar', valor: a => textoSituacion(a.situacionCancelar) };
 
-const COLUMNAS_ESTUDIANTE_FINAL: Columna[] = [COLUMNA_CODIGO, COLUMNA_NOMBRE, COLUMNA_DECISION];
+const COLUMNAS_ESTUDIANTE_FINAL: Columna[] = [COLUMNA_CODIGO, COLUMNA_NOMBRE, COLUMNA_DECISION, COLUMNA_SITUACION_ESTUDIANTE];
 const COLUMNAS_ESTUDIANTE_EN_CURSO: Columna[] = [COLUMNA_CODIGO, COLUMNA_NOMBRE];
 const COLUMNAS_COMPLETAS: Columna[] = [
   COLUMNA_CODIGO,
@@ -150,7 +149,6 @@ const COLUMNAS_COMPLETAS: Columna[] = [
   { titulo: 'Situación en la matrícula', campo: 'situacion', valor: a => textoSituacion(a.situacionMatricula) },
   COLUMNA_CANCELAR,
   { titulo: 'Cumple condiciones', campo: 'cumple', valor: a => textoSiNo(a.cumpleCondiciones, 'Sí', 'No') },
-  { titulo: 'Observación de la evaluación', valor: a => textoLibre(a.observacionEvaluacion) },
   COLUMNA_DECISION,
   COLUMNA_OBSERVACION_DECISION
 ];
@@ -178,7 +176,7 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   @Input({ required: true }) recargar!: () => void;
 
   readonly acciones = ACCIONES_ACADEMICAS;
-  readonly maximoObservacionAsignatura = MAXIMO_CARACTERES_OBSERVACION_ASIGNATURA;
+  readonly maximoObservacion = MAXIMO_CARACTERES_OBSERVACION;
   readonly tipoResolucion = comoTipoAnexo('resolucion', 'Escaneo de la Resolución firmada', FORMATOS_RESOLUCION, true);
   readonly notaAprobarDecano = NOTA_APROBAR_DECANO;
   readonly sinDato = SIN_DATO;
@@ -258,19 +256,13 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   }
 
   get observacionObligatoria(): boolean {
-    if (this.accionActiva === ACCIONES_ACADEMICAS.REMITIR_DECANO) return this.algunaNoCumple;
     if (this.accionActiva === ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA) return this.respuestaExigeObservacion;
     return this.campoObservacion?.obligatoria ?? false;
   }
 
-  get maximoObservacion(): number {
-    return this.accionActiva === ACCIONES_ACADEMICAS.REMITIR_DECANO && this.algunaNoCumple
-      ? MAXIMO_CARACTERES_OBSERVACION_ASIGNATURA
-      : MAXIMO_CARACTERES_OBSERVACION;
-  }
-
-  get algunaNoCumple(): boolean {
-    return Object.values(this.evaluaciones).some(e => e.cumple === false);
+  get cambiadasPorDecano(): AsignaturaSolicitadaDTORespuesta[] {
+    if (this.rol !== ROLES_ETIQUETA.FUNCIONARIO) return [];
+    return this.asignaturas.filter(a => a.decisionCambiadaPorDecano === true);
   }
 
   get ningunaCumple(): boolean {
@@ -297,7 +289,7 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   get asignaturasConAjuste(): AsignaturaSolicitadaDTORespuesta[] {
     if (this.solicitud?.etapaCodigo !== ETAPAS_ACADEMICAS.APROBADA_POR_DECANO) return [];
     return this.asignaturas.filter(
-      a => a.decisionCambiadaPorDecano === true || (a.aprobadaPorDecano === true && !a.situacionCancelar)
+      a => a.aprobadaPorDecano === true && (a.decisionCambiadaPorDecano === true || !a.situacionCancelar)
     );
   }
 
@@ -409,12 +401,9 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   private abrirRespuesta(): void {
     const conAjuste = this.asignaturasConAjuste;
     this.ajustes = Object.fromEntries(
-      conAjuste.map(a => [
-        a.uuidAsignaturaSolicitud,
-        { situacion: a.situacionCancelar?.uuidSituacionAcademica ?? null, observacion: a.observacionDecision ?? '' }
-      ])
+      conAjuste.map(a => [a.uuidAsignaturaSolicitud, { situacion: a.situacionCancelar?.uuidSituacionAcademica ?? null }])
     );
-    if (conAjuste.some(a => a.aprobadaPorDecano === true)) {
+    if (conAjuste.length > 0) {
       this.asegurarSituaciones(() => (this.dialogoVisible = true));
       return;
     }
@@ -542,7 +531,6 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   }
 
   private armarEvaluaciones(): EvaluacionCancelacionAsignaturaDTOPeticion[] {
-    const observacion = this.observacion.trim();
     return this.asignaturas.map(a => {
       const evaluacion = this.evaluaciones[a.uuidAsignaturaSolicitud];
       return {
@@ -552,7 +540,7 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
         situacionMatriculaUuid: evaluacion.situacion!,
         situacionCancelarUuid: evaluacion.cancelar,
         cumpleCondiciones: evaluacion.cumple!,
-        observacionEvaluacion: evaluacion.cumple === false && observacion !== '' ? observacion : null
+        observacionEvaluacion: null
       };
     });
   }
@@ -570,15 +558,11 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   }
 
   private armarAjustes(): AjusteAsignaturaDTOPeticion[] {
-    return this.asignaturasConAjuste.map(a => {
-      const ajuste = this.ajustes[a.uuidAsignaturaSolicitud];
-      const aprobada = a.aprobadaPorDecano === true;
-      return {
-        asignaturaSolicitudUuid: a.uuidAsignaturaSolicitud,
-        situacionCancelarUuid: aprobada ? ajuste.situacion : null,
-        observacionDecision: aprobada ? null : ajuste.observacion.trim()
-      };
-    });
+    return this.asignaturasConAjuste.map(a => ({
+      asignaturaSolicitudUuid: a.uuidAsignaturaSolicitud,
+      situacionCancelarUuid: this.ajustes[a.uuidAsignaturaSolicitud].situacion,
+      observacionDecision: null
+    }));
   }
 
   private validar(accion: AccionAcademica): Record<string, string> {
@@ -623,13 +607,7 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   private validarAjustes(errores: Record<string, string>): void {
     for (const a of this.asignaturasConAjuste) {
       const uuid = a.uuidAsignaturaSolicitud;
-      const ajuste = this.ajustes[uuid];
-      if (a.aprobadaPorDecano === true) {
-        if (!ajuste?.situacion) errores[`ajuste-cancelar-${uuid}`] = 'Elige la situación al cancelar.';
-        continue;
-      }
-      const error = errorDeTexto(ajuste?.observacion, MAXIMO_CARACTERES_OBSERVACION_ASIGNATURA, true, 'La observación para el estudiante', true);
-      if (error) errores[`ajuste-observacion-${uuid}`] = error;
+      if (!this.ajustes[uuid]?.situacion) errores[`ajuste-cancelar-${uuid}`] = 'Elige la situación al cancelar.';
     }
   }
 

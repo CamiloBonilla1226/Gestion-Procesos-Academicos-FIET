@@ -11,6 +11,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class FormularioCancelacionMatricula {
+    private String codigoEstudiantil;
     @Builder.Default
     private List<TipoAnexoAcademico> anexos = new ArrayList<>();
     @Builder.Default

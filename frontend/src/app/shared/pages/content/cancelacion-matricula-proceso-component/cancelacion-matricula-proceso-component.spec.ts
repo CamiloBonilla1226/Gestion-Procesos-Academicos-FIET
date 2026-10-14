@@ -181,7 +181,7 @@ describe('CancelacionMatriculaProcesoComponent', () => {
     fixture.detectChanges();
     expect(componente.dialogoVisible).toBeTrue();
     expect(document.querySelectorAll('[data-campo-observacion]').length).toBe(1);
-    expect(document.querySelector('[data-campo-observacion]')?.textContent).toContain('Observación solo para el Decano (el estudiante no la verá)');
+    expect(document.querySelector('[data-campo-observacion]')?.textContent).toContain('Observaciones para el Decano');
     expect(document.querySelector('[data-dialogo] [data-evaluacion]')).toBeNull();
     componente.observacion = ' Para revisar ';
     componente.confirmar();

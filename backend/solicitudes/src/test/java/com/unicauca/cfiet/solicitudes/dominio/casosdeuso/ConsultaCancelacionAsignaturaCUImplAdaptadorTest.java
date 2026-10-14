@@ -149,6 +149,14 @@ class ConsultaCancelacionAsignaturaCUImplAdaptadorTest {
         assertFalse(soporte.getObligatorio());
     }
 
+    @Test
+    void elFormularioTraeElCodigoEstudiantilDelEstudianteAutenticado() {
+        when(estudianteGateway.getPorUuid(ESTUDIANTE)).thenReturn(Estudiante.builder().uuidUsuario(ESTUDIANTE).codigoEstudiantil("104618021").build());
+        when(estudianteGateway.getAsignaturasMatriculadas(ESTUDIANTE)).thenReturn(List.of());
+
+        assertEquals("104618021", casoDeUso.getFormulario(TOKEN).getCodigoEstudiantil());
+    }
+
     @ParameterizedTest
     @EnumSource(value = RolEtiquetaEtapa.class, names = {"FUNCIONARIO", "DECANO"})
     void elFuncionarioYElDecanoVenTodaLaEvaluacionYLaDecision(RolEtiquetaEtapa rol) {
@@ -207,7 +215,19 @@ class ConsultaCancelacionAsignaturaCUImplAdaptadorTest {
         assertNull(asignaturas.get(1).getCumpleCondiciones());
         assertNull(asignaturas.get(1).decisionCambiadaPorDecano());
         assertNull(asignaturas.get(0).getNota());
-        assertNull(asignaturas.get(0).getSituacionCancelar());
+        assertEquals("sit-r1", asignaturas.get(0).getSituacionCancelar().getUuidSituacionAcademica());
+        assertNull(asignaturas.get(0).getSituacionMatricula());
+        assertNull(asignaturas.get(1).getSituacionCancelar());
+    }
+
+    @Test
+    void enLaEtapaFinalLaRechazadaNoMuestraSituacionAunqueTengaUna() {
+        cancelacionEn("APROBADA", RolEtiquetaEtapa.ESTUDIANTE);
+        gateway.getPorSolicitud(SOLICITUD).getAsignaturas().get(1).setSituacionCancelar(situacion("sit-r2"));
+
+        List<AsignaturaSolicitudAcademica> asignaturas = casoDeUso.getDetalle(SOLICITUD, TOKEN).getAsignaturas();
+
+        assertNull(asignaturas.get(1).getSituacionCancelar());
     }
 
     @ParameterizedTest

@@ -49,6 +49,7 @@ public class MapperExamenSupletorioInfraestructuraDominio {
 
     public FormularioExamenSupletorioDTORespuesta mapearFormularioARespuesta(FormularioExamenSupletorio formulario) {
         return FormularioExamenSupletorioDTORespuesta.builder()
+                .codigoEstudiantil(formulario.getCodigoEstudiantil())
                 .asignaturas(formulario.getAsignaturas().stream().map(this::mapearAsignaturaARespuesta).toList())
                 .causas(formulario.getCausas().stream().map(this::nombreCausa).toList())
                 .anexos(formulario.getAnexos().stream()

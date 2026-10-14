@@ -402,14 +402,16 @@ class TramiteCancelacionAsignaturaCUImplAdaptadorTest {
     }
 
     @Test
-    void remitirConUnaQueNoCumpleSinObservacionSeRechaza() {
+    void remitirConUnaQueNoCumpleSinObservacionDeEvaluacionPasaAEnRevisionDecano() {
         enEtapa(RADICADA);
 
-        ErrorReglaNegocioVioladaExcepcion error = falla(() -> casoDeUso.remitirADecano(SOLICITUD, List.of(evaluacion("as-1", 0, "4.0", "sit-a", true, null),
-                evaluacion("as-2", 0, "4.0", "sit-a", true, null), evaluacion("as-3", 0, "4.0", "sit-a", false, "   ")), null, TOKEN_FUNCIONARIO));
+        casoDeUso.remitirADecano(SOLICITUD, List.of(evaluacion("as-1", 0, "4.0", "sit-a", true, null),
+                evaluacion("as-2", 0, "4.0", "sit-a", true, null), evaluacion("as-3", 0, "4.0", "sit-a", false, "   ")), null, TOKEN_FUNCIONARIO);
 
-        assertTrue(error.getMessage().contains("Química I"));
-        verificarQueNoSeEscribioNada();
+        assertEquals(EN_REVISION_DECANO, etapaGuardada());
+        List<AsignaturaSolicitudAcademica> guardadas = asignaturasGuardadas();
+        assertFalse(guardadas.get(2).getCumpleCondiciones());
+        assertNull(guardadas.get(2).getObservacionEvaluacion());
     }
 
     @Test
@@ -701,7 +703,7 @@ class TramiteCancelacionAsignaturaCUImplAdaptadorTest {
     }
 
     @Test
-    void elAjusteDeUnaAprobadaExigeSituacionYElDeUnaRechazadaExigeObservacion() {
+    void elAjusteDeUnaAprobadaExigeSituacionYElDeUnaRechazadaNoAdmiteSituacionNiMasDe255() {
         conFilas(true, true, false);
         decididas(true, false, true);
         conSituacionGuardada(filas.get(0));
@@ -710,14 +712,57 @@ class TramiteCancelacionAsignaturaCUImplAdaptadorTest {
 
         assertTrue(falla(() -> casoDeUso.enviarRespuesta(SOLICITUD, "Respuesta", List.of(ajuste("as-2", null, "No procede"),
                 ajuste("as-3", null, null)), TOKEN_FUNCIONARIO)).getMessage().contains("situación al cancelar de la asignatura Química I"));
-        assertTrue(falla(() -> casoDeUso.enviarRespuesta(SOLICITUD, "Respuesta", List.of(ajuste("as-2", null, "  "),
-                ajuste("as-3", "sit-c", null)), TOKEN_FUNCIONARIO)).getMessage().contains("observación de la decisión de la asignatura Física I"));
         assertEquals(String.format(MensajesError.SITUACION_CANCELAR_RECHAZADA, "Física I"), falla(() -> casoDeUso.enviarRespuesta(SOLICITUD,
                 "Respuesta", List.of(ajuste("as-2", "sit-c", "No"), ajuste("as-3", "sit-c", null)), TOKEN_FUNCIONARIO)).getMessage());
         assertThrows(ErrorMalFormatoExcepcion.class, () -> casoDeUso.enviarRespuesta(SOLICITUD, "Respuesta",
                 List.of(ajuste("as-2", null, "x".repeat(256)), ajuste("as-3", "sit-c", null)), TOKEN_FUNCIONARIO));
         assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso.enviarRespuesta(SOLICITUD, "Respuesta",
                 List.of(ajuste("as-2", null, "No"), ajuste("as-3", "sit-x", null)), TOKEN_FUNCIONARIO));
+        verificarQueNoSeEscribioNada();
+    }
+
+    @Test
+    void unaRechazadaCambiadaNoExigeAjusteNiObservacionPropia() {
+        conFilas(true, true, false);
+        decididas(true, false, true);
+        conSituacionGuardada(filas.get(0));
+        enEtapa(APROBADA_POR_DECANO);
+        conEscaneo();
+
+        casoDeUso.enviarRespuesta(SOLICITUD, "Física I no se cancela", List.of(ajuste("as-3", "sit-c", null)), TOKEN_FUNCIONARIO);
+
+        assertEquals(APROBADA, etapaGuardada());
+        List<AsignaturaSolicitudAcademica> guardadas = asignaturasGuardadas();
+        assertNull(guardadas.get(1).getObservacionDecision());
+        assertEquals("sit-c", guardadas.get(2).getSituacionCancelar().getUuidSituacionAcademica());
+    }
+
+    @Test
+    void elAjusteDeUnaRechazadaAceptaObservacionVaciaComoNula() {
+        conFilas(true, true, false);
+        decididas(true, false, true);
+        conSituacionGuardada(filas.get(0));
+        enEtapa(APROBADA_POR_DECANO);
+        conEscaneo();
+
+        casoDeUso.enviarRespuesta(SOLICITUD, "Física I no se cancela", List.of(ajuste("as-2", null, "  "), ajuste("as-3", "sit-c", null)),
+                TOKEN_FUNCIONARIO);
+
+        assertNull(asignaturasGuardadas().get(1).getObservacionDecision());
+    }
+
+    @Test
+    void sinObservacionGeneralUnaRechazadaCambiadaSinAjusteSigueFallando() {
+        conFilas(true, true, false);
+        decididas(true, false, true);
+        conSituacionGuardada(filas.get(0));
+        enEtapa(APROBADA_POR_DECANO);
+        conEscaneo();
+
+        ErrorReglaNegocioVioladaExcepcion error = falla(() -> casoDeUso.enviarRespuesta(SOLICITUD, "  ",
+                List.of(ajuste("as-3", "sit-c", null)), TOKEN_FUNCIONARIO));
+
+        assertEquals(MensajesError.OBSERVACION_RESPUESTA_REQUERIDA, error.getMessage());
         verificarQueNoSeEscribioNada();
     }
 

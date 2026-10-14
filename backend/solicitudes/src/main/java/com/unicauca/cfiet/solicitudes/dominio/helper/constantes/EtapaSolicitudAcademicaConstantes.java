@@ -13,6 +13,10 @@ public class EtapaSolicitudAcademicaConstantes {
     public static final String RECHAZADA = "RECHAZADA";
     public static final List<String> ETAPAS = List.of(RADICADA, EN_REVISION_DECANO, APROBADA_POR_DECANO,
             RECHAZADA_POR_DECANO, PENDIENTE_PAGO, EN_VERIFICACION_PAGO, APROBADA, RECHAZADA);
+    public static final String ETIQUETA_FUNCIONARIO_SUPLETORIO_APROBADO = "Enviar Recibo";
+    public static final String DECISION_APROBADA = "APROBADA";
+    public static final String DECISION_RECHAZADA = "RECHAZADA";
+    public static final String DECISION_APROBADA_PARCIAL = "APROBADA_PARCIAL";
 
     private EtapaSolicitudAcademicaConstantes() {
     }

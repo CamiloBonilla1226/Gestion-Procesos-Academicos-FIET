@@ -275,6 +275,8 @@ try {
 
     $r = Invoke-Api -Metodo GET -Ruta "$Global:Ruta/formulario" -Token $est1.Token
     $formulario = Leer-Json $r
+    $codigoBase = "$(Ejecutar-Sql "select codigoEstudiantil from ESTUDIANTE where Usuario_uuid = '$($est1.Uuid)'")".Trim()
+    Escribir-Resultado "el formulario trae el codigo estudiantil del estudiante (obtuvo $($formulario.codigoEstudiantil))" ($formulario.codigoEstudiantil -and ($formulario.codigoEstudiantil -eq $codigoBase))
     $requeridos = @($formulario.anexosRequeridos)
     $obligatorios = @($requeridos | Where-Object { $_.obligatorio -eq $true })
     Escribir-Resultado "el formulario trae los seis anexos requeridos con uuid, nombre y formatos (obtuvo $($requeridos.Count))" (($r.Status -eq 200) -and ($requeridos.Count -eq 6) -and ($obligatorios.Count -eq 6) -and (@($requeridos | Where-Object { $_.uuidTipoAnexoAcademico -and $_.nombre -and $_.formatosPermitidos }).Count -eq 6))
@@ -362,7 +364,7 @@ try {
     $vistaFa = Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol1" -Token $fa1.Token)
     Escribir-Resultado "tras aprobar, el estudiante ve EN_REVISION_DECANO con la etiqueta En tramite y el funcionario el codigo real (obtuvo $($vistaEst.etapaCodigo)/$($vistaFa.etapaCodigo))" (($vistaEst.etapaCodigo -eq "EN_REVISION_DECANO") -and ($vistaEst.etiqueta -eq "En tr$([char]0x00E1)mite") -and ($vistaFa.etapaCodigo -eq "APROBADA_POR_DECANO"))
     $detalleFa = Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol1" -Token $fa1.Token)
-    Escribir-Resultado "el funcionario ve la etiqueta Aprobada por el Decano (obtuvo $($detalleFa.etiqueta))" ($detalleFa.etiqueta -eq "Aprobada por el Decano")
+    Escribir-Resultado "el funcionario ve la etiqueta Pendiente Notificar tras la aprobacion (obtuvo $($detalleFa.etiqueta))" ($detalleFa.etiqueta -eq "Pendiente Notificar")
     $detalle = Leer-Json (Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$sol1" -Token $est1.Token)
     Escribir-Resultado "el estudiante aun no ve la situacion al cancelar" ((@($detalle.asignaturas | Where-Object { $_.situacionCancelar }).Count -eq 0) -and (@($detalle.asignaturas | Where-Object { $_.situacionMatricula }).Count -eq 3))
     $detalle = Leer-Json (Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$sol1" -Token $fa1.Token)
@@ -420,7 +422,7 @@ try {
     $vistaDe = Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol3" -Token $decano.Token)
     Escribir-Resultado "tras rechazar, el estudiante ve EN_REVISION_DECANO con la etiqueta En tramite y el Decano el codigo real (obtuvo $($vistaEst.etapaCodigo)/$($vistaDe.etapaCodigo))" (($vistaEst.etapaCodigo -eq "EN_REVISION_DECANO") -and ($vistaEst.etiqueta -eq "En tr$([char]0x00E1)mite") -and ($vistaDe.etapaCodigo -eq "RECHAZADA_POR_DECANO"))
     $detalleFa = Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol3" -Token $fa1.Token)
-    Escribir-Resultado "el funcionario ve la etiqueta Rechazada por el Decano (obtuvo $($detalleFa.etiqueta))" ($detalleFa.etiqueta -eq "Rechazada por el Decano")
+    Escribir-Resultado "el funcionario ve la etiqueta Pendiente Notificar tras el rechazo (obtuvo $($detalleFa.etiqueta))" ($detalleFa.etiqueta -eq "Pendiente Notificar")
     $historial = @(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol3/historial" -Token $est3.Token))
     $filaDecano = $historial | Where-Object { $_.accion -eq "RECHAZAR_DECANO" }
     Escribir-Resultado "el estudiante no ve la fila del rechazo del Decano antes de la respuesta (obtuvo $(($historial | ForEach-Object { $_.accion }) -join ','))" ((-not $filaDecano) -and ($historial.Count -eq 2))

@@ -178,7 +178,7 @@ como "situación al cancelar" en `ASIGNATURA_SOLICITUD_ACADEMICA`.
 | cumpleCondiciones | tinyint(1) |  | Sí | Solo Cancelación de Asignatura: el Funcionario confirma que verificó las condiciones de la sección 4.2 de `etapas-por-proceso.md`. Nulo hasta evaluación |
 | observacionEvaluacion | varchar(255) |  | Sí | Solo Cancelación de Asignatura: obligatoria si la asignatura no cumple las condiciones. La ven el Funcionario y el Decano, nunca el Estudiante |
 | aprobadaPorDecano | tinyint(1) |  | Sí | Solo Cancelación de Asignatura: decisión del Decano sobre esa asignatura (P14). Nulo hasta su decisión |
-| observacionDecision | varchar(255) |  | Sí | Solo Cancelación de Asignatura: opcional, también al rechazar la asignatura. La ven el Funcionario y el Decano; al Estudiante le llega nula |
+| observacionDecision | varchar(255) |  | Sí | Solo Cancelación de Asignatura: la escribe el Funcionario en el ajuste de una asignatura rechazada al responder, opcional (P45, P47). La ven el Funcionario y el Decano, y el Estudiante en APROBADA o RECHAZADA |
 
 ## TIPO\_ANEXO\_ACADEMICO
 
@@ -292,7 +292,10 @@ anterior a T12.1. Es idempotente y no borra datos. Hace, en este orden:
    como "Cursada por primera vez".
 5. Cambia las etiquetas del rol `FUNCIONARIO` en `APROBADA_POR_DECANO`
    ("Aprobada por el Decano") y `RECHAZADA_POR_DECANO` ("Rechazada por el
-   Decano").
+   Decano"). Con P46 de `etapas-por-proceso.md` esas dos pasan a "Pendiente
+   Notificar" y `EN_VERIFICACION_PAGO` a "Recibo Pagado"; las dos sentencias
+   `UPDATE` al final de `seed-procesos-academicos.sql` ponen al día una base
+   existente.
 
 Se aplica igual que la anterior, antes de levantar el backend nuevo y después
 de sacar un respaldo:

@@ -328,6 +328,8 @@ try {
     Ejecutar-Sql "update ASIGNATURA_MATRICULADA set estado = 'cancelada' where uuidAsignaturaMatriculada = '$noActiva'" | Out-Null
     $r = Invoke-Api -Metodo GET -Ruta "$Global:Ruta/formulario" -Token $est1.Token
     $formulario = Leer-Json $r
+    $codigoBase = "$(Ejecutar-Sql "select codigoEstudiantil from ESTUDIANTE where Usuario_uuid = '$($est1.Uuid)'")".Trim()
+    Escribir-Resultado "el formulario trae el codigo estudiantil del estudiante (obtuvo $($formulario.codigoEstudiantil))" ($formulario.codigoEstudiantil -and ($formulario.codigoEstudiantil -eq $codigoBase))
     $materias = @($formulario.asignaturas)
     Escribir-Resultado "el formulario trae solo las cuatro activas con uuid, codigo y nombre (obtuvo $($r.Status) con $($materias.Count))" (($r.Status -eq 200) -and ($materias.Count -eq 4) -and (@($materias | Where-Object { $_.uuidAsignaturaMatriculada -and ($est1.Codigos -contains $_.codigoAsignatura) -and $_.nombreAsignatura }).Count -eq 4) -and (@($materias | Where-Object { $_.uuidAsignaturaMatriculada -eq $noActiva }).Count -eq 0))
     $soportes = @($formulario.soportes)
@@ -429,6 +431,9 @@ try {
     $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol1/decano/aprobar" -Token $decano.Token -Cuerpo @{ decisiones = @((Decision $f1 $true), (Decision $f2 $false), (Decision $f3 $true)); observacion = "Nota interna del Decano T7" }
     Escribir-Resultado "el Decano aprueba una que no cumple y rechaza una que cumple: pasa a APROBADA_POR_DECANO (obtuvo $($r.Status), etapa $(Etapa-De $sol1))" (($r.Status -eq 200) -and ((Etapa-De $sol1) -eq "APROBADA_POR_DECANO"))
     Verificar-EtapaHttp -Solicitud $sol1 -Esperada "APROBADA_POR_DECANO" -Estudiante $est1.Token -Funcionario $fa1.Token -Decano $decano.Token
+$decisionFa = (@(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/funcionario" -Token $fa1.Token)) | Where-Object { $_.uuidSolicitudAcademica -eq $sol1 }).decisionDecano
+$decisionDec = (@(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/decano" -Token $decano.Token)) | Where-Object { $_.uuidSolicitudAcademica -eq $sol1 }).decisionDecano
+Escribir-Resultado "la bandeja del funcionario y la del Decano traen decisionDecano APROBADA_PARCIAL (obtuvo $decisionFa y $decisionDec)" (($decisionFa -eq "APROBADA_PARCIAL") -and ($decisionDec -eq "APROBADA_PARCIAL"))
     $decisionesBd = Ejecutar-Sql "select group_concat(concat(aprobadaPorDecano, '|', coalesce(SituacionCancelar_uuid, '-'), '|', coalesce(observacionDecision, '-')) order by field(uuidAsignaturaSolicitud, '$f1', '$f2', '$f3') separator ';') from ASIGNATURA_SOLICITUD_ACADEMICA where SolicitudAcademica_uuid = '$sol1'"
     Escribir-Resultado "quedaron las tres decisiones sin situacion ni observacion por asignatura (obtuvo $decisionesBd)" ($decisionesBd -eq "1|-|-;0|-|-;1|-|-")
     $r = Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$sol1" -Token $est1.Token
@@ -453,13 +458,16 @@ try {
     $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol1/funcionario/responder" -Token $fa1.Token -Cuerpo @{ observacion = $mensajeAprobada; ajustes = @((Ajuste $f1 $situaciones[0] ""), (Ajuste $f2 "" $motivoRechazo), (Ajuste $f3 "" "")) }
     Escribir-Resultado "el ajuste de una aprobada contra la evaluacion sin situacion falla con codigo 4 (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Leer-Json $r).codigoError -eq "4") -and ((Mensaje-De $r) -like "*situaci*n al cancelar de la asignatura Materia T7 3 *") -and ((Estado-Filas $sol1) -eq $filasAntes))
     $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol1/funcionario/responder" -Token $fa1.Token -Cuerpo @{ observacion = $mensajeAprobada; ajustes = @((Ajuste $f2 "" ""), (Ajuste $f3 $situaciones[1] "")) }
-    Escribir-Resultado "el ajuste de una rechazada sin observacion falla con codigo 4 (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Leer-Json $r).codigoError -eq "4") -and ((Mensaje-De $r) -like "*observaci*n de la decisi*n*") -and ((Estado-Filas $sol1) -eq $filasAntes))
+    Escribir-Resultado "el ajuste de una rechazada sin observacion ya no es lo que falla: solo falta la situacion de la aprobada (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Leer-Json $r).codigoError -eq "4") -and ((Mensaje-De $r) -like "*situaci*n al cancelar*") -and ((Mensaje-De $r) -notlike "*observaci*n de la decisi*n*") -and ((Estado-Filas $sol1) -eq $filasAntes))
     $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol1/funcionario/responder" -Token $fa1.Token -Cuerpo @{ ajustes = @((Ajuste $f1 $situaciones[0] ""), (Ajuste $f2 "" $motivoRechazo), (Ajuste $f3 $situaciones[1] "")) }
     Escribir-Resultado "con una asignatura rechazada la observacion general es obligatoria (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Leer-Json $r).codigoError -eq "4") -and ((Mensaje-De $r) -like "*requiere una observaci*") -and ((Etapa-De $sol1) -eq "APROBADA_POR_DECANO") -and ((Estado-Filas $sol1) -eq $filasAntes))
     Escribir-Resultado "los intentos fallidos no cancelaron asignaturas (obtuvo $(Estados @($a1, $a2, $a3, $a4)))" ((Estados @($a1, $a2, $a3, $a4)) -eq "activa,activa,activa,activa")
     $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol1/funcionario/responder" -Token $fa1.Token -Cuerpo @{ observacion = $mensajeAprobada; ajustes = @((Ajuste $f1 $situaciones[0] ""), (Ajuste $f2 "" $motivoRechazo), (Ajuste $f3 $situaciones[1] "")) }
     Escribir-Resultado "enviar la respuesta con los ajustes deja la solicitud APROBADA (obtuvo $($r.Status), etapa $(Etapa-De $sol1))" (($r.Status -eq 200) -and ((Etapa-De $sol1) -eq "APROBADA"))
     Verificar-EtapaHttp -Solicitud $sol1 -Esperada "APROBADA" -Estudiante $est1.Token -Funcionario $fa1.Token -Decano $decano.Token
+$decisionFa = (@(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/funcionario" -Token $fa1.Token)) | Where-Object { $_.uuidSolicitudAcademica -eq $sol1 }).decisionDecano
+$filaEst = @(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/estudiante" -Token $est1.Token)) | Where-Object { $_.uuidSolicitudAcademica -eq $sol1 }
+Escribir-Resultado "tras responder la bandeja del funcionario conserva APROBADA_PARCIAL y la del estudiante no trae decision (obtuvo $decisionFa)" (($decisionFa -eq "APROBADA_PARCIAL") -and ($null -eq $filaEst.decisionDecano))
     $ajustesBd = Ejecutar-Sql "select group_concat(concat(coalesce(SituacionCancelar_uuid, '-'), '|', coalesce(observacionDecision, '-')) order by field(uuidAsignaturaSolicitud, '$f1', '$f2', '$f3') separator ';') from ASIGNATURA_SOLICITUD_ACADEMICA where SolicitudAcademica_uuid = '$sol1'"
     Escribir-Resultado "los ajustes quedaron en MySQL (obtuvo $ajustesBd)" ($ajustesBd -eq "$($situaciones[0])|-;-|$motivoRechazo;$($situaciones[1])|-")
     $estados = Estados @($a1, $a2, $a3, $a4, $noActiva)
@@ -469,6 +477,7 @@ try {
     $r = Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$sol1" -Token $est1.Token
     $detalle = Leer-Json $r
     Escribir-Resultado "en APROBADA el estudiante ve que asignaturas se aprobaron y la observacion del ajuste, sin decisionCambiadaPorDecano" (($detalle.solicitud.etiqueta -eq "Aprobada") -and ((Asignatura-De $detalle $f1).aprobadaPorDecano -eq $true) -and ((Asignatura-De $detalle $f2).aprobadaPorDecano -eq $false) -and ((Asignatura-De $detalle $f3).aprobadaPorDecano -eq $true) -and ((Asignatura-De $detalle $f2).observacionDecision -eq $motivoRechazo) -and ($r.Body -notmatch "decisionCambiadaPorDecano`":(true|false)") -and ($r.Body -notmatch "Nota interna del Decano"))
+    Escribir-Resultado "en APROBADA el estudiante ve la situacion al cancelar solo de las aprobadas" (($null -ne (Asignatura-De $detalle $f1).situacionCancelar) -and ($null -ne (Asignatura-De $detalle $f3).situacionCancelar) -and ($null -eq (Asignatura-De $detalle $f2).situacionCancelar) -and ($null -eq (Asignatura-De $detalle $f1).situacionMatricula))
     $filaRespuesta = @(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol1/historial" -Token $est1.Token)) | Where-Object { $_.accion -eq "ENVIAR_RESPUESTA" }
     Escribir-Resultado "el estudiante ve la observacion general de la respuesta en su historial (obtuvo $($filaRespuesta.observaciones))" ($filaRespuesta.observaciones -eq $mensajeAprobada)
     Escribir-Resultado "el estudiante nunca ve la observacion de la evaluacion ni los datos del funcionario" (($r.Body -notmatch $secreto) -and (@($detalle.asignaturas | Where-Object { $_.observacionEvaluacion -or ($null -ne $_.cumpleCondiciones) -or ($null -ne $_.nota) }).Count -eq 0))
@@ -518,6 +527,10 @@ try {
     $mensajeEstudiante = "Consulte la Resolucion adjunta"
     $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol3/funcionario/responder" -Token $fa1.Token -Cuerpo @{}
     Escribir-Resultado "con la solicitud rechazada por el Decano la observacion de la respuesta es obligatoria (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Leer-Json $r).codigoError -eq "4") -and ((Mensaje-De $r) -like "*requiere una observaci*") -and ((Etapa-De $sol3) -eq "RECHAZADA_POR_DECANO"))
+$bandejaFa = @(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/funcionario" -Token $fa1.Token))
+$decision3 = ($bandejaFa | Where-Object { $_.uuidSolicitudAcademica -eq $sol3 }).decisionDecano
+$decision2 = ($bandejaFa | Where-Object { $_.uuidSolicitudAcademica -eq $sol2 }).decisionDecano
+Escribir-Resultado "la bandeja trae RECHAZADA si el Decano rechazo y nula si rechazo el funcionario (obtuvo $decision3 y $decision2)" (($decision3 -eq "RECHAZADA") -and ($null -eq $decision2))
     $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol3/funcionario/responder" -Token $fa1.Token -Cuerpo @{ observacion = $mensajeEstudiante; ajustes = @((Ajuste $g1 $situaciones[1] "")) }
     Escribir-Resultado "una solicitud rechazada por el Decano no admite ajustes (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Leer-Json $r).codigoError -eq "4") -and ((Etapa-De $sol3) -eq "RECHAZADA_POR_DECANO"))
     $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol3/funcionario/responder" -Token $fa1.Token -Cuerpo @{ observacion = $mensajeEstudiante }

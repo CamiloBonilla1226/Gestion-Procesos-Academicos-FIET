@@ -69,8 +69,9 @@ describe('BandejaSolicitudesAcademicasComponent', () => {
     expect(servicio.getSolicitudesFuncionario).toHaveBeenCalledTimes(1);
     expect(filas(fixture).length).toBe(10);
     expect(encabezados(fixture)).toEqual([
-      'Radicado', 'Estudiante', 'Documento', 'Tipo de proceso', 'Fecha de radicación', 'Estado', 'Acciones'
+      'Radicado', 'Estudiante', 'Documento', 'Código', 'Tipo de proceso', 'Fecha de radicación', 'Estado', 'Decisión del Decano', 'Acciones'
     ]);
+    expect(filas(fixture)[0].querySelectorAll('td')[3].textContent.trim()).toBe('104611');
     expect(filas(fixture)[0].textContent).toContain('31/12/2026 23:59');
     expect(filas(fixture)[0].querySelector('.radicado')?.textContent?.trim()).toBe('2026-CA-0001');
     expect(fixture.nativeElement.querySelector('.tarjeta-head h2').textContent.trim()).toBe('Gestión de solicitudes');
@@ -115,10 +116,27 @@ describe('BandejaSolicitudesAcademicasComponent', () => {
     expect(filas(fixture).length).toBe(10);
   });
 
+  it('el Funcionario ve la decision del Decano en texto legible a la derecha del estado, sin cambiar el estado', () => {
+    const lista = solicitudes(4);
+    lista[0].decisionDecano = 'APROBADA';
+    lista[1].decisionDecano = 'RECHAZADA';
+    lista[2].decisionDecano = 'APROBADA_PARCIAL';
+    lista[0].etiqueta = 'Respondida';
+    servicio.getSolicitudesFuncionario.and.returnValue(of(lista));
+    const fixture = crear('FUNCIONARIO');
+    const indice = encabezados(fixture).indexOf('Decisión del Decano');
+    expect(indice).toBe(encabezados(fixture).indexOf('Estado') + 1);
+    const valores = filas(fixture).map(f => f.querySelectorAll('td')[indice].textContent.trim());
+    expect(valores).toEqual(['Aprobada', 'Rechazada', 'Aprobada parcial', '—']);
+    expect(filas(fixture)[0].querySelector('.estado')?.textContent?.trim()).toBe('Respondida');
+  });
+
   it('el Decano no tiene el filtro de codigo estudiantil', () => {
     servicio.getSolicitudesDecano.and.returnValue(of(solicitudes(2)));
     const fixture = crear('DECANO');
     expect(fixture.nativeElement.querySelector('[data-filtro-codigo]')).toBeNull();
+    expect(encabezados(fixture)).not.toContain('Código');
+    expect(encabezados(fixture)).not.toContain('Decisión del Decano');
   });
 
   it('el Estudiante solo ve sus columnas y no tiene filtro por codigo', () => {

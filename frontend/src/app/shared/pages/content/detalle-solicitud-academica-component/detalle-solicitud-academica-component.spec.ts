@@ -215,7 +215,7 @@ describe('DetalleSolicitudAcademicaComponent', () => {
     expect(entradas[0]).toContain('Radicación de la solicitud');
     expect(entradas[0]).toContain('María Pérez');
     expect(entradas[1]).toContain('Remisión al Decano');
-    expect(entradas[1]).toContain('Cumple los requisitos');
+    expect(entradas[1]).not.toContain('Cumple los requisitos');
     expect(entradas[1]).toContain('Etapa no determinada');
     expect(entradas[2]).toContain('Envío de la respuesta al estudiante');
     expect(entradas[2]).toContain('10/10/2026 08:00');
@@ -332,6 +332,14 @@ describe('DetalleSolicitudAcademicaComponent', () => {
       expect(texto(fixture, '[data-observacion-remision] .bloque-texto')).toEqual(['Cumple los requisitos']);
     }
     expect(crear(detalle(false, false), 'ESTUDIANTE').nativeElement.querySelector('[data-observacion-remision]')).toBeNull();
+  });
+
+  it('el historial no repite la observacion para el Decano', () => {
+    for (const rol of ['FUNCIONARIO', 'DECANO']) {
+      const fixture = crear(detalle(false, false), rol);
+      expect(texto(fixture, '[data-historial] .historial-observacion')).not.toContain('Cumple los requisitos');
+      fixture.destroy();
+    }
   });
 
   it('el mensaje para el estudiante solo aparece cuando existe', () => {

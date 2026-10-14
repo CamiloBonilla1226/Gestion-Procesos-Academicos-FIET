@@ -13,6 +13,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class FormularioExamenSupletorioDTORespuesta {
+    private String codigoEstudiantil;
     @Builder.Default
     private List<AsignaturaSupletorioDTORespuesta> asignaturas = new ArrayList<>();
     @Builder.Default

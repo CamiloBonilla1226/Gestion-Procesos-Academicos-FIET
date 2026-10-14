@@ -141,4 +141,24 @@ class SolicitudAcademicaGatewayImplAdaptadorTest {
         assertEquals("2026-CM-0003", gateway.getRadicadoEnCurso("est-1", "tipo-cm", finales));
         assertNull(gateway.getRadicadoEnCurso("est-1", "tipo-ca", finales));
     }
+
+    @Test
+    void laUltimaAccionDeCadaSolicitudEsLaMasReciente() {
+        List<String> acciones = List.of("APROBAR_DECANO", "RECHAZAR_DECANO");
+        when(historialRepositorio.findAccionesPorSolicitudes(List.of("s1", "s2"), acciones)).thenReturn(List.of(
+                new Object[]{"s1", "RECHAZAR_DECANO"}, new Object[]{"s2", "APROBAR_DECANO"}, new Object[]{"s1", "APROBAR_DECANO"}));
+
+        assertEquals(java.util.Map.of("s1", "APROBAR_DECANO", "s2", "APROBAR_DECANO"), gateway.getUltimaAccion(List.of("s1", "s2"), acciones));
+        assertTrue(gateway.getUltimaAccion(List.of(), acciones).isEmpty());
+        verify(historialRepositorio, times(1)).findAccionesPorSolicitudes(any(), any());
+    }
+
+    @Test
+    void lasSolicitudesConAsignaturaNoAprobadaSalenDelRepositorioYSinUuidsNoConsulta() {
+        when(repositorio.findConAsignaturaNoAprobadaPorDecano(List.of("s1", "s2"))).thenReturn(List.of("s2"));
+
+        assertEquals(java.util.Set.of("s2"), gateway.getConAsignaturaNoAprobadaPorDecano(List.of("s1", "s2")));
+        assertTrue(gateway.getConAsignaturaNoAprobadaPorDecano(List.of()).isEmpty());
+        verify(repositorio, times(1)).findConAsignaturaNoAprobadaPorDecano(any());
+    }
 }

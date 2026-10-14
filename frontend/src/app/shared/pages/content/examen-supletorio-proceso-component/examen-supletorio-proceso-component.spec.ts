@@ -182,7 +182,7 @@ describe('ExamenSupletorioProcesoComponent', () => {
     componente.abrir('REMITIR_DECANO');
     fixture.detectChanges();
     expect(document.querySelectorAll('[data-campo-observacion]').length).toBe(1);
-    expect(document.querySelector('[data-campo-observacion]')?.textContent).toContain('Observación solo para el Decano (el estudiante no la verá)');
+    expect(document.querySelector('[data-campo-observacion]')?.textContent).toContain('Observaciones para el Decano');
     componente.cerrar(false);
     componente.abrir('RECHAZAR_FUNCIONARIO');
     fixture.detectChanges();

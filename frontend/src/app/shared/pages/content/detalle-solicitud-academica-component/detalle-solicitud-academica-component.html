@@ -138,8 +138,8 @@
           <div class="historial-texto">
             <div class="historial-accion">{{ textoAccion(entrada.accion) }}</div>
             <small>{{ nombreUsuario(entrada) }} &middot; {{ formatearFechaHora(entrada.fecha) }}</small>
-            @if (entrada.observaciones) {
-            <p class="historial-observacion">{{ entrada.observaciones }}</p>
+            @if (observacionHistorial(entrada); as observacion) {
+            <p class="historial-observacion">{{ observacion }}</p>
             }
           </div>
           @if (!esEstudiante) {

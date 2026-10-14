@@ -77,6 +77,7 @@ public class ConsultaCancelacionMatriculaCUImplAdaptador implements ConsultaCanc
                 .filter(asignatura -> EstadoAsignaturaMatriculadaConstantes.ACTIVA.equals(asignatura.getEstado()))
                 .toList();
         return FormularioCancelacionMatricula.builder()
+                .codigoEstudiantil(estudianteGateway.getPorUuid(uuidEstudiante).getCodigoEstudiantil())
                 .anexos(tipoAnexoGateway.getPorTipo(tipo.getUuidTipoSolicitudAcademica()))
                 .asignaturas(activas)
                 .build();

@@ -66,6 +66,7 @@ public class ConsultaCancelacionAsignaturaCUImplAdaptador implements ConsultaCan
                 .filter(asignatura -> EstadoAsignaturaMatriculadaConstantes.ACTIVA.equals(asignatura.getEstado()))
                 .toList();
         return FormularioCancelacionAsignatura.builder()
+                .codigoEstudiantil(estudianteGateway.getPorUuid(uuidEstudiante).getCodigoEstudiantil())
                 .asignaturas(activas)
                 .soportes(List.of(SoportePermitido.builder()
                         .nombre(SOPORTE_LIBRE)
@@ -101,6 +102,7 @@ public class ConsultaCancelacionAsignaturaCUImplAdaptador implements ConsultaCan
                 .asignaturaMatriculada(asignatura.getAsignaturaMatriculada())
                 .aprobadaPorDecano(esFinal ? asignatura.getAprobadaPorDecano() : null)
                 .observacionDecision(esFinal ? asignatura.getObservacionDecision() : null)
+                .situacionCancelar(esFinal && Boolean.TRUE.equals(asignatura.getAprobadaPorDecano()) ? asignatura.getSituacionCancelar() : null)
                 .build();
     }
 

@@ -104,7 +104,7 @@ class ConsultaCancelacionMatriculaCUImplAdaptadorTest {
                 sesionGateway, jwtServicio, consultaCU, new MaquinaEtapas(formateador), formateador);
         lenient().when(jwtServicio.getUsername(TOKEN)).thenReturn("alumno");
         lenient().when(sesionGateway.getUsuario("alumno")).thenReturn(usuario(ESTUDIANTE, "Estudiante"));
-        lenient().when(estudianteGateway.getPorUuid(ESTUDIANTE)).thenReturn(Estudiante.builder().uuidUsuario(ESTUDIANTE).build());
+        lenient().when(estudianteGateway.getPorUuid(ESTUDIANTE)).thenReturn(Estudiante.builder().uuidUsuario(ESTUDIANTE).codigoEstudiantil("104618021").build());
     }
 
     @Test
@@ -141,6 +141,8 @@ class ConsultaCancelacionMatriculaCUImplAdaptadorTest {
                 materia("am-1", "Cálculo I", "activa"), materia("am-2", "Física I", "cancelada"), materia("am-3", "Química I", "activa")));
 
         FormularioCancelacionMatricula formulario = casoDeUso.getFormulario(TOKEN);
+
+        assertEquals("104618021", formulario.getCodigoEstudiantil());
 
         assertSame(anexos, formulario.getAnexos());
         assertEquals(List.of("am-1", "am-3"), formulario.getAsignaturas().stream().map(AsignaturaMatriculada::getUuidAsignaturaMatriculada).toList());

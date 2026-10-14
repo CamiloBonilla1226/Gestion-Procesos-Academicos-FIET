@@ -371,9 +371,10 @@ en su propio chunk diferido.
   `etapaCodigo`: reloj ámbar (Pendiente), flechas azules (En Gestión, En
   trámite, verificación), flecha morada (por notificar, enviar recibo), check
   verde (Aprobada, Aprobada por el Decano, Respondida), x roja (Rechazada,
-  Rechazada por el Decano) y exclamación ámbar (Pendiente de pago). En el
-  Funcionario, "Aprobada por el Decano" y "Rechazada por el Decano" se ven así
-  en Estado, sin insignia aparte. El detalle del Funcionario muestra el bloque
+  Rechazada por el Decano) y exclamación ámbar (Pendiente de pago). Desde
+  D-F36 los estados del Funcionario son Pendiente, En Gestión, Pendiente
+  Notificar, Enviar Recibo, Recibo Pagado (flechas azules) y Respondida; la
+  decisión del Decano ya no es un estado. El detalle del Funcionario muestra el bloque
   "Decisión del Decano" con la observación que trae la última fila
   `APROBAR_DECANO` o `RECHAZAR_DECANO` del historial.
 
@@ -395,9 +396,9 @@ El campo de observación de cada acción sale de `campoObservacion`
 (`core/constantes/etiquetas-academicas.ts`), con la misma etiqueta en los tres
 procesos (D-F35), y se valida con `errorDeObservacion`: "Observación solo para
 el estudiante (se entrega como respuesta)" obligatoria al rechazar en el
-Funcionario y opcional al enviar la respuesta (hasta 500); "Observación solo
-para el Decano (el estudiante no la verá)" opcional al remitir, y es el único
-campo de observación al remitir; "Observación (opcional)" al aprobar y rechazar
+Funcionario y al rechazar el comprobante, y opcional al enviar la respuesta
+(hasta 500); "Observaciones para el Decano" opcional al remitir, y es el único
+campo de observación al remitir (D-F36); "Observación (opcional)" al aprobar y rechazar
 en el Decano, con el aviso "Esta observación solo será visible para el
 Funcionario Académico."; y "Observación" obligatoria al rechazar el
 comprobante. Cancelación de Asignatura cambia la obligatoriedad según la tabla
@@ -500,7 +501,9 @@ Las reglas que no son "obligatorio" viven en
 | D-F32 | El estilo compartido de detalle, procesos y formularios vive en `shared/pages/content/estilos-academicos.css` y `estilos-formularios.css`, que cada componente incluye en `styleUrls` (carga diferida, no toca el bundle inicial) |
 | D-F33 | Los formularios del Estudiante siguen siendo de una sola página; el stepper solo guía. Los datos del primer bloque salen del usuario de la sesión, no del formulario |
 | D-F34 | Catálogo del Estudiante en `/estudiante/catalogo` (ítem "Solicitudes" del menú), con los textos oficiales en `TRAMITES_ESTUDIANTE`. Sus botones son `<a href>` con `router.navigateByUrl` en `(click)`, no `routerLink`: `RouterLink` subía 4,5 kB el bundle inicial. `BotonSidebar.activaEn` (opcional) marca un ítem en rutas que no cuelgan de la suya |
-| D-F35 | Observaciones y decisión por asignatura (T12.10). Una sola observación por solicitud al remitir, "Observación solo para el Decano (el estudiante no la verá)"; en Cancelación de Asignatura es obligatoria (máx 255) si alguna no cumple y se copia como `observacionEvaluacion` de esas asignaturas, sin campo bajo la tabla. Decano: interruptor Aprobar / Rechazar por fila que parte de `cumpleCondiciones`; "Aceptar tal como está" (`aceptarEvaluacion`, solo sin cambios) o "Enviar decisión modificada" (`decisiones`, solo con cambios, y `decano/rechazar` si todas quedan en Rechazar); sin situación al cancelar ni observación por asignatura. Funcionario: "Cambiada por el Decano" en la tabla; la respuesta pide situación a las aprobadas sin ella y observación a las rechazadas cambiadas (`ajustes`), y la observación general es obligatoria con cualquier rechazo del Decano. Código estudiantil del nivel superior del detalle |
+| D-F35 | Observaciones y decisión por asignatura (T12.10). Una sola observación por solicitud al remitir, sin campo bajo la tabla (etiqueta y obligatoriedad actualizadas en D-F36). Decano: interruptor Aprobar / Rechazar por fila que parte de `cumpleCondiciones`; "Aceptar tal como está" (`aceptarEvaluacion`, solo sin cambios) o "Enviar decisión modificada" (`decisiones`, solo con cambios, y `decano/rechazar` si todas quedan en Rechazar); sin situación al cancelar ni observación por asignatura. Funcionario: "Cambiada por el Decano" en la tabla; la respuesta pide situación a las aprobadas sin ella y observación a las rechazadas cambiadas (`ajustes`), y la observación general es obligatoria con cualquier rechazo del Decano. Código estudiantil del nivel superior del detalle |
+| D-F36 | Ajustes posteriores a T12.10 (P46 del backend). Al remitir, "Observaciones para el Decano", siempre opcional (500): ya no se copia a `observacionEvaluacion` (va nula) y la tabla no tiene la columna "Observación de la evaluación"; el historial del detalle no muestra la observación de `REMITIR_DECANO`, que queda solo en la tarjeta "Observación para el Decano". El Funcionario ve un aviso arriba de la tabla si el Decano cambió alguna decisión. El Estudiante, en la etapa final de Cancelación de Asignatura, ve "Situación académica al cancelar" de las aprobadas. El formulario del Estudiante muestra su código estudiantil (`codigoEstudiantil` del `GET .../formulario`). La bandeja del Funcionario suma la columna Código, y sus estados son Pendiente, En Gestión, Pendiente Notificar, Enviar Recibo, Recibo Pagado y Respondida (datos del backend); la decisión del Decano no es un estado (ver D-F37) |
+| D-F37 | T12.11 (P47 del backend). La bandeja del Funcionario suma la columna "Decisión del Decano" a la derecha de Estado, con `decisionDecano` del resumen en texto (`textoDecisionDecano`: Aprobada, Rechazada, Aprobada parcial, "—" si es nula); los estados no cambian. El Decano no la tiene (su columna "Decisión" ya es su etiqueta) y el Estudiante tampoco. En "Enviar respuesta" de Cancelación de Asignatura solo las aprobadas sin situación guardada o cambiadas por el Decano llevan selector de situación; las rechazadas no llevan campo propio ni van en `ajustes`, y el motivo va en la observación general, obligatoria si hay alguna rechazada o el Decano rechazó la solicitud |
 
 Otras decisiones tomadas en las tareas, sin número:
 
@@ -511,12 +514,13 @@ Otras decisiones tomadas en las tareas, sin número:
   Funcionario tiene además "Código estudiantil" (T12.10), en el cliente y con
   coincidencia parcial sobre `codigoEstudiantil`.
   Columnas: Radicado, Estudiante, Documento (`numeroDocumento` del resumen,
-  P42 del backend), Tipo de proceso, Fecha de radicación,
-  Estado y Acciones (ojo); el Estudiante ve Radicado, Tipo de proceso, Fecha de
-  radicación, Estado y Acciones. Fecha y Estado se ordenan con ⇅. El resumen no
-  trae fechas de remisión ni de decisión, por eso se usa la fecha de
-  radicación. La búsqueda cubre radicado, nombre, código y documento; el código
-  no tiene columna (T12.7).
+  P42 del backend), Código (solo el Funcionario, D-F36), Tipo de proceso,
+  Fecha de radicación, Estado, Decisión del Decano (solo el Funcionario, D-F37)
+  y Acciones (ojo); el Estudiante ve Radicado,
+  Tipo de proceso, Fecha de radicación, Estado y Acciones. Fecha y Estado se
+  ordenan con ⇅. El resumen no trae fechas de remisión ni de decisión, por eso
+  se usa la fecha de radicación. La búsqueda cubre radicado, nombre, código y
+  documento.
 - Detalle (T12.2-C): "← Volver", "Solicitud de {tipo}", "Radicado {número}" y
   la pill de estado por `categoriaEstado(etiqueta)`. Orden de tarjetas: Datos
   generales (solo los campos que llegan del backend; "Número de CC" con
@@ -557,8 +561,9 @@ Otras decisiones tomadas en las tareas, sin número:
   las secciones que ya existían, todo en una sola página; cada paso queda verde
   cuando su sección es válida y el primero pendiente en navy. El primer bloque
   (`DatosEstudianteSesionComponent`) muestra de solo lectura los datos del
-  usuario de la sesión y la Facultad FIET, con la nota de DARCA. El Estudiante
-  no tiene endpoint para su código, programa ni semestre. Pie con "Volver" (a
+  usuario de la sesión, el código estudiantil que trae el `GET .../formulario`
+  (D-F36) y la Facultad FIET, con la nota de DARCA. El Estudiante no tiene
+  endpoint para su programa ni su semestre. Pie con "Volver" (a
   Mis solicitudes) y "Radicar solicitud".
 - Catálogo del Estudiante (T12.7): tres tarjetas con barra navy, descripción,
   requisitos, anexos requeridos e "Iniciar solicitud →" hacia el formulario que

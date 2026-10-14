@@ -33,6 +33,12 @@
         texto de hasta 20 caracteres. Con una nota numérica menor a 3.0 no se puede marcar que cumple.
       </p>
       }
+      @if (cambiadasPorDecano.length > 0) {
+      <p class="nota-aviso mb-3" data-aviso-cambiadas>
+        El Decano cambió la decisión de {{ cambiadasPorDecano.length === 1 ? 'una asignatura' : cambiadasPorDecano.length + ' asignaturas' }}
+        frente a tu evaluación. Están marcadas con "Cambiada por el Decano"; revísalas antes de enviar la respuesta.
+      </p>
+      }
       @if (decide) {
       <p class="ayuda-tabla" data-ayuda-decision>
         Cada asignatura parte de la evaluación del Funcionario Académico. Si estás de acuerdo, acepta la evaluación tal
@@ -169,12 +175,6 @@
     <p class="nota-gris" data-nota-remitir>
       Se enviará al Decano la evaluación registrada en la tabla de asignaturas.
     </p>
-    @if (algunaNoCumple) {
-    <p class="nota-gris" data-nota-no-cumple>
-      Alguna asignatura no cumple las condiciones: la observación es obligatoria, de hasta 255 caracteres, y el Decano
-      también la verá en la evaluación de esas asignaturas.
-    </p>
-    }
     @if (solicitud.tieneResolucion) {
     <div class="nota-aviso">Al remitir se retira el escaneo de la Resolución que estaba cargado.</div>
     }
@@ -212,37 +212,22 @@
     </p>
     @if (asignaturasConAjuste.length > 0) {
     <div class="d-flex flex-column gap-2" data-ajustes>
-      <p class="mb-0">Completa los datos de estas asignaturas antes de responder.</p>
+      <p class="mb-0">Registra la situación al cancelar de estas asignaturas aprobadas antes de responder.</p>
       @for (asignatura of asignaturasConAjuste; track asignatura.uuidAsignaturaSolicitud) {
       @let uuid = asignatura.uuidAsignaturaSolicitud;
       <div class="bloque-edicion d-flex flex-column gap-2" [attr.data-ajuste]="uuid">
         <div>
           <strong>{{ asignatura.codigoAsignatura }} - {{ asignatura.nombreAsignatura }}</strong>
-          <div class="small text-secondary">
-            Decisión del Decano: {{ asignatura.aprobadaPorDecano ? 'Aprobada' : 'Rechazada' }}
-            @if (asignatura.decisionCambiadaPorDecano) {
-            <span class="etiqueta-cambiada">Cambiada por el Decano</span>
-            }
-          </div>
+          @if (asignatura.decisionCambiadaPorDecano) {
+          <div class="small text-secondary"><span class="etiqueta-cambiada">Cambiada por el Decano</span></div>
+          }
         </div>
-        @if (asignatura.aprobadaPorDecano) {
         <div>
           <app-input-select-component label="Situación al cancelar" [required]="true" [options]="opcionesSituacion"
             [(value)]="ajustes[uuid].situacion">
           </app-input-select-component>
           <small class="texto-error" [attr.data-error]="'ajuste-cancelar-' + uuid">{{ errores['ajuste-cancelar-' + uuid] || '' }}</small>
         </div>
-        } @else {
-        <div>
-          <app-input-text-tarea-component label="Observación para el estudiante sobre esta asignatura" [required]="true"
-            [(value)]="ajustes[uuid].observacion">
-          </app-input-text-tarea-component>
-          <div class="fila-ayuda">
-            <small class="texto-error" [attr.data-error]="'ajuste-observacion-' + uuid">{{ errores['ajuste-observacion-' + uuid] || '' }}</small>
-            <small class="contador" [class.excedido]="ajustes[uuid].observacion.length > maximoObservacionAsignatura">{{ ajustes[uuid].observacion.length }}/{{ maximoObservacionAsignatura }}</small>
-          </div>
-        </div>
-        }
       </div>
       }
     </div>

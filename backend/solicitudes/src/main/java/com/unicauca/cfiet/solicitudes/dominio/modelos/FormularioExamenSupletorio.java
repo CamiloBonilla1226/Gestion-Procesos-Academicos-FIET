@@ -11,6 +11,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class FormularioExamenSupletorio {
+    private String codigoEstudiantil;
     @Builder.Default
     private List<AsignaturaMatriculada> asignaturas = new ArrayList<>();
     @Builder.Default

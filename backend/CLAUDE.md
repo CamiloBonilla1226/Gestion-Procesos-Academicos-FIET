@@ -365,7 +365,7 @@ ninguna FK de la extensión apunta al Decano (el historial apunta a
 ## Procesos académicos: piezas y máquina de etapas
 
 Las reglas de negocio de los tres procesos (etapas, transiciones, anexos,
-plazos y decisiones P4 a P45) están en `docs/database/etapas-por-proceso.md`;
+plazos y decisiones P4 a P47) están en `docs/database/etapas-por-proceso.md`;
 el contrato HTTP, en `docs/api/contrato-api-procesos-academicos.md`.
 
 ### Casos de uso por área
@@ -574,6 +574,20 @@ El resto de `solicitudes-academicas/**` es `denyAll()`.
   detalle, historial y descargas. Sin rol resuelto o sin etiqueta se lanza la
   misma `lanzarEntidadNoExiste` que para un uuid inexistente, así una
   solicitud ajena no revela que existe.
+- `ETAPA_ETIQUETA_ROL` no distingue proceso. Por eso `etiquetaDe` cambia la
+  etiqueta del Funcionario en un Examen Supletorio en APROBADA_POR_DECANO por
+  `ETIQUETA_FUNCIONARIO_SUPLETORIO_APROBADO` ("Enviar Recibo"); en las
+  cancelaciones queda la de la tabla, "Pendiente Notificar" (P46). Vale para
+  bandeja y detalle; `GET catalogos-academicos/etiquetas` devuelve la tabla tal
+  cual.
+- Los tres `GET .../formulario` traen el `codigoEstudiantil` del estudiante
+  autenticado (P46).
+- El resumen de las bandejas del Funcionario y del Decano trae
+  `decisionDecano` (P47): `resumir` pide en dos consultas por lote
+  (`SolicitudAcademicaGatewayIntPuerto.getUltimaAccion` sobre el historial y
+  `getConAsignaturaNoAprobadaPorDecano`) la última acción del Decano y las
+  cancelaciones de asignatura con alguna rechazada, sin una consulta por
+  solicitud. Para el Estudiante no se consulta y sale nulo.
 - Las bandejas devuelven listas sin paginar, de la más reciente a la más
   antigua (`fechaCreacion` y luego `radicado`), con la etiqueta del rol en
   `etiqueta` y el código estable de la etapa en `etapaCodigo` (por ejemplo
@@ -755,9 +769,9 @@ El resto de `cancelaciones-matricula/**` es `denyAll()`.
 - `remitirADecano`: cada `EvaluacionAsignatura` trae además
   `cumpleCondiciones` (obligatorio) y `observacionEvaluacion`. Una nota
   numérica menor a 3.0 no puede venir con `cumpleCondiciones` verdadero (una
-  nota de texto no tiene esa restricción); si no cumple, la
-  observación es obligatoria (máximo 255); al menos una debe cumplir, si no
-  el error pide rechazar la solicitud.
+  nota de texto no tiene esa restricción); la observación de la evaluación
+  es opcional aunque no cumpla (máximo 255, P46); al menos una debe cumplir,
+  si no el error pide rechazar la solicitud.
 - `aprobarPorDecano(uuid, aceptarEvaluacion, decisiones, observacion, token)`:
   viene `aceptarEvaluacion` verdadero (cada asignatura queda con
   `aprobadaPorDecano` igual a `cumpleCondiciones`) o `decisiones`, una
@@ -777,9 +791,9 @@ El resto de `cancelaciones-matricula/**` es `denyAll()`.
   transición con `solicitudValidada` antes de leer los ajustes. Cada
   `AjusteAsignatura` (`uuidAsignaturaSolicitud`, `uuidSituacionCancelar`,
   `observacionDecision`) es de una asignatura propia y sin repetir. Toda
-  asignatura con la decisión cambiada exige su ajuste; el de una aprobada
-  exige situación del catálogo y el de una rechazada exige observación (255)
-  y no admite situación. Con alguna rechazada o desde RECHAZADA_POR_DECANO la
+  asignatura aprobada con la decisión cambiada exige su ajuste; el de una
+  aprobada exige situación del catálogo y el de una rechazada admite una
+  observación opcional (255) y no admite situación (P47). Con alguna rechazada o desde RECHAZADA_POR_DECANO la
   observación general es obligatoria, y desde RECHAZADA_POR_DECANO no se
   aceptan ajustes. Después de `cambiarEtapa` guarda las filas si hubo
   ajustes. En APROBADA pasan a `cancelada` solo las asignaturas con
@@ -817,7 +831,8 @@ El resto de `cancelaciones-asignatura/**` es `denyAll()`.
   cuando existen, `aprobadaPorDecano`, `observacionDecision`,
   `decisionCambiadaPorDecano` y la situación al cancelar. El Estudiante ve
   solo uuid de la fila, código y nombre; en `APROBADA` o `RECHAZADA` ve además
-  `aprobadaPorDecano` y `observacionDecision` (la del ajuste del Funcionario).
+  `aprobadaPorDecano`, `observacionDecision` (la del ajuste del Funcionario) y,
+  solo en las aprobadas, la situación al cancelar (P46).
   Nunca ve `observacionEvaluacion` ni `decisionCambiadaPorDecano`, que sale
   nulo porque su copia no lleva `cumpleCondiciones`. La vista del
   Estudiante es una copia: no modifica las filas leídas.
@@ -1200,7 +1215,7 @@ propia clase de prueba. Usan el `ExcepcionesFormateadorImplAdaptador` y la
 - `infraestructura/configuracion/lectorArchivos/AgrupadorEstudiantesExcelTest`
   y `DuplicadosFuncionariosAcademicosExcelTest`.
 
-Hoy `.\mvnw.cmd test` corre 1213 pruebas. `AsignaturaCUImplAdaptadorTest`
+Hoy `.\mvnw.cmd test` corre 1233 pruebas. `AsignaturaCUImplAdaptadorTest`
 cubre el consecutivo, el paso de 999 a 1000, la no reutilización, el orden
 bloqueo y luego nombre, y 40 creaciones simultáneas sobre un gateway falso con
 bloqueo que no repiten código.

@@ -12,4 +12,5 @@ public class ResumenSolicitudAcademica {
     private String etiqueta;
     private String etapaCodigo;
     private String numeroDocumento;
+    private String decisionDecano;
 }

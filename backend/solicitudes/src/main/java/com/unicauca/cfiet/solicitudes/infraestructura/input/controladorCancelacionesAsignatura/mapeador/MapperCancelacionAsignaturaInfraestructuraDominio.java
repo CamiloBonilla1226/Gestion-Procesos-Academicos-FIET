@@ -72,6 +72,7 @@ public class MapperCancelacionAsignaturaInfraestructuraDominio {
 
     public FormularioCancelacionAsignaturaDTORespuesta mapearFormularioARespuesta(FormularioCancelacionAsignatura formulario) {
         return FormularioCancelacionAsignaturaDTORespuesta.builder()
+                .codigoEstudiantil(formulario.getCodigoEstudiantil())
                 .asignaturas(formulario.getAsignaturas().stream()
                         .map(matriculada -> AsignaturaElegibleDTORespuesta.builder()
                                 .uuidAsignaturaMatriculada(matriculada.getUuidAsignaturaMatriculada())

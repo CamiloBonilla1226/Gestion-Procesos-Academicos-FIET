@@ -27,6 +27,16 @@ describe('DatosEstudianteSesionComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-nota-darca]').textContent.trim()).toBe(NOTA_DATOS_DARCA);
   });
 
+  it('muestra el codigo estudiantil que llega del formulario despues del documento', () => {
+    const fixture = crear({ nombres: 'Laura', numeroDocumento: '1061789234' });
+    fixture.componentRef.setInput('codigoEstudiantil', '104618021');
+    fixture.detectChanges();
+    const etiquetas = Array.from(fixture.nativeElement.querySelectorAll('.dato-etiqueta')).map((e: any) => e.textContent.trim());
+    const valores = (Array.from(fixture.nativeElement.querySelectorAll('input')) as HTMLInputElement[]).map(v => v.value);
+    expect(etiquetas).toEqual(['Nombres', 'Número de documento', 'Código estudiantil', 'Facultad']);
+    expect(valores[2]).toBe('104618021');
+  });
+
   it('sin usuario solo muestra la facultad', () => {
     const fixture = crear(null);
     const etiquetas = Array.from(fixture.nativeElement.querySelectorAll('.dato-etiqueta')).map((e: any) => e.textContent.trim());

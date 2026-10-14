@@ -22,4 +22,5 @@ public class SolicitudAcademicaResumenDTORespuesta {
     private String nombreEstudiante;
     private String codigoEstudiantil;
     private String numeroDocumento;
+    private String decisionDecano;
 }

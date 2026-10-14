@@ -17,6 +17,16 @@ export const ETIQUETAS_DECISION_DECANO = {
   RECHAZADA: 'Rechazada por el Decano'
 } as const;
 
+const TEXTOS_DECISION_DECANO: Record<string, string> = {
+  APROBADA: 'Aprobada',
+  RECHAZADA: 'Rechazada',
+  APROBADA_PARCIAL: 'Aprobada parcial'
+};
+
+export function textoDecisionDecano(decision: string | null | undefined): string {
+  return (decision && TEXTOS_DECISION_DECANO[decision]) || '—';
+}
+
 function mismaEtiqueta(etiqueta: string | null | undefined, esperada: string): boolean {
   return (etiqueta ?? '').trim().normalize('NFC').toLowerCase() === esperada.normalize('NFC').toLowerCase();
 }
@@ -39,7 +49,7 @@ const CATEGORIAS_ESTADO: [CategoriaEstado, string[]][] = [
   ['rechazada', [ETIQUETAS_ESTUDIANTE.RECHAZADA, ETIQUETAS_DECISION_DECANO.RECHAZADA]],
   ['pago', [ETIQUETAS_ESTUDIANTE.PENDIENTE_PAGO]],
   ['notificar', ['Pendiente de Respuesta', 'Pendiente Notificar', 'Por notificar', 'Enviar Recibo']],
-  ['gestion', [ETIQUETAS_ESTUDIANTE.EN_TRAMITE, ETIQUETAS_ESTUDIANTE.EN_VERIFICACION_PAGO, 'En Gestión', 'Pendiente de Verificación']],
+  ['gestion', [ETIQUETAS_ESTUDIANTE.EN_TRAMITE, ETIQUETAS_ESTUDIANTE.EN_VERIFICACION_PAGO, 'En Gestión', 'Pendiente de Verificación', 'Recibo Pagado']],
   ['pendiente', ['Pendiente']]
 ];
 
@@ -53,7 +63,7 @@ export interface CampoObservacion {
   aviso: string | null;
 }
 
-export const ETIQUETA_OBSERVACION_DECANO = 'Observación solo para el Decano (el estudiante no la verá)';
+export const ETIQUETA_OBSERVACION_DECANO = 'Observaciones para el Decano';
 export const ETIQUETA_OBSERVACION_ESTUDIANTE = 'Observación solo para el estudiante (se entrega como respuesta)';
 
 const CAMPOS_OBSERVACION: Partial<Record<AccionAcademica, CampoObservacion>> = {

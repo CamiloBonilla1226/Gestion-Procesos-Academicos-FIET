@@ -177,6 +177,10 @@ export class DetalleSolicitudAcademicaComponent implements OnInit {
     this.router.navigate([this.rutaBandeja]);
   }
 
+  observacionHistorial(entrada: HistorialSolicitudAcademicaDTORespuesta): string | null {
+    return entrada.accion === ACCIONES_ACADEMICAS.REMITIR_DECANO ? null : entrada.observaciones || null;
+  }
+
   nombreUsuario(entrada: HistorialSolicitudAcademicaDTORespuesta): string {
     return `${entrada.nombresUsuario ?? ''} ${entrada.apellidosUsuario ?? ''}`.trim();
   }

@@ -36,16 +36,16 @@ INSERT IGNORE INTO ETAPA_ETIQUETA_ROL (Etapa_uuid, rol, etiqueta) VALUES
 ('28ee2417-f100-4972-82d3-a4d267a1a10f', 'FUNCIONARIO', 'En Gestión'),
 ('28ee2417-f100-4972-82d3-a4d267a1a10f', 'DECANO', 'Pendiente'),
 ('1dfc0089-f1b0-486d-bfc5-2025081d800f', 'ESTUDIANTE', 'En trámite'),
-('1dfc0089-f1b0-486d-bfc5-2025081d800f', 'FUNCIONARIO', 'Aprobada por el Decano'),
+('1dfc0089-f1b0-486d-bfc5-2025081d800f', 'FUNCIONARIO', 'Pendiente Notificar'),
 ('1dfc0089-f1b0-486d-bfc5-2025081d800f', 'DECANO', 'Respondida'),
 ('fa3c502f-dc81-46eb-bace-88deb194564b', 'ESTUDIANTE', 'En trámite'),
-('fa3c502f-dc81-46eb-bace-88deb194564b', 'FUNCIONARIO', 'Rechazada por el Decano'),
+('fa3c502f-dc81-46eb-bace-88deb194564b', 'FUNCIONARIO', 'Pendiente Notificar'),
 ('fa3c502f-dc81-46eb-bace-88deb194564b', 'DECANO', 'Respondida'),
 ('6e4561a7-b354-4f21-9825-f35263882b36', 'ESTUDIANTE', 'Pendiente de pago'),
 ('6e4561a7-b354-4f21-9825-f35263882b36', 'FUNCIONARIO', 'En Gestión'),
 ('6e4561a7-b354-4f21-9825-f35263882b36', 'DECANO', 'Respondida'),
 ('ac289652-cf4e-4142-bec4-8809cbcb74fc', 'ESTUDIANTE', 'En verificación de pago'),
-('ac289652-cf4e-4142-bec4-8809cbcb74fc', 'FUNCIONARIO', 'Pendiente de Verificación'),
+('ac289652-cf4e-4142-bec4-8809cbcb74fc', 'FUNCIONARIO', 'Recibo Pagado'),
 ('ac289652-cf4e-4142-bec4-8809cbcb74fc', 'DECANO', 'Respondida'),
 ('6e6b1b7e-f7db-4fb8-8c4a-3d67c18dbe5a', 'ESTUDIANTE', 'Aprobada'),
 ('6e6b1b7e-f7db-4fb8-8c4a-3d67c18dbe5a', 'FUNCIONARIO', 'Respondida'),
@@ -72,3 +72,6 @@ INSERT IGNORE INTO SITUACION_ACADEMICA_ASIGNATURA (uuidSituacionAcademica, codig
 ('62aa0705-f878-408e-8111-78691c1a871a', 'R1', 'Cursada por primera vez'),
 ('fa14cee3-6e4f-4178-955c-ba73312e08cb', 'R2', 'Cursada por segunda vez'),
 ('a6077d43-d5fc-4e8d-9424-18c549515c24', 'R3', 'Cursada por tercera vez');
+
+UPDATE ETAPA_ETIQUETA_ROL SET etiqueta = 'Pendiente Notificar' WHERE rol = 'FUNCIONARIO' AND Etapa_uuid IN ('1dfc0089-f1b0-486d-bfc5-2025081d800f', 'fa3c502f-dc81-46eb-bace-88deb194564b');
+UPDATE ETAPA_ETIQUETA_ROL SET etiqueta = 'Recibo Pagado' WHERE rol = 'FUNCIONARIO' AND Etapa_uuid = 'ac289652-cf4e-4142-bec4-8809cbcb74fc';

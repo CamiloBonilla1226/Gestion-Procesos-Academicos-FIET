@@ -83,8 +83,8 @@ try {
             PENDIENTE_PAGO = "Pendiente de pago"; EN_VERIFICACION_PAGO = Texto "En verificaci\u00f3n de pago"; APROBADA = "Aprobada"; RECHAZADA = "Rechazada"
         }
         FUNCIONARIO = @{
-            RADICADA = "Pendiente"; EN_REVISION_DECANO = Texto "En Gesti\u00f3n"; APROBADA_POR_DECANO = "Aprobada por el Decano"; RECHAZADA_POR_DECANO = "Rechazada por el Decano"
-            PENDIENTE_PAGO = Texto "En Gesti\u00f3n"; EN_VERIFICACION_PAGO = Texto "Pendiente de Verificaci\u00f3n"; APROBADA = "Respondida"; RECHAZADA = "Respondida"
+            RADICADA = "Pendiente"; EN_REVISION_DECANO = Texto "En Gesti\u00f3n"; APROBADA_POR_DECANO = "Pendiente Notificar"; RECHAZADA_POR_DECANO = "Pendiente Notificar"
+            PENDIENTE_PAGO = Texto "En Gesti\u00f3n"; EN_VERIFICACION_PAGO = "Recibo Pagado"; APROBADA = "Respondida"; RECHAZADA = "Respondida"
         }
         DECANO      = @{
             EN_REVISION_DECANO = "Pendiente"; APROBADA_POR_DECANO = "Respondida"; RECHAZADA_POR_DECANO = "Respondida"

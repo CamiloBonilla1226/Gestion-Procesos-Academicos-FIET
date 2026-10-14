@@ -9,4 +9,5 @@ export interface SolicitudAcademicaResumenDTORespuesta {
   nombreEstudiante: string;
   codigoEstudiantil: string;
   numeroDocumento?: string | null;
+  decisionDecano?: string | null;
 }

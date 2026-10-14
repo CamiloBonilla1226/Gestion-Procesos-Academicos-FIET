@@ -3,7 +3,8 @@ import {
   categoriaEstado,
   claseInsigniaEtiquetaEstudiante,
   esEtiqueta,
-  etiquetaCampoObservacion
+  etiquetaCampoObservacion,
+  textoDecisionDecano
 } from './etiquetas-academicas';
 
 describe('etiquetas academicas', () => {
@@ -33,12 +34,22 @@ describe('etiquetas academicas', () => {
     expect(categoriaEstado('Rechazada')).toBe('rechazada');
     expect(categoriaEstado('Pendiente de pago')).toBe('pago');
     expect(categoriaEstado('Enviar Recibo')).toBe('notificar');
+    expect(categoriaEstado('Pendiente Notificar')).toBe('notificar');
+    expect(categoriaEstado('Recibo Pagado')).toBe('gestion');
     expect(categoriaEstado('Otra cosa')).toBe('otro');
     expect(categoriaEstado(null)).toBe('otro');
   });
 
+  it('traduce la decision del Decano del resumen a texto legible', () => {
+    expect(textoDecisionDecano('APROBADA')).toBe('Aprobada');
+    expect(textoDecisionDecano('RECHAZADA')).toBe('Rechazada');
+    expect(textoDecisionDecano('APROBADA_PARCIAL')).toBe('Aprobada parcial');
+    expect(textoDecisionDecano(null)).toBe('—');
+    expect(textoDecisionDecano('OTRA')).toBe('—');
+  });
+
   it('define el campo de observacion de cada accion', () => {
-    expect(etiquetaCampoObservacion(campoObservacion('REMITIR_DECANO')!)).toBe('Observación solo para el Decano (el estudiante no la verá)');
+    expect(etiquetaCampoObservacion(campoObservacion('REMITIR_DECANO')!)).toBe('Observaciones para el Decano');
     expect(campoObservacion('REMITIR_DECANO')!.obligatoria).toBeFalse();
     expect(campoObservacion('REMITIR_DECANO')!.aviso).toBeNull();
     expect(etiquetaCampoObservacion(campoObservacion('RECHAZAR_FUNCIONARIO')!)).toBe('Observación solo para el estudiante (se entrega como respuesta)');

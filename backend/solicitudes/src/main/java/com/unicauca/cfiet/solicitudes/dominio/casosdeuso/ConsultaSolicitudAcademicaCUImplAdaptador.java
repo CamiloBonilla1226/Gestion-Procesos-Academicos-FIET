@@ -30,6 +30,7 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
     private static final Set<AccionEtapa> FILAS_OCULTAS_ESTUDIANTE = EnumSet.of(AccionEtapa.APROBAR_DECANO, AccionEtapa.RECHAZAR_DECANO);
     private static final Set<String> DECISIONES_DECANO =
             Set.of(EtapaSolicitudAcademicaConstantes.APROBADA_POR_DECANO, EtapaSolicitudAcademicaConstantes.RECHAZADA_POR_DECANO);
+    private static final List<String> ACCIONES_DECANO = List.of(AccionEtapa.APROBAR_DECANO.name(), AccionEtapa.RECHAZAR_DECANO.name());
 
     private final SolicitudAcademicaGatewayIntPuerto gateway;
     private final EtapaEtiquetaRolGatewayIntPuerto etiquetaGateway;
@@ -175,7 +176,7 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
         Usuario usuario = usuarioDe(token);
         SolicitudAcademica solicitud = tieneTexto(uuidSolicitudAcademica) ? gateway.getPorUuid(uuidSolicitudAcademica) : null;
         RolEtiquetaEtapa rol = solicitud == null ? null : rolEn(solicitud, usuario);
-        String etiqueta = rol == null || solicitud.getEtapa() == null ? null : etiquetas(rol).get(solicitud.getEtapa().getUuidEtapa());
+        String etiqueta = rol == null || solicitud.getEtapa() == null ? null : etiquetaDe(solicitud, rol, etiquetas(rol));
         if (etiqueta == null)
             formateadorExcepciones.lanzarEntidadNoExiste(String.format(
                     MensajesError.ENTIDAD_NO_ENCONTRADA, SOLICITUD_ACADEMICA, uuidSolicitudAcademica));
@@ -199,15 +200,55 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
 
     private List<ResumenSolicitudAcademica> resumir(List<SolicitudAcademica> solicitudes, RolEtiquetaEtapa rol) {
         Map<String, String> etiquetas = etiquetas(rol);
-        return solicitudes.stream()
+        List<SolicitudAcademica> visibles = solicitudes.stream()
                 .filter(solicitud -> solicitud.getEtapa() != null && etiquetas.containsKey(solicitud.getEtapa().getUuidEtapa()))
+                .toList();
+        Map<String, String> decisiones = rol == RolEtiquetaEtapa.ESTUDIANTE ? Map.of() : decisionesDecano(visibles);
+        return visibles.stream()
                 .map(solicitud -> ResumenSolicitudAcademica.builder()
                         .solicitudAcademica(solicitud)
-                        .etiqueta(etiquetas.get(solicitud.getEtapa().getUuidEtapa()))
+                        .etiqueta(etiquetaDe(solicitud, rol, etiquetas))
                         .etapaCodigo(etapaVisible(solicitud.getEtapa().getCodigo(), rol))
                         .numeroDocumento(rol == RolEtiquetaEtapa.ESTUDIANTE ? null : numeroDocumento(solicitud))
+                        .decisionDecano(decisiones.get(solicitud.getUuidSolicitudAcademica()))
                         .build())
                 .toList();
+    }
+
+    private Map<String, String> decisionesDecano(List<SolicitudAcademica> solicitudes) {
+        if (solicitudes.isEmpty())
+            return Map.of();
+        List<String> uuids = solicitudes.stream().map(SolicitudAcademica::getUuidSolicitudAcademica).toList();
+        Map<String, String> acciones = gateway.getUltimaAccion(uuids, ACCIONES_DECANO);
+        List<String> asignaturasAprobadas = solicitudes.stream()
+                .filter(solicitud -> AccionEtapa.APROBAR_DECANO.name().equals(acciones.get(solicitud.getUuidSolicitudAcademica())))
+                .filter(solicitud -> procesoDe(solicitud) == TipoProcesoAcademico.CANCELACION_ASIGNATURA)
+                .map(SolicitudAcademica::getUuidSolicitudAcademica)
+                .toList();
+        Set<String> parciales = asignaturasAprobadas.isEmpty() ? Set.of() : gateway.getConAsignaturaNoAprobadaPorDecano(asignaturasAprobadas);
+        Map<String, String> decisiones = new HashMap<>();
+        acciones.forEach((uuid, accion) -> {
+            if (AccionEtapa.RECHAZAR_DECANO.name().equals(accion))
+                decisiones.put(uuid, EtapaSolicitudAcademicaConstantes.DECISION_RECHAZADA);
+            else if (AccionEtapa.APROBAR_DECANO.name().equals(accion))
+                decisiones.put(uuid, parciales.contains(uuid)
+                        ? EtapaSolicitudAcademicaConstantes.DECISION_APROBADA_PARCIAL : EtapaSolicitudAcademicaConstantes.DECISION_APROBADA);
+        });
+        return decisiones;
+    }
+
+    private TipoProcesoAcademico procesoDe(SolicitudAcademica solicitud) {
+        TipoSolicitudAcademica tipo = solicitud.getTipoSolicitudAcademica();
+        return tipo == null ? null : TipoProcesoAcademico.porNombre(tipo.getNombre());
+    }
+
+    private String etiquetaDe(SolicitudAcademica solicitud, RolEtiquetaEtapa rol, Map<String, String> etiquetas) {
+        String etiqueta = etiquetas.get(solicitud.getEtapa().getUuidEtapa());
+        TipoSolicitudAcademica tipo = solicitud.getTipoSolicitudAcademica();
+        boolean supletorioAprobado = rol == RolEtiquetaEtapa.FUNCIONARIO
+                && EtapaSolicitudAcademicaConstantes.APROBADA_POR_DECANO.equals(solicitud.getEtapa().getCodigo())
+                && tipo != null && TipoProcesoAcademico.porNombre(tipo.getNombre()) == TipoProcesoAcademico.EXAMEN_SUPLETORIO;
+        return etiqueta != null && supletorioAprobado ? EtapaSolicitudAcademicaConstantes.ETIQUETA_FUNCIONARIO_SUPLETORIO_APROBADO : etiqueta;
     }
 
     private String numeroDocumento(SolicitudAcademica solicitud) {

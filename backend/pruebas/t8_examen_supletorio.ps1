@@ -314,6 +314,8 @@ try {
     Ejecutar-Sql "update ASIGNATURA_MATRICULADA set estado = 'cancelada' where uuidAsignaturaMatriculada = '$noActiva'" | Out-Null
     $r = Invoke-Api -Metodo GET -Ruta "$Global:Ruta/formulario" -Token $est1.Token
     $formulario = Leer-Json $r
+    $codigoBase = "$(Ejecutar-Sql "select codigoEstudiantil from ESTUDIANTE where Usuario_uuid = '$($est1.Uuid)'")".Trim()
+    Escribir-Resultado "el formulario trae el codigo estudiantil del estudiante (obtuvo $($formulario.codigoEstudiantil))" ($formulario.codigoEstudiantil -and ($formulario.codigoEstudiantil -eq $codigoBase))
     $materias = @($formulario.asignaturas)
     Escribir-Resultado "el formulario trae solo las dos activas con uuid, codigo y nombre (obtuvo $($r.Status) con $($materias.Count))" (($r.Status -eq 200) -and ($materias.Count -eq 2) -and (@($materias | Where-Object { $_.uuidAsignaturaMatriculada -and ($est1.Codigos -contains $_.codigoAsignatura) -and $_.nombreAsignatura }).Count -eq 2) -and (@($materias | Where-Object { $_.uuidAsignaturaMatriculada -eq $noActiva }).Count -eq 0))
     Escribir-Resultado "el formulario trae las causas cruce y otra y el plazo de 3 dias habiles (obtuvo $(@($formulario.causas) -join ',') y $($formulario.plazoDiasHabiles))" (((@($formulario.causas) -join ',') -eq "cruce,otra") -and ($formulario.plazoDiasHabiles -eq 3))
@@ -407,6 +409,8 @@ try {
     $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol1/decano/aprobar" -Token $decano.Token -Cuerpo @{}
     Escribir-Resultado "el Decano aprueba sin observacion y pasa a APROBADA_POR_DECANO (obtuvo $($r.Status), etapa $(Etapa-De $sol1))" (($r.Status -eq 200) -and ((Etapa-De $sol1) -eq "APROBADA_POR_DECANO"))
     Verificar-EtapaHttp -Solicitud $sol1 -Esperada "APROBADA_POR_DECANO" -Estudiante $est1.Token -Funcionario $fa1.Token -Decano $decano.Token
+    $etiquetaFa = (Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol1" -Token $fa1.Token)).etiqueta
+    Escribir-Resultado "con el supletorio aprobado por el Decano el funcionario ve Enviar Recibo (obtuvo $etiquetaFa)" ($etiquetaFa -eq "Enviar Recibo")
     $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol1/funcionario/recibo" -Token $fa1.Token
     Escribir-Resultado "enviar el recibo sin haberlo cargado falla y no cambia nada (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "*recibo de pago*") -and ((Etapa-De $sol1) -eq "APROBADA_POR_DECANO"))
     $r = Subir-Anexo -Solicitud $sol1 -Tipo $recibo -Pdf $pdfRecibo -Token $est1.Token

@@ -93,6 +93,16 @@ class MapperSolicitudAcademicaInfraestructuraDominioTest {
     }
 
     @Test
+    void laDecisionDelDecanoDelResumenPasaTalCual() {
+        SolicitudAcademica solicitud = solicitud("s1", "APROBADA");
+
+        assertEquals("APROBADA_PARCIAL", mapper.mapearResumenARespuesta(ResumenSolicitudAcademica.builder()
+                .solicitudAcademica(solicitud).etiqueta("Respondida").decisionDecano("APROBADA_PARCIAL").build()).getDecisionDecano());
+        assertNull(mapper.mapearResumenARespuesta(ResumenSolicitudAcademica.builder()
+                .solicitudAcademica(solicitud).etiqueta("Respondida").build()).getDecisionDecano());
+    }
+
+    @Test
     void elNumeroDeDocumentoDelDetalleSaleDeLaConsultaYNoDelUsuarioDeLaSolicitud() {
         SolicitudAcademica solicitud = solicitud("s1", "RADICADA");
         solicitud.setEstudiante(Estudiante.builder().codigoEstudiantil("104622010148")

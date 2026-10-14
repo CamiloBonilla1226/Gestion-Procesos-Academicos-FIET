@@ -19,6 +19,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -144,6 +146,73 @@ class ConsultaSolicitudAcademicaCUImplAdaptadorTest {
         assertEquals(1, bandeja.size());
         assertEquals("FUNCIONARIO:RADICADA", bandeja.get(0).getEtiqueta());
         verify(gateway).getPorFuncionarioAcademico(FUNCIONARIO);
+    }
+
+    @Test
+    void elFuncionarioVeEnviarReciboEnElSupletorioAprobadoPorElDecanoYLaEtiquetaDeLaTablaEnLosDemas() {
+        TipoSolicitudAcademica supletorio = TipoSolicitudAcademica.builder()
+                .uuidTipoSolicitudAcademica("tipo-es")
+                .nombre("Examen Supletorio")
+                .funcionarioAcademico(FuncionarioAcademico.builder().uuidUsuario(FUNCIONARIO).build())
+                .build();
+        SolicitudAcademica supletorioAprobado = solicitud("s1", ESTUDIANTE, APROBADA_POR_DECANO, LocalDateTime.of(2026, 3, 3, 8, 0));
+        supletorioAprobado.setTipoSolicitudAcademica(supletorio);
+        SolicitudAcademica supletorioRechazado = solicitud("s2", ESTUDIANTE, RECHAZADA_POR_DECANO, LocalDateTime.of(2026, 3, 2, 8, 0));
+        supletorioRechazado.setTipoSolicitudAcademica(supletorio);
+        SolicitudAcademica matriculaAprobada = solicitud("s3", ESTUDIANTE, APROBADA_POR_DECANO, LocalDateTime.of(2026, 3, 1, 8, 0));
+        when(gateway.getPorFuncionarioAcademico(FUNCIONARIO)).thenReturn(List.of(supletorioAprobado, supletorioRechazado, matriculaAprobada));
+        when(gateway.getTodas()).thenReturn(List.of(supletorioAprobado));
+        when(gateway.getPorUuid("s1")).thenReturn(supletorioAprobado);
+
+        List<ResumenSolicitudAcademica> bandeja = casoDeUso.getBandejaFuncionario(token(FUNCIONARIO));
+
+        assertEquals(List.of("Enviar Recibo", "FUNCIONARIO:RECHAZADA_POR_DECANO", "FUNCIONARIO:APROBADA_POR_DECANO"),
+                bandeja.stream().map(ResumenSolicitudAcademica::getEtiqueta).toList());
+        assertEquals("Enviar Recibo", casoDeUso.getDetalle("s1", token(FUNCIONARIO)).getEtiqueta());
+        assertEquals("DECANO:APROBADA_POR_DECANO", casoDeUso.getBandejaDecano(token(DECANO)).get(0).getEtiqueta());
+    }
+
+    private SolicitudAcademica deTipo(String uuid, String codigoEtapa, String nombreTipo) {
+        SolicitudAcademica solicitud = solicitud(uuid, ESTUDIANTE, codigoEtapa, LocalDateTime.of(2026, 3, 1, 8, 0));
+        solicitud.setTipoSolicitudAcademica(TipoSolicitudAcademica.builder()
+                .uuidTipoSolicitudAcademica("tipo-" + nombreTipo)
+                .nombre(nombreTipo)
+                .funcionarioAcademico(FuncionarioAcademico.builder().uuidUsuario(FUNCIONARIO).build())
+                .build());
+        return solicitud;
+    }
+
+    @Test
+    void elResumenDelFuncionarioYDelDecanoTraeLaDecisionDelDecanoTambienDespuesDeResponder() {
+        List<SolicitudAcademica> solicitudes = List.of(
+                deTipo("s1", APROBADA, "Cancelación de Matrícula"),
+                deTipo("s2", APROBADA_POR_DECANO, "Cancelación de Asignatura"),
+                deTipo("s3", APROBADA, "Cancelación de Asignatura"),
+                deTipo("s4", RECHAZADA, "Examen Supletorio"),
+                deTipo("s5", RECHAZADA, "Cancelación de Matrícula"),
+                deTipo("s6", EN_REVISION_DECANO, "Examen Supletorio"),
+                deTipo("s7", RECHAZADA, "Examen Supletorio"));
+        when(gateway.getPorFuncionarioAcademico(FUNCIONARIO)).thenReturn(solicitudes);
+        when(gateway.getTodas()).thenReturn(solicitudes);
+        when(gateway.getUltimaAccion(List.of("s1", "s2", "s3", "s4", "s5", "s6", "s7"), List.of("APROBAR_DECANO", "RECHAZAR_DECANO")))
+                .thenReturn(Map.of("s1", "APROBAR_DECANO", "s2", "APROBAR_DECANO", "s3", "APROBAR_DECANO",
+                        "s4", "RECHAZAR_DECANO", "s7", "APROBAR_DECANO"));
+        when(gateway.getConAsignaturaNoAprobadaPorDecano(List.of("s2", "s3"))).thenReturn(Set.of("s2"));
+
+        List<String> esperadas = Arrays.asList("APROBADA", "APROBADA_PARCIAL", "APROBADA", "RECHAZADA", null, null, "APROBADA");
+        assertEquals(esperadas, casoDeUso.getBandejaFuncionario(token(FUNCIONARIO)).stream().map(ResumenSolicitudAcademica::getDecisionDecano).toList());
+        assertEquals(esperadas, casoDeUso.getBandejaDecano(token(DECANO)).stream().map(ResumenSolicitudAcademica::getDecisionDecano).toList());
+    }
+
+    @Test
+    void elResumenDelEstudianteNoTraeLaDecisionDelDecanoNiLaConsulta() {
+        when(gateway.getPorEstudiante(ESTUDIANTE)).thenReturn(List.of(deTipo("s1", APROBADA, "Cancelación de Matrícula")));
+
+        List<ResumenSolicitudAcademica> bandeja = casoDeUso.getBandejaEstudiante(token(ESTUDIANTE));
+
+        assertNull(bandeja.get(0).getDecisionDecano());
+        verify(gateway, never()).getUltimaAccion(any(), any());
+        verify(gateway, never()).getConAsignaturaNoAprobadaPorDecano(any());
     }
 
     @Test

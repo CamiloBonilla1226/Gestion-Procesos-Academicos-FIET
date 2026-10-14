@@ -14,7 +14,7 @@ import {
   RolEtiqueta,
   TIPOS_SOLICITUD_ACADEMICA
 } from '../../../../core/constantes/procesos-academicos';
-import { CategoriaEstado, categoriaEstado } from '../../../../core/constantes/etiquetas-academicas';
+import { CategoriaEstado, categoriaEstado, textoDecisionDecano } from '../../../../core/constantes/etiquetas-academicas';
 import {
   CampoOrden,
   DireccionOrden,
@@ -34,6 +34,7 @@ const TITULOS_BANDEJA: Record<RolEtiqueta, string> = {
 };
 
 const COLUMNA_FECHA = 'Fecha de radicación';
+const COLUMNA_DECISION_DECANO = 'Decisión del Decano';
 
 @Component({
   selector: 'app-bandeja-solicitudes-academicas-component',
@@ -201,6 +202,9 @@ export class BandejaSolicitudesAcademicasComponent implements OnInit {
     const fecha: TableHeader = { title: COLUMNA_FECHA, headerTemplate: this.ordenFecha };
     const estado: TableHeader = { title: this.columnaEstado, headerTemplate: this.ordenEstado, cellTemplate: this.celdaEstado };
     if (this.esEstudiante) return [radicado, tipo, fecha, estado];
+    if (this.filtraPorCodigo) {
+      return [radicado, { title: 'Estudiante' }, { title: 'Documento' }, { title: 'Código' }, tipo, fecha, estado, { title: COLUMNA_DECISION_DECANO }];
+    }
     return [radicado, { title: 'Estudiante' }, { title: 'Documento' }, tipo, fecha, estado];
   }
 
@@ -210,9 +214,11 @@ export class BandejaSolicitudesAcademicasComponent implements OnInit {
       'Radicado': solicitud.radicado,
       'Estudiante': solicitud.nombreEstudiante,
       'Documento': solicitud.numeroDocumento ?? '',
+      'Código': solicitud.codigoEstudiantil ?? '',
       'Tipo de proceso': solicitud.tipoSolicitud,
       [COLUMNA_FECHA]: formatearFechaHora(solicitud.fechaCreacion),
-      [this.columnaEstado]: solicitud.etiqueta
+      [this.columnaEstado]: solicitud.etiqueta,
+      [COLUMNA_DECISION_DECANO]: textoDecisionDecano(solicitud.decisionDecano)
     };
   }
 

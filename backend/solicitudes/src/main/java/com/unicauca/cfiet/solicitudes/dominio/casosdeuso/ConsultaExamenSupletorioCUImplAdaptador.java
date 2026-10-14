@@ -91,6 +91,7 @@ public class ConsultaExamenSupletorioCUImplAdaptador implements ConsultaExamenSu
                         .build())
                 .toList();
         return FormularioExamenSupletorio.builder()
+                .codigoEstudiantil(estudianteGateway.getPorUuid(uuidEstudiante).getCodigoEstudiantil())
                 .asignaturas(activas)
                 .causas(List.of(CausaSupletorio.values()))
                 .anexos(anexos)

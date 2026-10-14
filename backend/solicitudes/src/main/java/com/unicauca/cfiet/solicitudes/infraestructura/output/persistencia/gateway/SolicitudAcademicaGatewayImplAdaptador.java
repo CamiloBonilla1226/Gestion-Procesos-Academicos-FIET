@@ -21,7 +21,10 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -85,6 +88,25 @@ public class SolicitudAcademicaGatewayImplAdaptador implements SolicitudAcademic
         return repositorio.findAllByOrderByFechaCreacionDescRadicadoDesc().stream()
                 .map(mapper::toDominio)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, String> getUltimaAccion(List<String> uuidsSolicitud, List<String> acciones) {
+        Map<String, String> ultimas = new HashMap<>();
+        if (uuidsSolicitud == null || uuidsSolicitud.isEmpty() || acciones == null || acciones.isEmpty())
+            return ultimas;
+        for (Object[] fila : historialRepositorio.findAccionesPorSolicitudes(uuidsSolicitud, acciones))
+            ultimas.put((String) fila[0], (String) fila[1]);
+        return ultimas;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Set<String> getConAsignaturaNoAprobadaPorDecano(List<String> uuidsSolicitud) {
+        if (uuidsSolicitud == null || uuidsSolicitud.isEmpty())
+            return Set.of();
+        return Set.copyOf(repositorio.findConAsignaturaNoAprobadaPorDecano(uuidsSolicitud));
     }
 
     @Override

@@ -26,7 +26,6 @@ public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCance
     private static final String DECISION = "la decisión del Decano";
     private static final String OBSERVACION_EVALUACION = "La observación de la evaluación";
     private static final String OBSERVACION_DECISION = "La observación de la decisión";
-    private static final String OBSERVACION_DECISION_FALTANTE = "la observación de la decisión";
     private static final BigDecimal NOTA_MINIMA_CUMPLE = new BigDecimal("3.0");
     private static final int MAXIMO_OBSERVACION = 255;
 
@@ -86,8 +85,6 @@ public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCance
             asignatura.setCumpleCondiciones(cumpleDe(evaluacion, asignatura.getNota(), nombre));
             asignatura.setObservacionEvaluacion(tramite.textoAcotado(evaluacion.getObservacionEvaluacion(), MAXIMO_OBSERVACION,
                     OBSERVACION_EVALUACION, nombre));
-            if (!asignatura.getCumpleCondiciones() && asignatura.getObservacionEvaluacion() == null)
-                formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.OBSERVACION_EVALUACION_REQUERIDA, nombre));
             if (asignatura.getCumpleCondiciones())
                 cumplen++;
         }
@@ -206,7 +203,7 @@ public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCance
             String nombre = tramite.nombreDe(asignatura);
             AjusteAsignatura ajuste = porAsignatura.get(asignatura.getUuidAsignaturaSolicitud());
             if (ajuste == null) {
-                if (Boolean.TRUE.equals(asignatura.decisionCambiadaPorDecano()))
+                if (Boolean.TRUE.equals(asignatura.decisionCambiadaPorDecano()) && Boolean.TRUE.equals(asignatura.getAprobadaPorDecano()))
                     formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.AJUSTE_ASIGNATURA_FALTANTE, nombre));
                 continue;
             }
@@ -214,12 +211,8 @@ public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCance
             if (Boolean.TRUE.equals(asignatura.getAprobadaPorDecano())) {
                 if (tramite.tieneTexto(ajuste.getUuidSituacionCancelar()))
                     asignatura.setSituacionCancelar(tramite.situacionDe(catalogo, ajuste.getUuidSituacionCancelar(), SITUACION_CANCELAR, nombre));
-            } else {
-                if (tramite.tieneTexto(ajuste.getUuidSituacionCancelar()))
-                    formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.SITUACION_CANCELAR_RECHAZADA, nombre));
-                if (observacionDecision == null)
-                    formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.DATO_ASIGNATURA_FALTANTE,
-                            OBSERVACION_DECISION_FALTANTE, nombre));
+            } else if (tramite.tieneTexto(ajuste.getUuidSituacionCancelar())) {
+                formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.SITUACION_CANCELAR_RECHAZADA, nombre));
             }
             asignatura.setObservacionDecision(observacionDecision);
         }
