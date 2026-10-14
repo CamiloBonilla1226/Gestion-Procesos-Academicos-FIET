@@ -45,8 +45,8 @@
         como está; si cambias alguna, envía la decisión modificada.
       </p>
       }
-      @if (asignaturaFiltrada) {
-      <p class="nota-gris mb-2" data-asignatura-filtrada>Mostrando 1 de {{ asignaturas.length }} {{ asignaturas.length === 1 ? 'asignatura' : 'asignaturas' }} de la solicitud</p>
+      @if (resultadoResaltado) {
+      <p class="nota-gris mb-2" data-resaltado>{{ textoResaltado }}</p>
       }
       <div class="tabla-scroll">
         <table class="tabla-asignaturas" data-tabla-asignaturas [attr.data-editable]="editable ? 'si' : null">
@@ -64,7 +64,7 @@
             @for (asignatura of asignaturasTabla; track asignatura.uuidAsignaturaSolicitud) {
             @let uuid = asignatura.uuidAsignaturaSolicitud;
             @let evaluacion = evaluaciones[uuid];
-            <tr [attr.data-fila]="uuid">
+            <tr [attr.data-fila]="uuid" [class.fila-resaltada]="esResaltada(asignatura)" [class.fila-atenuada]="esAtenuada(asignatura)">
               @for (columna of columnas; track columna.titulo) {
               <td [class.con-error]="errorCelda(columna, asignatura) !== ''">
                 @if (editable && evaluacion && columna.campo === 'faltas') {
@@ -111,6 +111,12 @@
                 }
                 } @else {
                 {{ columna.valor(asignatura) ?? sinDato }}
+                @if (columna === columnaNombre && muestraDistintivo) {
+                <span class="distintivo-resultado" [attr.data-resultado]="resultadoDe(asignatura)">{{ textoDistintivo(asignatura) }}</span>
+                }
+                @if (columna === columnaNombre && esAtenuada(asignatura)) {
+                <small class="d-block text-secondary" data-otra-asignatura>Otra asignatura de la solicitud</small>
+                }
                 @if (marcaCambioDecano(columna, asignatura)) {
                 <span class="etiqueta-cambiada" data-cambiada-decano>Cambiada por el Decano</span>
                 }

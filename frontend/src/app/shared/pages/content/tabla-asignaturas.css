@@ -99,6 +99,41 @@ select.celda-campo {
   white-space: nowrap;
 }
 
+.distintivo-resultado {
+  display: inline-block;
+  margin: 4px 0 0 6px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.distintivo-resultado[data-resultado="aprobada"] {
+  border: 1px solid #BFE3D0;
+  background: #EEF8F2;
+  color: #1F6B47;
+}
+
+.distintivo-resultado[data-resultado="rechazada"] {
+  border: 1px solid #F2C9C5;
+  background: #FDF1F0;
+  color: #9A2E25;
+}
+
+.tabla-asignaturas tr.fila-resaltada td {
+  background: #F3F6FD;
+}
+
+.tabla-asignaturas tr.fila-resaltada td:first-child {
+  box-shadow: inset 3px 0 0 var(--navy-700);
+}
+
+.tabla-asignaturas tr.fila-atenuada td {
+  background: #FAFAFB;
+  color: var(--muted);
+}
+
 .lista-decisiones {
   margin: 0;
   padding-left: 18px;

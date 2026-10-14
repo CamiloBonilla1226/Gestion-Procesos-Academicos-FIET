@@ -78,7 +78,18 @@ export const RUTAS_SOLICITUDES_POR_ROL: Record<RolEtiqueta, string> = {
 
 export const RUTA_RESPUESTAS_FUNCIONARIO = '/funcionario-academico/respuestas';
 
-export const PARAMETRO_ASIGNATURA = 'asignatura';
+export const PARAMETRO_RESULTADO = 'resultado';
+
+export const RESULTADOS_FILA = {
+  APROBADA: 'aprobada',
+  RECHAZADA: 'rechazada'
+} as const;
+
+export type ResultadoFila = (typeof RESULTADOS_FILA)[keyof typeof RESULTADOS_FILA];
+
+export function resultadoFilaValido(valor: string | null | undefined): ResultadoFila | null {
+  return valor === RESULTADOS_FILA.APROBADA || valor === RESULTADOS_FILA.RECHAZADA ? valor : null;
+}
 
 export const TEXTOS_ACCIONES: Record<AccionAcademica, string> = {
   [ACCIONES_ACADEMICAS.RADICAR]: 'Radicación de la solicitud',

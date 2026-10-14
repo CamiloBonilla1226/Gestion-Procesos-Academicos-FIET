@@ -2,6 +2,14 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-13 - Respuestas agrupadas por resultado y detalle con resaltado (Tarea T12.14 frontend)
+- Qué se hizo: en Respuestas, cada Cancelación de Asignatura da como máximo dos filas (Aprobada y Rechazada) agrupando `resultadosAsignaturas` por `aprobada`, con clave solicitud más resultado; el filtro de estado sigue por fila y el pie cuenta solicitudes. El ojo abre el detalle con `?resultado=aprobada|rechazada` en lugar del uuid de una asignatura. El detalle muestra todas las asignaturas: las del resultado de la fila primero y resaltadas, las demás atenuadas con "Otra asignatura de la solicitud", y la nota "Se resaltan las asignaturas ... de la solicitud". En etapa final, el Funcionario ve un distintivo Aprobada o Rechazada en cada asignatura. Sin cambios en el backend.
+- Archivos:
+  - `frontend/src/app/core/constantes/procesos-academicos.ts` (`PARAMETRO_ASIGNATURA` reemplazado por `PARAMETRO_RESULTADO`, `RESULTADOS_FILA` y `resultadoFilaValido`) (modificado)
+  - `bandeja-solicitudes-academicas-component` (`.ts` y spec), `cancelacion-asignatura-proceso-component` (`.ts`, `.html` y spec), `frontend/src/app/shared/pages/content/tabla-asignaturas.css` (modificado)
+  - `frontend/CLAUDE.md` (D-F39 reescrita) (modificado)
+- Notas: el distintivo solo lo ve el Funcionario, para no cambiar el detalle del Estudiante ni del Decano; el resaltado necesita etapa final y al menos una asignatura con ese resultado, si no la tabla queda como desde Solicitudes. La fila Aprobada va antes que la Rechazada.
+
 ## 2026-10-13 - Volver a Respuestas y aviso de cambios del Decano solo en su etapa (Tarea T12.13b frontend)
 - Qué se hizo: en el detalle, "Volver" del Funcionario lleva a Respuestas cuando la solicitud está en APROBADA o RECHAZADA y a Solicitudes en otra etapa; como recargar tras una acción vuelve a leer la etapa, después de la respuesta final lleva a Respuestas. El Estudiante y el Decano no cambian. El aviso "El Decano cambió la decisión…" de Cancelación de Asignatura solo sale en APROBADA_POR_DECANO y RECHAZADA_POR_DECANO; la marca "Cambiada por el Decano" por fila se mantiene en todas.
 - Archivos:

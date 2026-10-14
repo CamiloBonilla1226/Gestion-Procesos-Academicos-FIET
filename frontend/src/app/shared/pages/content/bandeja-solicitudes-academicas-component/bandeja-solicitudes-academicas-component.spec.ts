@@ -215,11 +215,15 @@ describe('BandejaSolicitudesAcademicasComponent', () => {
       expect(servicio.getSolicitudesFuncionario).toHaveBeenCalledTimes(1);
     });
 
-    describe('una fila por asignatura en Cancelacion de Asignatura', () => {
+    describe('filas agrupadas por resultado en Cancelacion de Asignatura', () => {
       function respondidas(): SolicitudAcademicaResumenDTORespuesta[] {
         const lista = solicitudes(5);
         lista[0] = { ...lista[0], tipoSolicitud: 'Cancelación de Asignatura', etapaCodigo: 'APROBADA', etiqueta: 'Respondida',
-          resultadosAsignaturas: [{ asignaturaSolicitudUuid: 'as-1', aprobada: true }, { asignaturaSolicitudUuid: 'as-2', aprobada: false }] };
+          resultadosAsignaturas: [
+            { asignaturaSolicitudUuid: 'as-1', aprobada: false },
+            { asignaturaSolicitudUuid: 'as-2', aprobada: true },
+            { asignaturaSolicitudUuid: 'as-5', aprobada: true }
+          ] };
         lista[1] = { ...lista[1], tipoSolicitud: 'Cancelación de Matrícula', etapaCodigo: 'APROBADA', etiqueta: 'Respondida' };
         lista[2] = { ...lista[2], tipoSolicitud: 'Cancelación de Asignatura', etapaCodigo: 'RECHAZADA', etiqueta: 'Respondida',
           resultadosAsignaturas: [{ asignaturaSolicitudUuid: 'as-3', aprobada: false }, { asignaturaSolicitudUuid: 'as-4', aprobada: false }] };
@@ -245,21 +249,32 @@ describe('BandejaSolicitudesAcademicasComponent', () => {
         return filas(fixture).map(f => f.querySelector('.btn-ojo')?.getAttribute('data-clave') ?? '');
       }
 
-      it('expande cada asignatura en una fila con su resultado y las demas siguen con una fila', () => {
+      it('agrupa por resultado: 2 aprobadas y 1 rechazada dan 2 filas, todas iguales dan 1, y las demas siguen con una fila', () => {
         const fixture = crearCon('respuestas');
-        expect(radicados(fixture)).toEqual(['2026-CA-0001', '2026-CA-0001', '2026-CA-0002', '2026-CA-0003', '2026-CA-0003', '2026-CA-0004']);
-        expect(estadosTexto(fixture)).toEqual(['Aprobada', 'Rechazada', 'Aprobada', 'Rechazada', 'Rechazada', 'Rechazada']);
-        expect(estados(fixture)).toEqual(['aprobada', 'rechazada', 'aprobada', 'rechazada', 'rechazada', 'rechazada']);
+        expect(radicados(fixture)).toEqual(['2026-CA-0001', '2026-CA-0001', '2026-CA-0002', '2026-CA-0003', '2026-CA-0004']);
+        expect(estadosTexto(fixture)).toEqual(['Aprobada', 'Rechazada', 'Aprobada', 'Rechazada', 'Rechazada']);
+        expect(estados(fixture)).toEqual(['aprobada', 'rechazada', 'aprobada', 'rechazada', 'rechazada']);
         expect(encabezados(fixture)).toEqual([
           'Radicado', 'Estudiante', 'Documento', 'Código', 'Tipo de proceso', 'Fecha de radicación', 'Estado', 'Acciones'
         ]);
         expect(fixture.nativeElement.querySelector('.pie small').textContent.trim()).toBe('4 solicitudes');
       });
 
-      it('cada fila tiene una clave unica de solicitud mas asignatura', () => {
+      it('todas aprobadas tambien da una sola fila', () => {
+        const lista = respondidas();
+        lista[0].resultadosAsignaturas = [{ asignaturaSolicitudUuid: 'as-1', aprobada: true }, { asignaturaSolicitudUuid: 'as-2', aprobada: true }];
+        servicio.getSolicitudesFuncionario.and.returnValue(of(lista));
+        const fixture = TestBed.createComponent(BandejaSolicitudesAcademicasComponent);
+        fixture.componentRef.setInput('rol', 'FUNCIONARIO');
+        fixture.componentRef.setInput('modo', 'respuestas');
+        fixture.detectChanges();
+        expect(claves(fixture).filter(c => c.startsWith('uuid-1'))).toEqual(['uuid-1:aprobada']);
+      });
+
+      it('cada fila tiene una clave unica de solicitud mas resultado', () => {
         const fixture = crearCon('respuestas');
         const lista = claves(fixture);
-        expect(lista).toEqual(['uuid-1:as-1', 'uuid-1:as-2', 'uuid-2', 'uuid-3:as-3', 'uuid-3:as-4', 'uuid-4']);
+        expect(lista).toEqual(['uuid-1:aprobada', 'uuid-1:rechazada', 'uuid-2', 'uuid-3:rechazada', 'uuid-4']);
         expect(new Set(lista).size).toBe(lista.length);
       });
 
@@ -267,10 +282,10 @@ describe('BandejaSolicitudesAcademicasComponent', () => {
         const fixture = crearCon('respuestas');
         fixture.componentInstance.onEstadoChange('Aprobada');
         fixture.detectChanges();
-        expect(claves(fixture)).toEqual(['uuid-1:as-1', 'uuid-2']);
+        expect(claves(fixture)).toEqual(['uuid-1:aprobada', 'uuid-2']);
         fixture.componentInstance.onEstadoChange('Rechazada');
         fixture.detectChanges();
-        expect(claves(fixture)).toEqual(['uuid-1:as-2', 'uuid-3:as-3', 'uuid-3:as-4', 'uuid-4']);
+        expect(claves(fixture)).toEqual(['uuid-1:rechazada', 'uuid-3:rechazada', 'uuid-4']);
         expect(fixture.nativeElement.querySelector('.pie small').textContent.trim()).toBe('3 solicitudes');
       });
 
@@ -278,17 +293,19 @@ describe('BandejaSolicitudesAcademicasComponent', () => {
         const fixture = crearCon('respuestas');
         fixture.componentInstance.onCodigoChange('104611');
         fixture.detectChanges();
-        expect(claves(fixture)).toEqual(['uuid-1:as-1', 'uuid-1:as-2']);
+        expect(claves(fixture)).toEqual(['uuid-1:aprobada', 'uuid-1:rechazada']);
         fixture.componentInstance.onCodigoChange('');
         fixture.componentInstance.onTipoChange('Cancelación de Asignatura');
         fixture.detectChanges();
-        expect(claves(fixture)).toEqual(['uuid-1:as-1', 'uuid-1:as-2', 'uuid-3:as-3', 'uuid-3:as-4']);
+        expect(claves(fixture)).toEqual(['uuid-1:aprobada', 'uuid-1:rechazada', 'uuid-3:rechazada']);
       });
 
-      it('la fila de una asignatura abre el detalle con su uuid; las demas, sin parametro', () => {
+      it('la fila agrupada abre el detalle con su resultado; las demas, sin parametro', () => {
         const fixture = crearCon('respuestas');
         (filas(fixture)[1].querySelector('.btn-ojo') as HTMLButtonElement).click();
-        expect(router.navigate).toHaveBeenCalledWith(['/funcionario-academico/solicitudes', 'uuid-1'], { queryParams: { asignatura: 'as-2' } });
+        expect(router.navigate).toHaveBeenCalledWith(['/funcionario-academico/solicitudes', 'uuid-1'], { queryParams: { resultado: 'rechazada' } });
+        (filas(fixture)[0].querySelector('.btn-ojo') as HTMLButtonElement).click();
+        expect(router.navigate).toHaveBeenCalledWith(['/funcionario-academico/solicitudes', 'uuid-1'], { queryParams: { resultado: 'aprobada' } });
         (filas(fixture)[2].querySelector('.btn-ojo') as HTMLButtonElement).click();
         expect(router.navigate).toHaveBeenCalledWith(['/funcionario-academico/solicitudes', 'uuid-2']);
       });

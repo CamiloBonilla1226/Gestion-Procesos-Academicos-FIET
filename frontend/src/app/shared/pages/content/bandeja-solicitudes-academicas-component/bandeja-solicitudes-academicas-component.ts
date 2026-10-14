@@ -11,8 +11,10 @@ import { SolicitudAcademicaResumenDTORespuesta } from '../../../../core/models/S
 import {
   ETAPAS_ACADEMICAS,
   ETAPAS_FINALES,
-  PARAMETRO_ASIGNATURA,
+  PARAMETRO_RESULTADO,
+  RESULTADOS_FILA,
   ROLES_ETIQUETA,
+  ResultadoFila,
   RUTAS_SOLICITUDES_POR_ROL,
   RolEtiqueta,
   TIPOS_SOLICITUD_ACADEMICA
@@ -43,7 +45,7 @@ export type ModoBandeja = 'solicitudes' | 'respuestas';
 const TITULO_RESPUESTAS = 'Solicitudes respondidas';
 const ESTADOS_RESPUESTA: string[] = [ETIQUETAS_ESTUDIANTE.APROBADA, ETIQUETAS_ESTUDIANTE.RECHAZADA];
 
-type FilaBandeja = SolicitudAcademicaResumenDTORespuesta & { asignaturaSolicitudUuid?: string };
+type FilaBandeja = SolicitudAcademicaResumenDTORespuesta & { resultado?: ResultadoFila };
 
 function textoResultado(aprobada: boolean): string {
   return aprobada ? ETIQUETAS_ESTUDIANTE.APROBADA : ETIQUETAS_ESTUDIANTE.RECHAZADA;
@@ -173,11 +175,13 @@ export class BandejaSolicitudesAcademicasComponent implements OnInit, OnChanges 
     if (resultados.length === 0) {
       return [{ ...solicitud, etiqueta: textoResultado(solicitud.etapaCodigo === ETAPAS_ACADEMICAS.APROBADA) }];
     }
-    return resultados.map(resultado => ({
-      ...solicitud,
-      etiqueta: textoResultado(resultado.aprobada),
-      asignaturaSolicitudUuid: resultado.asignaturaSolicitudUuid
-    }));
+    return [true, false]
+      .filter(aprobada => resultados.some(resultado => resultado.aprobada === aprobada))
+      .map(aprobada => ({
+        ...solicitud,
+        etiqueta: textoResultado(aprobada),
+        resultado: aprobada ? RESULTADOS_FILA.APROBADA : RESULTADOS_FILA.RECHAZADA
+      }));
   }
 
   get totalSolicitudes(): number {
@@ -237,11 +241,11 @@ export class BandejaSolicitudesAcademicasComponent implements OnInit, OnChanges 
 
   verSolicitud(fila: Record<string, string>): void {
     const destino = [RUTAS_SOLICITUDES_POR_ROL[this.rol], fila['uuid']];
-    if (!fila['asignatura']) {
+    if (!fila['resultado']) {
       this.router.navigate(destino);
       return;
     }
-    this.router.navigate(destino, { queryParams: { [PARAMETRO_ASIGNATURA]: fila['asignatura'] } });
+    this.router.navigate(destino, { queryParams: { [PARAMETRO_RESULTADO]: fila['resultado'] } });
   }
 
   private aplicarFiltros(): void {
@@ -269,11 +273,11 @@ export class BandejaSolicitudesAcademicasComponent implements OnInit, OnChanges 
   }
 
   private fila(solicitud: FilaBandeja): Record<string, string> {
-    const asignatura = solicitud.asignaturaSolicitudUuid ?? '';
+    const resultado = solicitud.resultado ?? '';
     return {
       uuid: solicitud.uuidSolicitudAcademica,
-      asignatura,
-      clave: asignatura ? `${solicitud.uuidSolicitudAcademica}:${asignatura}` : solicitud.uuidSolicitudAcademica,
+      resultado,
+      clave: resultado ? `${solicitud.uuidSolicitudAcademica}:${resultado}` : solicitud.uuidSolicitudAcademica,
       'Radicado': solicitud.radicado,
       'Estudiante': solicitud.nombreEstudiante,
       'Documento': solicitud.numeroDocumento ?? '',

@@ -26,11 +26,16 @@ import {
   FORMATOS_RESOLUCION,
   MAXIMO_CARACTERES_OBSERVACION,
   NOTA_MINIMA_PARA_CUMPLIR,
-  PARAMETRO_ASIGNATURA,
+  ETAPAS_FINALES,
+  PARAMETRO_RESULTADO,
+  RESULTADOS_FILA,
   ROLES_ETIQUETA,
+  ResultadoFila,
+  resultadoFilaValido,
   RolEtiqueta
 } from '../../../../core/constantes/procesos-academicos';
 import {
+  ETIQUETAS_ESTUDIANTE,
   ETIQUETAS_FINALES_ESTUDIANTE,
   NOTA_APROBAR_DECANO,
   RUTAS_ENCABEZADO_ASIGNATURAS,
@@ -188,9 +193,10 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   readonly columnaDecision = COLUMNA_DECISION;
 
   private readonly ruta = inject(ActivatedRoute, { optional: true });
-  readonly asignaturaPedida = toSignal(
-    (this.ruta?.queryParamMap ?? EMPTY).pipe(map(parametros => parametros.get(PARAMETRO_ASIGNATURA))),
-    { initialValue: this.ruta?.snapshot?.queryParamMap?.get(PARAMETRO_ASIGNATURA) ?? null }
+  readonly columnaNombre = COLUMNA_NOMBRE;
+  readonly resultadoPedido = toSignal(
+    (this.ruta?.queryParamMap ?? EMPTY).pipe(map(parametros => resultadoFilaValido(parametros.get(PARAMETRO_RESULTADO)))),
+    { initialValue: resultadoFilaValido(this.ruta?.snapshot?.queryParamMap?.get(PARAMETRO_RESULTADO)) }
   );
 
   detalle: CancelacionAsignaturaDetalleDTORespuesta | null = null;
@@ -243,14 +249,48 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
     return this.detalle?.asignaturas ?? [];
   }
 
-  get asignaturaFiltrada(): AsignaturaSolicitadaDTORespuesta | null {
-    const pedida = this.asignaturaPedida();
-    return pedida ? this.asignaturas.find(a => a.uuidAsignaturaSolicitud === pedida) ?? null : null;
+  get esFinal(): boolean {
+    return ETAPAS_FINALES.includes(this.solicitud?.etapaCodigo ?? '');
+  }
+
+  get muestraDistintivo(): boolean {
+    return this.esFinal && this.rol === ROLES_ETIQUETA.FUNCIONARIO;
+  }
+
+  get resultadoResaltado(): ResultadoFila | null {
+    const pedido = this.resultadoPedido();
+    if (!pedido || !this.muestraDistintivo) return null;
+    return this.asignaturas.some(a => this.resultadoDe(a) === pedido) ? pedido : null;
+  }
+
+  get textoResaltado(): string {
+    const plural = this.resultadoResaltado === RESULTADOS_FILA.APROBADA ? 'aprobadas' : 'rechazadas';
+    return `Se resaltan las asignaturas ${plural} de la solicitud`;
   }
 
   get asignaturasTabla(): AsignaturaSolicitadaDTORespuesta[] {
-    const filtrada = this.asignaturaFiltrada;
-    return filtrada ? [filtrada] : this.asignaturas;
+    const resaltado = this.resultadoResaltado;
+    if (!resaltado) return this.asignaturas;
+    return [
+      ...this.asignaturas.filter(a => this.resultadoDe(a) === resaltado),
+      ...this.asignaturas.filter(a => this.resultadoDe(a) !== resaltado)
+    ];
+  }
+
+  resultadoDe(a: AsignaturaSolicitadaDTORespuesta): ResultadoFila {
+    return a.aprobadaPorDecano === true ? RESULTADOS_FILA.APROBADA : RESULTADOS_FILA.RECHAZADA;
+  }
+
+  textoDistintivo(a: AsignaturaSolicitadaDTORespuesta): string {
+    return this.resultadoDe(a) === RESULTADOS_FILA.APROBADA ? ETIQUETAS_ESTUDIANTE.APROBADA : ETIQUETAS_ESTUDIANTE.RECHAZADA;
+  }
+
+  esResaltada(a: AsignaturaSolicitadaDTORespuesta): boolean {
+    return this.resultadoResaltado !== null && this.resultadoDe(a) === this.resultadoResaltado;
+  }
+
+  esAtenuada(a: AsignaturaSolicitadaDTORespuesta): boolean {
+    return this.resultadoResaltado !== null && this.resultadoDe(a) !== this.resultadoResaltado;
   }
 
   get tituloDialogo(): string {

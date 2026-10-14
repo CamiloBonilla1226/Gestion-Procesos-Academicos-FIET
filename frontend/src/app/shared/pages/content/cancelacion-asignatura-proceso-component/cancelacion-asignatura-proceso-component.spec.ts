@@ -742,15 +742,16 @@ describe('CancelacionAsignaturaProcesoComponent con el catalogo real', () => {
   });
 });
 
-describe('CancelacionAsignaturaProcesoComponent filtrado por asignatura desde Respuestas', () => {
+describe('CancelacionAsignaturaProcesoComponent resaltado por resultado desde Respuestas', () => {
   const RESPONDIDAS: AsignaturaSolicitadaDTORespuesta[] = [
     { ...EVALUADAS[0], aprobadaPorDecano: true, decisionCambiadaPorDecano: false },
-    { ...EVALUADAS[1], aprobadaPorDecano: false, decisionCambiadaPorDecano: false }
+    { ...EVALUADAS[1], aprobadaPorDecano: false, decisionCambiadaPorDecano: false },
+    { ...soloCodigos('A3', 'Química', 'as-3'), aprobadaPorDecano: null }
   ];
   let parametros: BehaviorSubject<ParamMap>;
 
-  function crearCon(asignatura: string | null): ComponentFixture<CancelacionAsignaturaProcesoComponent> {
-    const mapa = convertToParamMap(asignatura ? { asignatura } : {});
+  function crearCon(resultado: string | null, etapa = 'APROBADA', rol = 'FUNCIONARIO'): ComponentFixture<CancelacionAsignaturaProcesoComponent> {
+    const mapa = convertToParamMap(resultado ? { resultado } : {});
     parametros = new BehaviorSubject<ParamMap>(mapa);
     const cancelaciones = jasmine.createSpyObj<CancelacionAsignaturaService>('CancelacionAsignaturaService', ['getDetalle']);
     cancelaciones.getDetalle.and.returnValue(of(detalle(RESPONDIDAS)));
@@ -767,8 +768,8 @@ describe('CancelacionAsignaturaProcesoComponent filtrado por asignatura desde Re
     });
     const fixture = TestBed.createComponent(CancelacionAsignaturaProcesoComponent);
     fixture.componentRef.setInput('uuidSolicitud', 's-1');
-    fixture.componentRef.setInput('solicitud', solicitud([], 'APROBADA', true, 'Respondida'));
-    fixture.componentRef.setInput('rol', 'FUNCIONARIO');
+    fixture.componentRef.setInput('solicitud', solicitud([], etapa, true, 'Respondida'));
+    fixture.componentRef.setInput('rol', rol);
     fixture.componentRef.setInput('recargar', () => undefined);
     fixture.detectChanges();
     return fixture;
@@ -778,38 +779,71 @@ describe('CancelacionAsignaturaProcesoComponent filtrado por asignatura desde Re
     return Array.from(fixture.nativeElement.querySelectorAll('[data-tabla-asignaturas] tbody tr')).map((tr: any) => tr.getAttribute('data-fila'));
   }
 
-  function aviso(fixture: ComponentFixture<CancelacionAsignaturaProcesoComponent>): string | null {
-    return fixture.nativeElement.querySelector('[data-asignatura-filtrada]')?.textContent.trim() ?? null;
+  function conClase(fixture: ComponentFixture<CancelacionAsignaturaProcesoComponent>, clase: string): (string | null)[] {
+    return Array.from(fixture.nativeElement.querySelectorAll(`[data-tabla-asignaturas] tbody tr.${clase}`)).map((tr: any) => tr.getAttribute('data-fila'));
   }
 
-  it('con el parametro muestra solo esa asignatura y avisa cuantas tiene la solicitud', () => {
-    const fixture = crearCon('as-2');
-    expect(filas(fixture)).toEqual(['as-2']);
-    expect(aviso(fixture)).toBe('Mostrando 1 de 2 asignaturas de la solicitud');
+  function distintivos(fixture: ComponentFixture<CancelacionAsignaturaProcesoComponent>): string[] {
+    return Array.from(fixture.nativeElement.querySelectorAll('[data-tabla-asignaturas] tbody tr'))
+      .map((tr: any) => tr.querySelector('.distintivo-resultado')?.textContent.trim() ?? '');
+  }
+
+  function otras(fixture: ComponentFixture<CancelacionAsignaturaProcesoComponent>): (string | null)[] {
+    return Array.from(fixture.nativeElement.querySelectorAll('[data-otra-asignatura]'))
+      .map((e: any) => e.closest('tr').getAttribute('data-fila'));
+  }
+
+  function aviso(fixture: ComponentFixture<CancelacionAsignaturaProcesoComponent>): string | null {
+    return fixture.nativeElement.querySelector('[data-resaltado]')?.textContent.trim() ?? null;
+  }
+
+  it('con resultado rechazada muestra todas, las rechazadas primero y resaltadas, y las demas atenuadas', () => {
+    const fixture = crearCon('rechazada');
+    expect(filas(fixture)).toEqual(['as-2', 'as-3', 'as-1']);
+    expect(conClase(fixture, 'fila-resaltada')).toEqual(['as-2', 'as-3']);
+    expect(conClase(fixture, 'fila-atenuada')).toEqual(['as-1']);
+    expect(otras(fixture)).toEqual(['as-1']);
+    expect(fixture.nativeElement.querySelector('[data-otra-asignatura]').textContent.trim()).toBe('Otra asignatura de la solicitud');
+    expect(aviso(fixture)).toBe('Se resaltan las asignaturas rechazadas de la solicitud');
     expect(fixture.nativeElement.querySelector('[data-motivo]').textContent).toContain('Cruce laboral');
-    expect(fixture.nativeElement.querySelector('[data-tabla-asignaturas] tbody').textContent).toContain('No aprobada');
   });
 
-  it('sin el parametro muestra todas las asignaturas sin aviso', () => {
-    const fixture = crearCon(null);
-    expect(filas(fixture)).toEqual(['as-1', 'as-2']);
+  it('con resultado aprobada las aprobadas van primero y cada asignatura lleva su distintivo', () => {
+    const fixture = crearCon('aprobada');
+    expect(filas(fixture)).toEqual(['as-1', 'as-2', 'as-3']);
+    expect(conClase(fixture, 'fila-resaltada')).toEqual(['as-1']);
+    expect(distintivos(fixture)).toEqual(['Aprobada', 'Rechazada', 'Rechazada']);
+    expect(aviso(fixture)).toBe('Se resaltan las asignaturas aprobadas de la solicitud');
+  });
+
+  for (const valor of [null, 'otra', 'as-1']) {
+    it(`con el parametro ${valor} se ve como desde Solicitudes, con distintivos en etapa final`, () => {
+      const fixture = crearCon(valor);
+      expect(filas(fixture)).toEqual(['as-1', 'as-2', 'as-3']);
+      expect(conClase(fixture, 'fila-resaltada')).toEqual([]);
+      expect(conClase(fixture, 'fila-atenuada')).toEqual([]);
+      expect(aviso(fixture)).toBeNull();
+      expect(distintivos(fixture)).toEqual(['Aprobada', 'Rechazada', 'Rechazada']);
+    });
+  }
+
+  it('fuera de la etapa final no hay distintivos ni resaltado', () => {
+    const fixture = crearCon('aprobada', 'APROBADA_POR_DECANO');
+    expect(filas(fixture)).toEqual(['as-1', 'as-2', 'as-3']);
+    expect(distintivos(fixture)).toEqual(['', '', '']);
     expect(aviso(fixture)).toBeNull();
   });
 
-  it('con un uuid que no es de la solicitud muestra todas sin aviso', () => {
-    const fixture = crearCon('otra');
-    expect(filas(fixture)).toEqual(['as-1', 'as-2']);
-    expect(aviso(fixture)).toBeNull();
-  });
-
-  it('si cambia el parametro en la misma instancia cambia la asignatura mostrada', () => {
-    const fixture = crearCon('as-1');
-    expect(filas(fixture)).toEqual(['as-1']);
-    parametros.next(convertToParamMap({ asignatura: 'as-2' }));
+  it('si cambia el parametro en la misma instancia cambia el orden y el resaltado', () => {
+    const fixture = crearCon('aprobada');
+    expect(conClase(fixture, 'fila-resaltada')).toEqual(['as-1']);
+    parametros.next(convertToParamMap({ resultado: 'rechazada' }));
     fixture.detectChanges();
-    expect(filas(fixture)).toEqual(['as-2']);
+    expect(filas(fixture)).toEqual(['as-2', 'as-3', 'as-1']);
+    expect(conClase(fixture, 'fila-resaltada')).toEqual(['as-2', 'as-3']);
     parametros.next(convertToParamMap({}));
     fixture.detectChanges();
-    expect(filas(fixture)).toEqual(['as-1', 'as-2']);
+    expect(filas(fixture)).toEqual(['as-1', 'as-2', 'as-3']);
+    expect(aviso(fixture)).toBeNull();
   });
 });
