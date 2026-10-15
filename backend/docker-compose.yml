@@ -24,6 +24,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-586E3272357538782F413F4428472B4B6250655368566B597033733676397924}
       MAIL_USER: ${MAIL_USER:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      CORREO_DARCA: ${CORREO_DARCA:-camilobonillab26@gmail.com}
     volumes:
       - ./uploads:/app/uploads
     restart: always

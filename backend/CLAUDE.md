@@ -41,6 +41,55 @@ asíncrono y envía un `MimeMessage`. Si falta un archivo, el destinatario no
 tiene correo o el SMTP falla, solo se registra el error; la respuesta nunca
 se revierte.
 
+Para no definirlas en cada consola, `MAIL_USER`, `MAIL_PASSWORD` y
+`CORREO_DARCA` pueden ir en `backend/.env`, que Docker Compose carga solo al
+lado de `docker-compose.yml`: se copia `backend/.env.example` como `.env` y
+se completan los valores. `.env` está en los `.gitignore` y no se sube al
+repositorio; `.env.example` sí se sube y no lleva credenciales reales. Las
+variables también se pueden definir en PowerShell con `$env:MAIL_USER="..."`
+antes de `docker compose up` (lo definido en la consola manda sobre el
+`.env`). Si cambian los valores del `.env`, basta con `docker compose up`
+para recrear el contenedor; no hace falta reconstruir la imagen, porque
+el `.env` no entra en ella (el `Dockerfile` solo copia el jar).
+
+En la misma respuesta final salen otros dos correos, independientes del del
+estudiante:
+
+- DARCA, en los tres procesos. El destinatario es la propiedad
+  `correo.darca.destinatario=${CORREO_DARCA:camilobonillab26@gmail.com}` (no
+  es un secreto; `docker-compose.yml` pasa `CORREO_DARCA` con ese mismo valor
+  por defecto). Asunto `DARCA - Notificación de <proceso> - Radicado <radicado>`,
+  carta corta con la fecha y una frase de resumen (con varias asignaturas,
+  cuántas se aprobaron y cuántas se rechazaron) y, como adjuntos, el PDF
+  `Radicado-<radicado>.pdf`, la Resolución en las cancelaciones y el documento
+  adicional si existe.
+- El profesor, solo en Examen Supletorio y solo al aprobar el comprobante,
+  justo después de crearle la notificación en su perfil
+  (`TramiteExamenSupletorioCUImplAdaptador.aprobarComprobante`). Va al
+  `correoElectronico` de su usuario con el asunto `Notificación de examen
+  supletorio - Radicado <radicado>` y el mismo PDF.
+
+Los arma `NotificadorRespuestaFinal` (`dominio/servicios`, bean en
+`BeanConfiguracion`): `SolicitudAcademicaCUImplAdaptador.cambiarEtapa` llama a
+`avisarDarca` después del correo del estudiante, y el trámite del supletorio
+llama a `avisarProfesor`. El armado se difiere con `PreparacionCorreoIntPuerto`
+(`PreparacionCorreoImplAdaptador`), que lo corre en `beforeCommit`: así lee los
+datos que el trámite guarda después de `cambiarEtapa` (ajustes de las
+asignaturas en Cancelación de Asignatura, profesor asignado en el supletorio).
+Si el armado falla (por ejemplo el PDF), se registra `No se pudo preparar el
+correo a DARCA|al profesor de la solicitud <radicado>` y los demás correos y la
+respuesta siguen igual. El envío sigue el camino de siempre (después del
+commit, `@Async`, un `try/catch` por correo).
+
+El PDF lo genera `GeneradorPdfRespuesta` (`infraestructura/output/pdf`, puerto
+`GeneradorPdfRespuestaIntPuerto`) con OpenPDF a partir de `ResumenRespuesta`:
+radicado, tipo, fecha, estudiante, código, programa y estado final; en
+Cancelación de Asignatura la tabla de asignaturas con la decisión de cada una y
+la situación académica al cancelar de las aprobadas; en Cancelación de
+Matrícula la decisión; en el supletorio la asignatura, la decisión sobre el
+comprobante y el profesor. No lleva observaciones ni historial. El PDF viaja en
+memoria (`AdjuntoCorreo.contenido`), sin escribirse en disco.
+
 ### Orden de arranque con una base nueva
 
 `spring.sql.init.mode=never`: nada se siembra solo. Con una base vacía:
@@ -1438,7 +1487,7 @@ Scripts que hay hoy:
 | `t5_solicitudes.ps1` | Bandejas, detalle, historial, anexos y Resolución de `solicitudes-academicas` |
 | `t6_cancelacion_matricula.ps1`, `t7_cancelacion_asignatura.ps1`, `t8_examen_supletorio.ps1` | Recorrido completo de cada proceso con usuarios reales |
 | `matriz-permisos.ps1` | Matriz de los 71 endpoints por rol |
-| `t9_correo_respuesta.ps1` | Integración del correo de la respuesta final (P54) con el Funcionario: en cada proceso y cada acción que cierra la solicitud sube la Resolución y el documento adicional, verifica la etapa y el correo capturado (asunto, carta, adjuntos), los permisos de subida y que un correo rechazado por el servidor no revierte la respuesta |
+| `t9_correo_respuesta.ps1` | Integración de los correos de la respuesta final (P54) con el Funcionario: en cada proceso y cada acción que cierra la solicitud sube la Resolución y el documento adicional, verifica la etapa, el correo al estudiante, el de DARCA (asunto, frase, PDF generado con su contenido y adjuntos) y en el supletorio el del profesor; además los permisos de subida y que un correo rechazado por el servidor (del estudiante o del profesor) no revierte la respuesta ni frena los demás |
 | `todo.ps1` | Corre todos los anteriores y verifica la limpieza; `t9` solo si está definida `PRUEBAS_CORREOS` |
 
 `comun.ps1` tiene las funciones compartidas y `generar_plantilla_*.ps1`
@@ -1448,7 +1497,8 @@ genera las plantillas `.xlsx` de carga masiva que están en la misma carpeta.
 
 `t9_correo_respuesta.ps1` no habla con Gmail: necesita `smtp_prueba.py`, un
 SMTP local que guarda cada mensaje recibido como JSON (remitente,
-destinatarios, asunto, texto y adjuntos) y rechaza con 550 a cualquier
+destinatarios, asunto, texto y adjuntos; de cada PDF adjunto guarda además si
+es un PDF válido y el texto que trae) y rechaza con 550 a cualquier
 destinatario que contenga `smtp-rechaza`. Se corre con un backend apuntando a
 ese SMTP; Spring toma `SPRING_MAIL_HOST` y `SPRING_MAIL_PORT` del entorno
 por encima de `application.properties`. Desde `backend/`, con la base de
@@ -1458,14 +1508,17 @@ Docker arriba y el jar construido (`./mvnw clean package -DskipTests`):
 python -I pruebas\smtp_prueba.py 2525 C:\ruta\correos
 $env:SERVER_PORT="8091"; $env:DB_URL="jdbc:mysql://localhost:3307/cfiet?serverTimezone=UTC"; $env:DB_USER_NAME="root"; $env:DB_PASSWORD="mysql"
 $env:UPLOADS_PATH="$PWD\uploads"; $env:MAIL_USER="fiet.prueba@localhost"; $env:MAIL_PASSWORD="prueba"
-$env:SPRING_MAIL_HOST="127.0.0.1"; $env:SPRING_MAIL_PORT="2525"
+$env:SPRING_MAIL_HOST="127.0.0.1"; $env:SPRING_MAIL_PORT="2525"; $env:CORREO_DARCA="darca-t9@unicauca.edu.co"
 java -jar solicitudes\target\solicitudes-0.0.1.jar > C:\ruta\backend.log
 $env:PRUEBAS_BASE_URL="http://localhost:8091/api/unicauca/fiet/consejo/"; $env:PRUEBAS_CORREOS="C:\ruta\correos"; $env:PRUEBAS_LOG_BACKEND="C:\ruta\backend.log"
+$env:PRUEBAS_CORREO_DARCA="darca-t9@unicauca.edu.co"
 powershell -File .\pruebas\t9_correo_respuesta.ps1
 ```
 
 Cada comando largo va en su propia consola (el SMTP y el backend se quedan
-corriendo). Con `PRUEBAS_LOG_BACKEND` además comprueba que el fallo del correo
+corriendo). `PRUEBAS_CORREO_DARCA` es obligatoria y debe ser igual al
+`CORREO_DARCA` del backend (no se usa la dirección real de DARCA en la
+prueba). Con `PRUEBAS_LOG_BACKEND` además comprueba que el fallo del correo
 quedó en el log.
 
 Los `.ps1` se escriben en ASCII puro, sin tildes ni eñes, ni siquiera en

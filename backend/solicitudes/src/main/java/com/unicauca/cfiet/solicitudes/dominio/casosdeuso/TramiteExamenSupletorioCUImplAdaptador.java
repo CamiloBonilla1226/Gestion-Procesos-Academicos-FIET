@@ -6,10 +6,12 @@ import com.unicauca.cfiet.solicitudes.aplicacion.input.TramiteExamenSupletorioCU
 import com.unicauca.cfiet.solicitudes.aplicacion.output.*;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
 import com.unicauca.cfiet.solicitudes.dominio.servicios.MaquinaEtapas;
+import com.unicauca.cfiet.solicitudes.dominio.servicios.NotificadorRespuestaFinal;
 import com.unicauca.cfiet.solicitudes.dominio.servicios.TramiteSolicitud;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.MensajesError;
 
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -30,6 +32,7 @@ public class TramiteExamenSupletorioCUImplAdaptador implements TramiteExamenSupl
     private final ExcepcionesFormateadorIntPuerto formateadorExcepciones;
     private final LogCUIntPuerto log;
     private final Clock reloj;
+    private final NotificadorRespuestaFinal notificador;
 
     public TramiteExamenSupletorioCUImplAdaptador(SolicitudExamenSupletorioGatewayIntPuerto gateway,
                                                   SolicitudAcademicaGatewayIntPuerto solicitudGateway,
@@ -42,7 +45,8 @@ public class TramiteExamenSupletorioCUImplAdaptador implements TramiteExamenSupl
                                                   MaquinaEtapas maquinaEtapas,
                                                   ExcepcionesFormateadorIntPuerto formateadorExcepciones,
                                                   LogCUIntPuerto log,
-                                                  Clock reloj) {
+                                                  Clock reloj,
+                                                  NotificadorRespuestaFinal notificador) {
         this.gateway = gateway;
         this.docenteGateway = docenteGateway;
         this.notificacionGateway = notificacionGateway;
@@ -51,6 +55,7 @@ public class TramiteExamenSupletorioCUImplAdaptador implements TramiteExamenSupl
         this.formateadorExcepciones = formateadorExcepciones;
         this.log = log;
         this.reloj = reloj;
+        this.notificador = notificador;
     }
 
     @Override
@@ -109,6 +114,7 @@ public class TramiteExamenSupletorioCUImplAdaptador implements TramiteExamenSupl
                 .titulo(String.format(TITULO_NOTIFICACION, resultadoDe(actualizada), actualizada.getRadicado()))
                 .fechaCreacion(LocalDateTime.now(reloj))
                 .build());
+        notificador.avisarProfesor(actualizada, AccionEtapa.APROBAR_COMPROBANTE, docente, LocalDate.now(reloj));
         log.crearLog("Asignar profesor de examen supletorio",
                 String.format("Solicitud académica %s, acción %s: profesor %s %s notificado", actualizada.getRadicado(),
                         AccionEtapa.APROBAR_COMPROBANTE, docente.getNombres(), docente.getApellidos()),

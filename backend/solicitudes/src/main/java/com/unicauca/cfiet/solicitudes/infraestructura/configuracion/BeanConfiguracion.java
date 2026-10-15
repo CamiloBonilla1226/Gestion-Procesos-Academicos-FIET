@@ -8,7 +8,9 @@ import com.unicauca.cfiet.solicitudes.aplicacion.input.UsuarioCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.*;
 import com.unicauca.cfiet.solicitudes.dominio.casosdeuso.*;
 import com.unicauca.cfiet.solicitudes.dominio.servicios.MaquinaEtapas;
+import com.unicauca.cfiet.solicitudes.dominio.servicios.NotificadorRespuestaFinal;
 import com.unicauca.cfiet.solicitudes.infraestructura.configuracion.lectorArchivos.almacenador.AlmacenadorArchivos;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -173,10 +175,25 @@ public class BeanConfiguracion {
                                                                      MaquinaEtapas maquinaEtapas,
                                                                      ExcepcionesFormateadorIntPuerto formateadorExcepciones,
                                                                      LogCUIntPuerto log,
-                                                                     CorreoIntPuerto correo){
+                                                                     CorreoIntPuerto correo,
+                                                                     NotificadorRespuestaFinal notificador){
         return new SolicitudAcademicaCUImplAdaptador(gateway, estudianteGateway, tipoSolicitudGateway, etapaGateway,
                 resolucionGateway, anexoGateway, usuarioGateway, almacenamiento, maquinaEtapas, formateadorExcepciones, log,
-                Clock.system(ZoneId.of("America/Bogota")), correo);
+                Clock.system(ZoneId.of("America/Bogota")), correo, notificador);
+    }
+
+    @Bean
+    public NotificadorRespuestaFinal crearNotificadorRespuestaFinal(SolicitudCancelacionAsignaturaGatewayIntPuerto cancelacionAsignaturaGateway,
+                                                                    SolicitudExamenSupletorioGatewayIntPuerto supletorioGateway,
+                                                                    ResolucionAcademicaGatewayIntPuerto resolucionGateway,
+                                                                    AnexoAcademicoGatewayIntPuerto anexoGateway,
+                                                                    UsuarioGatewayIntPuerto usuarioGateway,
+                                                                    GeneradorPdfRespuestaIntPuerto generadorPdf,
+                                                                    PreparacionCorreoIntPuerto preparacion,
+                                                                    CorreoIntPuerto correo,
+                                                                    @Value("${correo.darca.destinatario:}") String destinatarioDarca){
+        return new NotificadorRespuestaFinal(cancelacionAsignaturaGateway, supletorioGateway, resolucionGateway, anexoGateway, usuarioGateway,
+                generadorPdf, preparacion, correo, destinatarioDarca);
     }
 
     @Bean
@@ -328,10 +345,11 @@ public class BeanConfiguracion {
                                                                                SolicitudAcademicaCUIntPuerto solicitudCU,
                                                                                MaquinaEtapas maquinaEtapas,
                                                                                ExcepcionesFormateadorIntPuerto formateadorExcepciones,
-                                                                               LogCUIntPuerto log){
+                                                                               LogCUIntPuerto log,
+                                                                               NotificadorRespuestaFinal notificador){
         return new TramiteExamenSupletorioCUImplAdaptador(gateway, solicitudGateway, usuarioGateway, sesionGateway, jwtServicio,
                 docenteGateway, notificacionGateway, solicitudCU, maquinaEtapas, formateadorExcepciones, log,
-                Clock.system(ZoneId.of("America/Bogota")));
+                Clock.system(ZoneId.of("America/Bogota")), notificador);
     }
 
     @Bean

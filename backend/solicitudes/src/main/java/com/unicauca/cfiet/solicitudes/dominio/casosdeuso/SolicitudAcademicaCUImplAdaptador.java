@@ -14,6 +14,7 @@ import com.unicauca.cfiet.solicitudes.aplicacion.output.TipoSolicitudAcademicaGa
 import com.unicauca.cfiet.solicitudes.aplicacion.output.UsuarioGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
 import com.unicauca.cfiet.solicitudes.dominio.servicios.MaquinaEtapas;
+import com.unicauca.cfiet.solicitudes.dominio.servicios.NotificadorRespuestaFinal;
 import com.unicauca.cfiet.solicitudes.dominio.servicios.ValidadorActorSolicitud;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.MensajesError;
 
@@ -68,6 +69,7 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
     private final LogCUIntPuerto log;
     private final Clock reloj;
     private final CorreoIntPuerto correo;
+    private final NotificadorRespuestaFinal notificador;
 
     public SolicitudAcademicaCUImplAdaptador(SolicitudAcademicaGatewayIntPuerto gateway,
                                              EstudianteGatewayIntPuerto estudianteGateway,
@@ -81,7 +83,8 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
                                              ExcepcionesFormateadorIntPuerto formateadorExcepciones,
                                              LogCUIntPuerto log,
                                              Clock reloj,
-                                             CorreoIntPuerto correo) {
+                                             CorreoIntPuerto correo,
+                                             NotificadorRespuestaFinal notificador) {
         this.gateway = gateway;
         this.estudianteGateway = estudianteGateway;
         this.tipoSolicitudGateway = tipoSolicitudGateway;
@@ -95,6 +98,7 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
         this.log = log;
         this.reloj = reloj;
         this.correo = correo;
+        this.notificador = notificador;
     }
 
     @Override
@@ -173,11 +177,11 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
                         adicionales.isEmpty() ? "" : ", se retiró el documento adicional"),
                 token);
         if (ETAPAS_FINALES.contains(resultado.getEtapaSiguiente()))
-            avisarRespuesta(solicitud, proceso, ahora.toLocalDate());
+            avisarRespuesta(solicitud, proceso, accion, ahora.toLocalDate());
         return actualizada;
     }
 
-    private void avisarRespuesta(SolicitudAcademica solicitud, TipoProcesoAcademico proceso, LocalDate fecha) {
+    private void avisarRespuesta(SolicitudAcademica solicitud, TipoProcesoAcademico proceso, AccionEtapa accion, LocalDate fecha) {
         Usuario usuario = solicitud.getEstudiante() == null ? null : solicitud.getEstudiante().getUsuario();
         String destinatario = usuario == null ? null : usuario.getCorreoElectronico();
         String uuidSolicitud = solicitud.getUuidSolicitudAcademica();
@@ -201,6 +205,7 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
         String texto = String.format(ENCABEZADO_RESPUESTA, fecha.format(FECHA_CARTA), nombreCompleto(usuario))
                 + (supletorio ? String.format(CUERPO_SUPLETORIO, solicitud.getRadicado()) : CUERPO_RESOLUCION);
         correo.enviar(destinatario, ASUNTOS_RESPUESTA.get(proceso), texto, adjuntos);
+        notificador.avisarDarca(solicitud, proceso, accion, fecha);
     }
 
     private List<AnexoAcademico> documentosAdicionales(String uuidSolicitud) {

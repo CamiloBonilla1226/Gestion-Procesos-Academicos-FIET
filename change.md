@@ -2,6 +2,28 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-15 - Variables del correo desde backend/.env
+- Qué se hizo: `MAIL_USER`, `MAIL_PASSWORD` y `CORREO_DARCA` se pueden poner en `backend/.env`, que Docker Compose carga solo; se agregó la plantilla `backend/.env.example` y las reglas para que `.env` nunca se suba.
+- Archivos: `backend/.env.example` (creado), `backend/.gitignore` (modificado), `.gitignore` (modificado), `backend/CLAUDE.md` (modificado)
+- Notas:
+  - Configuración: copiar `backend/.env.example` como `backend/.env` y completar los valores; el `.env` no se sube al repositorio. También se pueden definir en PowerShell con `$env:` antes de `docker compose up`, y lo de la consola manda sobre el `.env`.
+  - Si cambian los valores del `.env`, basta con `docker compose up` (recrea el contenedor); no hace falta reconstruir la imagen, porque el `Dockerfile` solo copia el jar.
+  - `docker-compose.yml` no cambió: ya pasaba las tres variables con `${VARIABLE}`.
+
+## 2026-10-15 - Correo a DARCA con PDF de la respuesta y correo al profesor del supletorio
+- Qué se hizo: en cada respuesta final (rechazo del Funcionario, respuesta final aprobada o rechazada y, en el supletorio, aprobar o rechazar el comprobante) sale además un correo a DARCA con un PDF generado por el sistema, la Resolución en las cancelaciones y el documento adicional si existe. En Examen Supletorio, al aprobar el comprobante, sale un correo al profesor asignado con el mismo PDF. El correo al estudiante no cambia.
+- Archivos:
+  - Backend, creados: `aplicacion/output/GeneradorPdfRespuestaIntPuerto.java`, `aplicacion/output/PreparacionCorreoIntPuerto.java`, `dominio/modelos/ResumenRespuesta.java`, `dominio/modelos/DatoResumenRespuesta.java`, `dominio/modelos/AsignaturaResumenRespuesta.java`, `dominio/servicios/NotificadorRespuestaFinal.java`, `infraestructura/output/pdf/GeneradorPdfRespuesta.java`, `infraestructura/output/correo/PreparacionCorreoImplAdaptador.java`
+  - Backend, modificados: `pom.xml` (OpenPDF 2.0.5), `src/main/resources/application.properties` (`correo.darca.destinatario`), `dominio/modelos/AdjuntoCorreo.java` (`contenido`), `infraestructura/output/correo/ServicioCorreo.java` (usa `contenido` si viene), `dominio/casosdeuso/SolicitudAcademicaCUImplAdaptador.java` (llama a `avisarDarca`), `dominio/casosdeuso/TramiteExamenSupletorioCUImplAdaptador.java` (llama a `avisarProfesor`), `infraestructura/configuracion/BeanConfiguracion.java`
+  - Backend, pruebas creadas: `dominio/servicios/NotificadorRespuestaFinalTest.java`, `infraestructura/output/pdf/GeneradorPdfRespuestaTest.java`
+  - Backend, pruebas modificadas: `ServicioCorreoTest`, `SolicitudAcademicaCUImplAdaptadorTest`, `TramiteExamenSupletorioCUImplAdaptadorTest`, `TramiteCancelacionMatriculaCUImplAdaptadorTest`, `TramiteCancelacionAsignaturaCUImplAdaptadorTest`
+  - `backend/docker-compose.yml` (`CORREO_DARCA` opcional), `backend/pruebas/smtp_prueba.py` (guarda si el adjunto es PDF y su texto), `backend/pruebas/t9_correo_respuesta.ps1` (DARCA y profesor), `backend/CLAUDE.md`
+- Notas:
+  - El correo a DARCA se arma justo antes del commit (`beforeCommit`), no dentro de `cambiarEtapa`, porque Cancelación de Asignatura guarda los ajustes de las asignaturas y el supletorio asigna el profesor después de cambiar la etapa. El envío sigue siendo después del commit y asíncrono.
+  - Los tres correos son independientes: si el armado o el envío de uno falla, se registra en el log con su asunto y destinatario y los demás salen; la respuesta queda guardada. Un destinatario sin correo se omite y se registra.
+  - El profesor solo recibe correo al aprobar el comprobante, que es cuando hoy se le crea la notificación; sin profesor no se envía nada.
+  - Pruebas: backend completo 1496 pruebas sin fallos; `t9_correo_respuesta.ps1` contra el jar nuevo en el puerto 8091 con `smtp_prueba.py`: 270 PASS y 0 FAIL.
+
 ## 2026-10-15 - Documento adicional rechazado como "solo del estudiante": diagnóstico, error visible y prueba de integración del correo
 - Qué se hizo: se encontró que el error venía del backend desplegado en Docker, construido a las 15:23 con el jar anterior a la regla del documento adicional (sin `AdjuntoCorreo` ni la constante del tipo). Con ese código cualquier anexo con tipo distinto de recibo o comprobante se validaba como del rol ESTUDIANTE. El código fuente ya tenía la regla correcta, así que la corrección del backend es reconstruir la imagen. Además, el frontend muestra un error propio cuando falla la subida del documento adicional, se agregaron pruebas unitarias de permisos y una prueba de integración completa del correo con un SMTP local.
 - Archivos:

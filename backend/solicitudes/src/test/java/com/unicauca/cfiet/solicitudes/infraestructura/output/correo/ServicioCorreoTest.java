@@ -13,6 +13,7 @@ import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.support.TransactionSynchronizationUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -146,5 +147,115 @@ class ServicioCorreoTest {
         doThrow(new IllegalStateException("sin hilos")).when(servicioMock).enviar(any(), any(), any(), any());
 
         assertDoesNotThrow(() -> new CorreoImplAdaptador(servicioMock).enviar("est@unicauca.edu.co", "Asunto", "Texto", List.of()));
+    }
+
+    @Test
+    void unAdjuntoGeneradoEnMemoriaNoSeLeeDelAlmacenamiento() throws Exception {
+        servicio.enviar("darca@unicauca.edu.co", "DARCA", "Texto", List.of(AdjuntoCorreo.builder()
+                .nombre("Radicado-2026-CM-0001.pdf").tipoContenido("application/pdf").contenido(new byte[]{37, 80, 68, 70}).build()));
+
+        MimeMessage mensaje = enviado();
+        mensaje.saveChanges();
+        List<String> nombres = new ArrayList<>();
+        recogerAdjuntos((Multipart) mensaje.getContent(), nombres);
+        assertEquals(List.of("Radicado-2026-CM-0001.pdf"), nombres);
+        verifyNoInteractions(almacenamiento);
+    }
+
+    @Test
+    void siUnEnvioFallaLosDemasSalenIgual() {
+        doThrow(new MailSendException("buzon lleno")).doNothing().doNothing().when(enviador).send(any(MimeMessage.class));
+
+        assertDoesNotThrow(() -> servicio.enviar("est@unicauca.edu.co", "Notificación de examen supletorio", "Texto", List.of()));
+        assertDoesNotThrow(() -> servicio.enviar("darca@unicauca.edu.co", "DARCA - Notificación de examen supletorio - Radicado 2026-ES-0001",
+                "Texto", List.of()));
+        assertDoesNotThrow(() -> servicio.enviar("prof@unicauca.edu.co", "Notificación de examen supletorio - Radicado 2026-ES-0001",
+                "Texto", List.of()));
+
+        verify(enviador, times(3)).send(any(MimeMessage.class));
+    }
+
+    @Test
+    void laPreparacionCorreAntesDeConfirmarYSuCorreoSaleDespuesDelCommit() {
+        ServicioCorreo servicioMock = mock(ServicioCorreo.class);
+        CorreoImplAdaptador correo = new CorreoImplAdaptador(servicioMock);
+        PreparacionCorreoImplAdaptador preparacion = new PreparacionCorreoImplAdaptador();
+        List<String> pasos = new ArrayList<>();
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            correo.enviar("est@unicauca.edu.co", "Estudiante", "Texto", List.of());
+            preparacion.antesDeConfirmar("el correo a DARCA", () -> {
+                pasos.add("preparado");
+                correo.enviar("darca@unicauca.edu.co", "DARCA", "Texto", List.of());
+            });
+            assertTrue(pasos.isEmpty());
+
+            TransactionSynchronizationUtils.triggerBeforeCommit(false);
+            assertEquals(List.of("preparado"), pasos);
+            verify(servicioMock, never()).enviar(any(), any(), any(), any());
+
+            TransactionSynchronizationUtils.triggerAfterCommit();
+            verify(servicioMock).enviar("est@unicauca.edu.co", "Estudiante", "Texto", List.of());
+            verify(servicioMock).enviar("darca@unicauca.edu.co", "DARCA", "Texto", List.of());
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+    }
+
+    @Test
+    void siFallaLaPreparacionDeUnCorreoNoSePropagaYLosDemasSalen() {
+        ServicioCorreo servicioMock = mock(ServicioCorreo.class);
+        CorreoImplAdaptador correo = new CorreoImplAdaptador(servicioMock);
+        PreparacionCorreoImplAdaptador preparacion = new PreparacionCorreoImplAdaptador();
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            correo.enviar("est@unicauca.edu.co", "Estudiante", "Texto", List.of());
+            preparacion.antesDeConfirmar("el correo a DARCA", () -> {
+                throw new IllegalStateException("pdf roto");
+            });
+            preparacion.antesDeConfirmar("el correo al profesor", () -> correo.enviar("prof@unicauca.edu.co", "Profesor", "Texto", List.of()));
+
+            assertDoesNotThrow(() -> TransactionSynchronizationUtils.triggerBeforeCommit(false));
+            TransactionSynchronizationUtils.triggerAfterCommit();
+
+            verify(servicioMock).enviar("est@unicauca.edu.co", "Estudiante", "Texto", List.of());
+            verify(servicioMock).enviar("prof@unicauca.edu.co", "Profesor", "Texto", List.of());
+            verify(servicioMock, times(2)).enviar(any(), any(), any(), any());
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+    }
+
+    @Test
+    void siLaTransaccionSeRevierteNoSePreparaNiSeEnvia() {
+        ServicioCorreo servicioMock = mock(ServicioCorreo.class);
+        CorreoImplAdaptador correo = new CorreoImplAdaptador(servicioMock);
+        List<String> pasos = new ArrayList<>();
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            new PreparacionCorreoImplAdaptador().antesDeConfirmar("el correo a DARCA", () -> {
+                pasos.add("preparado");
+                correo.enviar("darca@unicauca.edu.co", "DARCA", "Texto", List.of());
+            });
+            TransactionSynchronizationUtils.triggerAfterCompletion(TransactionSynchronization.STATUS_ROLLED_BACK);
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+
+        assertTrue(pasos.isEmpty());
+        verify(servicioMock, never()).enviar(any(), any(), any(), any());
+    }
+
+    @Test
+    void sinTransaccionLaPreparacionCorreDeInmediatoYSuFallaNoSePropaga() {
+        List<String> pasos = new ArrayList<>();
+        PreparacionCorreoImplAdaptador preparacion = new PreparacionCorreoImplAdaptador();
+
+        preparacion.antesDeConfirmar("uno", () -> pasos.add("uno"));
+        assertDoesNotThrow(() -> preparacion.antesDeConfirmar("dos", () -> {
+            throw new IllegalStateException("roto");
+        }));
+
+        assertEquals(List.of("uno"), pasos);
     }
 }

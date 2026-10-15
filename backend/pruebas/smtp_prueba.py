@@ -1,9 +1,11 @@
 import email
 import itertools
 import json
+import re
 import socketserver
 import sys
 import threading
+import zlib
 from email import policy
 from pathlib import Path
 
@@ -11,15 +13,59 @@ PUERTO = int(sys.argv[1])
 CARPETA = Path(sys.argv[2])
 CONTADOR = itertools.count(1)
 BLOQUEO = threading.Lock()
+FLUJO = re.compile(rb"stream\r?\n(.*?)\r?\nendstream", re.S)
+CADENA = re.compile(rb"\(((?:\\.|[^\\)])*)\)\s*Tj", re.S)
+OCTAL = re.compile(rb"[0-7]{1,3}")
+
+
+def cadena_pdf(cruda):
+    salida = bytearray()
+    i = 0
+    while i < len(cruda):
+        c = cruda[i]
+        if c == 0x5C and i + 1 < len(cruda):
+            octal = OCTAL.match(cruda, i + 1, i + 4)
+            if octal:
+                salida.append(int(octal.group(0), 8) & 0xFF)
+                i += 1 + len(octal.group(0))
+                continue
+            siguiente = cruda[i + 1]
+            salida.append({0x6E: 0x0A, 0x72: 0x0D, 0x74: 0x09}.get(siguiente, siguiente))
+            i += 2
+            continue
+        salida.append(c)
+        i += 1
+    return salida.decode("cp1252", "replace")
+
+
+def texto_pdf(contenido):
+    if not contenido.startswith(b"%PDF"):
+        return ""
+    textos = []
+    for flujo in FLUJO.findall(contenido):
+        try:
+            plano = zlib.decompress(flujo)
+        except zlib.error:
+            plano = flujo
+        textos.extend(cadena_pdf(cruda) for cruda in CADENA.findall(plano))
+    return " ".join(textos)
+
+
+def adjunto(parte):
+    contenido = parte.get_payload(decode=True) or b""
+    return {
+        "nombre": parte.get_filename(),
+        "tipo": parte.get_content_type(),
+        "tamanio": len(contenido),
+        "esPdf": contenido.startswith(b"%PDF"),
+        "textoPdf": texto_pdf(contenido),
+    }
 
 
 def guardar(destinatarios, datos):
     mensaje = email.message_from_bytes(datos, policy=policy.default)
     cuerpo = mensaje.get_body(preferencelist=("plain",))
-    adjuntos = [
-        {"nombre": parte.get_filename(), "tipo": parte.get_content_type(), "tamanio": len(parte.get_payload(decode=True) or b"")}
-        for parte in mensaje.iter_attachments()
-    ]
+    adjuntos = [adjunto(parte) for parte in mensaje.iter_attachments()]
     registro = {
         "de": str(mensaje["from"]),
         "para": destinatarios,

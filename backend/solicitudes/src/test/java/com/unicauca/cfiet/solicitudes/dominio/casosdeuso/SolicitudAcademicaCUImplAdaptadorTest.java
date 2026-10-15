@@ -6,12 +6,17 @@ import com.unicauca.cfiet.solicitudes.aplicacion.output.AnexoAcademicoGatewayInt
 import com.unicauca.cfiet.solicitudes.aplicacion.output.CorreoIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.EstudianteGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.EtapaSolicitudAcademicaGatewayIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.output.GeneradorPdfRespuestaIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.ResolucionAcademicaGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.SolicitudAcademicaGatewayIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.output.SolicitudCancelacionAsignaturaGatewayIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.output.SolicitudExamenSupletorioGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.TipoSolicitudAcademicaGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.UsuarioGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
 import com.unicauca.cfiet.solicitudes.dominio.servicios.MaquinaEtapas;
+import com.unicauca.cfiet.solicitudes.dominio.servicios.NotificadorRespuestaFinal;
+import com.unicauca.cfiet.solicitudes.infraestructura.output.correo.PreparacionCorreoImplAdaptador;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.formateador.ExcepcionesFormateadorImplAdaptador;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.excepcionesPropias.ErrorEntidadNoExisteExcepcion;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.excepcionesPropias.ErrorMalFormatoExcepcion;
@@ -26,6 +31,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -84,13 +90,16 @@ class SolicitudAcademicaCUImplAdaptadorTest {
     @Mock
     private CorreoIntPuerto correo;
 
+    @Mock
+    private NotificadorRespuestaFinal notificador;
+
     private List<EtapaSolicitudAcademica> etapas;
 
     private SolicitudAcademicaCUImplAdaptador casoDeUso(Clock reloj) {
         ExcepcionesFormateadorImplAdaptador formateador = new ExcepcionesFormateadorImplAdaptador();
         return new SolicitudAcademicaCUImplAdaptador(gateway, estudianteGateway, tipoSolicitudGateway, etapaGateway,
                 resolucionGateway, anexoGateway, usuarioGateway, almacenamiento, new MaquinaEtapas(formateador), formateador, log, reloj,
-                correo);
+                correo, notificador);
     }
 
     private ResolucionAcademica escaneo() {
@@ -802,6 +811,48 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.APROBAR_DECANO, actor(DECANO, RolEtiquetaEtapa.DECANO), null, TOKEN);
 
         verify(correo, never()).enviar(any(), any(), any(), any());
+        verify(notificador, never()).avisarDarca(any(), any(), any(), any());
+    }
+
+    @Test
+    void cadaRespuestaFinalAvisaADarcaUnaSolaVezConElProcesoLaAccionYLaFecha() {
+        SolicitudAcademica solicitud = solicitud(tipo(TIPO_CA, "Cancelación de Asignatura"), APROBADA_POR_DECANO);
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud);
+        when(resolucionGateway.existePorSolicitud(SOLICITUD)).thenReturn(true);
+
+        casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.ENVIAR_RESPUESTA, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null, TOKEN);
+
+        InOrder orden = inOrder(gateway, correo, notificador);
+        orden.verify(gateway).actualizarEtapa(any(), any());
+        orden.verify(correo).enviar(any(), eq("Notificación de Cancelación de asignatura"), any(), any());
+        orden.verify(notificador).avisarDarca(solicitud, TipoProcesoAcademico.CANCELACION_ASIGNATURA, AccionEtapa.ENVIAR_RESPUESTA,
+                LocalDate.of(2026, 3, 10));
+        verify(notificador, times(1)).avisarDarca(any(), any(), any(), any());
+        verify(correo, times(1)).enviar(any(), any(), any(), any());
+        assertEquals(APROBADA, solicitud.getEtapa().getCodigo());
+    }
+
+    @Test
+    void siFallaElArmadoDelCorreoADarcaElEstudianteRecibeElSuyoYLaEtapaQuedaGuardada() {
+        GeneradorPdfRespuestaIntPuerto generadorRoto = resumen -> {
+            throw new IllegalStateException("fuente dañada");
+        };
+        NotificadorRespuestaFinal real = new NotificadorRespuestaFinal(mock(SolicitudCancelacionAsignaturaGatewayIntPuerto.class),
+                mock(SolicitudExamenSupletorioGatewayIntPuerto.class), resolucionGateway, anexoGateway, usuarioGateway, generadorRoto,
+                new PreparacionCorreoImplAdaptador(), correo, "darca@unicauca.edu.co");
+        ExcepcionesFormateadorImplAdaptador formateador = new ExcepcionesFormateadorImplAdaptador();
+        SolicitudAcademicaCUImplAdaptador conNotificadorReal = new SolicitudAcademicaCUImplAdaptador(gateway, estudianteGateway,
+                tipoSolicitudGateway, etapaGateway, resolucionGateway, anexoGateway, usuarioGateway, almacenamiento,
+                new MaquinaEtapas(formateador), formateador, log, reloj("2026-03-10T15:00:00Z"), correo, real);
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(conDatosDeContacto(solicitud(tipoMatricula(), APROBADA_POR_DECANO)));
+        when(resolucionGateway.existePorSolicitud(SOLICITUD)).thenReturn(true);
+
+        assertDoesNotThrow(() -> conNotificadorReal.cambiarEtapa(SOLICITUD, AccionEtapa.ENVIAR_RESPUESTA,
+                actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null, TOKEN));
+
+        verify(gateway).actualizarEtapa(any(), any());
+        verify(correo, times(1)).enviar(eq("est@unicauca.edu.co"), eq("Notificación de Cancelación de matrícula"), any(), any());
+        verify(correo, never()).enviar(eq("darca@unicauca.edu.co"), any(), any(), any());
     }
 
     @Test
@@ -813,6 +864,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
                 actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null, TOKEN));
 
         verify(correo, never()).enviar(any(), any(), any(), any());
+        verify(notificador, never()).avisarDarca(any(), any(), any(), any());
     }
 
     @Test

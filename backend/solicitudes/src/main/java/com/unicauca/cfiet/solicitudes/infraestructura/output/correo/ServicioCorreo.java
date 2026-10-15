@@ -51,6 +51,8 @@ public class ServicioCorreo {
     }
 
     private byte[] contenidoDe(AdjuntoCorreo adjunto) {
+        if (adjunto.getContenido() != null)
+            return adjunto.getContenido();
         byte[] contenido = almacenamiento.leer(adjunto.getUrlArchivo());
         if (contenido == null)
             throw new IllegalStateException("No se encontró el archivo adjunto " + adjunto.getNombre());

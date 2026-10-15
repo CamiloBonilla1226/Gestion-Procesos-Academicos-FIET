@@ -19,3 +19,9 @@ frontend/*.log
 Thumbs.db
 limpieza_local.sql
 *.local.md
+
+# --- Variables de entorno locales ---
+.env
+backend/.env
+!.env.example
+!backend/.env.example

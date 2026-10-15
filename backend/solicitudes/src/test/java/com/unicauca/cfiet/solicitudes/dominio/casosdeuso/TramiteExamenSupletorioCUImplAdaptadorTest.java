@@ -5,6 +5,7 @@ import com.unicauca.cfiet.solicitudes.aplicacion.output.*;
 import com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
 import com.unicauca.cfiet.solicitudes.dominio.servicios.MaquinaEtapas;
+import com.unicauca.cfiet.solicitudes.dominio.servicios.NotificadorRespuestaFinal;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.formateador.ExcepcionesFormateadorImplAdaptador;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.MensajesError;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.excepcionesPropias.ErrorEntidadNoExisteExcepcion;
@@ -18,6 +19,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -95,6 +97,9 @@ class TramiteExamenSupletorioCUImplAdaptadorTest {
 
     @Mock
     private NotificacionDocenteGatewayIntPuerto notificacionGateway;
+
+    @Mock
+    private NotificadorRespuestaFinal notificador;
 
     private TramiteExamenSupletorioCUImplAdaptador casoDeUso;
     private AsignaturaMatriculada asignatura;
@@ -200,9 +205,9 @@ class TramiteExamenSupletorioCUImplAdaptadorTest {
         MaquinaEtapas maquina = new MaquinaEtapas(formateador);
         SolicitudAcademicaCUImplAdaptador solicitudCU = new SolicitudAcademicaCUImplAdaptador(solicitudGateway, estudianteGateway,
                 tipoSolicitudGateway, etapaGateway, resolucionGateway, anexoGateway, usuarioGateway, almacenamiento, maquina, formateador, log,
-                RELOJ, mock(CorreoIntPuerto.class));
+                RELOJ, mock(CorreoIntPuerto.class), notificador);
         casoDeUso = new TramiteExamenSupletorioCUImplAdaptador(gateway, solicitudGateway, usuarioGateway, sesionGateway, jwtServicio,
-                docenteGateway, notificacionGateway, solicitudCU, maquina, formateador, log, RELOJ);
+                docenteGateway, notificacionGateway, solicitudCU, maquina, formateador, log, RELOJ, notificador);
         lenient().when(docenteGateway.getActivo(DOCENTE)).thenReturn(Docente.builder().uuidUsuario(DOCENTE).nombres("Ana").apellidos("Ruiz")
                 .numeroDocumento("1061").username("aruiz").build());
 
@@ -424,6 +429,34 @@ class TramiteExamenSupletorioCUImplAdaptadorTest {
     }
 
     @Test
+    void aprobarElComprobanteAvisaAlProfesorUnaVezDespuesDeCrearLaNotificacion() {
+        enEtapa(EN_VERIFICACION_PAGO);
+
+        casoDeUso.aprobarComprobante(SOLICITUD, null, DOCENTE, TOKEN_FUNCIONARIO);
+
+        ArgumentCaptor<SolicitudAcademica> solicitud = ArgumentCaptor.forClass(SolicitudAcademica.class);
+        ArgumentCaptor<Docente> docente = ArgumentCaptor.forClass(Docente.class);
+        InOrder orden = inOrder(notificacionGateway, notificador);
+        orden.verify(notificacionGateway).crear(any());
+        orden.verify(notificador).avisarProfesor(solicitud.capture(), eq(AccionEtapa.APROBAR_COMPROBANTE), docente.capture(),
+                eq(LocalDate.of(2026, 10, 6)));
+        verify(notificador, times(1)).avisarProfesor(any(), any(), any(), any());
+        assertEquals(APROBADA, solicitud.getValue().getEtapa().getCodigo());
+        assertEquals(DOCENTE, docente.getValue().getUuidUsuario());
+        verify(notificador, times(1)).avisarDarca(any(), eq(TipoProcesoAcademico.EXAMEN_SUPLETORIO), eq(AccionEtapa.APROBAR_COMPROBANTE), any());
+    }
+
+    @Test
+    void siFallaLaNotificacionNoSeAvisaAlProfesor() {
+        enEtapa(EN_VERIFICACION_PAGO);
+        when(notificacionGateway.crear(any())).thenThrow(new RuntimeException("falla de base"));
+
+        assertThrows(RuntimeException.class, () -> casoDeUso.aprobarComprobante(SOLICITUD, null, DOCENTE, TOKEN_FUNCIONARIO));
+
+        verify(notificador, never()).avisarProfesor(any(), any(), any(), any());
+    }
+
+    @Test
     void laObservacionParaElEstudianteQuedaEnElHistorialDeLaAprobacion() {
         enEtapa(EN_VERIFICACION_PAGO);
 
@@ -494,6 +527,8 @@ class TramiteExamenSupletorioCUImplAdaptadorTest {
         verify(gateway, never()).asignarDocente(any(), any());
         verify(notificacionGateway, never()).crear(any());
         verifyNoInteractions(docenteGateway);
+        verify(notificador, never()).avisarProfesor(any(), any(), any(), any());
+        verify(notificador, times(1)).avisarDarca(any(), eq(TipoProcesoAcademico.EXAMEN_SUPLETORIO), eq(AccionEtapa.RECHAZAR_COMPROBANTE), any());
     }
 
     @Test
