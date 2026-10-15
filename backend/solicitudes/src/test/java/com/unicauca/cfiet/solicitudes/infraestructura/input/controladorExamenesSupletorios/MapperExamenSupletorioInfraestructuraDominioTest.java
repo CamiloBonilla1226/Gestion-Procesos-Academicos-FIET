@@ -104,7 +104,7 @@ class MapperExamenSupletorioInfraestructuraDominioTest {
                 .tipoCausa(CausaSupletorio.CRUCE)
                 .cruce(CruceSupletorio.builder().asignaturaMatriculadaCruzada(materia("am-2")).fechaExamenCruzada(LocalDate.of(2026, 10, 5))
                         .horaExamenCruzada("14:30").build())
-                .fechaAcordadaExamen(LocalDate.of(2026, 10, 20).atStartOfDay())
+                .docente(Docente.builder().uuidUsuario("doc-1").nombres("Ana").apellidos("Ruiz").numeroDocumento("123").username("aruiz").build())
                 .build()));
 
         assertEquals("2026-ES-0001", respuesta.getSolicitud().getRadicado());
@@ -116,11 +116,13 @@ class MapperExamenSupletorioInfraestructuraDominioTest {
         assertEquals("am-2", respuesta.getCruce().getAsignatura().getUuidAsignaturaMatriculada());
         assertEquals("2026-10-05", respuesta.getCruce().getFechaExamenCruzada());
         assertEquals("14:30", respuesta.getCruce().getHoraExamenCruzada());
-        assertEquals("2026-10-20", respuesta.getFechaAcordadaExamen());
+        assertEquals("doc-1", respuesta.getDocente().getUuidUsuario());
+        assertEquals("Ana", respuesta.getDocente().getNombres());
+        assertEquals("Ruiz", respuesta.getDocente().getApellidos());
     }
 
     @Test
-    void elDetallePorOtraCausaNoTraeCruceNiFechaAcordadaSiNoExiste() {
+    void elDetallePorOtraCausaNoTraeCruceNiProfesorSiNoExiste() {
         ExamenSupletorioDetalleDTORespuesta respuesta = mapper.mapearDetalleARespuesta(detalle(SolicitudExamenSupletorio.builder()
                 .asignaturaMatriculada(materia("am-1"))
                 .fechaExamenNoPresentado(LocalDate.of(2026, 10, 5))
@@ -129,7 +131,7 @@ class MapperExamenSupletorioInfraestructuraDominioTest {
 
         assertEquals("otra", respuesta.getTipoCausa());
         assertNull(respuesta.getCruce());
-        assertNull(respuesta.getFechaAcordadaExamen());
+        assertNull(respuesta.getDocente());
     }
 
     @Test

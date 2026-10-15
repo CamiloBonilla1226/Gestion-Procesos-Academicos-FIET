@@ -59,7 +59,8 @@ export const ROLES_ACADEMICOS = {
   ESTUDIANTE: 'Estudiante',
   FUNCIONARIO_ACADEMICO: 'Funcionario Académico',
   DECANO: 'Decano',
-  SECRETARIO_GENERAL: 'Secretario General'
+  SECRETARIO_GENERAL: 'Secretario General',
+  DOCENTE: 'Docente'
 } as const;
 
 export const ROLES_ETIQUETA = {

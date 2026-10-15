@@ -80,8 +80,9 @@ describe('validaciones academicas', () => {
     expect(leerFaltas('')).toBeNull();
   });
 
-  it('faltas aceptan texto de hasta 20 caracteres y, si son numero, un entero mayor o igual a 0', () => {
-    expect(errorDeFaltas('')).toContain('obligatorias');
+  it('faltas son opcionales y aceptan texto de hasta 20 caracteres y, si son numero, un entero mayor o igual a 0', () => {
+    expect(errorDeFaltas('')).toBeNull();
+    expect(errorDeFaltas(null)).toBeNull();
     expect(errorDeFaltas('Sin registro')).toBeNull();
     expect(errorDeFaltas('3')).toBeNull();
     expect(errorDeFaltas('3.0')).toBeNull();
@@ -90,8 +91,9 @@ describe('validaciones academicas', () => {
     expect(errorDeFaltas('2,5')).toContain('entero mayor o igual a 0');
   });
 
-  it('la nota acepta texto de hasta 20 caracteres y, si es numero, de 0.0 a 5.0 con un decimal', () => {
-    expect(errorDeNotaAsignatura(' ')).toContain('obligatoria');
+  it('la nota es opcional y acepta texto de hasta 20 caracteres y, si es numero, de 0.0 a 5.0 con un decimal', () => {
+    expect(errorDeNotaAsignatura(' ')).toBeNull();
+    expect(errorDeNotaAsignatura(undefined)).toBeNull();
     expect(errorDeNotaAsignatura('Sin nota')).toBeNull();
     expect(errorDeNotaAsignatura('3,5')).toBeNull();
     expect(errorDeNotaAsignatura('4.50')).toBeNull();

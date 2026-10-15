@@ -196,17 +196,26 @@ CREATE TABLE IF NOT EXISTS SOLICITUD_CANCELACION_ASIGNATURA (
         FOREIGN KEY (SolicitudAcademica_uuid) REFERENCES SOLICITUD_ACADEMICA (uuidSolicitudAcademica)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- fechaAcordadaExamen está en desuso desde T12.28: el paso en que el
+-- Funcionario aprueba el comprobante ya no pide fecha y nada la lee ni la
+-- escribe. La columna se conserva (nullable) para no perder datos viejos.
+-- Docente_uuid es el profesor (usuario con rol 'Docente') que el
+-- Funcionario elige al aprobar el pago; queda en NULL hasta ese paso y
+-- también si el pago se rechaza.
 CREATE TABLE IF NOT EXISTS SOLICITUD_EXAMEN_SUPLETORIO (
     SolicitudAcademica_uuid    VARCHAR(100) NOT NULL,
     AsignaturaMatriculada_uuid VARCHAR(100) NOT NULL,
     fechaExamenNoPresentado    DATETIME     NOT NULL,
     fechaAcordadaExamen        DATETIME     NULL,
     tipoCausa                  ENUM('cruce', 'otra') NOT NULL,
+    Docente_uuid               VARCHAR(100) NULL,
     PRIMARY KEY (SolicitudAcademica_uuid),
     CONSTRAINT fk_solsup_solacad
         FOREIGN KEY (SolicitudAcademica_uuid) REFERENCES SOLICITUD_ACADEMICA (uuidSolicitudAcademica),
     CONSTRAINT fk_solsup_asigmat
-        FOREIGN KEY (AsignaturaMatriculada_uuid) REFERENCES ASIGNATURA_MATRICULADA (uuidAsignaturaMatriculada)
+        FOREIGN KEY (AsignaturaMatriculada_uuid) REFERENCES ASIGNATURA_MATRICULADA (uuidAsignaturaMatriculada),
+    CONSTRAINT fk_solsup_docente
+        FOREIGN KEY (Docente_uuid) REFERENCES usuarios (uuidUsuario)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS SOLICITUD_SUPLETORIO_CRUCE_ASIGNATURA (
@@ -344,13 +353,63 @@ CREATE TABLE IF NOT EXISTS HISTORIAL_SOLICITUD_ACADEMICA (
         FOREIGN KEY (Usuario_uuid) REFERENCES usuarios (uuidUsuario)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- ---------------------------------------------------------------------
+-- 12. Notificaciones al docente del examen supletorio
+-- ---------------------------------------------------------------------
+
+-- El sistema de Julián no tiene notificaciones; esta tabla es propia de la
+-- extensión. Se crea una fila cuando el Funcionario aprueba el comprobante
+-- de pago de un Examen Supletorio y elige al profesor, en la misma
+-- transacción. titulo sale del estado final de la solicitud y su radicado
+-- ("Examen supletorio aprobado, radicado 2026-ES-0001"). fechaLectura
+-- queda en NULL hasta que el docente abre la notificación. Solo la ve el
+-- docente destinatario.
+CREATE TABLE IF NOT EXISTS NOTIFICACION_DOCENTE (
+    idNotificacion            BIGINT       NOT NULL AUTO_INCREMENT,
+    uuidNotificacion          VARCHAR(100) NOT NULL,
+    SolicitudAcademica_uuid   VARCHAR(100) NOT NULL,
+    Docente_uuid              VARCHAR(100) NOT NULL,
+    titulo                    VARCHAR(255) NOT NULL,
+    fechaCreacion             DATETIME     NOT NULL,
+    fechaLectura              DATETIME     NULL,
+    PRIMARY KEY (idNotificacion),
+    CONSTRAINT uk_notifdoc_uuid UNIQUE (uuidNotificacion),
+    CONSTRAINT fk_notifdoc_solacad
+        FOREIGN KEY (SolicitudAcademica_uuid) REFERENCES SOLICITUD_ACADEMICA (uuidSolicitudAcademica),
+    CONSTRAINT fk_notifdoc_usuario
+        FOREIGN KEY (Docente_uuid) REFERENCES usuarios (uuidUsuario)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ---------------------------------------------------------------------
+-- 13. Cambios de T12.28 sobre una base que ya existía
+-- ---------------------------------------------------------------------
+
+-- Idempotentes: se pueden correr más de una vez. Agregan Docente_uuid a
+-- SOLICITUD_EXAMEN_SUPLETORIO con su FK solo si falta, y dejan
+-- fechaAcordadaExamen como NULL. La tabla NOTIFICACION_DOCENTE la crea el
+-- CREATE TABLE IF NOT EXISTS de la sección 12. Las columnas de evaluación
+-- de ASIGNATURA_SOLICITUD_ACADEMICA (numeroFaltas, nota,
+-- SituacionMatricula_uuid, SituacionCancelar_uuid) ya eran NULL y no
+-- cambian aunque desde T12.28 sean opcionales.
+SET @falta_docente = (SELECT COUNT(*) = 0 FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'SOLICITUD_EXAMEN_SUPLETORIO' AND column_name = 'Docente_uuid');
+SET @sql_docente = IF(@falta_docente,
+    'ALTER TABLE SOLICITUD_EXAMEN_SUPLETORIO ADD COLUMN Docente_uuid VARCHAR(100) NULL, ADD CONSTRAINT fk_solsup_docente FOREIGN KEY (Docente_uuid) REFERENCES usuarios (uuidUsuario)',
+    'SELECT 1');
+PREPARE cambio_docente FROM @sql_docente;
+EXECUTE cambio_docente;
+DEALLOCATE PREPARE cambio_docente;
+
+ALTER TABLE SOLICITUD_EXAMEN_SUPLETORIO MODIFY fechaAcordadaExamen DATETIME NULL;
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- =====================================================================
--- Fin del script. Son 19 tablas nuevas en total. Orden de creación ya
+-- Fin del script. Son 20 tablas nuevas en total. Orden de creación ya
 -- resuelto para respetar FKs: ProgramaAcademico ->
 -- Estudiante/FuncionarioAcademico ->
 -- Asignatura/AsignaturaMatriculada -> TipoSolicitud -> Etapa/EtapaEtiqueta
 -- -> SolicitudAcademica -> especializaciones -> SituacionAcademica ->
--- AsignaturaSolicitud -> Anexos -> Resolución -> Historial.
+-- AsignaturaSolicitud -> Anexos -> Resolución -> Historial ->
+-- NotificacionDocente.
 -- =====================================================================

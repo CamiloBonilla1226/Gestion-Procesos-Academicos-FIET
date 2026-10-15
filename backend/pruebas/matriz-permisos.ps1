@@ -91,6 +91,11 @@ POST   examenes-supletorios/{uuidSolicitud}/funcionario/comprobante/rechazar    
 POST   examenes-supletorios/{uuidSolicitud}/decano/aprobar                      json      denegado  denegado   permitido denegado       denegado
 POST   examenes-supletorios/{uuidSolicitud}/decano/rechazar                     json      denegado  denegado   permitido denegado       denegado
 POST   examenes-supletorios/{uuidSolicitud}/estudiante/comprobante              ninguno   denegado  denegado   denegado  denegado       permitido
+GET    examenes-supletorios/docentes                                            ninguno   denegado  denegado   denegado  permitido      denegado
+GET    notificaciones-docente                                                   ninguno   denegado  denegado   denegado  denegado       denegado
+GET    notificaciones-docente/{uuidNotificacion}                                ninguno   denegado  denegado   denegado  denegado       denegado
+PATCH  notificaciones-docente/{uuidNotificacion}/leida                          ninguno   denegado  denegado   denegado  denegado       denegado
+GET    notificaciones-docente/{uuidNotificacion}/anexos/{uuidAnexo}             ninguno   denegado  denegado   denegado  denegado       denegado
 '@
 
 $Global:Columnas = @("SIN_TOKEN", "SECRETARIO", "DECANO", "FUNC_ACADEMICO", "ESTUDIANTE")

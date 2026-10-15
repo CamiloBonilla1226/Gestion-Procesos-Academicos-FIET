@@ -15,6 +15,7 @@ public final class ApplicationConstantes {
     public static final String ESTUDIANTE_ROL = "Estudiante";
     public static final String FUNCIONARIO_ACADEMICO_ROL = "Funcionario Académico";
     public static final String SECRETARIA_DECANATURA_ROL = "Secretaria Decanatura FIET";
+    public static final String DOCENTE_ROL = "Docente";
     /*Secciones del Orden del Día*/
     public static final String ASUNTOS_DECANO = "asuntos decano";
     public static final String ASUNTOS_PREGRADO = "asuntos pregrado";
@@ -48,6 +49,7 @@ public final class ApplicationConstantes {
     public static final String DECANO_ACCESO = "hasAnyAuthority('" + DECANO + "')";
     public static final String ESTUDIANTE_FUNCIONARIO_ACADEMICO_ACCESO = "hasAnyAuthority('" + ESTUDIANTE_ROL + "', '" + FUNCIONARIO_ACADEMICO_ROL + "')";
     public static final String ESTUDIANTE_FUNCIONARIO_ACADEMICO_DECANO_ACCESO = "hasAnyAuthority('" + ESTUDIANTE_ROL + "', '" + FUNCIONARIO_ACADEMICO_ROL + "', '" + DECANO + "')";
+    public static final String DOCENTE_ACCESO = "hasAnyAuthority('" + DOCENTE_ROL + "')";
     /*Tipos de Respuesta*/
     public static final String OFICIO = "Oficio";
     public static final String RESOLUCION = "Resolución";

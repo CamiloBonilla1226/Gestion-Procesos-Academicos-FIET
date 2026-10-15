@@ -322,12 +322,34 @@ public class BeanConfiguracion {
                                                                                UsuarioGatewayIntPuerto usuarioGateway,
                                                                                SesionGatewayIntPuerto sesionGateway,
                                                                                IJwtServicio jwtServicio,
+                                                                               DocenteGatewayIntPuerto docenteGateway,
+                                                                               NotificacionDocenteGatewayIntPuerto notificacionGateway,
                                                                                SolicitudAcademicaCUIntPuerto solicitudCU,
                                                                                MaquinaEtapas maquinaEtapas,
                                                                                ExcepcionesFormateadorIntPuerto formateadorExcepciones,
                                                                                LogCUIntPuerto log){
         return new TramiteExamenSupletorioCUImplAdaptador(gateway, solicitudGateway, usuarioGateway, sesionGateway, jwtServicio,
-                solicitudCU, maquinaEtapas, formateadorExcepciones, log);
+                docenteGateway, notificacionGateway, solicitudCU, maquinaEtapas, formateadorExcepciones, log,
+                Clock.system(ZoneId.of("America/Bogota")));
+    }
+
+    @Bean
+    public DocenteCUImplAdaptador crearDocenteCU(DocenteGatewayIntPuerto gateway,
+                                                 ExcepcionesFormateadorIntPuerto formateadorExcepciones){
+        return new DocenteCUImplAdaptador(gateway, formateadorExcepciones);
+    }
+
+    @Bean
+    public NotificacionDocenteCUImplAdaptador crearNotificacionDocenteCU(NotificacionDocenteGatewayIntPuerto gateway,
+                                                                         SolicitudAcademicaGatewayIntPuerto solicitudGateway,
+                                                                         SolicitudExamenSupletorioGatewayIntPuerto supletorioGateway,
+                                                                         AnexoAcademicoGatewayIntPuerto anexoGateway,
+                                                                         AlmacenamientoAnexosIntPuerto almacenamiento,
+                                                                         SesionGatewayIntPuerto sesionGateway,
+                                                                         IJwtServicio jwtServicio,
+                                                                         ExcepcionesFormateadorIntPuerto formateadorExcepciones){
+        return new NotificacionDocenteCUImplAdaptador(gateway, solicitudGateway, supletorioGateway, anexoGateway, almacenamiento,
+                sesionGateway, jwtServicio, formateadorExcepciones, Clock.system(ZoneId.of("America/Bogota")));
     }
 
     @Bean

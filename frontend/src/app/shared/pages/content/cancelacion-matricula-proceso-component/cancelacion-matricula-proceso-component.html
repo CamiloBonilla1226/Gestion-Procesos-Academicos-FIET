@@ -32,7 +32,7 @@
       }
       @if (editable) {
       <p class="ayuda-tabla">
-        Diligencia los datos de la Facultad en cada fila. Las faltas y la nota aceptan un número o un texto de hasta 20
+        Los datos de la Facultad son opcionales. Las faltas y la nota aceptan un número o un texto de hasta 20
         caracteres.
       </p>
       }
@@ -133,16 +133,7 @@
     }
     @case (acciones.APROBAR_DECANO) {
     <p class="nota-gris" data-nota-aprobar>{{ notaAprobarDecano }}</p>
-    <p class="mb-0">Registra la situación al cancelar de cada asignatura.</p>
-    @for (asignatura of asignaturas; track asignatura.uuidAsignaturaSolicitud) {
-    <div [attr.data-situacion-cancelar]="asignatura.uuidAsignaturaSolicitud">
-      <app-input-select-component [label]="asignatura.codigoAsignatura + ' - ' + asignatura.nombreAsignatura"
-        [required]="true" [options]="opcionesSituacion"
-        [(value)]="situacionesCancelar[asignatura.uuidAsignaturaSolicitud]">
-      </app-input-select-component>
-      <small class="texto-error">{{ errores['cancelar-' + asignatura.uuidAsignaturaSolicitud] || '' }}</small>
-    </div>
-    }
+    <p class="mb-0" data-nota-situacion-decano>La situación académica de cada asignatura es la que registró el Funcionario Académico en la tabla.</p>
     }
     @case (acciones.RECHAZAR_DECANO) {
     <p class="nota-gris">La solicitud pasará al Funcionario Académico para que envíe la respuesta al estudiante.</p>

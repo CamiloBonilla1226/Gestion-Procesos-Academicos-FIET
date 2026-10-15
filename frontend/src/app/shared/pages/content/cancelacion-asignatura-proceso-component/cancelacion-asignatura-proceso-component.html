@@ -29,8 +29,8 @@
     <div class="tarjeta-body">
       @if (editable) {
       <p class="ayuda-tabla">
-        Diligencia los datos de la Facultad y la evaluación en cada fila. Las faltas y la nota aceptan un número o un
-        texto de hasta 20 caracteres. Con una nota numérica menor a 3.0 no se puede marcar que cumple.
+        Diligencia la evaluación en cada fila; los datos de la Facultad son opcionales. Las faltas y la nota aceptan un
+        número o un texto de hasta 20 caracteres. Con una nota numérica menor a 3.0 no se puede marcar que cumple.
       </p>
       }
       @if (cambiadasPorDecano.length > 0) {
@@ -221,7 +221,7 @@
     </p>
     @if (asignaturasConAjuste.length > 0) {
     <div class="d-flex flex-column gap-2" data-ajustes>
-      <p class="mb-0">Registra la situación al cancelar de estas asignaturas aprobadas antes de responder.</p>
+      <p class="mb-0">Puedes registrar la situación al cancelar de estas asignaturas aprobadas; es opcional.</p>
       @for (asignatura of asignaturasConAjuste; track asignatura.uuidAsignaturaSolicitud) {
       @let uuid = asignatura.uuidAsignaturaSolicitud;
       <div class="bloque-edicion d-flex flex-column gap-2" [attr.data-ajuste]="uuid">
@@ -232,10 +232,9 @@
           }
         </div>
         <div>
-          <app-input-select-component label="Situación al cancelar" [required]="true" [options]="opcionesSituacion"
+          <app-input-select-component label="Situación al cancelar (opcional)" [required]="false" [options]="opcionesSituacion"
             [(value)]="ajustes[uuid].situacion">
           </app-input-select-component>
-          <small class="texto-error" [attr.data-error]="'ajuste-cancelar-' + uuid">{{ errores['ajuste-cancelar-' + uuid] || '' }}</small>
         </div>
       </div>
       }

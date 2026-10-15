@@ -210,6 +210,18 @@ export const routes: Routes = [
         loadComponent: () => import('./core/secretario-general/pages/secretario-general-administracion-academica-component/secretario-general-administracion-academica-component').then(m => m.SecretarioGeneralAdministracionAcademicaComponent)
     },
     {
+        path: 'docente/notificaciones',
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: [ROLES_ACADEMICOS.DOCENTE] },
+        loadComponent: () => import('./core/docente/pages/docente-notificaciones-component/docente-notificaciones-component').then(m => m.DocenteNotificacionesComponent)
+    },
+    {
+        path: 'docente/notificaciones/:uuid',
+        canActivate: [AuthGuard, RoleGuard],
+        data: { roles: [ROLES_ACADEMICOS.DOCENTE] },
+        loadComponent: () => import('./core/docente/pages/docente-detalle-notificacion-component/docente-detalle-notificacion-component').then(m => m.DocenteDetalleNotificacionComponent)
+    },
+    {
         path: '',
         pathMatch: 'full',
         canActivate: [inicioGuard],

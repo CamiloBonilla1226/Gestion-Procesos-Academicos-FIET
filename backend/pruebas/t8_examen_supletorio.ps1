@@ -246,8 +246,6 @@ $ahora = [System.TimeZoneInfo]::ConvertTimeBySystemTimeZoneId([DateTime]::UtcNow
 $hoy = $ahora.ToString("yyyy-MM-dd")
 $vencida = $ahora.AddDays(-10).ToString("yyyy-MM-dd")
 $futura = $ahora.AddDays(1).ToString("yyyy-MM-dd")
-$acordada = $ahora.AddDays(7).ToString("yyyy-MM-dd")
-$anteriorAlExamen = $ahora.AddDays(-1).ToString("yyyy-MM-dd")
 $anio = $ahora.Year
 
 $usuarios = @()
@@ -265,10 +263,12 @@ try {
     $fa1 = Nuevo-Funcionario -Token $tokenRoot
     $fa2 = Nuevo-Funcionario -Token $tokenRoot
     $decano = Crear-UsuarioPrueba -Perfil "Decano" -TokenAdmin $tokenRoot -Prefijo "dect8"
+    $docente1 = Crear-UsuarioPrueba -Perfil "Docente" -TokenAdmin $tokenRoot -Prefijo "doct8a"
+    $docente2 = Crear-UsuarioPrueba -Perfil "Docente" -TokenAdmin $tokenRoot -Prefijo "doct8b"
     $estudiantes = @($est1.Uuid, $est2.Uuid, $est3.Uuid, $est4.Uuid, $est5.Uuid)
     $funcionarios = @($fa1.Uuid, $fa2.Uuid)
     $codigos = @($est1.Codigos + $est2.Codigos + $est3.Codigos + $est4.Codigos + $est5.Codigos)
-    $usuarios = @($estudiantes + $funcionarios + $decano.Uuid)
+    $usuarios = @($estudiantes + $funcionarios + $decano.Uuid + $docente1.Uuid + $docente2.Uuid)
 
     $r = Invoke-Api -Metodo PUT -Ruta "catalogos-academicos/tipos-solicitud/$tipoEs/funcionario" -Token $tokenRoot -Cuerpo @{ funcionarioUuid = $fa1.Uuid }
     if ($r.Status -ne 200) { throw "No se pudo asignar Examen Supletorio al funcionario de prueba ($($r.Status)): $($r.Body)" }
@@ -287,7 +287,7 @@ try {
         @{ Nombre = "POST funcionario/remitir"; Metodo = "POST"; Ruta = "$Global:Ruta/$falsa/funcionario/remitir"; Cuerpo = @{ observacion = "Para el Decano" }; Prohibidos = @{ "Estudiante" = $est1.Token; "Decano" = $decano.Token; "Secretario General" = $tokenRoot } },
         @{ Nombre = "POST funcionario/responder"; Metodo = "POST"; Ruta = "$Global:Ruta/$falsa/funcionario/responder"; Cuerpo = $null; Prohibidos = @{ "Estudiante" = $est1.Token; "Decano" = $decano.Token; "Secretario General" = $tokenRoot } },
         @{ Nombre = "POST funcionario/recibo"; Metodo = "POST"; Ruta = "$Global:Ruta/$falsa/funcionario/recibo"; Cuerpo = $null; Prohibidos = @{ "Estudiante" = $est1.Token; "Decano" = $decano.Token; "Secretario General" = $tokenRoot } },
-        @{ Nombre = "POST funcionario/comprobante/aprobar"; Metodo = "POST"; Ruta = "$Global:Ruta/$falsa/funcionario/comprobante/aprobar"; Cuerpo = @{ fechaAcordadaExamen = $acordada }; Prohibidos = @{ "Estudiante" = $est1.Token; "Decano" = $decano.Token; "Secretario General" = $tokenRoot } },
+        @{ Nombre = "POST funcionario/comprobante/aprobar"; Metodo = "POST"; Ruta = "$Global:Ruta/$falsa/funcionario/comprobante/aprobar"; Cuerpo = @{ docenteUuid = $falsa }; Prohibidos = @{ "Estudiante" = $est1.Token; "Decano" = $decano.Token; "Secretario General" = $tokenRoot } },
         @{ Nombre = "POST funcionario/comprobante/rechazar"; Metodo = "POST"; Ruta = "$Global:Ruta/$falsa/funcionario/comprobante/rechazar"; Cuerpo = $observacion; Prohibidos = @{ "Estudiante" = $est1.Token; "Decano" = $decano.Token; "Secretario General" = $tokenRoot } },
         @{ Nombre = "POST decano/aprobar"; Metodo = "POST"; Ruta = "$Global:Ruta/$falsa/decano/aprobar"; Cuerpo = @{}; Prohibidos = @{ "Estudiante" = $est1.Token; "Funcionario Academico" = $fa1.Token; "Secretario General" = $tokenRoot } },
         @{ Nombre = "POST decano/rechazar"; Metodo = "POST"; Ruta = "$Global:Ruta/$falsa/decano/rechazar"; Cuerpo = $observacion; Prohibidos = @{ "Estudiante" = $est1.Token; "Funcionario Academico" = $fa1.Token; "Secretario General" = $tokenRoot } },
@@ -368,12 +368,12 @@ try {
     $radicada = if ($r.Status -eq 200) { Leer-Json $r } else { $null }
     $sol1 = $radicada.uuidSolicitudAcademica
     Escribir-Resultado "la radicacion por cruce responde uuid y radicado $esperado (obtuvo $($r.Status) $($radicada.radicado) $(Mensaje-De $r))" (($r.Status -eq 200) -and $sol1 -and ($radicada.radicado -eq $esperado))
-    Escribir-Resultado "la solicitud queda RADICADA con su cruce en MySQL (obtuvo $(Etapa-De $sol1))" (((Etapa-De $sol1) -eq "RADICADA") -and ((Ejecutar-Sql "select concat(c.AsignaturaMatriculadaCruzada_uuid, '|', c.horaExamenCruzada, '|', s.tipoCausa, '|', coalesce(s.fechaAcordadaExamen, '-')) from SOLICITUD_EXAMEN_SUPLETORIO s join SOLICITUD_SUPLETORIO_CRUCE_ASIGNATURA c on c.SolicitudAcademica_uuid = s.SolicitudAcademica_uuid where s.SolicitudAcademica_uuid = '$sol1'") -eq "$a2|10:30|cruce|-"))
+    Escribir-Resultado "la solicitud queda RADICADA con su cruce en MySQL (obtuvo $(Etapa-De $sol1))" (((Etapa-De $sol1) -eq "RADICADA") -and ((Ejecutar-Sql "select concat(c.AsignaturaMatriculadaCruzada_uuid, '|', c.horaExamenCruzada, '|', s.tipoCausa, '|', coalesce(s.Docente_uuid, '-')) from SOLICITUD_EXAMEN_SUPLETORIO s join SOLICITUD_SUPLETORIO_CRUCE_ASIGNATURA c on c.SolicitudAcademica_uuid = s.SolicitudAcademica_uuid where s.SolicitudAcademica_uuid = '$sol1'") -eq "$a2|10:30|cruce|-"))
     Verificar-EtapaHttp -Solicitud $sol1 -Esperada "RADICADA" -Estudiante $est1.Token -Funcionario $fa1.Token -Decano $decano.Token
     Escribir-Resultado "quedaron los dos anexos y sus archivos (obtuvo $(@(Get-ChildItem (Join-Path $Global:CarpetaAnexos $sol1) -File).Count))" (((Ejecutar-Sql "select count(*) from ANEXO_ACADEMICO where SolicitudAcademica_uuid = '$sol1'") -eq "2") -and (@(Get-ChildItem (Join-Path $Global:CarpetaAnexos $sol1) -File).Count -eq 2))
     $r = Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$sol1" -Token $est1.Token
     $detalle = Leer-Json $r
-    Escribir-Resultado "el detalle del estudiante trae radicado, etiqueta, asignatura, causa, fecha y cruce (obtuvo $($r.Status))" (($r.Status -eq 200) -and ($detalle.solicitud.radicado -eq $esperado) -and ($detalle.solicitud.etiqueta -eq "En tr$([char]0x00E1)mite") -and ($detalle.asignatura.uuidAsignaturaMatriculada -eq $a1) -and ($detalle.tipoCausa -eq "cruce") -and ($detalle.fechaExamenNoPresentado -eq $hoy) -and ($detalle.cruce.asignatura.uuidAsignaturaMatriculada -eq $a2) -and ($detalle.cruce.fechaExamenCruzada -eq $hoy) -and ($detalle.cruce.horaExamenCruzada -eq "10:30") -and ($null -eq $detalle.fechaAcordadaExamen))
+    Escribir-Resultado "el detalle del estudiante trae radicado, etiqueta, asignatura, causa, fecha y cruce (obtuvo $($r.Status))" (($r.Status -eq 200) -and ($detalle.solicitud.radicado -eq $esperado) -and ($detalle.solicitud.etiqueta -eq "En tr$([char]0x00E1)mite") -and ($detalle.asignatura.uuidAsignaturaMatriculada -eq $a1) -and ($detalle.tipoCausa -eq "cruce") -and ($detalle.fechaExamenNoPresentado -eq $hoy) -and ($detalle.cruce.asignatura.uuidAsignaturaMatriculada -eq $a2) -and ($detalle.cruce.fechaExamenCruzada -eq $hoy) -and ($detalle.cruce.horaExamenCruzada -eq "10:30") -and ($null -eq $detalle.docente) -and ($r.Body -notmatch "fechaAcordadaExamen"))
     Escribir-Resultado "el detalle lista los anexos con su tipo y sin contenido ni ruta" ((@($detalle.solicitud.anexos).Count -eq 2) -and (Anexo-De $detalle $for23).tipoAnexo -and (Anexo-De $detalle $docente).tipoAnexo -and ($r.Body -notmatch 'urlArchivo') -and ($r.Body -notmatch 'contenido'))
     $r = Radicar -Token $est1.Token -Asignatura $a2 -Fecha $hoy -Causa "otra" -Tipos @($for23, $justificacion) -Pdf $pdf
     Escribir-Resultado "una segunda solicitud en curso se rechaza (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "*en curso*") -and ((Ejecutar-Sql "select count(*) from SOLICITUD_ACADEMICA where Estudiante_uuid = '$($est1.Uuid)'") -eq "1"))
@@ -444,16 +444,30 @@ try {
     $d = Descargar -Ruta "solicitudes-academicas/$sol1/anexos/$anexoComprobante" -Token $fa2.Token
     $d2 = Descargar -Ruta "solicitudes-academicas/$sol1/anexos/$anexoComprobante" -Token $est2.Token
     Escribir-Resultado "un funcionario no asignado y otro estudiante no descargan el comprobante (obtuvo $($d.Status) y $($d2.Status))" (($d.Status -ne 200) -and ($d2.Status -ne 200))
-    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol1/funcionario/comprobante/aprobar" -Token $fa1.Token -Cuerpo @{ fechaAcordadaExamen = $anteriorAlExamen }
-    Escribir-Resultado "una fecha acordada anterior al examen se rechaza (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "*no puede ser anterior a la fecha del examen*") -and ((Etapa-De $sol1) -eq "EN_VERIFICACION_PAGO"))
-    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol1/funcionario/comprobante/aprobar" -Token $fa1.Token -Cuerpo @{ fechaAcordadaExamen = $acordada }
+    $r = Invoke-Api -Metodo GET -Ruta "$Global:Ruta/docentes?pagina=0&tamanio=5&username=doct8a" -Token $fa1.Token
+    Escribir-Resultado "el funcionario busca al profesor por usuario (200, obtuvo $($r.Status))" (($r.Status -eq 200) -and (@((Leer-Json $r).content | Where-Object { $_.uuidUsuario -eq $docente1.Uuid }).Count -eq 1))
+    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol1/funcionario/comprobante/aprobar" -Token $fa1.Token -Cuerpo @{ observacion = "Presentarse el lunes" }
+    Escribir-Resultado "aprobar el pago sin profesor falla con codigo 4 y sigue EN_VERIFICACION_PAGO (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Leer-Json $r).codigoError -eq "4") -and ((Mensaje-De $r) -like "*profesor*") -and ((Etapa-De $sol1) -eq "EN_VERIFICACION_PAGO"))
+    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol1/funcionario/comprobante/aprobar" -Token $fa1.Token -Cuerpo @{ observacion = "Presentarse el lunes"; docenteUuid = $est1.Uuid }
+    Escribir-Resultado "un profesor que no es Docente responde como inexistente (obtuvo $($r.Status), codigo $((Leer-Json $r).codigoError))" (($r.Status -ne 200) -and ((Leer-Json $r).codigoError -eq "3") -and ((Etapa-De $sol1) -eq "EN_VERIFICACION_PAGO"))
+    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol1/funcionario/comprobante/aprobar" -Token $fa1.Token -Cuerpo @{ observacion = "Presentarse el lunes"; docenteUuid = $docente1.Uuid }
     $detalle = if ($r.Status -eq 200) { Leer-Json $r } else { $null }
-    Escribir-Resultado "aprobar el comprobante con fecha acordada deja la solicitud APROBADA (obtuvo $($r.Status), etapa $(Etapa-De $sol1))" (($r.Status -eq 200) -and ((Etapa-De $sol1) -eq "APROBADA"))
+    Escribir-Resultado "aprobar el comprobante con profesor deja la solicitud APROBADA (obtuvo $($r.Status), etapa $(Etapa-De $sol1))" (($r.Status -eq 200) -and ((Etapa-De $sol1) -eq "APROBADA"))
     Verificar-EtapaHttp -Solicitud $sol1 -Esperada "APROBADA" -Estudiante $est1.Token -Funcionario $fa1.Token -Decano $decano.Token
-    $fechaBase = Ejecutar-Sql "select date_format(fechaAcordadaExamen, '%Y-%m-%d') from SOLICITUD_EXAMEN_SUPLETORIO where SolicitudAcademica_uuid = '$sol1'"
-    Escribir-Resultado "la fecha acordada $acordada quedo en MySQL y en el detalle (obtuvo $fechaBase y $($detalle.fechaAcordadaExamen))" (($fechaBase -eq $acordada) -and ($detalle.fechaAcordadaExamen -eq $acordada))
+    $docenteBase = Ejecutar-Sql "select Docente_uuid from SOLICITUD_EXAMEN_SUPLETORIO where SolicitudAcademica_uuid = '$sol1'"
+    $notificaciones = Ejecutar-Sql "select count(*) from NOTIFICACION_DOCENTE where SolicitudAcademica_uuid = '$sol1' and Docente_uuid = '$($docente1.Uuid)' and fechaLectura is null"
+    Escribir-Resultado "el profesor quedo en MySQL y en el detalle, con una notificacion sin leer (obtuvo $notificaciones)" (($docenteBase -eq $docente1.Uuid) -and ($detalle.docente.uuidUsuario -eq $docente1.Uuid) -and ($notificaciones -eq "1"))
     $detalle = Leer-Json (Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$sol1" -Token $est1.Token)
-    Escribir-Resultado "el estudiante ve Aprobada con la fecha acordada y cuatro anexos" (($detalle.solicitud.etiqueta -eq "Aprobada") -and ($detalle.fechaAcordadaExamen -eq $acordada) -and (@($detalle.solicitud.anexos).Count -eq 4))
+    $mensaje = (@(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol1/historial" -Token $est1.Token)) | Where-Object { $_.accion -eq "APROBAR_COMPROBANTE" }).observaciones
+    Escribir-Resultado "el estudiante ve Aprobada, cuatro anexos y la observacion de la respuesta (obtuvo $mensaje)" (($detalle.solicitud.etiqueta -eq "Aprobada") -and (@($detalle.solicitud.anexos).Count -eq 4) -and ($mensaje -eq "Presentarse el lunes"))
+    $r = Invoke-Api -Metodo GET -Ruta "notificaciones-docente" -Token $docente1.Token
+    $notificacion = @(Leer-Json $r | Where-Object { $_.uuidSolicitudAcademica -eq $sol1 })
+    Escribir-Resultado "el profesor ve su notificacion con radicado, estudiante, asignatura y resultado (obtuvo $($r.Status))" (($r.Status -eq 200) -and ($notificacion.Count -eq 1) -and $notificacion[0].radicado -and $notificacion[0].estudiante -and $notificacion[0].asignatura -and ($notificacion[0].resultado -eq "Aprobada") -and (-not $notificacion[0].leida))
+    $r = Invoke-Api -Metodo GET -Ruta "notificaciones-docente/$($notificacion[0].uuidNotificacion)" -Token $docente2.Token
+    $r2 = Invoke-Api -Metodo GET -Ruta "notificaciones-docente" -Token $docente2.Token
+    Escribir-Resultado "otro docente no ve la notificacion ajena (obtuvo $($r.Status), codigo $((Leer-Json $r).codigoError))" (($r.Status -ne 200) -and ((Leer-Json $r).codigoError -eq "3") -and (@(Leer-Json $r2 | Where-Object { $_.uuidSolicitudAcademica -eq $sol1 }).Count -eq 0))
+    $r = Invoke-Api -Metodo PATCH -Ruta "notificaciones-docente/$($notificacion[0].uuidNotificacion)/leida" -Token $docente1.Token
+    Escribir-Resultado "el profesor abre la notificacion, ve la solicitud sin la observacion y queda leida (obtuvo $($r.Status))" (($r.Status -eq 200) -and (Leer-Json $r).notificacion.leida -and (@((Leer-Json $r).anexos).Count -eq 4) -and ($r.Body -notmatch "Presentarse el lunes"))
     $d = Descargar -Ruta "solicitudes-academicas/$sol1/anexos/$anexoRecibo" -Token $est1.Token
     Escribir-Resultado "en APROBADA el estudiante sigue descargando el recibo (200, obtuvo $($d.Status))" (($d.Status -eq 200) -and (Mismos-Bytes $pdfRecibo $d.Bytes))
     $historial = Historial-De $sol1 $est1.Token
@@ -510,7 +524,8 @@ try {
     $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol4/funcionario/comprobante/rechazar" -Token $fa2.Token -Cuerpo @{ observacion = "El valor no coincide" }
     Escribir-Resultado "un funcionario no asignado no rechaza el comprobante (obtuvo $($r.Status))" (($r.Status -ne 200) -and ((Etapa-De $sol4) -eq "EN_VERIFICACION_PAGO"))
     $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol4/funcionario/comprobante/rechazar" -Token $fa1.Token -Cuerpo @{ observacion = "El valor no coincide" }
-    Escribir-Resultado "el comprobante rechazado deja la solicitud RECHAZADA sin fecha acordada (obtuvo $($r.Status), etapa $(Etapa-De $sol4))" (($r.Status -eq 200) -and ((Etapa-De $sol4) -eq "RECHAZADA") -and ($null -eq (Leer-Json $r).fechaAcordadaExamen))
+    $notificacionesRechazo = Ejecutar-Sql "select count(*) from NOTIFICACION_DOCENTE where SolicitudAcademica_uuid = '$sol4'"
+    Escribir-Resultado "el comprobante rechazado deja la solicitud RECHAZADA sin profesor ni notificacion (obtuvo $($r.Status), etapa $(Etapa-De $sol4), notificaciones $notificacionesRechazo)" (($r.Status -eq 200) -and ((Etapa-De $sol4) -eq "RECHAZADA") -and ($null -eq (Leer-Json $r).docente) -and ($notificacionesRechazo -eq "0"))
     Verificar-EtapaHttp -Solicitud $sol4 -Esperada "RECHAZADA" -Estudiante $est4.Token -Funcionario $fa1.Token -Decano $decano.Token
     $historial = Historial-De $sol4 $est4.Token
     Escribir-Resultado "el historial del comprobante rechazado esta completo para el estudiante sin la fila del Decano (obtuvo $historial)" ($historial -eq "ENVIAR_RECIBO,RADICAR,RECHAZAR_COMPROBANTE,REMITIR_DECANO,SUBIR_COMPROBANTE")
@@ -552,6 +567,7 @@ finally {
     $cod = Lista-Sql $codigos
     $sentencias = @()
     if ($sol) {
+        $sentencias += "delete from NOTIFICACION_DOCENTE where SolicitudAcademica_uuid in ($sol)"
         $sentencias += "delete from ANEXO_ACADEMICO where SolicitudAcademica_uuid in ($sol)"
         $sentencias += "delete from RESOLUCION_ACADEMICA where SolicitudAcademica_uuid in ($sol)"
         $sentencias += "delete from SOLICITUD_SUPLETORIO_CRUCE_ASIGNATURA where SolicitudAcademica_uuid in ($sol)"

@@ -3,7 +3,6 @@ package com.unicauca.cfiet.solicitudes.dominio.modelos;
 import lombok.*;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -14,7 +13,7 @@ public class SolicitudExamenSupletorio {
     private SolicitudAcademica solicitudAcademica;
     private AsignaturaMatriculada asignaturaMatriculada;
     private LocalDate fechaExamenNoPresentado;
-    private LocalDateTime fechaAcordadaExamen;
     private CausaSupletorio tipoCausa;
     private CruceSupletorio cruce;
+    private Docente docente;
 }

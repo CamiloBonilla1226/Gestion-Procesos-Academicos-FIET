@@ -1,0 +1,129 @@
+@if (cargando && !detalle) {
+<div class="cargando" data-estado="cargando">
+  <div class="spinner-border spinner-border-sm" role="status"></div>
+  <span>Cargando solicitud...</span>
+</div>
+} @else if (noEncontrada) {
+<div class="tarjeta" data-estado="no-encontrada">
+  <div class="tarjeta-body">
+    <p class="mb-2">Notificación no encontrada</p>
+    <a class="volver" [href]="rutaLista" (click)="volver($event)">Volver a las notificaciones</a>
+  </div>
+</div>
+} @else if (errorCarga) {
+<div class="nota-error d-flex flex-wrap justify-content-between align-items-center gap-2" data-estado="error">
+  <span>No se pudo cargar la solicitud.</span>
+  <app-simple-button-component label="Reintentar" width="100px" height="30px" (clicked)="cargar()">
+  </app-simple-button-component>
+</div>
+} @else if (detalle) {
+<div class="pila">
+  <div>
+    <a class="volver" [href]="rutaLista" (click)="volver($event)" data-volver>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Volver
+    </a>
+    <div class="detalle-encabezado">
+      <div>
+        <h2 class="detalle-titulo" data-titulo-detalle>Solicitud de {{ detalle.tipoSolicitud ?? 'Examen Supletorio' }}</h2>
+        <div class="detalle-meta">
+          <span>Radicado <b>{{ detalle.notificacion.radicado ?? '—' }}</b></span>
+        </div>
+      </div>
+      <span class="pill" [attr.data-categoria]="categoria" data-resultado>{{ detalle.notificacion.resultado ?? '—' }}</span>
+    </div>
+  </div>
+
+  <section class="tarjeta" data-datos-estudiante>
+    <header class="tarjeta-head">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+      <h3>Datos generales</h3>
+    </header>
+    <div class="tarjeta-body">
+      <dl class="campos-grid m-0">
+        <div class="campo">
+          <dt class="campo-etiqueta">Estudiante</dt>
+          <dd class="campo-valor m-0" data-estudiante>{{ nombreEstudiante }}</dd>
+        </div>
+        <div class="campo">
+          <dt class="campo-etiqueta">Código estudiantil</dt>
+          <dd class="campo-valor m-0">{{ detalle.codigoEstudiantil ?? '—' }}</dd>
+        </div>
+        <div class="campo">
+          <dt class="campo-etiqueta">Programa</dt>
+          <dd class="campo-valor m-0">{{ detalle.programaAcademico ?? '—' }}</dd>
+        </div>
+        <div class="campo">
+          <dt class="campo-etiqueta">Fecha de radicación</dt>
+          <dd class="campo-valor m-0">{{ formatearFechaHora(detalle.fechaRadicacion) }}</dd>
+        </div>
+        <div class="campo">
+          <dt class="campo-etiqueta">Notificada</dt>
+          <dd class="campo-valor m-0">{{ formatearFechaHora(detalle.notificacion.fechaCreacion) }}</dd>
+        </div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="tarjeta" data-datos-supletorio>
+    <header class="tarjeta-head">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="4" y="4" width="16" height="17" rx="2"/><path d="M8 2v4M16 2v4M4 10h16"/></svg>
+      <h3>Datos del proceso</h3>
+    </header>
+    <div class="tarjeta-body">
+      <dl class="campos-grid m-0">
+        <div class="campo campo-ancho">
+          <dt class="campo-etiqueta">Asignatura del examen no presentado</dt>
+          <dd class="campo-valor m-0" data-asignatura>
+            @if (detalle.asignatura) {
+            {{ detalle.asignatura.codigoAsignatura }} - {{ detalle.asignatura.nombreAsignatura }} (grupo {{ detalle.asignatura.grupo }})
+            } @else { — }
+          </dd>
+        </div>
+        <div class="campo">
+          <dt class="campo-etiqueta">Fecha del examen</dt>
+          <dd class="campo-valor m-0">{{ formatearFecha(detalle.fechaExamenNoPresentado) }}</dd>
+        </div>
+        <div class="campo">
+          <dt class="campo-etiqueta">Causa</dt>
+          <dd class="campo-valor m-0" data-causa>{{ textoCausa(detalle.tipoCausa) }}</dd>
+        </div>
+        @if (detalle.cruce) {
+        <div class="campo campo-ancho" data-cruce>
+          <dt class="campo-etiqueta">Asignatura con la que se cruzó</dt>
+          <dd class="campo-valor m-0">{{ detalle.cruce.asignatura.codigoAsignatura }} - {{ detalle.cruce.asignatura.nombreAsignatura }} (grupo {{ detalle.cruce.asignatura.grupo }})</dd>
+        </div>
+        <div class="campo">
+          <dt class="campo-etiqueta">Fecha y hora del examen cruzado</dt>
+          <dd class="campo-valor m-0">{{ formatearFecha(detalle.cruce.fechaExamenCruzada) }} {{ detalle.cruce.horaExamenCruzada }}</dd>
+        </div>
+        }
+      </dl>
+    </div>
+  </section>
+
+  <section class="tarjeta" data-anexos>
+    <header class="tarjeta-head">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>
+      <h3>Anexos adjuntos ({{ detalle.anexos.length }})</h3>
+    </header>
+    <div class="tarjeta-body">
+      @if (detalle.anexos.length === 0) {
+      <p class="nota-gris mb-0">La solicitud no tiene anexos.</p>
+      } @else {
+      <ul class="list-unstyled m-0 d-flex flex-column gap-2">
+        @for (anexo of detalle.anexos; track anexo.uuidAnexoAcademico) {
+        <li class="d-flex flex-wrap justify-content-between align-items-center gap-2" [attr.data-anexo]="anexo.uuidAnexoAcademico">
+          <span><b>{{ anexo.tipoAnexo ?? 'Soporte' }}</b>: {{ anexo.nombreArchivo }}</span>
+          <app-simple-button-component [label]="descargando === anexo.uuidAnexoAcademico ? 'Descargando...' : 'Descargar'"
+            width="120px" height="32px" color="#2A3A86" [contorno]="true" [disabled]="descargando !== null"
+            (clicked)="descargar(anexo)">
+          </app-simple-button-component>
+        </li>
+        }
+      </ul>
+      }
+    </div>
+  </section>
+</div>
+}

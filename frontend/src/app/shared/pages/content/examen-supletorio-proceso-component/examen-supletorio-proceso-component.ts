@@ -3,7 +3,6 @@ import { Observable, finalize, map, of, switchMap, tap } from 'rxjs';
 import { GenericDialogFormComponent } from '../../../generic-dialog-form-component/generic-dialog-form-component';
 import { SimpleButtonComponent } from '../../../buttons/simple-button-component/simple-button-component';
 import { InputTextTareaComponent } from '../../../inputs/input-text-tarea-component/input-text-tarea-component';
-import { InputDateComponent } from '../../../inputs/input-date-component/input-date-component';
 import { InputAnexoUploadComponent } from '../../../inputs/input-anexo-upload-component/input-anexo-upload-component';
 import { ExamenSupletorioService } from '../../../../core/services/examen-supletorio-service';
 import { SolicitudAcademicaService } from '../../../../core/services/solicitud-academica-service';
@@ -14,6 +13,7 @@ import { SolicitudAcademicaDetalleDTORespuesta } from '../../../../core/models/S
 import { ExamenSupletorioDetalleDTORespuesta } from '../../../../core/models/ExamenSupletorio/DTOResponse/ExamenSupletorioDetalleDTORespuesta';
 import { TipoAnexoAcademicoDTORespuesta } from '../../../../core/models/CatalogoAcademico/DTOResponse/TipoAnexoAcademicoDTORespuesta';
 import { TipoAnexoDTORespuesta } from '../../../../core/models/TipoSolicitud/DTOResponse/TipoAnexoDTORespuesta';
+import { DocenteDTORespuesta } from '../../../../core/models/ExamenSupletorio/DTOResponse/DocenteDTORespuesta';
 import {
   ACCIONES_ACADEMICAS,
   ANEXOS_PAGO_SUPLETORIO,
@@ -35,11 +35,11 @@ import {
   comoTipoAnexo,
   errorDeArchivo,
   errorDeObservacion,
-  erroresDeCampos,
-  esFechaValida
+  erroresDeCampos
 } from '../../../../core/utils/validaciones-academicas';
 import { formatearFecha } from '../../../../core/utils/formato';
 import { ResumenSolicitudComponent } from '../../../others/resumen-solicitud-component/resumen-solicitud-component';
+import { SelectorDocenteComponent } from '../../../others/selector-docente-component/selector-docente-component';
 
 const ACCIONES_DEL_PROCESO: AccionAcademica[] = [
   ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO,
@@ -129,9 +129,9 @@ function mismoNombre(a: string | null | undefined, b: string): boolean {
     GenericDialogFormComponent,
     SimpleButtonComponent,
     InputTextTareaComponent,
-    InputDateComponent,
     InputAnexoUploadComponent,
-    ResumenSolicitudComponent
+    ResumenSolicitudComponent,
+    SelectorDocenteComponent
   ],
   templateUrl: './examen-supletorio-proceso-component.html',
   styleUrl: '../estilos-academicos.css'
@@ -158,7 +158,7 @@ export class ExamenSupletorioProcesoComponent implements OnChanges {
   dialogoVisible = false;
   enviando = false;
   observacion = '';
-  fechaAcordada = '';
+  docenteElegido: DocenteDTORespuesta | null = null;
   tipoAnexoPago: TipoAnexoAcademicoDTORespuesta | null = null;
   campoAnexoPago: TipoAnexoDTORespuesta | null = null;
   archivoPago: File | null = null;
@@ -196,6 +196,16 @@ export class ExamenSupletorioProcesoComponent implements OnChanges {
 
   get esEstudiante(): boolean {
     return this.rol === ROLES_ETIQUETA.ESTUDIANTE;
+  }
+
+  get nombreDocente(): string | null {
+    const docente = this.detalle?.docente;
+    return docente ? `${docente.nombres} ${docente.apellidos}`.trim() : null;
+  }
+
+  alElegirDocente(docente: DocenteDTORespuesta | null): void {
+    this.docenteElegido = docente;
+    if (docente) delete this.errores['docente'];
   }
 
   get avisoEtapa(): AvisoEtapaSupletorio | null {
@@ -262,7 +272,7 @@ export class ExamenSupletorioProcesoComponent implements OnChanges {
     if (!this.accionesVisibles.includes(accion) || this.cargandoTipos) return;
     this.accionActiva = accion;
     this.observacion = '';
-    this.fechaAcordada = '';
+    this.docenteElegido = null;
     this.archivoPago = null;
     this.tipoAnexoPago = null;
     this.campoAnexoPago = null;
@@ -376,10 +386,11 @@ export class ExamenSupletorioProcesoComponent implements OnChanges {
         return this.subirAnexoPago().pipe(switchMap(() => this.examenSupletorioService.enviarRecibo(uuid)));
       case ACCIONES_ACADEMICAS.SUBIR_COMPROBANTE:
         return this.subirAnexoPago().pipe(switchMap(() => this.examenSupletorioService.subirComprobante(uuid)));
-      case ACCIONES_ACADEMICAS.APROBAR_COMPROBANTE: {
-        const fecha = this.fechaAcordada.trim();
-        return this.examenSupletorioService.aprobarComprobante(uuid, fecha === '' ? undefined : { fechaAcordadaExamen: fecha });
-      }
+      case ACCIONES_ACADEMICAS.APROBAR_COMPROBANTE:
+        return this.examenSupletorioService.aprobarComprobante(uuid, {
+          observacion: opcional,
+          docenteUuid: this.docenteElegido!.uuidUsuario
+        });
       case ACCIONES_ACADEMICAS.RECHAZAR_COMPROBANTE:
         return this.examenSupletorioService.rechazarComprobante(uuid, { observacion });
       default:
@@ -412,13 +423,8 @@ export class ExamenSupletorioProcesoComponent implements OnChanges {
         errores['anexoPago'] = `Debes subir el ${ANEXO_DE_ACCION[accion]!.toLowerCase()}.`;
       }
     }
-    if (accion === ACCIONES_ACADEMICAS.APROBAR_COMPROBANTE) {
-      const fecha = this.fechaAcordada.trim();
-      if (fecha !== '' && !esFechaValida(fecha)) {
-        errores['fechaAcordada'] = 'La fecha acordada no es una fecha válida.';
-      } else if (fecha !== '' && this.detalle && fecha < this.detalle.fechaExamenNoPresentado) {
-        errores['fechaAcordada'] = `La fecha acordada no puede ser anterior a la fecha del examen no presentado (${formatearFecha(this.detalle.fechaExamenNoPresentado)}).`;
-      }
+    if (accion === ACCIONES_ACADEMICAS.APROBAR_COMPROBANTE && !this.docenteElegido) {
+      errores['docente'] = 'Selecciona el profesor que atenderá el examen supletorio.';
     }
     return errores;
   }

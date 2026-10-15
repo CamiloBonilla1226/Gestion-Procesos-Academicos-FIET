@@ -102,7 +102,7 @@ export function numeroDeValor(valor: string | null | undefined): number | null {
 
 function errorDeValorAsignatura(valor: string | null | undefined, campo: string, femenino: boolean): string | null {
   const texto = (valor ?? '').trim();
-  if (texto === '') return `${campo} ${femenino ? 'es obligatoria' : 'son obligatorias'}.`;
+  if (texto === '') return null;
   if (texto.length > MAXIMO_CARACTERES_VALOR_ASIGNATURA) {
     return `${campo} ${femenino ? 'supera' : 'superan'} los ${MAXIMO_CARACTERES_VALOR_ASIGNATURA} caracteres permitidos.`;
   }

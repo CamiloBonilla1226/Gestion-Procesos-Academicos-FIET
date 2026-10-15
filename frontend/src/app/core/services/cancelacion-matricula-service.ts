@@ -2,7 +2,6 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../enviroments/environment';
-import { AprobacionDecanoDTOPeticion } from '../models/CancelacionMatricula/DTORequest/AprobacionDecanoDTOPeticion';
 import { ObservacionDTOPeticion } from '../models/CancelacionMatricula/DTORequest/ObservacionDTOPeticion';
 import { RadicacionCancelacionMatriculaDTOPeticion } from '../models/CancelacionMatricula/DTORequest/RadicacionCancelacionMatriculaDTOPeticion';
 import { RemisionDecanoDTOPeticion } from '../models/CancelacionMatricula/DTORequest/RemisionDecanoDTOPeticion';
@@ -50,9 +49,9 @@ export class CancelacionMatriculaService {
 
   aprobarPorDecano(
     uuidSolicitud: string,
-    peticion: AprobacionDecanoDTOPeticion
+    peticion?: ObservacionDTOPeticion
   ): Observable<CancelacionMatriculaDetalleDTORespuesta> {
-    return this.http.post<CancelacionMatriculaDetalleDTORespuesta>(`${this.url}/${uuidSolicitud}/decano/aprobar`, peticion);
+    return this.http.post<CancelacionMatriculaDetalleDTORespuesta>(`${this.url}/${uuidSolicitud}/decano/aprobar`, peticion ?? null);
   }
 
   rechazarPorDecano(

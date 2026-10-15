@@ -30,10 +30,10 @@
           <dt class="campo-etiqueta">Causa</dt>
           <dd class="campo-valor m-0" data-causa>{{ textoCausa(detalle.tipoCausa) }}</dd>
         </div>
-        @if (detalle.fechaAcordadaExamen) {
-        <div class="campo" data-fecha-acordada>
-          <dt class="campo-etiqueta">Fecha acordada para el supletorio</dt>
-          <dd class="campo-valor m-0">{{ formatearFecha(detalle.fechaAcordadaExamen) }}</dd>
+        @if (!esEstudiante && nombreDocente) {
+        <div class="campo" data-docente-asignado>
+          <dt class="campo-etiqueta">Profesor asignado</dt>
+          <dd class="campo-valor m-0">{{ nombreDocente }}</dd>
         </div>
         }
         @if (detalle.cruce) {
@@ -109,12 +109,23 @@
     <p class="nota-gris">La solicitud termina como rechazada y el estudiante verá que fue rechazada.</p>
     }
     @case (acciones.APROBAR_COMPROBANTE) {
-    <p class="nota-gris">La solicitud quedará aprobada. Puedes registrar la fecha acordada para presentar el supletorio.</p>
-    <div data-campo-fecha-acordada>
-      <app-input-date-component label="Fecha acordada (opcional)" [value]="fechaAcordada"
-        (valueChange)="fechaAcordada = $event">
-      </app-input-date-component>
-      <small class="texto-error d-block" data-error="fechaAcordada">{{ errores['fechaAcordada'] || '' }}</small>
+    <p class="nota-gris">
+      La solicitud quedará aprobada. Selecciona el profesor que atenderá el examen supletorio; al enviar la respuesta se le
+      notificará.
+    </p>
+    <div data-campo-docente>
+      <p class="mb-1 fw-semibold">Profesor <span class="text-danger">*</span></p>
+      @defer (on immediate) {
+      <app-selector-docente-component [seleccionado]="docenteElegido" [deshabilitado]="enviando"
+        (seleccionadoChange)="alElegirDocente($event)">
+      </app-selector-docente-component>
+      } @placeholder {
+      <div class="cargando" data-estado="cargando-selector">
+        <div class="spinner-border spinner-border-sm" role="status"></div>
+        <span>Cargando el buscador de profesores...</span>
+      </div>
+      }
+      <small class="texto-error d-block" data-error="docente">{{ errores['docente'] || '' }}</small>
     </div>
     }
     @case (acciones.RECHAZAR_COMPROBANTE) {

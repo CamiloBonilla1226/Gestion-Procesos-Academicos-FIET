@@ -3,7 +3,6 @@ import { Observable, finalize, map, of, switchMap, tap } from 'rxjs';
 import { GenericDialogFormComponent } from '../../../generic-dialog-form-component/generic-dialog-form-component';
 import { SimpleButtonComponent } from '../../../buttons/simple-button-component/simple-button-component';
 import { InputTextTareaComponent } from '../../../inputs/input-text-tarea-component/input-text-tarea-component';
-import { InputSelectComponent } from '../../../inputs/input-select-component/input-select-component';
 import { InputAnexoUploadComponent } from '../../../inputs/input-anexo-upload-component/input-anexo-upload-component';
 import { CancelacionMatriculaService } from '../../../../core/services/cancelacion-matricula-service';
 import { SolicitudAcademicaService } from '../../../../core/services/solicitud-academica-service';
@@ -14,7 +13,6 @@ import { SolicitudAcademicaDetalleDTORespuesta } from '../../../../core/models/S
 import { CancelacionMatriculaDetalleDTORespuesta } from '../../../../core/models/CancelacionMatricula/DTOResponse/CancelacionMatriculaDetalleDTORespuesta';
 import { AsignaturaCancelacionDTORespuesta } from '../../../../core/models/CancelacionMatricula/DTOResponse/AsignaturaCancelacionDTORespuesta';
 import { EvaluacionAsignaturaDTOPeticion } from '../../../../core/models/CancelacionMatricula/DTORequest/EvaluacionAsignaturaDTOPeticion';
-import { SituacionCancelarDTOPeticion } from '../../../../core/models/CancelacionMatricula/DTORequest/SituacionCancelarDTOPeticion';
 import {
   ACCIONES_ACADEMICAS,
   AccionAcademica,
@@ -121,7 +119,6 @@ const COLUMNAS_FIJAS = ['Código', 'Asignatura'];
     GenericDialogFormComponent,
     SimpleButtonComponent,
     InputTextTareaComponent,
-    InputSelectComponent,
     InputAnexoUploadComponent,
     ResumenSolicitudComponent
   ],
@@ -159,7 +156,6 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
   archivoResolucion: File | null = null;
   resolucionSubida = false;
   evaluaciones: Record<string, EvaluacionEnEdicion> = {};
-  situacionesCancelar: Record<string, string | null> = {};
   errores: Record<string, string> = {};
   erroresServidor: string[] = [];
 
@@ -265,15 +261,8 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
     this.errores = {};
     this.erroresServidor = [];
     this.faltanDatosTabla = false;
-    this.situacionesCancelar = Object.fromEntries(
-      this.asignaturas.map(a => [a.uuidAsignaturaSolicitud, a.situacionCancelar?.uuidSituacionAcademica ?? null])
-    );
     if (accion === ACCIONES_ACADEMICAS.REMITIR_DECANO) {
       this.asegurarSituaciones(() => this.abrirRemision());
-      return;
-    }
-    if (accion === ACCIONES_ACADEMICAS.APROBAR_DECANO) {
-      this.asegurarSituaciones(() => (this.dialogoVisible = true));
       return;
     }
     this.dialogoVisible = true;
@@ -370,7 +359,7 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
           evaluaciones: this.armarEvaluaciones()
         });
       case ACCIONES_ACADEMICAS.APROBAR_DECANO:
-        return this.cancelacionMatriculaService.aprobarPorDecano(uuid, { situaciones: this.armarSituaciones(), observacion: opcional });
+        return this.cancelacionMatriculaService.aprobarPorDecano(uuid, { observacion: opcional });
       case ACCIONES_ACADEMICAS.RECHAZAR_DECANO:
         return this.cancelacionMatriculaService.rechazarPorDecano(uuid, { observacion: opcional });
       default:
@@ -396,19 +385,12 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
       const evaluacion = this.evaluaciones[a.uuidAsignaturaSolicitud];
       return {
         asignaturaSolicitudUuid: a.uuidAsignaturaSolicitud,
-        numeroFaltas: evaluacion.faltas.trim(),
-        nota: evaluacion.nota.trim(),
-        situacionMatriculaUuid: evaluacion.situacion!,
+        numeroFaltas: evaluacion.faltas.trim() || null,
+        nota: evaluacion.nota.trim() || null,
+        situacionMatriculaUuid: evaluacion.situacion,
         situacionCancelarUuid: evaluacion.cancelar
       };
     });
-  }
-
-  private armarSituaciones(): SituacionCancelarDTOPeticion[] {
-    return this.asignaturas.map(a => ({
-      asignaturaSolicitudUuid: a.uuidAsignaturaSolicitud,
-      situacionCancelarUuid: this.situacionesCancelar[a.uuidAsignaturaSolicitud]!
-    }));
   }
 
   private validar(accion: AccionAcademica): Record<string, string> {
@@ -423,14 +405,6 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
     }
 
     if (accion === ACCIONES_ACADEMICAS.REMITIR_DECANO) Object.assign(errores, this.erroresDeEvaluacion());
-
-    if (accion === ACCIONES_ACADEMICAS.APROBAR_DECANO) {
-      for (const a of this.asignaturas) {
-        if (!this.situacionesCancelar[a.uuidAsignaturaSolicitud]) {
-          errores[`cancelar-${a.uuidAsignaturaSolicitud}`] = 'Elige la situación al cancelar.';
-        }
-      }
-    }
     return errores;
   }
 
@@ -442,9 +416,6 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
       const errorNota = errorDeNotaAsignatura(evaluacion?.nota);
       if (errorFaltas) errores[`faltas-${a.uuidAsignaturaSolicitud}`] = errorFaltas;
       if (errorNota) errores[`nota-${a.uuidAsignaturaSolicitud}`] = errorNota;
-      if (!evaluacion?.situacion) {
-        errores[`situacion-${a.uuidAsignaturaSolicitud}`] = 'Elige la situación en la matrícula.';
-      }
     }
     return errores;
   }

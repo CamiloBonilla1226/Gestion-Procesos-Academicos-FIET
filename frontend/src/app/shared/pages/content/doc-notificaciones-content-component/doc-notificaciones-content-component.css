@@ -1,0 +1,29 @@
+.tabla-asignaturas tr.no-leida td {
+  font-weight: 600;
+  background: #eef2ff;
+}
+
+.punto-sin-leer {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--accent, #2a3a86);
+  vertical-align: middle;
+}
+
+.contador-sin-leer {
+  margin-left: auto;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--accent, #2a3a86);
+  color: #fff;
+  font-size: 0.8rem;
+  font-family: var(--fuente);
+}
+
+.enlace-abrir {
+  font-family: var(--fuente);
+  white-space: nowrap;
+}

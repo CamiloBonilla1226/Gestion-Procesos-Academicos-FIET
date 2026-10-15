@@ -165,6 +165,10 @@ const COLUMNAS_COMPLETAS: Columna[] = [
 const COLUMNAS_DECANO: Columna[] = COLUMNAS_COMPLETAS.filter(c => c !== COLUMNA_CANCELAR && c !== COLUMNA_OBSERVACION_DECISION);
 const COLUMNAS_EDICION: Columna[] = COLUMNAS_COMPLETAS.filter(c => c.campo || c === COLUMNA_CODIGO || c === COLUMNA_NOMBRE);
 const COLUMNAS_FIJAS = new Set([COLUMNA_CODIGO.titulo, COLUMNA_NOMBRE.titulo]);
+const COLUMNAS_FIJAS_EVALUACION = new Set([
+  ...COLUMNAS_FIJAS,
+  ...COLUMNAS_COMPLETAS.filter(c => c.campo && c.campo !== 'cumple').map(c => c.titulo)
+]);
 
 @Component({
   selector: 'app-cancelacion-asignatura-proceso-component',
@@ -531,8 +535,13 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   }
 
   private columnasConDatos(detalle: CancelacionAsignaturaDetalleDTORespuesta): Columna[] {
+    const fijas = this.rol === ROLES_ETIQUETA.ESTUDIANTE ? COLUMNAS_FIJAS : COLUMNAS_FIJAS_EVALUACION;
+    const hayAprobadas = detalle.asignaturas.some(a => a.aprobadaPorDecano === true);
     return this.columnasDelRol().filter(
-      columna => COLUMNAS_FIJAS.has(columna.titulo) || detalle.asignaturas.some(a => columna.valor(a) !== null)
+      columna =>
+        fijas.has(columna.titulo) ||
+        (columna === COLUMNA_SITUACION_ESTUDIANTE && hayAprobadas) ||
+        detalle.asignaturas.some(a => columna.valor(a) !== null)
     );
   }
 
@@ -594,9 +603,9 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
       const evaluacion = this.evaluaciones[a.uuidAsignaturaSolicitud];
       return {
         asignaturaSolicitudUuid: a.uuidAsignaturaSolicitud,
-        numeroFaltas: evaluacion.faltas.trim(),
-        nota: evaluacion.nota.trim(),
-        situacionMatriculaUuid: evaluacion.situacion!,
+        numeroFaltas: evaluacion.faltas.trim() || null,
+        nota: evaluacion.nota.trim() || null,
+        situacionMatriculaUuid: evaluacion.situacion,
         situacionCancelarUuid: evaluacion.cancelar,
         cumpleCondiciones: evaluacion.cumple!,
         observacionEvaluacion: null
@@ -638,7 +647,6 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
     }
 
     if (accion === ACCIONES_ACADEMICAS.REMITIR_DECANO) this.validarEvaluaciones(errores);
-    if (accion === ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA) this.validarAjustes(errores);
     return errores;
   }
 
@@ -651,7 +659,6 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
       const nota = errorNota ? null : numeroDeValor(evaluacion?.nota);
       if (errorFaltas) errores[`faltas-${uuid}`] = errorFaltas;
       if (errorNota) errores[`nota-${uuid}`] = errorNota;
-      if (!evaluacion?.situacion) errores[`situacion-${uuid}`] = 'Elige la situación en la matrícula.';
       if (evaluacion?.cumple === null || evaluacion?.cumple === undefined) {
         errores[`cumple-${uuid}`] = 'Indica si cumple las condiciones.';
       } else if (evaluacion.cumple && nota !== null && nota < NOTA_MINIMA_PARA_CUMPLIR) {
@@ -660,13 +667,6 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
     }
     if (!Object.values(this.evaluaciones).some(e => e.cumple === true)) {
       errores['ninguna'] = 'Ninguna asignatura cumple las condiciones: en lugar de remitir la solicitud al Decano debes rechazarla.';
-    }
-  }
-
-  private validarAjustes(errores: Record<string, string>): void {
-    for (const a of this.asignaturasConAjuste) {
-      const uuid = a.uuidAsignaturaSolicitud;
-      if (!this.ajustes[uuid]?.situacion) errores[`ajuste-cancelar-${uuid}`] = 'Elige la situación al cancelar.';
     }
   }
 

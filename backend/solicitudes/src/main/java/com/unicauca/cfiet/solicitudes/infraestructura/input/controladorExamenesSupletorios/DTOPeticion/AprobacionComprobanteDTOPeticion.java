@@ -10,5 +10,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AprobacionComprobanteDTOPeticion {
-    private String fechaAcordadaExamen;
+    private String observacion;
+    private String docenteUuid;
 }

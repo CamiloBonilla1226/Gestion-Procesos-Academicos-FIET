@@ -1,3 +1,4 @@
 export interface AprobacionComprobanteDTOPeticion {
-  fechaAcordadaExamen?: string | null;
+  observacion?: string | null;
+  docenteUuid: string;
 }

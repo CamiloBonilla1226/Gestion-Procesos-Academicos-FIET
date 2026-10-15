@@ -1,6 +1,6 @@
 # Diccionario de Datos
 
-Detalle campo por campo de las 19 tablas nuevas de la extensión. `usuarios`,
+Detalle campo por campo de las 20 tablas nuevas de la extensión. `usuarios`,
 `usuariosLivianos` y `tiposUsuario` son de Julián Camacho (nombres reales,
 verificados contra el código de `back-fiet-sc`, no un supuesto) y no se
 listan aquí porque no se modifican.
@@ -140,8 +140,9 @@ historial apunta a `usuarios`.
 | SolicitudAcademica\_uuid | varchar(100) | PK, FK -> SOLICITUD\_ACADEMICA (fk\_solsup\_solacad) | No | Comparte identificador con la cabecera |
 | AsignaturaMatriculada\_uuid | varchar(100) | FK -> ASIGNATURA\_MATRICULADA (fk\_solsup\_asigmat) | No | Asignatura del examen no presentado |
 | fechaExamenNoPresentado | datetime |  | No | Fecha del examen original, guardada a las 00:00 |
-| fechaAcordadaExamen | datetime |  | Sí | Fecha acordada para el supletorio, guardada a las 00:00. Nula hasta que el Funcionario la registra al aprobar el comprobante (decisión P17 de `etapas-por-proceso.md`) |
+| fechaAcordadaExamen | datetime |  | Sí | En desuso desde T12.28 (P52): el paso de aprobar el comprobante ya no pide fecha y nada la lee ni la escribe. Se conserva para no perder datos anteriores |
 | tipoCausa | enum('cruce','otra') |  | No | Causa de la no presentación |
+| Docente\_uuid | varchar(100) | FK -> usuarios (uuidUsuario) (fk\_solsup\_docente) | Sí | Profesor, usuario con rol `Docente`, que el Funcionario elige al aprobar el comprobante de pago (P53). Nulo hasta ese paso y si el pago se rechaza |
 
 ## SOLICITUD\_SUPLETORIO\_CRUCE\_ASIGNATURA
 
@@ -171,10 +172,10 @@ como "situación al cancelar" en `ASIGNATURA_SOLICITUD_ACADEMICA`.
 | uuidAsignaturaSolicitud | varchar(100) | PK | No | Identificador de la fila |
 | SolicitudAcademica\_uuid | varchar(100) | FK -> SOLICITUD\_ACADEMICA (fk\_asigsol\_solacad) | No | Solicitud a la que pertenece |
 | AsignaturaMatriculada\_uuid | varchar(100) | FK -> ASIGNATURA\_MATRICULADA (fk\_asigsol\_asigmat) | No | Asignatura incluida |
-| numeroFaltas | varchar(20) |  | Sí | Nulo hasta que el funcionario evalúa. Si es numérico debe ser un entero mayor o igual a 0 y se guarda normalizado (`03` queda `3`); si no es numérico se guarda el texto sin espacios sobrantes |
-| nota | varchar(20) |  | Sí | Nulo hasta evaluación. Si es numérica (con punto o coma) debe estar entre 0.0 y 5.0 con un decimal y se guarda con punto y un decimal (`3,5` queda `3.5`); si no es numérica se guarda el texto. La regla "nota menor a 3.0 no puede cumplir" solo aplica a notas numéricas |
-| SituacionMatricula\_uuid | varchar(100) | FK -> SITUACION\_ACADEMICA\_ASIGNATURA (fk\_asigsol\_situmatricula) | Sí | Nulo hasta evaluación |
-| SituacionCancelar\_uuid | varchar(100) | FK -> SITUACION\_ACADEMICA\_ASIGNATURA (fk\_asigsol\_situcancelar) | Sí | Nulo hasta resolución del Decano; en Cancelación de Asignatura solo en las aprobadas |
+| numeroFaltas | varchar(20) |  | Sí | Opcional desde T12.28 (P50): nulo si el funcionario no lo registra. Si es numérico debe ser un entero mayor o igual a 0 y se guarda normalizado (`03` queda `3`); si no es numérico se guarda el texto sin espacios sobrantes |
+| nota | varchar(20) |  | Sí | Opcional desde T12.28 (P50). Si es numérica (con punto o coma) debe estar entre 0.0 y 5.0 con un decimal y se guarda con punto y un decimal (`3,5` queda `3.5`); si no es numérica se guarda el texto. La regla "nota menor a 3.0 no puede cumplir" solo aplica a notas numéricas |
+| SituacionMatricula\_uuid | varchar(100) | FK -> SITUACION\_ACADEMICA\_ASIGNATURA (fk\_asigsol\_situmatricula) | Sí | Opcional desde T12.28 (P50); la registra el Funcionario al remitir |
+| SituacionCancelar\_uuid | varchar(100) | FK -> SITUACION\_ACADEMICA\_ASIGNATURA (fk\_asigsol\_situcancelar) | Sí | Opcional desde T12.28 (P50, P51). Solo la registra el Funcionario, al remitir o en el ajuste de la respuesta de Cancelación de Asignatura; el Decano no la registra. En Cancelación de Asignatura solo en las aprobadas |
 | cumpleCondiciones | tinyint(1) |  | Sí | Solo Cancelación de Asignatura: el Funcionario confirma que verificó las condiciones de la sección 4.2 de `etapas-por-proceso.md`. Nulo hasta evaluación |
 | observacionEvaluacion | varchar(255) |  | Sí | Solo Cancelación de Asignatura: obligatoria si la asignatura no cumple las condiciones. La ven el Funcionario y el Decano, nunca el Estudiante |
 | aprobadaPorDecano | tinyint(1) |  | Sí | Solo Cancelación de Asignatura: decisión del Decano sobre esa asignatura (P14). Nulo hasta su decisión |
@@ -212,7 +213,7 @@ como "situación al cancelar" en `ASIGNATURA_SOLICITUD_ACADEMICA`.
 | SolicitudAcademica\_uuid | varchar(100) | FK -> SOLICITUD\_ACADEMICA (fk\_historial\_solacad) | No | Solicitud sobre la que ocurrió la acción |
 | Usuario\_uuid | varchar(100) | FK -> usuarios (uuidUsuario) (fk\_historial\_usuario) | No | Quién ejecutó la acción |
 | accion | varchar(150) |  | No | Código de la acción de la máquina de etapas: RADICAR, RECHAZAR\_FUNCIONARIO, REMITIR\_DECANO, APROBAR\_DECANO, RECHAZAR\_DECANO, ENVIAR\_RESPUESTA, ENVIAR\_RECIBO, SUBIR\_COMPROBANTE, APROBAR\_COMPROBANTE o RECHAZAR\_COMPROBANTE. La tabla no guarda la etapa: la API la reconstruye (decisión P18) |
-| observaciones | varchar(500) |  | Sí | Observación de la acción, cuando aplica (máximo 500 caracteres). En `REMITIR_DECANO`, `APROBAR_DECANO` y `RECHAZAR_DECANO` es opcional y solo la ven el Funcionario y el Decano: la API se la entrega vacía al Estudiante. En `ENVIAR_RESPUESTA` es el mensaje opcional del Funcionario al Estudiante, que sí lo ve |
+| observaciones | varchar(500) |  | Sí | Observación de la acción, cuando aplica (máximo 500 caracteres). En `REMITIR_DECANO`, `APROBAR_DECANO` y `RECHAZAR_DECANO` es opcional y solo la ven el Funcionario y el Decano: la API se la entrega vacía al Estudiante. En `ENVIAR_RESPUESTA` y en `APROBAR_COMPROBANTE` (P52) es el mensaje opcional del Funcionario al Estudiante, que sí lo ve |
 | fecha | datetime |  | No | Fecha y hora del evento, con precisión de segundos. Valor por defecto CURRENT\_TIMESTAMP |
 
 ## RESOLUCION\_ACADEMICA
@@ -224,6 +225,22 @@ como "situación al cancelar" en `ASIGNATURA_SOLICITUD_ACADEMICA`.
 | nombreArchivo | varchar(255) |  | No | Nombre del archivo subido |
 | fechaSubida | datetime |  | No | Fecha en que se subió el escaneo. Valor por defecto CURRENT\_TIMESTAMP |
 | FuncionarioAcademico\_uuid | varchar(100) | FK -> FUNCIONARIO\_ACADEMICO (fk\_resolucion\_funcionario) | No | Funcionario que subió el escaneo |
+
+## NOTIFICACION\_DOCENTE
+
+Propia de la extensión (el sistema de Julián no tiene notificaciones). Una
+fila por cada Examen Supletorio cuyo pago aprueba el Funcionario: avisa al
+profesor elegido (P53). Solo la ve el docente destinatario.
+
+| Campo | Tipo | Llave | Nulo | Descripción |
+| --- | --- | --- | --- | --- |
+| idNotificacion | bigint | PK, AUTO\_INCREMENT | No | Identificador interno |
+| uuidNotificacion | varchar(100) | UNIQUE (uk\_notifdoc\_uuid) | No | Identificador que usa la API |
+| SolicitudAcademica\_uuid | varchar(100) | FK -> SOLICITUD\_ACADEMICA (fk\_notifdoc\_solacad) | No | Solicitud de Examen Supletorio notificada |
+| Docente\_uuid | varchar(100) | FK -> usuarios (uuidUsuario) (fk\_notifdoc\_usuario) | No | Profesor destinatario |
+| titulo | varchar(255) |  | No | Texto armado con el estado final de la solicitud y su radicado, por ejemplo `Examen supletorio aprobado, radicado 2026-ES-0001` |
+| fechaCreacion | datetime |  | No | Fecha y hora en que se aprobó el pago, en hora de Colombia |
+| fechaLectura | datetime |  | Sí | Primera vez que el docente abrió la notificación; nula mientras no la lea |
 
 ## Migración de una base con datos anteriores a PROGRAMA\_ACADEMICO
 

@@ -1,0 +1,59 @@
+<div class="pila">
+  @if (cargando && notificaciones.length === 0) {
+  <div class="cargando" data-estado="cargando">
+    <div class="spinner-border spinner-border-sm" role="status"></div>
+    <span>Cargando notificaciones...</span>
+  </div>
+  } @else if (errorCarga) {
+  <div class="nota-error d-flex flex-wrap justify-content-between align-items-center gap-2" data-estado="error">
+    <span>No se pudieron cargar las notificaciones.</span>
+    <app-simple-button-component label="Reintentar" width="100px" height="30px" (clicked)="cargar()">
+    </app-simple-button-component>
+  </div>
+  } @else if (notificaciones.length === 0) {
+  <p class="nota-gris mb-0" data-estado="vacio">No tienes notificaciones de exámenes supletorios.</p>
+  } @else {
+  <section class="tarjeta">
+    <header class="tarjeta-head">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+      <h3>Exámenes supletorios asignados</h3>
+      @if (sinLeer > 0) {
+      <span class="contador-sin-leer" data-sin-leer>{{ sinLeer }} sin leer</span>
+      }
+    </header>
+    <div class="tarjeta-body">
+      <div class="tabla-scroll">
+        <table class="tabla-asignaturas" data-tabla-notificaciones>
+          <thead>
+            <tr>
+              <th scope="col">Radicado</th>
+              <th scope="col">Estudiante</th>
+              <th scope="col">Asignatura</th>
+              <th scope="col">Resultado</th>
+              <th scope="col">Fecha</th>
+              <th scope="col"><span class="visually-hidden">Abrir</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (notificacion of notificaciones; track notificacion.uuidNotificacion) {
+            <tr [attr.data-notificacion]="notificacion.uuidNotificacion" [class.no-leida]="!notificacion.leida">
+              <td>
+                @if (!notificacion.leida) {
+                <span class="punto-sin-leer" aria-hidden="true"></span><span class="visually-hidden">Sin leer. </span>
+                }
+                {{ notificacion.radicado ?? '—' }}
+              </td>
+              <td>{{ notificacion.estudiante ?? '—' }}</td>
+              <td>{{ notificacion.asignatura ?? '—' }}</td>
+              <td><span class="pill" [attr.data-categoria]="categoriaEstado(notificacion.resultado)">{{ notificacion.resultado ?? '—' }}</span></td>
+              <td>{{ formatearFechaHora(notificacion.fechaCreacion) }}</td>
+              <td><a class="enlace-abrir" [href]="rutaDe(notificacion)" (click)="abrir($event, notificacion)" data-abrir>Ver solicitud</a></td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+  }
+</div>

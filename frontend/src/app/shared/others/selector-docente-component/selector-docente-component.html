@@ -1,0 +1,62 @@
+<div class="d-flex flex-column gap-2" data-selector-docente>
+  <div class="row g-2">
+    <div class="col-md-4" data-filtro="nombre">
+      <app-input-text-component label="Nombre" [(value)]="filtro.nombre"></app-input-text-component>
+    </div>
+    <div class="col-md-4" data-filtro="numeroDocumento">
+      <app-input-text-component label="Número de cédula" [(value)]="filtro.numeroDocumento"></app-input-text-component>
+    </div>
+    <div class="col-md-4" data-filtro="username">
+      <app-input-text-component label="Usuario" [(value)]="filtro.username"></app-input-text-component>
+    </div>
+  </div>
+  <div data-buscar-docente>
+    <app-simple-button-component label="Buscar" width="100px" height="34px" [disabled]="buscando || deshabilitado"
+      (clicked)="buscar()">
+    </app-simple-button-component>
+  </div>
+
+  @if (buscando) {
+  <div class="cargando" data-estado="buscando">
+    <div class="spinner-border spinner-border-sm" role="status"></div>
+    <span>Buscando profesores...</span>
+  </div>
+  } @else if (buscado && docentes.length === 0) {
+  <p class="nota-gris mb-0" data-sin-docentes>No hay profesores activos con esos datos.</p>
+  } @else if (docentes.length > 0) {
+  <div class="tabla-scroll">
+    <table class="tabla-asignaturas" data-tabla-docentes>
+      <thead>
+        <tr>
+          <th scope="col">Nombre</th>
+          <th scope="col">Cédula</th>
+          <th scope="col">Usuario</th>
+          <th scope="col"><span class="visually-hidden">Elegir</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (docente of docentes; track docente.uuidUsuario) {
+        <tr [attr.data-docente]="docente.uuidUsuario" [class.fila-resaltada]="esElegido(docente)">
+          <td>{{ nombreDe(docente) }}</td>
+          <td>{{ docente.numeroDocumento }}</td>
+          <td>{{ docente.username }}</td>
+          <td>
+            <app-simple-button-component [label]="esElegido(docente) ? 'Elegido' : 'Elegir'" width="90px" height="30px"
+              [contorno]="!esElegido(docente)" [disabled]="deshabilitado" (clicked)="elegir(docente)">
+            </app-simple-button-component>
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  @if (totalPaginas > 1) {
+  <app-paginator [totalPages]="totalPaginas" [currentPage]="paginaActual" (pageChange)="cambiarPagina($event)">
+  </app-paginator>
+  }
+  }
+
+  @if (seleccionado) {
+  <p class="mb-0" data-docente-elegido>Profesor elegido: <strong>{{ nombreDe(seleccionado) }}</strong> ({{ seleccionado.username }})</p>
+  }
+</div>

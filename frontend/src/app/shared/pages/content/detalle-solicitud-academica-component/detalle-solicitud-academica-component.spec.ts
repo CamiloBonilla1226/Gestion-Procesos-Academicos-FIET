@@ -424,6 +424,19 @@ describe('DetalleSolicitudAcademicaComponent', () => {
       }
     });
 
+    it('la observacion de la aprobacion del pago sale en Mensaje para el estudiante y no en el historial', () => {
+      const aprobada: HistorialSolicitudAcademicaDTORespuesta[] = [
+        ...conObservaciones.slice(0, 5),
+        { accion: 'APROBAR_COMPROBANTE', etapaCodigo: 'APROBADA', observaciones: 'Presentarse el lunes', fecha: '2026-10-08T05:00:00', nombresUsuario: 'Ana', apellidosUsuario: 'Ruiz' }
+      ];
+      for (const rol of ['ESTUDIANTE', 'FUNCIONARIO', 'DECANO']) {
+        const fixture = crearCon(aprobada, rol);
+        expect(texto(fixture, '[data-mensaje-estudiante] .bloque-texto')).withContext(rol).toEqual(['Presentarse el lunes']);
+        expect(texto(fixture, '[data-historial]').join(' ')).withContext(rol).not.toContain('Presentarse el lunes');
+        fixture.destroy();
+      }
+    });
+
     it('el rechazo del Funcionario de una solicitud recien radicada sale en Mensaje para el estudiante', () => {
       for (const tipo of ['Cancelación de Matrícula', 'Cancelación de Asignatura', 'Examen Supletorio']) {
         const fixture = crearCon([

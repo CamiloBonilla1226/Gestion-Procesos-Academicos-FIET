@@ -13,6 +13,7 @@ import java.util.Locale;
 @RequiredArgsConstructor
 public class SolicitudExamenSupletorioOwnMapper implements OwnMapper<SolicitudExamenSupletorio, SolicitudExamenSupletorioEntidad> {
     private final AsignaturaMatriculadaOwnMapper asignaturaMatriculadaMapper;
+    private final DocenteOwnMapper docenteMapper;
 
     @Override
     public SolicitudExamenSupletorio toDominio(SolicitudExamenSupletorioEntidad source) {
@@ -25,8 +26,8 @@ public class SolicitudExamenSupletorioOwnMapper implements OwnMapper<SolicitudEx
                 .asignaturaMatriculada(source.getAsignaturaMatriculada() == null ? null
                         : asignaturaMatriculadaMapper.toDominio(source.getAsignaturaMatriculada()))
                 .fechaExamenNoPresentado(source.getFechaExamenNoPresentado() == null ? null : source.getFechaExamenNoPresentado().toLocalDate())
-                .fechaAcordadaExamen(source.getFechaAcordadaExamen())
                 .tipoCausa(source.getTipoCausa() == null ? null : CausaSupletorio.valueOf(source.getTipoCausa().toUpperCase(Locale.ROOT)))
+                .docente(docenteMapper.toDominio(source.getDocente()))
                 .build();
     }
 
@@ -37,7 +38,6 @@ public class SolicitudExamenSupletorioOwnMapper implements OwnMapper<SolicitudEx
                 .uuidSolicitudAcademica(source.getSolicitudAcademica() == null ? null
                         : source.getSolicitudAcademica().getUuidSolicitudAcademica())
                 .fechaExamenNoPresentado(source.getFechaExamenNoPresentado() == null ? null : source.getFechaExamenNoPresentado().atStartOfDay())
-                .fechaAcordadaExamen(source.getFechaAcordadaExamen())
                 .tipoCausa(source.getTipoCausa() == null ? null : source.getTipoCausa().name().toLowerCase(Locale.ROOT))
                 .build();
     }

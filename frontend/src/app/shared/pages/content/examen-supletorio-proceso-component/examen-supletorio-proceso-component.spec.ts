@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, DeferBlockState, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, TestRequest, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
@@ -44,7 +44,7 @@ function detalleCruce(): ExamenSupletorioDetalleDTORespuesta {
       fechaExamenCruzada: '2026-10-06',
       horaExamenCruzada: '14:00'
     },
-    fechaAcordadaExamen: null
+    docente: null
   };
 }
 
@@ -125,6 +125,7 @@ describe('ExamenSupletorioProcesoComponent', () => {
     expect(contenido.querySelector('[data-cruce]').textContent).toContain('A2 - Física (grupo B)');
     expect(contenido.querySelector('[data-cruce-fecha]').textContent).toContain('06/10/2026 14:00');
     expect(contenido.querySelector('[data-fecha-acordada]')).toBeNull();
+    expect(contenido.textContent).not.toContain('Fecha acordada');
   });
 
   it('ningun rol ve la nota de SIMCA ni los textos de las cancelaciones en el detalle', () => {
@@ -138,13 +139,16 @@ describe('ExamenSupletorioProcesoComponent', () => {
     }
   });
 
-  it('con causa otra no muestra cruce y muestra la fecha acordada si existe', () => {
-    const fixture = crear(solicitud([], 'APROBADA'), 'DECANO', {
-      ...detalleCruce(), tipoCausa: 'otra', cruce: null, fechaAcordadaExamen: '2026-10-20'
-    });
+  it('con causa otra no muestra cruce; el Decano y el Funcionario ven el profesor asignado y el Estudiante no', () => {
+    const conDocente = { ...detalleCruce(), tipoCausa: 'otra', cruce: null, docente: { uuidUsuario: 'doc-1', nombres: 'Ana', apellidos: 'Ruiz' } };
+    const fixture = crear(solicitud([], 'APROBADA'), 'DECANO', conDocente);
     expect(fixture.nativeElement.querySelector('[data-cruce]')).toBeNull();
     expect(fixture.nativeElement.querySelector('[data-causa]').textContent).toContain('Otra causa');
-    expect(fixture.nativeElement.querySelector('[data-fecha-acordada]').textContent).toContain('20/10/2026');
+    expect(fixture.nativeElement.querySelector('[data-docente-asignado]').textContent).toContain('Ana Ruiz');
+    expect(fixture.nativeElement.querySelector('[data-fecha-acordada]')).toBeNull();
+    const estudiante = crear(solicitud([], 'APROBADA', [], 'Aprobada'), 'ESTUDIANTE', conDocente);
+    expect(estudiante.nativeElement.querySelector('[data-docente-asignado]')).toBeNull();
+    expect(estudiante.nativeElement.textContent).not.toContain('Fecha acordada');
   });
 
   it('pinta solo las acciones de accionesDisponibles, tambien la del Estudiante', () => {
@@ -332,23 +336,67 @@ describe('ExamenSupletorioProcesoComponent', () => {
     expect(errores.handleError).toHaveBeenCalled();
   });
 
-  it('aprobar el comprobante bloquea una fecha acordada anterior al examen y envia la fecha o nada', () => {
+  it('aprobar el comprobante no tiene fecha, pide el profesor y una observacion opcional para el estudiante', () => {
+    const fixture = crear(solicitud(['APROBAR_COMPROBANTE'], 'EN_VERIFICACION_PAGO'));
+    fixture.componentInstance.abrir('APROBAR_COMPROBANTE');
+    fixture.detectChanges();
+    expect(document.querySelector('[data-campo-fecha-acordada]')).toBeNull();
+    expect(document.querySelector('app-input-date-component')).toBeNull();
+    expect(document.querySelector('[data-campo-docente]')).toBeTruthy();
+    const campo = document.querySelector('[data-campo-observacion]') as HTMLElement;
+    expect(campo.textContent).toContain('Observación para el estudiante (opcional)');
+    expect(campo.textContent).not.toContain('*');
+  });
+
+  it('aprobar el pago sin profesor no envia nada y con profesor envia el profesor y la observacion', () => {
     const componente = crear(solicitud(['APROBAR_COMPROBANTE'], 'EN_VERIFICACION_PAGO')).componentInstance;
     componente.abrir('APROBAR_COMPROBANTE');
-    componente.fechaAcordada = '2026-10-05';
     componente.confirmar();
-    expect(componente.errores['fechaAcordada']).toContain('06/10/2026');
+    expect(componente.errores['docente']).toBe('Selecciona el profesor que atenderá el examen supletorio.');
     http.expectNone(`${URL}/funcionario/comprobante/aprobar`);
-    componente.fechaAcordada = '2026-10-15';
-    componente.confirmar();
-    const conFecha = accion('funcionario/comprobante/aprobar');
-    expect(conFecha.request.body).toEqual({ fechaAcordadaExamen: '2026-10-15' });
-    conFecha.flush(detalleCruce());
-    componente.abrir('APROBAR_COMPROBANTE');
+    componente.alElegirDocente({ uuidUsuario: 'doc-1', nombres: 'Ana', apellidos: 'Ruiz', numeroDocumento: '1061', username: 'aruiz' });
+    expect(componente.errores['docente']).toBeUndefined();
+    componente.observacion = ' Presentarse el lunes ';
     componente.confirmar();
     const req = accion('funcionario/comprobante/aprobar');
-    expect(req.request.body).toBeNull();
+    expect(req.request.body).toEqual({ observacion: 'Presentarse el lunes', docenteUuid: 'doc-1' });
     terminar(req);
+  });
+
+  it('sin observacion la aprobacion envia observacion nula y el profesor', () => {
+    const componente = crear(solicitud(['APROBAR_COMPROBANTE'], 'EN_VERIFICACION_PAGO')).componentInstance;
+    componente.abrir('APROBAR_COMPROBANTE');
+    componente.alElegirDocente({ uuidUsuario: 'doc-2', nombres: 'Luis', apellidos: 'Paz', numeroDocumento: '1062', username: 'lpaz' });
+    componente.confirmar();
+    const req = accion('funcionario/comprobante/aprobar');
+    expect(req.request.body).toEqual({ observacion: null, docenteUuid: 'doc-2' });
+    terminar(req);
+  });
+
+  it('abrir otra vez el dialogo de aprobar limpia el profesor elegido', () => {
+    const componente = crear(solicitud(['APROBAR_COMPROBANTE'], 'EN_VERIFICACION_PAGO')).componentInstance;
+    componente.abrir('APROBAR_COMPROBANTE');
+    componente.alElegirDocente({ uuidUsuario: 'doc-1', nombres: 'Ana', apellidos: 'Ruiz', numeroDocumento: '1061', username: 'aruiz' });
+    componente.cerrar(false);
+    componente.abrir('APROBAR_COMPROBANTE');
+    expect(componente.docenteElegido).toBeNull();
+  });
+
+  it('el selector de profesor se carga en diferido, busca docentes y permite elegir uno', async () => {
+    const fixture = crear(solicitud(['APROBAR_COMPROBANTE'], 'EN_VERIFICACION_PAGO'));
+    fixture.componentInstance.abrir('APROBAR_COMPROBANTE');
+    fixture.detectChanges();
+    const bloques = await fixture.getDeferBlocks();
+    expect(bloques.length).toBe(1);
+    await bloques[0].render(DeferBlockState.Complete);
+    const busqueda = http.expectOne(r => r.url === `${API}/examenes-supletorios/docentes`);
+    expect(busqueda.request.params.get('pagina')).toBe('0');
+    busqueda.flush({ content: [{ uuidUsuario: 'doc-1', nombres: 'Ana', apellidos: 'Ruiz', numeroDocumento: '1061', username: 'aruiz' }], totalElements: 1 });
+    fixture.detectChanges();
+    (document.querySelector('[data-docente="doc-1"] button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.componentInstance.docenteElegido?.uuidUsuario).toBe('doc-1');
+    expect(document.querySelector('[data-docente-elegido]')?.textContent).toContain('Ana Ruiz');
   });
 
   it('rechazar el comprobante exige la observacion para el estudiante con la etiqueta compartida', () => {
@@ -372,6 +420,7 @@ describe('ExamenSupletorioProcesoComponent', () => {
   it('un 500 con codigoError va al ErrorHandlerService y deja el dialogo abierto', () => {
     const componente = crear(solicitud(['APROBAR_COMPROBANTE'], 'EN_VERIFICACION_PAGO')).componentInstance;
     componente.abrir('APROBAR_COMPROBANTE');
+    componente.alElegirDocente({ uuidUsuario: 'doc-1', nombres: 'Ana', apellidos: 'Ruiz', numeroDocumento: '1061', username: 'aruiz' });
     componente.confirmar();
     accion('funcionario/comprobante/aprobar').flush(
       { codigoError: '4', mensaje: 'La acción APROBAR_COMPROBANTE no está permitida...' },

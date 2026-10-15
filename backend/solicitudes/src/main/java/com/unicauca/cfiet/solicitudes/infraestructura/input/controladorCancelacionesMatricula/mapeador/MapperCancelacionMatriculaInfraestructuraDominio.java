@@ -2,7 +2,6 @@ package com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelac
 
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesMatricula.DTOPeticion.EvaluacionAsignaturaDTOPeticion;
-import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesMatricula.DTOPeticion.SituacionCancelarDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesMatricula.DTORespuesta.*;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudesAcademicas.mapeador.MapperSolicitudAcademicaInfraestructuraDominio;
 import lombok.RequiredArgsConstructor;
@@ -41,16 +40,6 @@ public class MapperCancelacionMatriculaInfraestructuraDominio {
                         .nota(evaluacion.getNota())
                         .uuidSituacionMatricula(evaluacion.getSituacionMatriculaUuid())
                         .uuidSituacionCancelar(evaluacion.getSituacionCancelarUuid())
-                        .build())
-                .toList();
-    }
-
-    public List<SituacionCancelarAsignatura> mapearSituaciones(List<SituacionCancelarDTOPeticion> situaciones) {
-        if (situaciones == null) return null;
-        return situaciones.stream()
-                .map(situacion -> situacion == null ? null : SituacionCancelarAsignatura.builder()
-                        .uuidAsignaturaSolicitud(situacion.getAsignaturaSolicitudUuid())
-                        .uuidSituacionCancelar(situacion.getSituacionCancelarUuid())
                         .build())
                 .toList();
     }

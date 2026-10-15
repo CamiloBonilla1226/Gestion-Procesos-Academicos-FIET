@@ -29,7 +29,7 @@ en `/app/uploads`.
 
 `spring.sql.init.mode=never`: nada se siembra solo. Con una base vacía:
 
-1. `docker compose up --build`. Hibernate crea las tablas de Julián y las 19
+1. `docker compose up --build`. Hibernate crea las tablas de Julián y las 20
    de la extensión al arrancar.
 2. Correr `solicitudes/src/main/resources/data.sql` una sola vez (usa
    `INSERT` sin `IGNORE`), con `docker compose exec cfiet_database mysql -u
@@ -60,6 +60,64 @@ estudiantes responden 500 hasta correr la migración.
 
 El Funcionario Académico usa el tipo `Empleado FIET - Funcionario` de
 Julián, que ya existe en `data.sql`.
+
+### Volver a una base limpia en local
+
+**Regla: los procesos académicos son datos predefinidos y no se borran en
+ninguna limpieza.** `TIPO_SOLICITUD_ACADEMICA` (los tres procesos),
+`ETAPA_SOLICITUD_ACADEMICA` (las 8 etapas, con y sin tipo),
+`ETAPA_ETIQUETA_ROL` (23 etiquetas) y `TIPO_ANEXO_ACADEMICO` (11 tipos de
+anexo) se conservan siempre, igual que `roles`, `tiposUsuario`,
+`PROGRAMA_ACADEMICO` y `SITUACION_ACADEMICA_ASIGNATURA`. Ningún script de
+limpieza, de pruebas ni manual les hace `DELETE`; si un proceso necesita otro
+responsable, se reasigna (`PUT catalogos-academicos/tipos-solicitud/{uuid}/funcionario`
+o `UPDATE` de `FuncionarioAcademico_uuid`). Como
+`TIPO_SOLICITUD_ACADEMICA.FuncionarioAcademico_uuid` es obligatorio y apunta a
+`FUNCIONARIO_ACADEMICO`, borrar al último funcionario académico sin reasignar
+antes los procesos los borraría con él o haría fallar la limpieza (T12.27).
+
+`limpieza_local.sql`, en la raíz y fuera de git (`.gitignore`), deja la base
+local como nueva: borra todos los usuarios menos `rootfiet` (con sus filas en
+`ESTUDIANTE`, `FUNCIONARIO_ACADEMICO`, `funcionarios` y `Usuario_has_Roles`),
+asignaturas y matrículas, todas las solicitudes de Julián y de los tres
+procesos con anexos, respuestas, resoluciones, historiales y notificaciones
+del docente, órdenes del día, tipos de solicitud de Julián con sus anexos y
+`logs`. Antes de borrar a los funcionarios académicos le da a `rootfiet` una
+fila en `FUNCIONARIO_ACADEMICO` (cargo "Responsable temporal de los
+procesos") y le reasigna los tres procesos, así el catálogo nunca queda sin
+responsable. Esa fila solo sostiene la llave foránea: `rootfiet` no tiene el
+rol `Funcionario Académico` y no puede tramitar solicitudes. Conserva
+`rootfiet` sin tocar su contraseña, `roles` (11), `tiposUsuario` (8),
+`PROGRAMA_ACADEMICO` (5, con `ultimoConsecutivoAsignatura` en 0),
+`SITUACION_ACADEMICA_ASIGNATURA` (R0 a R3) y todo el catálogo de procesos, y
+al final muestra los conteos de procesos, etapas, etiquetas y tipos de
+anexo (3, 8, 23 y 11). Busca a `rootfiet` por `username` y, si no existe, no
+borra nada. Es una sola transacción, en orden de llaves foráneas, y se puede
+repetir. No hay columnas `AUTO_INCREMENT` en las tablas que vacía.
+
+Antes de correrlo: respaldo con `mysqldump` fuera del repositorio y backend
+detenido. Desde `backend/`:
+
+```
+docker compose stop solicitudes-consejo-de-facultad
+docker compose cp ../limpieza_local.sql cfiet_database:/tmp/limpieza.sql
+docker compose exec cfiet_database sh -c "mysql -u root -p --default-character-set=utf8mb4 cfiet < /tmp/limpieza.sql"
+```
+
+Luego se vacía `backend/uploads` dejando solo su `README` (el backend crea
+las subcarpetas al subir), y se levanta el backend. Para dejar el sistema
+listo después de la limpieza:
+
+1. Iniciar sesión con `rootfiet` (`POST sesiones`).
+2. Crear el Funcionario Académico con `POST funcionarios-academicos`.
+3. Asignarle los tres procesos en Administración académica, pestaña
+   Responsable por proceso (`PUT catalogos-academicos/tipos-solicitud/{uuid}/funcionario`).
+   El catálogo ya está: no hace falta el seed. Si una base vieja perdió los
+   procesos, `docs/database/seed-procesos-academicos.sql` con
+   `SET @funcionario_uuid` los vuelve a crear con los mismos UUID
+   (`INSERT IGNORE`, lo que existe no se duplica).
+4. Crear las asignaturas de cada programa y después los estudiantes, que
+   solo matriculan asignaturas existentes de su programa.
 
 La base usa `spring.jpa.hibernate.naming.physical-strategy=
 PhysicalNamingStrategyStandardImpl`: Hibernate NO convierte a snake_case,
@@ -291,10 +349,11 @@ En consecuencia:
 `SECRETARIO_DECANO_FUNCIONARIO_ACADEMICO_ACCESO`, `ESTUDIANTE_ACCESO`,
 `FUNCIONARIO_ACADEMICO_ACCESO`, `DECANO_ACCESO`,
 `ESTUDIANTE_FUNCIONARIO_ACADEMICO_ACCESO` y
-`ESTUDIANTE_FUNCIONARIO_ACADEMICO_DECANO_ACCESO`. Un perfil nuevo sigue el
+`ESTUDIANTE_FUNCIONARIO_ACADEMICO_DECANO_ACCESO`. Desde T12.28 también
+`DOCENTE_ROL` (`Docente`, rol de Julián que ya existe) y `DOCENTE_ACCESO`. Un perfil nuevo sigue el
 mismo patrón de `hasAnyAuthority(...)` armado con las constantes de rol.
 
-Las reglas de los ocho prefijos de la extensión, en ese orden dentro de
+Las reglas de los nueve prefijos de la extensión, en ese orden dentro de
 `securityFilterChain`, van después de las de Julián y antes de
 `anyRequest().authenticated()`, y cada prefijo termina en `denyAll()`:
 
@@ -305,7 +364,8 @@ Las reglas de los ocho prefijos de la extensión, en ese orden dentro de
 | `funcionarios-academicos` | GET `paginado`, `filtro`, `{uuidFuncionario}`: Secretario General, Decano, Funcionario Académico. POST, PUT y `cargar/archivo`: Secretario General, Decano |
 | `catalogos-academicos` | PUT `tipos-solicitud/{uuidTipo}/funcionario`: Secretario General, Decano. GET `programas` y GET `catalogos-academicos/**`: cualquier autenticado |
 | `solicitudes-academicas` | GET `estudiante`: Estudiante. GET `funcionario`: Funcionario Académico. GET `decano`: Decano. GET detalle, historial, descarga de anexo y de Resolución: Estudiante, Funcionario Académico, Decano. POST anexos: Estudiante, Funcionario Académico. POST Resolución: Funcionario Académico |
-| `cancelaciones-matricula`, `cancelaciones-asignatura`, `examenes-supletorios` | GET `formulario` y POST de radicación: Estudiante. POST `{uuid}/funcionario/**`: Funcionario Académico. POST `{uuid}/decano/**`: Decano. POST `{uuid}/estudiante/**` (solo supletorio): Estudiante. GET `{uuid}`: Estudiante, Funcionario Académico, Decano |
+| `cancelaciones-matricula`, `cancelaciones-asignatura`, `examenes-supletorios` | GET `formulario` y POST de radicación: Estudiante. POST `{uuid}/funcionario/**`: Funcionario Académico. POST `{uuid}/decano/**`: Decano. POST `{uuid}/estudiante/**` (solo supletorio): Estudiante. GET `{uuid}`: Estudiante, Funcionario Académico, Decano. GET `examenes-supletorios/docentes`: Funcionario Académico, antes de la regla de `{uuidSolicitud}` (T12.28) |
+| `notificaciones-docente` | GET la lista, GET `{uuidNotificacion}`, PATCH `{uuidNotificacion}/leida` y GET `{uuidNotificacion}/anexos/{uuidAnexo}`: Docente. Ningún otro rol (T12.28) |
 
 El Secretario General no tiene acceso a ninguna ruta de solicitudes
 académicas: no interviene en los tres procesos. El detalle de cada endpoint
@@ -401,9 +461,10 @@ Las tablas nuevas de este trabajo de grado (`ESTUDIANTE`,
 `FUNCIONARIO_ACADEMICO`, `ASIGNATURA`, `SOLICITUD_ACADEMICA`,
 `RESOLUCION_ACADEMICA`, etc.) están documentadas en
 `docs/database/diccionario-datos-extension.md` y su DDL en
-`docs/database/script_bd_extension.sql` (19 tablas; referencia, no se ejecuta). Las únicas FK hacia
+`docs/database/script_bd_extension.sql` (20 tablas; referencia, no se ejecuta). Las únicas FK hacia
 las tablas de Julián apuntan a `usuarios (uuidUsuario)`, desde `ESTUDIANTE`,
-`FUNCIONARIO_ACADEMICO`, `HISTORIAL_SOLICITUD_ACADEMICA` y `ANEXO_ACADEMICO`; `usuariosLivianos`
+`FUNCIONARIO_ACADEMICO`, `HISTORIAL_SOLICITUD_ACADEMICA`, `ANEXO_ACADEMICO`,
+`SOLICITUD_EXAMEN_SUPLETORIO` (`Docente_uuid`) y `NOTIFICACION_DOCENTE`; `usuariosLivianos`
 y `tiposUsuario` existen en camelCase pero las tablas nuevas no apuntan a
 ellas. Ninguna tabla de Julián se modifica. Como la estrategia de nombres
 no convierte nada, un campo Java cuyo nombre difiera de la columna del
@@ -428,7 +489,8 @@ el contrato HTTP, en `docs/api/contrato-api-procesos-academicos.md`.
 
 | Área | Casos de uso (`dominio/casosdeuso`) |
 |---|---|
-| Catálogo y actores | `AsignaturaCUImplAdaptador`, `EstudianteCUImplAdaptador`, `FuncionarioAcademicoCUImplAdaptador`, `AsignacionFuncionarioAcademicoCUImplAdaptador` |
+| Catálogo y actores | `AsignaturaCUImplAdaptador`, `EstudianteCUImplAdaptador`, `FuncionarioAcademicoCUImplAdaptador`, `AsignacionFuncionarioAcademicoCUImplAdaptador`, `DocenteCUImplAdaptador` (búsqueda de docentes, T12.28) |
+| Docente | `NotificacionDocenteCUImplAdaptador`: lista, detalle, marcar leída y descarga de anexos, con control de dueño (T12.28) |
 | Catálogos académicos (solo lectura) | `TipoSolicitudAcademicaCUImplAdaptador`, `EtapaSolicitudAcademicaCUImplAdaptador`, `TipoAnexoAcademicoCUImplAdaptador`, `SituacionAcademicaAsignaturaCUImplAdaptador`, `ProgramaAcademicoCUImplAdaptador` |
 | Motor común | `SolicitudAcademicaCUImplAdaptador` (crear y cambiar etapa), `AnexoAcademicoCUImplAdaptador`, `ResolucionAcademicaCUImplAdaptador`, `ConsultaSolicitudAcademicaCUImplAdaptador` (bandejas, detalle, historial, descargas y rol del actor) |
 | Cada proceso | Radicación (`CancelacionMatricula`, `CancelacionAsignatura`, `ExamenSupletorio`), trámite (`TramiteCancelacionMatricula`, `TramiteCancelacionAsignatura`, `TramiteExamenSupletorio`) y consulta (`ConsultaCancelacionMatricula`, `ConsultaCancelacionAsignatura`, `ConsultaExamenSupletorio`), todos con sufijo `CUImplAdaptador` |
@@ -718,10 +780,10 @@ El resto de `solicitudes-academicas/**` es `denyAll()`.
     guardan normalizados; si no, se guarda el texto; lo valida
     `TramiteCancelacion.faltasDe` y `notaDe`) y `uuidSituacionMatricula`.
     `cambiarEtapa` borra el escaneo viejo (T5.7a).
-  - `aprobarPorDecano(uuid, situacionesAlCancelar, observacion, token)`:
-    EN_REVISION_DECANO a APROBADA_POR_DECANO. Cada
-    `SituacionCancelarAsignatura` trae `uuidAsignaturaSolicitud` y
-    `uuidSituacionCancelar` (P9: la registra el Decano).
+  - `aprobarPorDecano(uuid, observacion, token)`: EN_REVISION_DECANO a
+    APROBADA_POR_DECANO con observación opcional. Desde T12.28 (P51) el
+    Decano no registra situaciones ni toca las asignaturas; un `situaciones`
+    en el cuerpo se ignora porque el DTO (`ObservacionDTOPeticion`) no lo tiene.
   - `rechazarPorDecano(uuid, observacion, token)`: EN_REVISION_DECANO a
     RECHAZADA_POR_DECANO, sin tocar las situaciones. La observación es
     opcional.
@@ -732,10 +794,12 @@ El resto de `solicitudes-academicas/**` es `denyAll()`.
     `ASIGNATURA_MATRICULADA` de la solicitud que sigan `activa` pasan a
     `cancelada`, en la misma transacción; las que ya tengan otro estado no se
     tocan.
-- Evaluaciones y situaciones al cancelar deben cubrir todas las asignaturas
-  de la solicitud, sin faltar, repetir ni incluir ajenas; las situaciones solo
-  se validan contra `SITUACION_ACADEMICA_ASIGNATURA`, el sistema no las
-  calcula. Remitir y aprobar validan actor, etapa y datos antes de escribir;
+- Las evaluaciones deben cubrir todas las asignaturas de la solicitud, sin
+  faltar, repetir ni incluir ajenas. Desde T12.28 (P50) faltas, nota,
+  situación en la matrícula y situación al cancelar son opcionales:
+  `TramiteCancelacion.faltasDe`, `notaDe` y `situacionDe` devuelven nulo con
+  un valor vacío y solo validan lo que llega. Las situaciones solo se validan
+  contra `SITUACION_ACADEMICA_ASIGNATURA`, el sistema no las calcula. Remitir y aprobar validan actor, etapa y datos antes de escribir;
   después cambian la etapa y guardan las filas con
   `SolicitudCancelacionMatriculaGatewayIntPuerto.actualizarAsignaturas`.
 - Todo corre en la transacción del controlador (D6): si algo falla no queda
@@ -756,7 +820,7 @@ ni tipo de usuario.
 | `POST /{uuid}/funcionario/rechazar` | Funcionario Académico | Cuerpo `observacion` |
 | `POST /{uuid}/funcionario/remitir` | Funcionario Académico | Cuerpo `observacion` opcional y `evaluaciones` (`asignaturaSolicitudUuid`, `numeroFaltas`, `nota`, `situacionMatriculaUuid`) |
 | `POST /{uuid}/funcionario/responder` | Funcionario Académico | Cuerpo opcional `observacion` (`@RequestBody(required = false)`) |
-| `POST /{uuid}/decano/aprobar` | Decano | Cuerpo `situaciones` (`asignaturaSolicitudUuid`, `situacionCancelarUuid`) y `observacion` opcional |
+| `POST /{uuid}/decano/aprobar` | Decano | Cuerpo opcional `observacion`; `situaciones` se ignora (P51) |
 | `POST /{uuid}/decano/rechazar` | Decano | Cuerpo opcional `observacion` |
 
 El resto de `cancelaciones-matricula/**` es `denyAll()`.
@@ -843,18 +907,19 @@ El resto de `cancelaciones-matricula/**` es `denyAll()`.
   `cumpleCondiciones`. No tiene columna.
 - `rechazarPorFuncionario` y `rechazarPorDecano` actúan sobre la solicitud
   completa, como en matrícula.
-- `enviarRespuesta(uuid, observacion, ajustes, token)` (P45): valida actor y
-  transición con `solicitudValidada` antes de leer los ajustes. Cada
+- `enviarRespuesta(uuid, observacion, ajustes, token)` (P45, P50): valida
+  actor y transición con `solicitudValidada` antes de leer los ajustes. Cada
   `AjusteAsignatura` (`uuidAsignaturaSolicitud`, `uuidSituacionCancelar`,
-  `observacionDecision`) es de una asignatura propia y sin repetir. Toda
-  asignatura aprobada con la decisión cambiada exige su ajuste; el de una
-  aprobada exige situación del catálogo y el de una rechazada admite una
-  observación opcional (255) y no admite situación (P47). Con alguna rechazada o desde RECHAZADA_POR_DECANO la
-  observación general es obligatoria, y desde RECHAZADA_POR_DECANO no se
-  aceptan ajustes. Después de `cambiarEtapa` guarda las filas si hubo
-  ajustes. En APROBADA pasan a `cancelada` solo las asignaturas con
-  `aprobadaPorDecano` verdadero que sigan `activa`; con rechazo no se toca
-  ninguna.
+  `observacionDecision`) es de una asignatura propia y sin repetir. Desde
+  T12.28 ningún ajuste es obligatorio y una aprobada puede quedar sin
+  situación al cancelar; si su ajuste trae situación se valida contra el
+  catálogo y reemplaza la guardada. El de una rechazada admite una
+  observación opcional (255) y no admite situación (P47). Con alguna
+  rechazada o desde RECHAZADA_POR_DECANO la observación general es
+  obligatoria, y desde RECHAZADA_POR_DECANO no se aceptan ajustes. Después de
+  `cambiarEtapa` guarda las filas si hubo ajustes. En APROBADA pasan a
+  `cancelada` solo las asignaturas con `aprobadaPorDecano` verdadero que sigan
+  `activa`; con rechazo no se toca ninguna.
 
 ### Endpoints `cancelaciones-asignatura`
 
@@ -939,7 +1004,8 @@ El resto de `cancelaciones-asignatura/**` es `denyAll()`.
   con `otra` el soporte de la justificación, con `cruce` el formato del
   docente de la asignatura cruzada, y el de la otra causa se rechaza. No se
   aceptan recibo ni comprobante, soportes libres, tipos de otro proceso ni
-  tipos repetidos. `fechaAcordadaExamen` queda en null.
+  tipos repetidos. `Docente_uuid` queda en null (y `fechaAcordadaExamen`,
+  en desuso desde T12.28, también).
 - Después llama a `crearSolicitud`, guarda la especialización (y el cruce),
   sube cada anexo con `adjuntarAnexo` y escribe el log "Radicar examen
   supletorio". Todo corre en la transacción del controlador (D6): si algo
@@ -972,9 +1038,20 @@ El resto de `cancelaciones-asignatura/**` es `denyAll()`.
     `subirComprobante(uuid, token)`: PENDIENTE_PAGO a EN_VERIFICACION_PAGO,
     solo el Estudiante dueño. Los archivos se suben antes con
     `adjuntarAnexo` (reglas de T5.5) y el motor verifica en base que estén.
-  - `aprobarComprobante(uuid, fechaAcordadaExamen, token)`: a APROBADA; la
-    fecha es opcional, no puede ser anterior a `fechaExamenNoPresentado` y se
-    guarda a las 00:00 con `actualizarFechaAcordada` y su propio log.
+  - `aprobarComprobante(uuid, observacion, uuidDocente, token)` (T12.28, P52,
+    P53): a APROBADA. Después de validar actor y transición exige
+    `uuidDocente` (sin él, regla de negocio `DOCENTE_SUPLETORIO_REQUERIDO`) y
+    que sea un usuario activo con rol Docente
+    (`DocenteGatewayIntPuerto.getActivo`; si no, ENTIDAD_NO_ENCONTRADA
+    `Docente`). `observacion` es el mensaje opcional al Estudiante y queda en
+    la fila `APROBAR_COMPROBANTE` del historial. Tras `cambiarEtapa`, en la
+    misma transacción, guarda el profesor con
+    `SolicitudExamenSupletorioGatewayIntPuerto.asignarDocente`, crea la fila
+    de `NOTIFICACION_DOCENTE` (`NotificacionDocenteGatewayIntPuerto.crear`,
+    título `Examen supletorio <aprobado o rechazado>, radicado <radicado>`
+    según la etapa final, fecha con el `Clock` del bean) y escribe el log
+    "Asignar profesor de examen supletorio". Ya no recibe ni guarda la fecha
+    acordada: la columna queda en desuso y fuera del modelo de dominio.
   - `rechazarComprobante(uuid, observacion, token)`: observación obligatoria,
     a RECHAZADA (P4: el estudiante radica una nueva).
 - Ninguna acción cambia el estado de las asignaturas matriculadas. Todo corre
@@ -992,12 +1069,13 @@ formato.
 |---|---|---|
 | `GET /formulario` | Estudiante | Asignaturas activas, causas (`cruce`, `otra`), anexos de radicación (FOR-23, soporte de justificación y formato del docente cruzado) con formatos, `tamanioMaximoBytes` y las causas que los exigen, y `plazoDiasHabiles`. Sin recibo ni comprobante |
 | `POST /` | Estudiante | Multipart: `asignaturaMatriculada`, `fechaExamenNoPresentado`, `tipoCausa`, y con cruce `asignaturaCruzada`, `fechaExamenCruzada`, `horaExamenCruzada`; una parte por archivo con el uuid de su tipo como nombre. Responde uuid y radicado |
-| `GET /{uuid}` | los tres | Detalle de `solicitudes-academicas` (radicado, etiqueta, anexos con su tipo, acciones) más asignatura, causa, fecha del examen, cruce si lo hay y `fechaAcordadaExamen` si existe |
+| `GET /{uuid}` | los tres | Detalle de `solicitudes-academicas` (radicado, etiqueta, anexos con su tipo, acciones) más asignatura, causa, fecha del examen, cruce si lo hay y `docente` (`uuidUsuario`, `nombres`, `apellidos`) si ya se asignó |
 | `POST /{uuid}/funcionario/rechazar` | Funcionario Académico | Cuerpo `observacion` |
 | `POST /{uuid}/funcionario/remitir` | Funcionario Académico | Cuerpo con `observacion` opcional (`requisitosVerificados` se ignora, P49) |
 | `POST /{uuid}/funcionario/responder` | Funcionario Académico | Cuerpo opcional `observacion` |
 | `POST /{uuid}/funcionario/recibo` | Funcionario Académico | Sin cuerpo; usa `enviarRecibo` |
-| `POST /{uuid}/funcionario/comprobante/aprobar` | Funcionario Académico | Cuerpo `fechaAcordadaExamen` opcional |
+| `POST /{uuid}/funcionario/comprobante/aprobar` | Funcionario Académico | Cuerpo `docenteUuid` (obligatorio para la regla) y `observacion` opcional |
+| `GET /docentes` | Funcionario Académico | Búsqueda paginada de docentes activos: `nombre`, `numeroDocumento`, `username` opcionales, `pagina` y `tamanio` (1 a 100); usa `DocenteCUIntPuerto` |
 | `POST /{uuid}/funcionario/comprobante/rechazar` | Funcionario Académico | Cuerpo `observacion` |
 | `POST /{uuid}/decano/aprobar` | Decano | Cuerpo `observacion` opcional |
 | `POST /{uuid}/decano/rechazar` | Decano | Cuerpo opcional `observacion` |
@@ -1019,11 +1097,40 @@ El resto de `examenes-supletorios/**` es `denyAll()`.
 - `backend/pruebas/t8_examen_supletorio.ps1` recorre el proceso con usuarios
   reales y fechas calculadas a partir de hoy en hora de Colombia: permisos,
   formulario, radicación por cruce y por otra con sus errores, recorrido hasta
-  APROBADA con recibo, comprobante, descargas y fecha acordada, rechazo del
+  APROBADA con recibo, comprobante, descargas, profesor y su notificación, rechazo del
   Funcionario, rechazo del Decano, comprobante rechazado y una falla a mitad de
   camino con un trigger temporal sobre `ANEXO_ACADEMICO`, que se borra al final.
   Deja la base, el responsable del tipo y `uploads/anexos` como estaban, salvo
   los logs de root.
+
+### Notificaciones del docente (T12.28)
+
+`NotificacionDocenteRestController` (`infraestructura/input/controladorNotificacionesDocente`,
+prefijo `notificaciones-docente`), solo para el rol Docente. Todos sus métodos
+llevan `@Transactional` (los GET `readOnly`).
+
+| Método y ruta | Roles en `ConfiguracionSeguridad` | Qué hace |
+|---|---|---|
+| `GET /` | Docente | Notificaciones del docente autenticado, de la más reciente a la más antigua, con radicado, estudiante, asignatura, resultado y fechas |
+| `GET /{uuidNotificacion}` | Docente | Detalle de solo lectura: datos del estudiante, del supletorio y anexos; sin historial ni observaciones |
+| `PATCH /{uuidNotificacion}/leida` | Docente | Guarda la fecha de lectura la primera vez y responde el detalle |
+| `GET /{uuidNotificacion}/anexos/{uuidAnexo}` | Docente | Descarga un anexo de la solicitud de esa notificación |
+
+El resto de `notificaciones-docente/**` es `denyAll()`.
+
+- `NotificacionDocenteCUImplAdaptador` (bean `crearNotificacionDocenteCU`)
+  sigue el patrón de dueño de `AccesoRecursoConsejoCUImplAdaptador`: saca el
+  usuario del token (`IJwtServicio`, `SesionGatewayIntPuerto`) y solo deja ver
+  una notificación si su `Docente_uuid` es ese usuario y tiene rol Docente.
+  Una ajena, una inexistente o un anexo de otra solicitud responden
+  ENTIDAD_NO_ENCONTRADA (código 3), así no revela que existen.
+- `DocenteGatewayImplAdaptador` busca sobre `UsuarioEntidad` con
+  `DocenteRepositorio` (rol `Docente` y `estado` verdadero) y mapea con
+  `DocenteOwnMapper`, sin el mapper de Julián.
+- La tabla `NOTIFICACION_DOCENTE` y la columna
+  `SOLICITUD_EXAMEN_SUPLETORIO.Docente_uuid` están en
+  `docs/database/script_bd_extension.sql` (secciones 6, 12 y 13) y en el
+  diccionario.
 
 ## Crear Estudiante y Funcionario Académico
 
@@ -1314,7 +1421,7 @@ Scripts que hay hoy:
 | `t5_catalogos.ps1`, `t5_asignacion.ps1` | Catálogos sembrados y asignación de tipos a funcionarios |
 | `t5_solicitudes.ps1` | Bandejas, detalle, historial, anexos y Resolución de `solicitudes-academicas` |
 | `t6_cancelacion_matricula.ps1`, `t7_cancelacion_asignatura.ps1`, `t8_examen_supletorio.ps1` | Recorrido completo de cada proceso con usuarios reales |
-| `matriz-permisos.ps1` | Matriz de los 66 endpoints por rol |
+| `matriz-permisos.ps1` | Matriz de los 71 endpoints por rol |
 | `todo.ps1` | Corre todos los anteriores y verifica la limpieza |
 
 `comun.ps1` tiene las funciones compartidas y `generar_plantilla_*.ps1`
@@ -1334,7 +1441,10 @@ fila por endpoint de los controladores de la extensión (`asignaturas`,
 `solicitudes-academicas`, `cancelaciones-matricula`,
 `cancelaciones-asignatura` y `examenes-supletorios`) y una columna por
 actor: sin token, Secretario General, Decano, Funcionario Académico y
-Estudiante. Hoy son 66 filas. El script:
+Estudiante. Hoy son 71 filas; las cuatro de `notificaciones-docente` quedan
+denegadas para todas las columnas porque la matriz no tiene columna Docente
+(eso lo cubren `ConfiguracionSeguridadRolesTest` y `t8_examen_supletorio.ps1`).
+El script:
 
 - Prueba cada celda por HTTP. Una celda denegada exige 401 sin token y 403
   con token. Una permitida se llama con uuid inexistente, JSON malformado,

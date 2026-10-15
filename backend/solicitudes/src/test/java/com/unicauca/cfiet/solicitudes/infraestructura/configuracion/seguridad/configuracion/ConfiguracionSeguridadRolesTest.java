@@ -251,6 +251,52 @@ class ConfiguracionSeguridadRolesTest {
         mockMvc.perform(llamar(metodo, ruta, rol)).andExpect(status().isForbidden());
     }
 
+    static Stream<Arguments> rutasDelDocente() {
+        return Stream.of(
+                Arguments.of("GET", "notificaciones-docente"),
+                Arguments.of("GET", "notificaciones-docente/{uuid}"),
+                Arguments.of("PATCH", "notificaciones-docente/{uuid}/leida"),
+                Arguments.of("GET", "notificaciones-docente/{uuid}/anexos/{uuid}")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("rutasDelDocente")
+    void elDocenteUsaSusNotificaciones(String metodo, String ruta) throws Exception {
+        mockMvc.perform(llamar(metodo, ruta, DOCENTE)).andExpect(status().isOk());
+    }
+
+    @ParameterizedTest
+    @MethodSource("rutasDelDocente")
+    void ningunOtroRolEntraALasNotificacionesDelDocente(String metodo, String ruta) throws Exception {
+        for (String rol : List.of(SG, DECANO, FUNCIONARIO, SECRETARIA, ESTUDIANTE, FUNCIONARIO_ACADEMICO))
+            mockMvc.perform(llamar(metodo, ruta, rol)).andExpect(status().isForbidden());
+        mockMvc.perform(llamar(metodo, ruta, null)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void lasRutasNoDeclaradasDeNotificacionesSeNiegan() throws Exception {
+        mockMvc.perform(llamar("POST", "notificaciones-docente", DOCENTE)).andExpect(status().isForbidden());
+        mockMvc.perform(llamar("DELETE", "notificaciones-docente/{uuid}", DOCENTE)).andExpect(status().isForbidden());
+        mockMvc.perform(llamar("PATCH", "notificaciones-docente/{uuid}", DOCENTE)).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void laBusquedaDeDocentesEsSoloDelFuncionarioAcademico() throws Exception {
+        mockMvc.perform(llamar("GET", "examenes-supletorios/docentes", FUNCIONARIO_ACADEMICO)).andExpect(status().isOk());
+        for (String rol : List.of(ESTUDIANTE, DOCENTE, DECANO, SG, FUNCIONARIO, SECRETARIA))
+            mockMvc.perform(llamar("GET", "examenes-supletorios/docentes", rol)).andExpect(status().isForbidden());
+        mockMvc.perform(llamar("GET", "examenes-supletorios/docentes", null)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void elDocenteNoEntraALasRutasDeLasSolicitudesAcademicas() throws Exception {
+        mockMvc.perform(llamar("GET", "examenes-supletorios/{uuid}", DOCENTE)).andExpect(status().isForbidden());
+        mockMvc.perform(llamar("GET", "solicitudes-academicas/{uuid}", DOCENTE)).andExpect(status().isForbidden());
+        mockMvc.perform(llamar("GET", "solicitudes-academicas/{uuid}/anexos/{uuid}", DOCENTE)).andExpect(status().isForbidden());
+        mockMvc.perform(llamar("POST", "examenes-supletorios/{uuid}/funcionario/comprobante/aprobar", DOCENTE)).andExpect(status().isForbidden());
+    }
+
     @Test
     void unUsuarioDeshabilitadoNoPuedeUsarUnTokenYaEmitido() throws Exception {
         mockMvc.perform(llamar("GET", "usuarios/{uuid}", DESHABILITADO)).andExpect(status().isUnauthorized());

@@ -16,5 +16,5 @@ public class ExamenSupletorioDetalleDTORespuesta {
     private String tipoCausa;
     private String fechaExamenNoPresentado;
     private CruceSupletorioDTORespuesta cruce;
-    private String fechaAcordadaExamen;
+    private DocenteAsignadoDTORespuesta docente;
 }

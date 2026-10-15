@@ -90,7 +90,6 @@ public class MensajesError {
     public static final String NINGUNA_ASIGNATURA_CUMPLE = "Ninguna asignatura cumple las condiciones: en lugar de remitir la solicitud al Decano debe rechazarla...";
     public static final String NINGUNA_ASIGNATURA_APROBADA = "No se aprobó ninguna asignatura: para negar la solicitud completa use el rechazo del Decano...";
     public static final String FORMA_APROBACION_DECANO = "Debe aceptar la evaluación del funcionario (aceptarEvaluacion) o enviar la decisión de cada asignatura (decisiones), una de las dos...";
-    public static final String AJUSTE_ASIGNATURA_FALTANTE = "El Decano cambió la evaluación de la asignatura %s y falta su ajuste...";
     public static final String SITUACION_CANCELAR_RECHAZADA = "La asignatura %s fue rechazada por el Decano y no lleva situación al cancelar...";
     public static final String AJUSTES_SOLICITUD_RECHAZADA = "La solicitud %s fue rechazada por el Decano y no admite ajustes por asignatura...";
     public static final String OBSERVACION_RESPUESTA_REQUERIDA = "El Decano rechazó la solicitud o alguna de sus asignaturas: la respuesta al estudiante requiere una observación...";
@@ -111,7 +110,7 @@ public class MensajesError {
     public static final String ANEXO_NO_PERMITIDO_AL_RADICAR = "El anexo %s no se entrega al radicar el examen supletorio...";
     public static final String ANEXO_NO_CORRESPONDE_CAUSA = "El anexo %s no corresponde a la causa %s...";
     public static final String ANEXO_REPETIDO = "El anexo %s viene más de una vez...";
-    public static final String FECHA_ACORDADA_ANTERIOR = "La fecha acordada para el supletorio (%s) no puede ser anterior a la fecha del examen no presentado (%s)...";
+    public static final String DOCENTE_SUPLETORIO_REQUERIDO = "Para aprobar el pago debe seleccionar el profesor que atenderá el examen supletorio...";
     public static final String FECHA_MAL_FORMADA = "El valor %s de %s no es una fecha con el formato AAAA-MM-DD...";
     public static final String PROGRAMA_ACADEMICO_REQUERIDO = "Debe indicar el programa académico...";
     public static final String NOMBRE_ASIGNATURA_REQUERIDO = "El nombre de la asignatura no puede estar vacío...";

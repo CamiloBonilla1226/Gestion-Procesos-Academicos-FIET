@@ -177,11 +177,8 @@ class TramiteCancelacionTest {
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {"   "})
-    void faltasDeExigeElDato(String faltas) {
-        ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
-                () -> tramite.faltasDe(faltas, "Cálculo I"));
-
-        assertEquals(String.format(MensajesError.DATO_ASIGNATURA_FALTANTE, "el número de faltas", "Cálculo I"), error.getMessage());
+    void faltasDeVaciasQuedanNulas(String faltas) {
+        assertNull(tramite.faltasDe(faltas, "Cálculo I"));
     }
 
     @Test
@@ -217,11 +214,8 @@ class TramiteCancelacionTest {
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {"   "})
-    void notaDeExigeElDato(String nota) {
-        ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
-                () -> tramite.notaDe(nota, "Física I"));
-
-        assertEquals(String.format(MensajesError.DATO_ASIGNATURA_FALTANTE, "la nota", "Física I"), error.getMessage());
+    void notaDeVaciaQuedaNula(String nota) {
+        assertNull(tramite.notaDe(nota, "Física I"));
     }
 
     @Test
@@ -260,8 +254,7 @@ class TramiteCancelacionTest {
     void situacionDeDevuelveLaSituacionDelCatalogo() {
         when(situacionGateway.getTodas()).thenReturn(List.of(situacion("sit-a"), situacion("sit-b")));
 
-        SituacionAcademicaAsignatura encontrada = tramite.situacionDe(tramite.catalogoSituaciones(), "sit-b",
-                "la situación en la matrícula", "Cálculo I");
+        SituacionAcademicaAsignatura encontrada = tramite.situacionDe(tramite.catalogoSituaciones(), "sit-b");
 
         assertEquals("sit-b", encontrada.getUuidSituacionAcademica());
     }
@@ -272,7 +265,7 @@ class TramiteCancelacionTest {
         Map<String, SituacionAcademicaAsignatura> catalogo = tramite.catalogoSituaciones();
 
         ErrorEntidadNoExisteExcepcion error = assertThrows(ErrorEntidadNoExisteExcepcion.class,
-                () -> tramite.situacionDe(catalogo, "sit-x", "la situación en la matrícula", "Cálculo I"));
+                () -> tramite.situacionDe(catalogo, "sit-x"));
 
         assertEquals(String.format(MensajesError.ENTIDAD_NO_ENCONTRADA, "Situación académica de asignatura", "sit-x"), error.getMessage());
     }
@@ -280,11 +273,8 @@ class TramiteCancelacionTest {
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {"  "})
-    void situacionDeExigeElDato(String uuid) {
-        ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
-                () -> tramite.situacionDe(Map.of(), uuid, "la situación al cancelar", "Física I"));
-
-        assertEquals(String.format(MensajesError.DATO_ASIGNATURA_FALTANTE, "la situación al cancelar", "Física I"), error.getMessage());
+    void situacionDeVaciaQuedaNula(String uuid) {
+        assertNull(tramite.situacionDe(Map.of(), uuid));
     }
 
     @Test

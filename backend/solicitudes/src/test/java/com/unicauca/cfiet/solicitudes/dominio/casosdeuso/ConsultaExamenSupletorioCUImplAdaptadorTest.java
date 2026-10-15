@@ -81,7 +81,7 @@ class ConsultaExamenSupletorioCUImplAdaptadorTest {
                 .build());
     }
 
-    private SolicitudExamenSupletorio supletorio(CausaSupletorio causa, LocalDate fechaAcordada) {
+    private SolicitudExamenSupletorio supletorio(CausaSupletorio causa, Docente docente) {
         return SolicitudExamenSupletorio.builder()
                 .solicitudAcademica(SolicitudAcademica.builder().uuidSolicitudAcademica(SOLICITUD).build())
                 .asignaturaMatriculada(materia("am-1", "activa"))
@@ -89,7 +89,7 @@ class ConsultaExamenSupletorioCUImplAdaptadorTest {
                 .tipoCausa(causa)
                 .cruce(causa == CausaSupletorio.CRUCE ? CruceSupletorio.builder().asignaturaMatriculadaCruzada(materia("am-2", "activa"))
                         .fechaExamenCruzada(LocalDate.of(2026, 10, 5)).horaExamenCruzada("10:00").build() : null)
-                .fechaAcordadaExamen(fechaAcordada == null ? null : fechaAcordada.atStartOfDay())
+                .docente(docente)
                 .build();
     }
 
@@ -159,18 +159,19 @@ class ConsultaExamenSupletorioCUImplAdaptadorTest {
         assertEquals(List.of(AccionEtapa.RECHAZAR_FUNCIONARIO, AccionEtapa.REMITIR_DECANO), detalle.getDetalle().getAccionesDisponibles());
         assertEquals("am-2", detalle.getSupletorio().getCruce().getAsignaturaMatriculadaCruzada().getUuidAsignaturaMatriculada());
         assertEquals("10:00", detalle.getSupletorio().getCruce().getHoraExamenCruzada());
-        assertNull(detalle.getSupletorio().getFechaAcordadaExamen());
+        assertNull(detalle.getSupletorio().getDocente());
     }
 
     @Test
-    void elDetallePorOtraCausaNoTraeCruceYEnAprobadaMuestraLaFechaAcordada() {
-        when(gateway.getPorSolicitud(SOLICITUD)).thenReturn(supletorio(CausaSupletorio.OTRA, LocalDate.of(2026, 10, 20)));
+    void elDetallePorOtraCausaNoTraeCruceYEnAprobadaMuestraElProfesorAsignado() {
+        when(gateway.getPorSolicitud(SOLICITUD)).thenReturn(supletorio(CausaSupletorio.OTRA,
+                Docente.builder().uuidUsuario("doc-1").nombres("Ana").apellidos("Ruiz").build()));
         detalleGenerico("APROBADA", RolEtiquetaEtapa.ESTUDIANTE, "Aprobada", List.of());
 
         DetalleExamenSupletorio detalle = casoDeUso.getDetalle(SOLICITUD, TOKEN);
 
         assertNull(detalle.getSupletorio().getCruce());
-        assertEquals(LocalDate.of(2026, 10, 20).atStartOfDay(), detalle.getSupletorio().getFechaAcordadaExamen());
+        assertEquals("doc-1", detalle.getSupletorio().getDocente().getUuidUsuario());
         assertEquals("Aprobada", detalle.getDetalle().getEtiqueta());
         assertTrue(detalle.getDetalle().getAccionesDisponibles().isEmpty());
     }

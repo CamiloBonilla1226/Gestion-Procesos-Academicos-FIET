@@ -20,8 +20,6 @@ import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSoli
 
 public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCancelacionAsignaturaCUIntPuerto {
     private static final String CANCELACION_ASIGNATURA = "Solicitud de cancelación de asignatura";
-    private static final String SITUACION_MATRICULA = "la situación en la matrícula";
-    private static final String SITUACION_CANCELAR = "la situación al cancelar";
     private static final String CUMPLE_CONDICIONES = "la confirmación de las condiciones";
     private static final String DECISION = "la decisión del Decano";
     private static final String OBSERVACION_EVALUACION = "La observación de la evaluación";
@@ -79,9 +77,8 @@ public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCance
             String nombre = tramite.nombreDe(asignatura);
             asignatura.setNumeroFaltas(tramite.faltasDe(evaluacion.getNumeroFaltas(), nombre));
             asignatura.setNota(tramite.notaDe(evaluacion.getNota(), nombre));
-            asignatura.setSituacionMatricula(tramite.situacionDe(catalogo, evaluacion.getUuidSituacionMatricula(), SITUACION_MATRICULA, nombre));
-            asignatura.setSituacionCancelar(tramite.tieneTexto(evaluacion.getUuidSituacionCancelar())
-                    ? tramite.situacionDe(catalogo, evaluacion.getUuidSituacionCancelar(), SITUACION_CANCELAR, nombre) : null);
+            asignatura.setSituacionMatricula(tramite.situacionDe(catalogo, evaluacion.getUuidSituacionMatricula()));
+            asignatura.setSituacionCancelar(tramite.situacionDe(catalogo, evaluacion.getUuidSituacionCancelar()));
             asignatura.setCumpleCondiciones(cumpleDe(evaluacion, asignatura.getNota(), nombre));
             asignatura.setObservacionEvaluacion(tramite.textoAcotado(evaluacion.getObservacionEvaluacion(), MAXIMO_OBSERVACION,
                     OBSERVACION_EVALUACION, nombre));
@@ -202,24 +199,17 @@ public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCance
         for (AsignaturaSolicitudAcademica asignatura : asignaturas) {
             String nombre = tramite.nombreDe(asignatura);
             AjusteAsignatura ajuste = porAsignatura.get(asignatura.getUuidAsignaturaSolicitud());
-            if (ajuste == null) {
-                if (Boolean.TRUE.equals(asignatura.decisionCambiadaPorDecano()) && Boolean.TRUE.equals(asignatura.getAprobadaPorDecano()))
-                    formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.AJUSTE_ASIGNATURA_FALTANTE, nombre));
+            if (ajuste == null)
                 continue;
-            }
             String observacionDecision = tramite.textoAcotado(ajuste.getObservacionDecision(), MAXIMO_OBSERVACION, OBSERVACION_DECISION, nombre);
             if (Boolean.TRUE.equals(asignatura.getAprobadaPorDecano())) {
                 if (tramite.tieneTexto(ajuste.getUuidSituacionCancelar()))
-                    asignatura.setSituacionCancelar(tramite.situacionDe(catalogo, ajuste.getUuidSituacionCancelar(), SITUACION_CANCELAR, nombre));
+                    asignatura.setSituacionCancelar(tramite.situacionDe(catalogo, ajuste.getUuidSituacionCancelar()));
             } else if (tramite.tieneTexto(ajuste.getUuidSituacionCancelar())) {
                 formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.SITUACION_CANCELAR_RECHAZADA, nombre));
             }
             asignatura.setObservacionDecision(observacionDecision);
         }
-        for (AsignaturaSolicitudAcademica asignatura : asignaturas)
-            if (Boolean.TRUE.equals(asignatura.getAprobadaPorDecano()) && asignatura.getSituacionCancelar() == null)
-                formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.DATO_ASIGNATURA_FALTANTE, SITUACION_CANCELAR,
-                        tramite.nombreDe(asignatura)));
     }
 
     private Boolean cumpleDe(EvaluacionAsignatura evaluacion, String nota, String nombre) {

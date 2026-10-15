@@ -1,13 +1,16 @@
 package com.unicauca.cfiet.solicitudes.infraestructura.input.controladorExamenesSupletorios.controlador;
 
 import com.unicauca.cfiet.solicitudes.aplicacion.input.ConsultaExamenSupletorioCUIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.input.DocenteCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.ExamenSupletorioCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.TramiteExamenSupletorioCUIntPuerto;
+import com.unicauca.cfiet.solicitudes.dominio.helper.PaginacionRespuestaDTO;
 import com.unicauca.cfiet.solicitudes.dominio.helper.constantes.ApplicationConstantes;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.SolicitudExamenSupletorio;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesMatricula.DTOPeticion.ObservacionDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorExamenesSupletorios.DTOPeticion.AprobacionComprobanteDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorExamenesSupletorios.DTOPeticion.RemisionSupletorioDTOPeticion;
+import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorExamenesSupletorios.DTORespuesta.DocenteDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorExamenesSupletorios.DTORespuesta.ExamenSupletorioDetalleDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorExamenesSupletorios.DTORespuesta.FormularioExamenSupletorioDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorExamenesSupletorios.DTORespuesta.RadicacionExamenSupletorioDTORespuesta;
@@ -36,11 +39,11 @@ public class ExamenSupletorioRestController {
     private static final String UUID_SOLICITUD = "/{uuidSolicitud:[0-9a-fA-F\\-]{36}}";
     private static final String FECHA_EXAMEN = "la fecha del examen no presentado";
     private static final String FECHA_CRUZADA = "la fecha del examen cruzado";
-    private static final String FECHA_ACORDADA = "la fecha acordada del supletorio";
 
     private final ExamenSupletorioCUIntPuerto radicacionCU;
     private final ConsultaExamenSupletorioCUIntPuerto consultaCU;
     private final TramiteExamenSupletorioCUIntPuerto tramiteCU;
+    private final DocenteCUIntPuerto docenteCU;
     private final MapperExamenSupletorioInfraestructuraDominio mapper;
 
     @PreAuthorize(ApplicationConstantes.ESTUDIANTE_ACCESO)
@@ -125,7 +128,21 @@ public class ExamenSupletorioRestController {
                                                 @RequestBody(required = false) AprobacionComprobanteDTOPeticion peticion,
                                                 @RequestHeader("Authorization") String token) {
         return accion(uuidSolicitud, token, () -> tramiteCU.aprobarComprobante(uuidSolicitud,
-                mapper.mapearFecha(peticion == null ? null : peticion.getFechaAcordadaExamen(), FECHA_ACORDADA), token.substring(7)));
+                peticion == null ? null : peticion.getObservacion(),
+                peticion == null ? null : peticion.getDocenteUuid(), token.substring(7)));
+    }
+
+    @PreAuthorize(ApplicationConstantes.FUNCIONARIO_ACADEMICO_ACCESO)
+    @Transactional(readOnly = true)
+    @GetMapping("/docentes")
+    public ResponseEntity<PaginacionRespuestaDTO<DocenteDTORespuesta>> buscarDocentes(
+            @RequestParam(value = "nombre", required = false) String nombre,
+            @RequestParam(value = "numeroDocumento", required = false) String numeroDocumento,
+            @RequestParam(value = "username", required = false) String username,
+            @RequestParam("pagina") int pagina,
+            @RequestParam("tamanio") int tamanio) {
+        return new ResponseEntity<>(mapper.mapearDocentesARespuesta(
+                docenteCU.buscarDocentes(nombre, numeroDocumento, username, pagina, tamanio)), HttpStatus.OK);
     }
 
     @PreAuthorize(ApplicationConstantes.FUNCIONARIO_ACADEMICO_ACCESO)

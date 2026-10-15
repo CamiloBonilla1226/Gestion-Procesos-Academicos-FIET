@@ -7,9 +7,12 @@ import { ObservacionDTOPeticion } from '../models/CancelacionMatricula/DTOReques
 import { AprobacionComprobanteDTOPeticion } from '../models/ExamenSupletorio/DTORequest/AprobacionComprobanteDTOPeticion';
 import { RadicacionExamenSupletorioDTOPeticion } from '../models/ExamenSupletorio/DTORequest/RadicacionExamenSupletorioDTOPeticion';
 import { RemisionSupletorioDTOPeticion } from '../models/ExamenSupletorio/DTORequest/RemisionSupletorioDTOPeticion';
+import { DocenteDTORespuesta } from '../models/ExamenSupletorio/DTOResponse/DocenteDTORespuesta';
 import { ExamenSupletorioDetalleDTORespuesta } from '../models/ExamenSupletorio/DTOResponse/ExamenSupletorioDetalleDTORespuesta';
 import { FormularioExamenSupletorioDTORespuesta } from '../models/ExamenSupletorio/DTOResponse/FormularioExamenSupletorioDTORespuesta';
 import { RadicacionExamenSupletorioDTORespuesta } from '../models/ExamenSupletorio/DTOResponse/RadicacionExamenSupletorioDTORespuesta';
+import { PaginacionRespuestaDTO } from '../models/PaginacionRespuestaDTO';
+import { armarParametros } from '../utils/parametros-http';
 
 @Injectable({
   providedIn: 'root'
@@ -49,12 +52,28 @@ export class ExamenSupletorioService {
 
   aprobarComprobante(
     uuidSolicitud: string,
-    peticion?: AprobacionComprobanteDTOPeticion
+    peticion: AprobacionComprobanteDTOPeticion
   ): Observable<ExamenSupletorioDetalleDTORespuesta> {
     return this.http.post<ExamenSupletorioDetalleDTORespuesta>(
       `${this.url}/${uuidSolicitud}/funcionario/comprobante/aprobar`,
-      peticion ?? null
+      peticion
     );
+  }
+
+  buscarDocentes(
+    filtro: { nombre?: string | null; numeroDocumento?: string | null; username?: string | null },
+    pagina: number,
+    tamanio: number
+  ): Observable<PaginacionRespuestaDTO<DocenteDTORespuesta>> {
+    return this.http.get<PaginacionRespuestaDTO<DocenteDTORespuesta>>(`${this.url}/docentes`, {
+      params: armarParametros({
+        nombre: filtro.nombre,
+        numeroDocumento: filtro.numeroDocumento,
+        username: filtro.username,
+        pagina,
+        tamanio
+      })
+    });
   }
 
   rechazarComprobante(uuidSolicitud: string, peticion: ObservacionDTOPeticion): Observable<ExamenSupletorioDetalleDTORespuesta> {

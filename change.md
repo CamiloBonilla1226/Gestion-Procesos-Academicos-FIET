@@ -2,6 +2,109 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-15 - Restauración de los procesos académicos y limpieza que no los borra (Tarea T12.27)
+- Qué se hizo: la limpieza de T12.24 había borrado los tres procesos con sus etapas, etiquetas y tipos de anexo, porque `TIPO_SOLICITUD_ACADEMICA` depende de `FUNCIONARIO_ACADEMICO`. Se restauraron en la base local con `seed-procesos-academicos.sql`, asignados a un Funcionario Académico creado por la API (`funcionario.academico`). `limpieza_local.sql` ahora conserva el catálogo y reasigna los procesos a `rootfiet` antes de borrar a los funcionarios. `backend/CLAUDE.md` tiene la regla de que el catálogo de procesos no se borra en ninguna limpieza.
+- Archivos:
+  - `limpieza_local.sql` (modificado, no se versiona)
+  - `backend/CLAUDE.md` (modificado)
+  - `.gitignore` (modificado: ignora `*.local.md`)
+  - `backend/pruebas/usuarios-prueba.local.md` (creado, ignorado por git; usuario y contraseña del funcionario creado)
+- Notas:
+  - Antes de restaurar se comparó el respaldo `../respaldos-bd/cfiet_20261015_010813.sql` con el seed. Coincidieron fila por fila en UUID, nombres, descripciones, formatos, obligatoriedad y etiquetas: 3 procesos, 8 etapas, 23 etiquetas y 11 tipos de anexo. Solo cambia el funcionario responsable, que era de usuarios ya borrados.
+  - Verificación:
+    - `GET catalogos-academicos/tipos-solicitud` devuelve 3.
+    - La pantalla Responsable por proceso usa `GET tipos-solicitud`, `GET funcionarios-academicos/paginado` y `PUT tipos-solicitud/{uuid}/funcionario`; los tres respondieron 200 con el funcionario nuevo y sus 3 procesos.
+    - Los tres endpoints de radicación pasaron la búsqueda del proceso y se detuvieron en la validación de anexos.
+    - La solicitud de prueba que llegó a crearse se borró junto con su estudiante temporal.
+  - Limpieza: como `FuncionarioAcademico_uuid` es obligatorio y solo debe quedar `rootfiet`, la limpieza le da a `rootfiet` una fila en `FUNCIONARIO_ACADEMICO` (cargo "Responsable temporal de los procesos") y le reasigna los tres procesos. No cambia el esquema. `rootfiet` no tiene el rol Funcionario Académico, así que no tramita solicitudes. Después de una limpieza se crea el funcionario real y se le asignan los procesos en Responsable por proceso; el seed solo hace falta en una base que ya los perdió.
+  - La limpieza también borra `NOTIFICACION_DOCENTE` (T12.28) y al final muestra los conteos del catálogo.
+  - Se probó dos veces sobre una copia temporal de la base (`cfiet_prueba_limpieza`, borrada después): dejó solo a `rootfiet`, los tres procesos a su cargo y el catálogo en 3, 8, 23 y 11. La base `cfiet` real no se limpió.
+
+## 2026-10-15 - Datos opcionales en las cancelaciones, aprobación del pago del supletorio con profesor y notificaciones del docente (Tarea T12.28)
+- Qué se hizo:
+  - Parte 1: en las dos cancelaciones, faltas, nota, situación en la matrícula y situación al cancelar dejan de ser obligatorias al remitir y al responder (backend y frontend); un valor vacío se ve como guion.
+  - Parte 2: en Cancelación de Matrícula el Decano ya no registra situaciones: `decano/aprobar` solo recibe `observacion` y un `situaciones` que llegue se ignora, y la tabla del Decano es de solo lectura.
+  - Parte 3: el paso de aprobar el comprobante del supletorio pierde la fecha acordada (columna en desuso) y gana "Observación para el estudiante (opcional)", que el Estudiante ve en su respuesta y no en el historial.
+  - Parte 4: al aprobar el pago el Funcionario debe elegir un profesor activo con rol Docente, buscado con `GET examenes-supletorios/docentes`; en la misma transacción se guarda en la solicitud y se crea su notificación.
+  - Docente: opción "Notificaciones" con lista y detalle de solo lectura, que se marca como leída al abrirse y solo muestra lo propio.
+  - Tablas: `NOTIFICACION_DOCENTE` y `SOLICITUD_EXAMEN_SUPLETORIO.Docente_uuid` creadas y aplicadas en la base local.
+- Archivos:
+  - Backend, casos de uso y dominio:
+    - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/servicios/TramiteCancelacion.java` (modificado)
+    - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/TramiteCancelacionMatriculaCUImplAdaptador.java` (modificado)
+    - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/TramiteCancelacionAsignaturaCUImplAdaptador.java` (modificado)
+    - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/TramiteExamenSupletorioCUImplAdaptador.java` (modificado)
+    - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/DocenteCUImplAdaptador.java` (creado)
+    - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/NotificacionDocenteCUImplAdaptador.java` (creado)
+    - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/modelos/Docente.java`, `NotificacionDocente.java`, `DetalleNotificacionDocente.java` (creado)
+    - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/modelos/SolicitudExamenSupletorio.java` (modificado)
+    - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/modelos/SituacionCancelarAsignatura.java` (eliminado)
+    - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/helper/constantes/ApplicationConstantes.java` (modificado: `DOCENTE_ROL`, `DOCENTE_ACCESO`)
+  - Backend, puertos:
+    - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/aplicacion/input/TramiteCancelacionMatriculaCUIntPuerto.java`, `TramiteExamenSupletorioCUIntPuerto.java` (modificado)
+    - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/aplicacion/input/DocenteCUIntPuerto.java`, `NotificacionDocenteCUIntPuerto.java` (creado)
+    - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/aplicacion/output/SolicitudExamenSupletorioGatewayIntPuerto.java` (modificado)
+    - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/aplicacion/output/DocenteGatewayIntPuerto.java`, `NotificacionDocenteGatewayIntPuerto.java` (creado)
+  - Backend, persistencia:
+    - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/output/persistencia/entidades/SolicitudExamenSupletorioEntidad.java` (modificado)
+    - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/output/persistencia/entidades/NotificacionDocenteEntidad.java` (creado)
+    - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/output/persistencia/repositorios/DocenteRepositorio.java`, `NotificacionDocenteRepositorio.java` (creado)
+    - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/output/persistencia/mapeador/ownMapper/DocenteOwnMapper.java`, `NotificacionDocenteOwnMapper.java` (creado)
+    - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/output/persistencia/mapeador/ownMapper/SolicitudExamenSupletorioOwnMapper.java` (modificado)
+    - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/output/persistencia/gateway/DocenteGatewayImplAdaptador.java`, `NotificacionDocenteGatewayImplAdaptador.java` (creado)
+    - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/output/persistencia/gateway/SolicitudExamenSupletorioGatewayImplAdaptador.java` (modificado)
+  - Backend, entrada y configuración:
+    - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorCancelacionesMatricula/controlador/CancelacionMatriculaRestController.java`, `mapeador/MapperCancelacionMatriculaInfraestructuraDominio.java` (modificado)
+    - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorCancelacionesMatricula/DTOPeticion/AprobacionDecanoDTOPeticion.java`, `SituacionCancelarDTOPeticion.java` (eliminado)
+    - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorExamenesSupletorios/controlador/ExamenSupletorioRestController.java`, `mapeador/MapperExamenSupletorioInfraestructuraDominio.java`, `DTOPeticion/AprobacionComprobanteDTOPeticion.java`, `DTORespuesta/ExamenSupletorioDetalleDTORespuesta.java` (modificado)
+    - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorExamenesSupletorios/DTORespuesta/DocenteDTORespuesta.java`, `DocenteAsignadoDTORespuesta.java` (creado)
+    - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorNotificacionesDocente/` (creado: controlador, mapper y tres DTO de respuesta)
+    - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/configuracion/BeanConfiguracion.java`, `infraestructura/configuracion/seguridad/configuracion/ConfiguracionSeguridad.java`, `infraestructura/output/manejadorExcepciones/MensajesError.java` (modificado)
+  - Backend, pruebas:
+    - `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/DocenteCUImplAdaptadorTest.java`, `NotificacionDocenteCUImplAdaptadorTest.java` (creado)
+    - `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/TramiteCancelacionMatriculaCUImplAdaptadorTest.java`, `TramiteCancelacionAsignaturaCUImplAdaptadorTest.java`, `TramiteExamenSupletorioCUImplAdaptadorTest.java`, `ConsultaExamenSupletorioCUImplAdaptadorTest.java`, `ExamenSupletorioCUImplAdaptadorTest.java` (modificado)
+    - `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/dominio/servicios/TramiteCancelacionTest.java`, `infraestructura/configuracion/seguridad/configuracion/ConfiguracionSeguridadRolesTest.java`, `infraestructura/input/controladorCancelacionesMatricula/MapperCancelacionMatriculaInfraestructuraDominioTest.java`, `infraestructura/input/controladorExamenesSupletorios/MapperExamenSupletorioInfraestructuraDominioTest.java` (modificado)
+    - `backend/pruebas/comun.ps1` (perfil Docente), `t6_cancelacion_matricula.ps1`, `t7_cancelacion_asignatura.ps1`, `t8_examen_supletorio.ps1`, `matriz-permisos.ps1` (modificado)
+  - Frontend, código:
+    - `frontend/src/app/shared/pages/content/cancelacion-matricula-proceso-component/`, `cancelacion-asignatura-proceso-component/`, `examen-supletorio-proceso-component/`, `detalle-solicitud-academica-component/` (`.ts`, `.html` y spec) (modificado)
+    - `frontend/src/app/core/utils/validaciones-academicas.ts`, `core/constantes/etiquetas-academicas.ts`, `core/constantes/procesos-academicos.ts`, `app.routes.ts`, `app.routes.server.ts` (modificado)
+    - `frontend/src/app/core/services/cancelacion-matricula-service.ts`, `examen-supletorio-service.ts` (y sus spec) (modificado)
+    - `frontend/src/app/core/services/notificacion-docente-service.ts` (y spec) (creado)
+    - `frontend/src/app/core/models/CancelacionMatricula/DTORequest/EvaluacionAsignaturaDTOPeticion.ts`, `core/models/CancelacionAsignatura/DTORequest/EvaluacionCancelacionAsignaturaDTOPeticion.ts`, `core/models/ExamenSupletorio/DTORequest/AprobacionComprobanteDTOPeticion.ts`, `core/models/ExamenSupletorio/DTOResponse/ExamenSupletorioDetalleDTORespuesta.ts` (modificado)
+    - `frontend/src/app/core/models/CancelacionMatricula/DTORequest/AprobacionDecanoDTOPeticion.ts`, `SituacionCancelarDTOPeticion.ts` (eliminado)
+    - `frontend/src/app/core/models/ExamenSupletorio/DTOResponse/DocenteDTORespuesta.ts`, `DocenteAsignadoDTORespuesta.ts`, `core/models/NotificacionDocente/` (creado)
+  - Frontend, vistas nuevas:
+    - `frontend/src/app/shared/others/selector-docente-component/` (creado, con spec)
+    - `frontend/src/app/shared/pages/content/doc-notificaciones-content-component/`, `doc-detalle-notificacion-content-component/` (creado, con spec)
+    - `frontend/src/app/shared/pages/doc-notificaciones-component/`, `doc-detalle-notificacion-component/` (creado)
+    - `frontend/src/app/core/docente/pages/` (creado)
+    - `frontend/src/app/core/usuario fiet/components/side-bar-usuario-fiet-component/` (`.ts`, `.html` y spec) (modificado)
+  - Documentación:
+    - `docs/database/script_bd_extension.sql`, `docs/database/diccionario-datos-extension.md`, `docs/database/etapas-por-proceso.md` (P50 a P53) (modificado)
+    - `docs/api/contrato-api-procesos-academicos.md`, `backend/CLAUDE.md`, `frontend/CLAUDE.md` (D-F44), `CLAUDE.md`, `README.md`, `.claude/skills/extender-frontend-fiet/SKILL.md` (modificado: conteos de 20 tablas y 71 endpoints)
+- Notas:
+  - Parte 2: se eligió ignorar las situaciones que envíe el Decano, no rechazarlas, siguiendo el criterio de `requisitosVerificados` de T12.16.
+  - Esquema: el script es idempotente (sección 13: `ALTER` condicional con `information_schema`). Se aplicó dos veces en la base local tras un respaldo en `../respaldos-bd/` y Hibernate arrancó sin duplicar FK. Las columnas de la Parte 1 ya eran nullable; `fechaAcordadaExamen` ya era nullable y sigue en la entidad, pero fuera del dominio y la API.
+  - Docente: un Docente que pide la notificación de otro recibe el error de no encontrado (código 3), como el control de dueño de `AccesoRecursoConsejoCUImplAdaptador`. La matriz no tiene columna Docente: sus cuatro filas nuevas quedan denegadas para los demás roles.
+  - Sidebar de Julián: su arreglo de botones pasó a una propiedad del componente, y su spec ahora inyecta un `AuthService` simulado.
+  - Pruebas: 11 clases de backend (493 pruebas), 207 specs de frontend en las carpetas tocadas, humo t6 (109), t7 (141), t8 (154) y matriz (462), todo sin fallos. La verificación manual por API pasó 27 de 27, con limpieza.
+  - Bundle inicial: 838,77 kB, bajo el límite de 840. No se corrió la suite completa, así que la cifra de 1233 pruebas de `backend/CLAUDE.md` no se actualizó.
+  - T12.17 no estaba aplicada (no hay rastro en el repositorio); T12.16 no choca.
+
+## 2026-10-15 - Carga de asignaturas por programa (Tarea T12.26)
+- Qué se hizo: script que lee el plan de estudios de cuatro programas y crea cada asignatura con `POST asignaturas` como `rootfiet`, separando nombres agrupados y quitando "(con laboratorio)"; se ejecutó contra la base local.
+- Archivos:
+  - `backend/pruebas/asignaturas-programas.txt` (creado)
+  - `backend/pruebas/cargar-asignaturas.ps1` (creado)
+- Notas: el backend rechaza un nombre repetido en el mismo programa, así que las de los semestres 1 a 4 se crean una sola vez. El script salta las que ya existen por nombre en su programa y se puede repetir. La asignatura no guarda semestre ni grupo.
+
+## 2026-10-15 - Limpieza de la base local (Tarea T12.24)
+- Qué se hizo: se reescribió `limpieza_local.sql` para dejar la base local como nueva con `rootfiet` como único usuario, y se ejecutó contra el contenedor `backend-cfiet_database-1` (base `cfiet`) después de un respaldo con `mysqldump` en `../respaldos-bd/`. Se vació `backend/uploads` salvo su `README`. Se documentó el orden para dejar el sistema listo después de la limpieza.
+- Archivos:
+  - `limpieza_local.sql` (modificado, no se versiona)
+  - `backend/CLAUDE.md` (modificado)
+- Notas: se conservan `roles` (11), `tiposUsuario` (8), `PROGRAMA_ACADEMICO` (5, consecutivo en 0), `SITUACION_ACADEMICA_ASIGNATURA` (4) y las 6 etapas sin tipo con sus 17 etiquetas. No hay columnas `AUTO_INCREMENT` que reiniciar. Se corrió dos veces; la segunda no borró filas. El hash y el estado de `rootfiet` no cambiaron, el backend arrancó sin errores y `POST sesiones` con `rootfiet` respondió 200. El respaldo incluye una copia de `backend/uploads`.
+
 ## 2026-10-15 - Secretaria sin rutas de más y PUT de solicitudes con dueño (Tarea T12.23)
 - Qué se hizo: se quitó Secretaria Decanatura FIET de GET `solicitudes/{uuid}`, GET `respuestas/paginado/funcionario*` y PATCH `respuestas/{uuid}/archivo`. En PUT `solicitudes/{uuid}`, `AccesoRecursoConsejoCUImplAdaptador.verificarActualizacionSolicitud` exige que el Funcionario sea el asignado y le impide reasignar; el Secretario General y el Decano no cambian. Una solicitud inexistente responde con código 3 en vez de 500.
 - Archivos:

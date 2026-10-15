@@ -73,11 +73,23 @@ describe('ExamenSupletorioService', () => {
     expect(cuerpo.get('tipoCausa')).toBe('otra');
   });
 
-  it('aprueba el comprobante sin cuerpo cuando no hay fecha acordada', () => {
-    servicio.aprobarComprobante('s-1').subscribe();
+  it('aprueba el comprobante con el profesor y la observacion para el estudiante', () => {
+    servicio.aprobarComprobante('s-1', { observacion: 'Presentarse el lunes', docenteUuid: 'doc-1' }).subscribe();
     const req = http.expectOne(`${url}/s-1/funcionario/comprobante/aprobar`);
-    expect(req.request.body).toBeNull();
+    expect(req.request.body).toEqual({ observacion: 'Presentarse el lunes', docenteUuid: 'doc-1' });
     req.flush({});
+  });
+
+  it('busca docentes con filtros opcionales y paginado, sin enviar los vacios', () => {
+    servicio.buscarDocentes({ nombre: 'Ana', numeroDocumento: '', username: null }, 0, 5).subscribe();
+    const req = http.expectOne(r => r.url === `${url}/docentes`);
+    expect(req.request.method).toBe('GET');
+    expect(req.request.params.get('nombre')).toBe('Ana');
+    expect(req.request.params.has('numeroDocumento')).toBeFalse();
+    expect(req.request.params.has('username')).toBeFalse();
+    expect(req.request.params.get('pagina')).toBe('0');
+    expect(req.request.params.get('tamanio')).toBe('5');
+    req.flush({ content: [], totalElements: 0 });
   });
 
   it('envia responder con el mensaje para el estudiante y el rechazo del Decano con observacion nula', () => {

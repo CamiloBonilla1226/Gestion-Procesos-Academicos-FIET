@@ -39,6 +39,13 @@ public class SolicitudExamenSupletorioEntidad implements Persistable<String> {
     private LocalDateTime fechaAcordadaExamen;
     @Column(name = "tipoCausa", nullable = false, columnDefinition = "enum('cruce','otra')")
     private String tipoCausa;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+            name = "Docente_uuid",
+            columnDefinition = "varchar(100)",
+            foreignKey = @ForeignKey(name = "fk_solsup_docente")
+    )
+    private UsuarioEntidad docente;
     @Transient
     private boolean nuevo;
 

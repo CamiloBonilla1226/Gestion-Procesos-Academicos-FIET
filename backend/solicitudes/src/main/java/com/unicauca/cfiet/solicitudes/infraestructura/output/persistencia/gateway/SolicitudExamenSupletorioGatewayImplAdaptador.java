@@ -11,11 +11,10 @@ import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.reposi
 import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.repositorios.SolicitudAcademicaRepositorio;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.repositorios.SolicitudExamenSupletorioRepositorio;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.repositorios.SolicitudSupletorioCruceAsignaturaRepositorio;
+import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.repositorios.UsuarioRepositorio;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +23,7 @@ public class SolicitudExamenSupletorioGatewayImplAdaptador implements SolicitudE
     private final SolicitudSupletorioCruceAsignaturaRepositorio cruceRepositorio;
     private final SolicitudAcademicaRepositorio solicitudRepositorio;
     private final AsignaturaMatriculadaRepositorio asignaturaMatriculadaRepositorio;
+    private final UsuarioRepositorio usuarioRepositorio;
     private final SolicitudExamenSupletorioOwnMapper mapper;
     private final SolicitudSupletorioCruceAsignaturaOwnMapper cruceMapper;
 
@@ -52,9 +52,9 @@ public class SolicitudExamenSupletorioGatewayImplAdaptador implements SolicitudE
 
     @Override
     @Transactional
-    public void actualizarFechaAcordada(String uuidSolicitudAcademica, LocalDateTime fechaAcordadaExamen) {
+    public void asignarDocente(String uuidSolicitudAcademica, String uuidDocente) {
         SolicitudExamenSupletorioEntidad entidad = repositorio.findById(uuidSolicitudAcademica).orElseThrow();
-        entidad.setFechaAcordadaExamen(fechaAcordadaExamen);
+        entidad.setDocente(usuarioRepositorio.getReferenceById(uuidDocente));
         repositorio.saveAndFlush(entidad);
     }
 

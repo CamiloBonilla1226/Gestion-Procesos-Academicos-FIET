@@ -24,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,6 +51,8 @@ class TramiteExamenSupletorioCUImplAdaptadorTest {
     private static final String TOKEN_ESTUDIANTE = "token-est";
     private static final String TOKEN_OTRO_ESTUDIANTE = "token-est2";
     private static final LocalDate FECHA_EXAMEN = LocalDate.of(2026, 10, 5);
+    private static final String DOCENTE = "doc-1";
+    private static final Clock RELOJ = Clock.fixed(Instant.parse("2026-10-06T15:00:00Z"), ZoneId.of("America/Bogota"));
 
     @Mock
     private SolicitudExamenSupletorioGatewayIntPuerto gateway;
@@ -86,6 +89,12 @@ class TramiteExamenSupletorioCUImplAdaptadorTest {
 
     @Mock
     private LogCUIntPuerto log;
+
+    @Mock
+    private DocenteGatewayIntPuerto docenteGateway;
+
+    @Mock
+    private NotificacionDocenteGatewayIntPuerto notificacionGateway;
 
     private TramiteExamenSupletorioCUImplAdaptador casoDeUso;
     private AsignaturaMatriculada asignatura;
@@ -128,8 +137,8 @@ class TramiteExamenSupletorioCUImplAdaptadorTest {
         return (cu, token) -> cu.subirComprobante(SOLICITUD, token);
     }
 
-    private static Accion aprobarComprobante(LocalDate fecha) {
-        return (cu, token) -> cu.aprobarComprobante(SOLICITUD, fecha, token);
+    private static Accion aprobarComprobante(String observacion, String docente) {
+        return (cu, token) -> cu.aprobarComprobante(SOLICITUD, observacion, docente, token);
     }
 
     private static Accion rechazarComprobante(String observacion) {
@@ -145,7 +154,7 @@ class TramiteExamenSupletorioCUImplAdaptadorTest {
                 Arguments.of("enviarRespuesta", enviarRespuesta(), RECHAZADA_POR_DECANO, RECHAZADA, TOKEN_FUNCIONARIO, TOKEN_DECANO),
                 Arguments.of("enviarRecibo", enviarRecibo(), APROBADA_POR_DECANO, PENDIENTE_PAGO, TOKEN_FUNCIONARIO, TOKEN_ESTUDIANTE),
                 Arguments.of("subirComprobante", subirComprobante(), PENDIENTE_PAGO, EN_VERIFICACION_PAGO, TOKEN_ESTUDIANTE, TOKEN_FUNCIONARIO),
-                Arguments.of("aprobarComprobante", aprobarComprobante(null), EN_VERIFICACION_PAGO, APROBADA, TOKEN_FUNCIONARIO, TOKEN_DECANO),
+                Arguments.of("aprobarComprobante", aprobarComprobante(null, DOCENTE), EN_VERIFICACION_PAGO, APROBADA, TOKEN_FUNCIONARIO, TOKEN_DECANO),
                 Arguments.of("rechazarComprobante", rechazarComprobante("Comprobante ilegible"), EN_VERIFICACION_PAGO, RECHAZADA, TOKEN_FUNCIONARIO, TOKEN_ESTUDIANTE));
     }
 
@@ -191,9 +200,11 @@ class TramiteExamenSupletorioCUImplAdaptadorTest {
         MaquinaEtapas maquina = new MaquinaEtapas(formateador);
         SolicitudAcademicaCUImplAdaptador solicitudCU = new SolicitudAcademicaCUImplAdaptador(solicitudGateway, estudianteGateway,
                 tipoSolicitudGateway, etapaGateway, resolucionGateway, anexoGateway, usuarioGateway, almacenamiento, maquina, formateador, log,
-                Clock.fixed(Instant.parse("2026-10-06T15:00:00Z"), ZoneId.of("America/Bogota")));
+                RELOJ);
         casoDeUso = new TramiteExamenSupletorioCUImplAdaptador(gateway, solicitudGateway, usuarioGateway, sesionGateway, jwtServicio,
-                solicitudCU, maquina, formateador, log);
+                docenteGateway, notificacionGateway, solicitudCU, maquina, formateador, log, RELOJ);
+        lenient().when(docenteGateway.getActivo(DOCENTE)).thenReturn(Docente.builder().uuidUsuario(DOCENTE).nombres("Ana").apellidos("Ruiz")
+                .numeroDocumento("1061").username("aruiz").build());
 
         sesion(TOKEN_FUNCIONARIO, usuario(FUNCIONARIO, "Funcionario Académico"));
         sesion(TOKEN_OTRO_FUNCIONARIO, usuario(OTRO_FUNCIONARIO, "Funcionario Académico"));
@@ -216,7 +227,8 @@ class TramiteExamenSupletorioCUImplAdaptadorTest {
 
     private void verificarQueNoSeEscribioNada() {
         verify(solicitudGateway, never()).actualizarEtapa(any(), any());
-        verify(gateway, never()).actualizarFechaAcordada(any(), any());
+        verify(gateway, never()).asignarDocente(any(), any());
+        verify(notificacionGateway, never()).crear(any());
         verify(resolucionGateway, never()).eliminarPorSolicitud(any());
         verify(log, never()).crearLog(any(), any(), any());
     }
@@ -253,7 +265,6 @@ class TramiteExamenSupletorioCUImplAdaptadorTest {
         assertEquals("activa", asignatura.getEstado());
         verify(resolucionGateway, never()).eliminarPorSolicitud(any());
         verify(almacenamiento, never()).eliminarTrasConfirmar(any());
-        verify(gateway, never()).actualizarFechaAcordada(any(), any());
         verifyNoInteractions(estudianteGateway);
         verify(log).crearLog(eq("Cambiar etapa de solicitud académica"), contains(destino), eq(token));
     }
@@ -391,54 +402,98 @@ class TramiteExamenSupletorioCUImplAdaptadorTest {
         assertEquals(RECHAZADA, etapaGuardada());
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"2026-10-05", "2026-10-20"})
-    void aprobarElComprobanteGuardaLaFechaAcordadaSiNoEsAnteriorAlExamen(LocalDate fecha) {
+    @Test
+    void aprobarElComprobanteAsignaElProfesorYLeCreaLaNotificacion() {
         enEtapa(EN_VERIFICACION_PAGO);
 
-        SolicitudExamenSupletorio resultado = casoDeUso.aprobarComprobante(SOLICITUD, fecha, TOKEN_FUNCIONARIO);
+        SolicitudExamenSupletorio resultado = casoDeUso.aprobarComprobante(SOLICITUD, null, DOCENTE, TOKEN_FUNCIONARIO);
 
         assertEquals(APROBADA, etapaGuardada());
-        verify(gateway).actualizarFechaAcordada(SOLICITUD, fecha.atStartOfDay());
-        assertEquals(fecha.atStartOfDay(), resultado.getFechaAcordadaExamen());
-        verify(log).crearLog(eq("Acordar fecha de examen supletorio"), contains(fecha.getDayOfMonth() + "/10/2026"), eq(TOKEN_FUNCIONARIO));
+        verify(gateway).asignarDocente(SOLICITUD, DOCENTE);
+        assertEquals(DOCENTE, resultado.getDocente().getUuidUsuario());
+        ArgumentCaptor<NotificacionDocente> captor = ArgumentCaptor.forClass(NotificacionDocente.class);
+        verify(notificacionGateway).crear(captor.capture());
+        NotificacionDocente notificacion = captor.getValue();
+        assertEquals(SOLICITUD, notificacion.getUuidSolicitudAcademica());
+        assertEquals(DOCENTE, notificacion.getDocente().getUuidUsuario());
+        assertEquals("Examen supletorio aprobado, radicado 2026-ES-0001", notificacion.getTitulo());
+        assertEquals(LocalDateTime.of(2026, 10, 6, 10, 0), notificacion.getFechaCreacion());
+        assertNull(notificacion.getFechaLectura());
+        assertNotNull(notificacion.getUuidNotificacion());
+        verify(log).crearLog(eq("Asignar profesor de examen supletorio"), contains("Ana Ruiz"), eq(TOKEN_FUNCIONARIO));
     }
 
     @Test
-    void unaFechaAcordadaAnteriorAlExamenSeRechazaSinEscribir() {
+    void laObservacionParaElEstudianteQuedaEnElHistorialDeLaAprobacion() {
         enEtapa(EN_VERIFICACION_PAGO);
 
-        assertEquals(String.format(MensajesError.FECHA_ACORDADA_ANTERIOR, "04/10/2026", "05/10/2026"),
-                falla(aprobarComprobante(LocalDate.of(2026, 10, 4)), TOKEN_FUNCIONARIO));
+        casoDeUso.aprobarComprobante(SOLICITUD, " Presentarse el lunes ", DOCENTE, TOKEN_FUNCIONARIO);
+
+        assertEquals("Presentarse el lunes", historialGuardado().getObservaciones());
+        assertEquals("APROBAR_COMPROBANTE", historialGuardado().getAccion());
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = {"", "   "})
+    void aprobarElPagoSinProfesorSeRechazaSinEscribir(String docente) {
+        enEtapa(EN_VERIFICACION_PAGO);
+
+        assertEquals(MensajesError.DOCENTE_SUPLETORIO_REQUERIDO, falla(aprobarComprobante(null, docente), TOKEN_FUNCIONARIO));
     }
 
     @Test
-    void laFechaAcordadaNoSeValidaSiLaEtapaOElActorSonEquivocados() {
+    void unProfesorQueNoEsDocenteActivoRespondeComoInexistente() {
+        enEtapa(EN_VERIFICACION_PAGO);
+        when(docenteGateway.getActivo("doc-x")).thenReturn(null);
+
+        ErrorEntidadNoExisteExcepcion error = assertThrows(ErrorEntidadNoExisteExcepcion.class,
+                () -> casoDeUso.aprobarComprobante(SOLICITUD, null, "doc-x", TOKEN_FUNCIONARIO));
+
+        assertEquals(String.format(MensajesError.ENTIDAD_NO_ENCONTRADA, "Docente", "doc-x"), error.getMessage());
+        verificarQueNoSeEscribioNada();
+    }
+
+    @Test
+    void elProfesorNoSeValidaSiLaEtapaOElActorSonEquivocados() {
         enEtapa(PENDIENTE_PAGO);
-        assertFalse(falla(aprobarComprobante(LocalDate.of(2026, 10, 4)), TOKEN_FUNCIONARIO).contains("fecha acordada"));
+        assertFalse(falla(aprobarComprobante(null, null), TOKEN_FUNCIONARIO).contains("profesor"));
         enEtapa(EN_VERIFICACION_PAGO);
-        falla(aprobarComprobante(LocalDate.of(2026, 10, 4)), TOKEN_DECANO);
+        assertFalse(falla(aprobarComprobante(null, null), TOKEN_DECANO).contains("profesor"));
+        verify(docenteGateway, never()).getActivo(any());
     }
 
     @Test
-    void siFallaGuardarLaFechaAcordadaElErrorSePropagaSinElLogDeLaFecha() {
-        enEtapa(EN_VERIFICACION_PAGO);
-        doThrow(new RuntimeException("falla de base")).when(gateway).actualizarFechaAcordada(any(), any());
-
-        assertThrows(RuntimeException.class, () -> casoDeUso.aprobarComprobante(SOLICITUD, LocalDate.of(2026, 10, 20), TOKEN_FUNCIONARIO));
-
-        verify(log, never()).crearLog(eq("Acordar fecha de examen supletorio"), any(), any());
-    }
-
-    @Test
-    void siFallaElCambioDeEtapaNoSeGuardaLaFecha() {
+    void siFallaElCambioDeEtapaNoSeAsignaProfesorNiSeNotifica() {
         enEtapa(EN_VERIFICACION_PAGO);
         when(solicitudGateway.actualizarEtapa(any(), any())).thenThrow(new RuntimeException("falla de base"));
 
-        assertThrows(RuntimeException.class, () -> casoDeUso.aprobarComprobante(SOLICITUD, LocalDate.of(2026, 10, 20), TOKEN_FUNCIONARIO));
+        assertThrows(RuntimeException.class, () -> casoDeUso.aprobarComprobante(SOLICITUD, null, DOCENTE, TOKEN_FUNCIONARIO));
 
-        verify(gateway, never()).actualizarFechaAcordada(any(), any());
+        verify(gateway, never()).asignarDocente(any(), any());
+        verify(notificacionGateway, never()).crear(any());
         verify(log, never()).crearLog(any(), any(), any());
+    }
+
+    @Test
+    void siFallaLaNotificacionElErrorSePropagaParaElRollback() {
+        enEtapa(EN_VERIFICACION_PAGO);
+        when(notificacionGateway.crear(any())).thenThrow(new RuntimeException("falla de base"));
+
+        assertThrows(RuntimeException.class, () -> casoDeUso.aprobarComprobante(SOLICITUD, null, DOCENTE, TOKEN_FUNCIONARIO));
+
+        verify(log, never()).crearLog(eq("Asignar profesor de examen supletorio"), any(), any());
+    }
+
+    @Test
+    void ningunaOtraAccionAsignaProfesorNiNotifica() {
+        enEtapa(EN_VERIFICACION_PAGO);
+
+        casoDeUso.rechazarComprobante(SOLICITUD, "Comprobante ilegible", TOKEN_FUNCIONARIO);
+
+        verify(gateway, never()).asignarDocente(any(), any());
+        verify(notificacionGateway, never()).crear(any());
+        verifyNoInteractions(docenteGateway);
     }
 
     @Test

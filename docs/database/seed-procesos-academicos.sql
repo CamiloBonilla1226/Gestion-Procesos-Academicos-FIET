@@ -61,7 +61,7 @@ INSERT IGNORE INTO TIPO_ANEXO_ACADEMICO (uuidTipoAnexoAcademico, TipoSolicitudAc
 ('6898eb98-f150-4784-8255-0eab0eb61edd', '3b6dccc9-ff78-48ef-8e66-05fb9932e302', 'Cupón de Confirmación de la Intervención Psicosocial - División de Salud Integral', 'pdf', 1),
 ('c756365a-f0c4-4e9a-9326-2946aeacd638', '3b6dccc9-ff78-48ef-8e66-05fb9932e302', 'Paz y salvo - División Financiera', 'pdf', 1),
 ('22ca9f7d-967d-44ba-87fa-103aa63b297f', '3b6dccc9-ff78-48ef-8e66-05fb9932e302', 'Carné estudiantil o constancia de no trámite - DARCA', 'pdf,jpg,jpeg,png', 1),
-('ee145c67-0f6e-4971-84b7-42679747ed49', '459cde47-f3a3-4a74-9b44-1063a516326c', 'Formato PM-FO-4-FOR-23 firmado por el docente que orienta la asignatura', 'pdf,jpg,png', 1),
+('ee145c67-0f6e-4971-84b7-42679747ed49', '459cde47-f3a3-4a74-9b44-1063a516326c', 'Formato firmado por el docente que orienta la asignatura', 'pdf,jpg,png', 1),
 ('2bfc61be-7787-4772-8b86-ca64488f2578', '459cde47-f3a3-4a74-9b44-1063a516326c', 'Soporte de la justificación de la no presentación', 'pdf,jpg,png', 0),
 ('3cba6336-4de6-492b-838d-602f28a9efbe', '459cde47-f3a3-4a74-9b44-1063a516326c', 'Formato firmado por el docente de la asignatura con la que se cruza', 'pdf,jpg,png', 0),
 ('422163e2-81b8-48f8-a054-2c40033de17c', '459cde47-f3a3-4a74-9b44-1063a516326c', 'Recibo de pago', 'pdf', 0),
@@ -75,3 +75,4 @@ INSERT IGNORE INTO SITUACION_ACADEMICA_ASIGNATURA (uuidSituacionAcademica, codig
 
 UPDATE ETAPA_ETIQUETA_ROL SET etiqueta = 'Pendiente Notificar' WHERE rol = 'FUNCIONARIO' AND Etapa_uuid IN ('1dfc0089-f1b0-486d-bfc5-2025081d800f', 'fa3c502f-dc81-46eb-bace-88deb194564b');
 UPDATE ETAPA_ETIQUETA_ROL SET etiqueta = 'Recibo Pagado' WHERE rol = 'FUNCIONARIO' AND Etapa_uuid = 'ac289652-cf4e-4142-bec4-8809cbcb74fc';
+UPDATE TIPO_ANEXO_ACADEMICO SET nombre = 'Formato firmado por el docente que orienta la asignatura' WHERE uuidTipoAnexoAcademico = 'ee145c67-0f6e-4971-84b7-42679747ed49';

@@ -1,9 +1,10 @@
 # Contrato de la API de los procesos académicos
 
-Este documento describe los 66 endpoints que la extensión agrega al backend:
+Este documento describe los 71 endpoints que la extensión agrega al backend:
 programas académicos y catálogo de asignaturas, estudiantes, funcionarios académicos, catálogos
-académicos, solicitudes académicas y los tres procesos (Cancelación de
-Matrícula, Cancelación de Asignatura y Examen Supletorio). Es la misma lista
+académicos, solicitudes académicas, los tres procesos (Cancelación de
+Matrícula, Cancelación de Asignatura y Examen Supletorio) y las notificaciones
+del docente del examen supletorio (T12.28). Es la misma lista
 que comprueba `backend/pruebas/matriz-permisos.ps1`, y cada dato sale de los
 controladores, DTO, casos de uso y `ConfiguracionSeguridad` del código.
 
@@ -105,7 +106,7 @@ Una solicitud que existe pero que el usuario no puede ver responde con
 | Cancelación de Matrícula | Cupón de Confirmación de la Intervención Psicosocial - División de Salud Integral | pdf | Sí |
 | Cancelación de Matrícula | Paz y salvo - División Financiera | pdf | Sí |
 | Cancelación de Matrícula | Carné estudiantil o constancia de no trámite - DARCA | pdf, jpg, jpeg, png | Sí |
-| Examen Supletorio | Formato PM-FO-4-FOR-23 firmado por el docente que orienta la asignatura | pdf, jpg, png | Sí |
+| Examen Supletorio | Formato firmado por el docente que orienta la asignatura | pdf, jpg, png | Sí |
 | Examen Supletorio | Soporte de la justificación de la no presentación | pdf, jpg, png | Si la causa es `otra` |
 | Examen Supletorio | Formato firmado por el docente de la asignatura con la que se cruza | pdf, jpg, png | Si la causa es `cruce` |
 | Examen Supletorio | Recibo de pago | pdf | Lo sube el Funcionario para pasar a PENDIENTE_PAGO |
@@ -157,13 +158,13 @@ código se ejecuta con este endpoint (`<proceso>` es `cancelaciones-matricula`,
 | Acción | Endpoint | Rol | Exige |
 | --- | --- | --- | --- |
 | RECHAZAR_FUNCIONARIO | `POST <proceso>/{uuid}/funcionario/rechazar` | Funcionario Académico | Observación; en cancelaciones, escaneo de la Resolución subido antes |
-| REMITIR_DECANO | `POST <proceso>/{uuid}/funcionario/remitir` | Funcionario Académico | Evaluaciones (cancelaciones) o `requisitosVerificados` (supletorio). Una sola `observacion`, opcional, para el Decano |
-| APROBAR_DECANO | `POST <proceso>/{uuid}/decano/aprobar` | Decano | Situaciones al cancelar (matrícula) o `aceptarEvaluacion` o `decisiones` por asignatura (asignatura). `observacion` opcional |
+| REMITIR_DECANO | `POST <proceso>/{uuid}/funcionario/remitir` | Funcionario Académico | Evaluaciones (cancelaciones); en el supletorio nada más (desde T12.16 no hay `requisitosVerificados`, P49). Una sola `observacion`, opcional, para el Decano |
+| APROBAR_DECANO | `POST <proceso>/{uuid}/decano/aprobar` | Decano | En matrícula nada (desde T12.28 el Decano no registra situaciones, P51); en asignatura `aceptarEvaluacion` o `decisiones` por asignatura. `observacion` opcional |
 | RECHAZAR_DECANO | `POST <proceso>/{uuid}/decano/rechazar` | Decano | Nada: `observacion` opcional |
 | ENVIAR_RESPUESTA | `POST <proceso>/{uuid}/funcionario/responder` | Funcionario Académico | En cancelaciones, escaneo de la Resolución subido antes. `observacion`: mensaje para el Estudiante, opcional salvo en Cancelación de Asignatura con rechazos del Decano; en ese proceso, además, `ajustes` (sección 3.7) |
 | ENVIAR_RECIBO | `POST examenes-supletorios/{uuid}/funcionario/recibo` | Funcionario Académico | Recibo de pago subido antes |
 | SUBIR_COMPROBANTE | `POST examenes-supletorios/{uuid}/estudiante/comprobante` | Estudiante | Comprobante de pago subido antes |
-| APROBAR_COMPROBANTE | `POST examenes-supletorios/{uuid}/funcionario/comprobante/aprobar` | Funcionario Académico | Fecha acordada opcional |
+| APROBAR_COMPROBANTE | `POST examenes-supletorios/{uuid}/funcionario/comprobante/aprobar` | Funcionario Académico | `docenteUuid` obligatorio (profesor con rol Docente y activo) y `observacion` opcional para el Estudiante (T12.28, P52) |
 | RECHAZAR_COMPROBANTE | `POST examenes-supletorios/{uuid}/funcionario/comprobante/rechazar` | Funcionario Académico | Observación |
 
 La observación de una acción admite hasta 500 caracteres. Las observaciones
@@ -173,10 +174,12 @@ le entrega la fila `REMITIR_DECANO` con `observaciones` nulo y no le entrega
 las filas `APROBAR_DECANO` ni `RECHAZAR_DECANO`, en ninguno de los tres
 procesos. La de `ENVIAR_RESPUESTA` es el mensaje del Funcionario al
 Estudiante y él sí la ve. La de `RECHAZAR_FUNCIONARIO` es obligatoria, es
-para el Estudiante y también la ve en su historial.
+para el Estudiante y también la ve en su historial. La de
+`APROBAR_COMPROBANTE` es opcional y también es para el Estudiante.
 
 Los endpoints cuyo cuerpo es opcional (`funcionario/responder`,
-`decano/rechazar` y `decano/aprobar` del supletorio, `comprobante/aprobar`)
+`decano/rechazar`, `decano/aprobar` del supletorio y de Cancelación de
+Matrícula)
 aceptan JSON, `{}` o ningún cuerpo sin `Content-Type`. Un POST sin cuerpo pero
 con otro `Content-Type` (por ejemplo `application/x-www-form-urlencoded`, que
 Windows PowerShell 5.1 manda por defecto) responde código 1 `Content-Type
@@ -543,7 +546,7 @@ en el sistema...` si el anexo no es de esa solicitud.
 | `POST cancelaciones-matricula/{uuidSolicitud}/funcionario/rechazar` | Funcionario Académico | `{observacion}` | CancelacionMatriculaDetalle |
 | `POST cancelaciones-matricula/{uuidSolicitud}/funcionario/remitir` | Funcionario Académico | `{observacion, evaluaciones}` | CancelacionMatriculaDetalle |
 | `POST cancelaciones-matricula/{uuidSolicitud}/funcionario/responder` | Funcionario Académico | `{observacion}` opcional (mensaje al Estudiante, máximo 500), `{}` o sin cuerpo | CancelacionMatriculaDetalle |
-| `POST cancelaciones-matricula/{uuidSolicitud}/decano/aprobar` | Decano | `{situaciones, observacion}`; `observacion` opcional | CancelacionMatriculaDetalle |
+| `POST cancelaciones-matricula/{uuidSolicitud}/decano/aprobar` | Decano | `{observacion}` opcional, `{}` o sin cuerpo; un `situaciones` que llegue se ignora (P51) | CancelacionMatriculaDetalle |
 | `POST cancelaciones-matricula/{uuidSolicitud}/decano/rechazar` | Decano | `{observacion}` opcional, `{}` o sin cuerpo | CancelacionMatriculaDetalle |
 
 El formulario lista los seis anexos obligatorios y las asignaturas activas
@@ -581,20 +584,22 @@ Cuerpos de las acciones:
 
 - `remitir`: `observacion` opcional y `evaluaciones`, una por asignatura de la
   solicitud: `{asignaturaSolicitudUuid, numeroFaltas, nota,
-  situacionMatriculaUuid, situacionCancelarUuid}`. `numeroFaltas` y `nota` se envían como texto o
-  como número y se guardan como texto de hasta 20 caracteres: si son
-  numéricos, `numeroFaltas` debe ser entero mayor o igual a 0 y `nota` de 0.0
-  a 5.0 con un decimal, con punto o coma (se guarda con punto, `3,5` queda
-  `3.5`); si no son numéricos (por ejemplo `Sin registro`) se aceptan tal
-  cual. `situacionMatriculaUuid` sale de `GET catalogos-academicos/situaciones`.
-  `situacionCancelarUuid` es opcional (P44): si llega se valida contra el
-  mismo catálogo y se guarda como situación al cancelar; el Decano la
-  confirma o la cambia al aprobar.
+  situacionMatriculaUuid, situacionCancelarUuid}`. Desde T12.28 (P50)
+  `numeroFaltas`, `nota`, `situacionMatriculaUuid` y `situacionCancelarUuid`
+  son opcionales: nulos, vacíos o en blanco se guardan como nulos. Si llegan,
+  `numeroFaltas` y `nota` se envían como texto o como número y se guardan
+  como texto de hasta 20 caracteres: si son numéricos, `numeroFaltas` debe
+  ser entero mayor o igual a 0 y `nota` de 0.0 a 5.0 con un decimal, con
+  punto o coma (se guarda con punto, `3,5` queda `3.5`); si no son numéricos
+  (por ejemplo `Sin registro`) se aceptan tal cual. Las situaciones salen de
+  `GET catalogos-academicos/situaciones` y se validan contra ese catálogo.
+  La situación al cancelar solo la registra el Funcionario (P44, P51).
   La `observacion` de la remisión es la única observación general del cuerpo,
   va para el Decano y el Estudiante no la ve.
-- `aprobar`: `situaciones`, una por asignatura:
-  `{asignaturaSolicitudUuid, situacionCancelarUuid}`, y `observacion`
-  opcional.
+- `aprobar`: solo `observacion`, opcional. El Decano no registra situaciones
+  académicas (P51): las de la tabla son las que dejó el Funcionario al
+  remitir, o ninguna. Si el cuerpo trae `situaciones` se ignoran sin error,
+  como el `requisitosVerificados` del supletorio (P49).
 - `rechazar` del Funcionario: `observacion` obligatoria y escaneo de la
   Resolución, subido antes con `POST solicitudes-academicas/{uuid}/resolucion`.
   `rechazar` del Decano: `observacion` opcional.
@@ -611,7 +616,6 @@ Errores de las evaluaciones y situaciones (además de los de la sección 1.6):
 | 4 | `Faltan datos de las asignaturas de la solicitud: <nombres separados por "; ">...` |
 | 4 | `La asignatura <nombre> viene más de una vez...` |
 | 4 | `La asignatura <uuid> no pertenece a la solicitud <radicado>...` |
-| 4 | `Falta <el número de faltas, la nota, la situación en la matrícula o la situación al cancelar> de la asignatura <nombre>...` |
 | 6 | `El número de faltas de la asignatura <nombre> debe ser un entero mayor o igual a 0...` |
 | 6 | `La nota de la asignatura <nombre> debe estar entre 0.0 y 5.0 con un decimal...` |
 | 3 | `Situación académica de asignatura con id <uuid> no fue encontrado en el sistema...` |
@@ -667,8 +671,8 @@ Cuerpos de las acciones:
 - `remitir`: `observacion` opcional y `evaluaciones`, una por asignatura:
   `{asignaturaSolicitudUuid, numeroFaltas, nota, situacionMatriculaUuid,
   situacionCancelarUuid, cumpleCondiciones, observacionEvaluacion}`. Faltas,
-  nota y `situacionCancelarUuid` (opcional, P44) como en Cancelación de
-  Matrícula. `cumpleCondiciones` es obligatorio; con una nota
+  nota y las dos situaciones son opcionales, como en Cancelación de
+  Matrícula (P44, P50). `cumpleCondiciones` es obligatorio; con una nota
   numérica menor a 3.0 no puede ser `true` (una nota de texto no tiene esa
   restricción). `observacionEvaluacion` es opcional (máximo 255) aunque
   no cumpla (P46). Al menos una asignatura debe cumplir.
@@ -690,14 +694,11 @@ Cuerpos de las acciones:
   `ajustes`, una entrada por asignatura `{asignaturaSolicitudUuid,
   situacionCancelarUuid, observacionDecision}` (observación de máximo 255).
   Reglas:
-  - Cada asignatura aprobada con `decisionCambiadaPorDecano` necesita su
-    ajuste. Las demás pueden traer uno, con las mismas reglas; una rechazada
-    no necesita ajuste aunque el Decano haya cambiado la evaluación (P47).
-  - Desde APROBADA_POR_DECANO, toda asignatura aprobada por el Decano debe
-    tener situación al cancelar: la guardada al remitir o el
-    `situacionCancelarUuid` de su ajuste, que la reemplaza. Si falta, código
-    4 con el nombre de la asignatura, haya cambiado o no la decisión. En el
-    ajuste de una aprobada `observacionDecision` es opcional.
+  - Ningún ajuste es obligatorio desde T12.28 (P50): una asignatura
+    aprobada, haya cambiado o no la decisión del Decano, puede quedar sin
+    situación al cancelar. Si su ajuste trae `situacionCancelarUuid`, se valida
+    contra el catálogo y reemplaza la guardada al remitir. En el ajuste de una
+    aprobada `observacionDecision` es opcional.
   - En el ajuste de una rechazada `observacionDecision` es opcional (máximo
     255, P47) y no acepta situación. Si llega, la ve el Estudiante en
     APROBADA o RECHAZADA.
@@ -721,8 +722,6 @@ la sección 3.6 y de la 1.6):
 | 4 | `Faltan datos de las asignaturas de la solicitud: <nombres>...` (falta la decisión de alguna asignatura) |
 | 4 | `Falta la decisión del Decano de la asignatura <nombre>...` (`aprobada` nulo) |
 | 4 | `No se aprobó ninguna asignatura: para negar la solicitud completa use el rechazo del Decano...` |
-| 4 | `El Decano cambió la evaluación de la asignatura <nombre> y falta su ajuste...` (solo una aprobada) |
-| 4 | `Falta la situación al cancelar de la asignatura <nombre>...` (aprobada sin situación guardada ni en su ajuste) |
 | 4 | `La asignatura <nombre> fue rechazada por el Decano y no lleva situación al cancelar...` |
 | 4 | `La solicitud <radicado> fue rechazada por el Decano y no admite ajustes por asignatura...` |
 | 4 | `El Decano rechazó la solicitud o alguna de sus asignaturas: la respuesta al estudiante requiere una observación...` |
@@ -732,7 +731,7 @@ la sección 3.6 y de la 1.6):
 | 6 | `La nota de la asignatura <nombre> es numérica y debe estar entre 0.0 y 5.0 con un decimal, con punto o coma; si no es un número se guarda como texto...` |
 | 6 | `En la asignatura <nombre>, el número de faltas supera los 20 caracteres permitidos...` (o `la nota`) |
 
-### 3.8 Exámenes supletorios (12)
+### 3.8 Exámenes supletorios (13)
 
 | Método y ruta | Roles | Cuerpo | Respuesta |
 | --- | --- | --- | --- |
@@ -740,14 +739,15 @@ la sección 3.6 y de la 1.6):
 | `POST examenes-supletorios` | Estudiante | Multipart (ver abajo) | `{uuidSolicitudAcademica, radicado}` |
 | `GET examenes-supletorios/{uuidSolicitud}` | Estudiante, Funcionario Académico, Decano | | ExamenSupletorioDetalle |
 | `POST examenes-supletorios/{uuidSolicitud}/funcionario/rechazar` | Funcionario Académico | `{observacion}` | ExamenSupletorioDetalle |
-| `POST examenes-supletorios/{uuidSolicitud}/funcionario/remitir` | Funcionario Académico | `{requisitosVerificados, observacion}` | ExamenSupletorioDetalle |
+| `POST examenes-supletorios/{uuidSolicitud}/funcionario/remitir` | Funcionario Académico | `{observacion}` | ExamenSupletorioDetalle |
 | `POST examenes-supletorios/{uuidSolicitud}/funcionario/responder` | Funcionario Académico | `{observacion}` opcional (mensaje al Estudiante, máximo 500), `{}` o sin cuerpo | ExamenSupletorioDetalle |
 | `POST examenes-supletorios/{uuidSolicitud}/funcionario/recibo` | Funcionario Académico | Sin cuerpo | ExamenSupletorioDetalle |
-| `POST examenes-supletorios/{uuidSolicitud}/funcionario/comprobante/aprobar` | Funcionario Académico | `{fechaAcordadaExamen}` opcional, o sin cuerpo | ExamenSupletorioDetalle |
+| `POST examenes-supletorios/{uuidSolicitud}/funcionario/comprobante/aprobar` | Funcionario Académico | `{docenteUuid, observacion}`; `docenteUuid` obligatorio, `observacion` opcional | ExamenSupletorioDetalle |
 | `POST examenes-supletorios/{uuidSolicitud}/funcionario/comprobante/rechazar` | Funcionario Académico | `{observacion}` | ExamenSupletorioDetalle |
 | `POST examenes-supletorios/{uuidSolicitud}/decano/aprobar` | Decano | `{observacion}` opcional, o sin cuerpo | ExamenSupletorioDetalle |
 | `POST examenes-supletorios/{uuidSolicitud}/decano/rechazar` | Decano | `{observacion}` opcional, `{}` o sin cuerpo | ExamenSupletorioDetalle |
 | `POST examenes-supletorios/{uuidSolicitud}/estudiante/comprobante` | Estudiante | Sin cuerpo | ExamenSupletorioDetalle |
+| `GET examenes-supletorios/docentes` | Funcionario Académico | Consulta `nombre`, `numeroDocumento`, `username` (opcionales), `pagina` (base 0) y `tamanio` (1 a 100) | `{content: [{uuidUsuario, nombres, apellidos, numeroDocumento, username}], totalElements}` |
 
 **FormularioSupletorio**: `codigoEstudiantil` del estudiante autenticado, `asignaturas` (activas:
 `{uuidAsignaturaMatriculada, codigoAsignatura, nombreAsignatura, grupo}`),
@@ -804,16 +804,18 @@ Errores de la radicación, en orden:
 `asignatura` (`{uuidAsignaturaMatriculada, codigoAsignatura, nombreAsignatura,
 grupo}`), `tipoCausa` (`cruce` u `otra`), `fechaExamenNoPresentado`
 (`AAAA-MM-DD`), `cruce` (nulo con causa `otra`; si no, `{asignatura,
-fechaExamenCruzada, horaExamenCruzada}`) y `fechaAcordadaExamen`
-(`AAAA-MM-DD` o nulo). Es igual para los tres roles.
+fechaExamenCruzada, horaExamenCruzada}`) y `docente` (profesor asignado al
+aprobar el pago: `{uuidUsuario, nombres, apellidos}`, o nulo). Es igual para
+los tres roles. Desde T12.28 no trae `fechaAcordadaExamen`: la columna sigue en
+la base, nullable y en desuso (P52).
 
 Cuerpos y reglas de las acciones:
 
 - `funcionario/rechazar`: `observacion` obligatoria; no lleva Resolución.
-- `funcionario/remitir`: el cuerpo es obligatorio; `requisitosVerificados`
-  debe ser `true`, si no responde 4 `Para remitir la solicitud <radicado> al
-  Decano debe confirmar que verificó los requisitos; si no se cumplen, debe
-  rechazar la solicitud en lugar de remitirla...`. `observacion` es opcional.
+- `funcionario/remitir`: el cuerpo es obligatorio (puede ser `{}`) y solo lee
+  `observacion`, opcional, para el Decano. Desde T12.16 (P49) no se exige
+  confirmar requisitos: si llega `requisitosVerificados`, verdadero o falso, se
+  ignora sin error, y ya no existe el error 4 que lo pedía.
 - `decano/aprobar` y `decano/rechazar`: `observacion` opcional, que el
   Estudiante no ve.
 - `funcionario/responder`: de RECHAZADA_POR_DECANO a RECHAZADA, con
@@ -824,15 +826,55 @@ Cuerpos y reglas de las acciones:
 - `estudiante/comprobante`: de PENDIENTE_PAGO a EN_VERIFICACION_PAGO. El
   comprobante se sube antes del mismo modo, con el uuid de `Comprobante de
   pago`.
-- `funcionario/comprobante/aprobar`: a APROBADA. `fechaAcordadaExamen`
-  (`AAAA-MM-DD`) es opcional y no puede ser anterior a la fecha del examen no
-  presentado: 4 `La fecha acordada para el supletorio (<dd/MM/aaaa>) no puede
-  ser anterior a la fecha del examen no presentado (<dd/MM/aaaa>)...`.
+- `funcionario/comprobante/aprobar` (P52, P53): a APROBADA. `docenteUuid` es
+  obligatorio y debe ser un usuario activo con rol Docente; `observacion`
+  (máximo 500) es opcional, es para el Estudiante y queda en la fila
+  `APROBAR_COMPROBANTE` del historial. En la misma transacción guarda el
+  profesor en la solicitud y le crea una notificación (sección 3.9) con el
+  título `Examen supletorio aprobado, radicado <radicado>`. Ya no recibe
+  `fechaAcordadaExamen`; si llega se ignora. Errores, después de validar
+  actor y etapa: 4 `Para aprobar el pago debe seleccionar el profesor que
+  atenderá el examen supletorio...` sin `docenteUuid`, y 3 `Docente con id
+  <uuid> no fue encontrado en el sistema...` si el uuid no es de un Docente
+  activo.
+- `docentes`: búsqueda paginada en el servidor de los usuarios activos con rol
+  Docente, ordenada por apellidos y nombres. `nombre` busca en nombres y
+  apellidos juntos, `numeroDocumento` y `username` por coincidencia parcial,
+  sin distinguir mayúsculas en nombre y usuario. Paginación inválida: 6.
 - `funcionario/comprobante/rechazar`: `observacion` obligatoria, a RECHAZADA.
   El estudiante debe radicar una solicitud nueva.
 
 Ninguna acción del supletorio cambia el estado de las asignaturas
 matriculadas.
+
+### 3.9 Notificaciones del docente (4)
+
+Solo para el rol Docente. Cada docente ve únicamente sus notificaciones; las
+de otro docente, una inexistente o un anexo que no es de la solicitud de la
+notificación responden 3 (`Notificación con id <uuid> no fue encontrado en el
+sistema...` o `Anexo académico con id <uuid>...`), igual que una inexistente.
+Ningún otro rol entra (403) y el resto de `notificaciones-docente/**` es
+`denyAll()`.
+
+| Método y ruta | Roles | Cuerpo | Respuesta |
+| --- | --- | --- | --- |
+| `GET notificaciones-docente` | Docente | | Lista de NotificacionDocenteResumen, de la más reciente a la más antigua |
+| `GET notificaciones-docente/{uuidNotificacion}` | Docente | | NotificacionDocenteDetalle |
+| `PATCH notificaciones-docente/{uuidNotificacion}/leida` | Docente | Sin cuerpo | NotificacionDocenteDetalle; la primera vez guarda la fecha de lectura, después la conserva |
+| `GET notificaciones-docente/{uuidNotificacion}/anexos/{uuidAnexo}` | Docente | | Archivo del anexo, si es de la solicitud de la notificación |
+
+**NotificacionDocenteResumen**: `uuidNotificacion`, `titulo`,
+`uuidSolicitudAcademica`, `radicado`, `estudiante` (nombres y apellidos),
+`asignatura` (`<código> - <nombre>`), `resultado` (`Aprobada` o `Rechazada`),
+`fechaCreacion`, `fechaLectura` (o nulo) y `leida`.
+
+**NotificacionDocenteDetalle**: `notificacion` (el resumen), `tipoSolicitud`,
+`fechaRadicacion`, `nombresEstudiante`, `apellidosEstudiante`,
+`codigoEstudiantil`, `programaAcademico`, `asignatura`, `tipoCausa`,
+`fechaExamenNoPresentado`, `cruce` y `anexos` (`{uuidAnexoAcademico,
+tipoAnexo, nombreArchivo, tipoArchivo, fechaSubida}`, todos los de la
+solicitud). No trae historial ni observaciones: el docente no ve la
+observación para el Estudiante.
 
 ## 4. Recorridos típicos
 
@@ -848,8 +890,8 @@ detalle (las acciones ya lo devuelven) y mostrar los botones según
 | 2 | Estudiante | `POST cancelaciones-matricula` con `motivo`, los seis anexos y soportes opcionales. Queda en RADICADA |
 | 3 | Funcionario Académico | `GET solicitudes-academicas/funcionario`, luego `GET cancelaciones-matricula/{uuid}`; descarga anexos con `GET solicitudes-academicas/{uuid}/anexos/{uuidAnexo}` |
 | 4a | Funcionario Académico | Rechazo: `POST solicitudes-academicas/{uuid}/resolucion` con el escaneo y `POST cancelaciones-matricula/{uuid}/funcionario/rechazar`. Queda en RECHAZADA |
-| 4b | Funcionario Académico | Remisión: `GET catalogos-academicos/situaciones` y `POST cancelaciones-matricula/{uuid}/funcionario/remitir` con las evaluaciones. Queda en EN_REVISION_DECANO |
-| 5 | Decano | `GET solicitudes-academicas/decano`, `GET cancelaciones-matricula/{uuid}` y `POST .../decano/aprobar` con las situaciones al cancelar, o `POST .../decano/rechazar` con observación |
+| 4b | Funcionario Académico | Remisión: `GET catalogos-academicos/situaciones` y `POST cancelaciones-matricula/{uuid}/funcionario/remitir` con las evaluaciones (faltas, nota y situaciones opcionales). Queda en EN_REVISION_DECANO |
+| 5 | Decano | `GET solicitudes-academicas/decano`, `GET cancelaciones-matricula/{uuid}` y `POST .../decano/aprobar` con la observación opcional, o `POST .../decano/rechazar` con observación |
 | 6 | Funcionario Académico | `POST solicitudes-academicas/{uuid}/resolucion` con el escaneo firmado y `POST cancelaciones-matricula/{uuid}/funcionario/responder`. Queda en APROBADA (asignaturas canceladas) o RECHAZADA |
 | 7 | Estudiante | `GET solicitudes-academicas/estudiante`, `GET cancelaciones-matricula/{uuid}` y, en etapa final, `GET solicitudes-academicas/{uuid}/resolucion` |
 
@@ -861,9 +903,9 @@ detalle (las acciones ya lo devuelven) y mostrar los botones según
 | 2 | Estudiante | `POST cancelaciones-asignatura` con `motivo`, uno o más `asignaturas` y soportes opcionales. Queda en RADICADA |
 | 3 | Funcionario Académico | `GET solicitudes-academicas/funcionario` y `GET cancelaciones-asignatura/{uuid}` |
 | 4a | Funcionario Académico | Rechazo completo: escaneo con `POST solicitudes-academicas/{uuid}/resolucion` y `POST .../funcionario/rechazar` |
-| 4b | Funcionario Académico | Remisión: `POST .../funcionario/remitir` con faltas, nota, situación, `cumpleCondiciones` y observación de cada asignatura |
+| 4b | Funcionario Académico | Remisión: `POST .../funcionario/remitir` con `cumpleCondiciones` de cada asignatura y, si se tienen, faltas, nota y situaciones |
 | 5 | Decano | `POST .../decano/aprobar` con `aceptarEvaluacion: true` o con la decisión de cada asignatura (aprobación parcial), o `POST .../decano/rechazar` para negar la solicitud completa |
-| 6 | Funcionario Académico | Escaneo y `POST .../funcionario/responder` con `observacion` y un ajuste por cada asignatura aprobada con `decisionCambiadaPorDecano`. En APROBADA solo se cancelan las asignaturas aprobadas |
+| 6 | Funcionario Académico | Escaneo y `POST .../funcionario/responder` con `observacion` y, si quiere, ajustes con la situación al cancelar de las aprobadas. En APROBADA solo se cancelan las asignaturas aprobadas |
 | 7 | Estudiante | `GET cancelaciones-asignatura/{uuid}` y, en etapa final, la Resolución |
 
 ### 4.3 Examen Supletorio
@@ -873,12 +915,13 @@ detalle (las acciones ya lo devuelven) y mostrar los botones según
 | 1 | Estudiante | `GET examenes-supletorios/formulario` |
 | 2 | Estudiante | `POST examenes-supletorios` con asignatura, fecha, causa, datos de cruce si aplica y anexos de la causa, dentro de los 3 días hábiles. Queda en RADICADA |
 | 3a | Funcionario Académico | Rechazo: `POST .../funcionario/rechazar` con observación (sin Resolución) |
-| 3b | Funcionario Académico | Remisión: `POST .../funcionario/remitir` con `requisitosVerificados: true` |
+| 3b | Funcionario Académico | Remisión: `POST .../funcionario/remitir` con `observacion` opcional |
 | 4 | Decano | `POST .../decano/aprobar` (observación opcional) o `POST .../decano/rechazar` |
 | 5a | Funcionario Académico | Si el Decano rechazó: `POST .../funcionario/responder`. Queda en RECHAZADA |
 | 5b | Funcionario Académico | Si aprobó: `POST solicitudes-academicas/{uuid}/anexos` con el recibo (`tipoAnexo` = uuid de `Recibo de pago`) y `POST .../funcionario/recibo`. Queda en PENDIENTE_PAGO |
 | 6 | Estudiante | Descarga el recibo con `GET solicitudes-academicas/{uuid}/anexos/{uuidAnexo}`, paga, sube el comprobante con `POST solicitudes-academicas/{uuid}/anexos` (`tipoAnexo` = uuid de `Comprobante de pago`) y llama `POST .../estudiante/comprobante`. Queda en EN_VERIFICACION_PAGO |
-| 7 | Funcionario Académico | `POST .../funcionario/comprobante/aprobar` con la fecha acordada opcional (APROBADA) o `POST .../funcionario/comprobante/rechazar` con observación (RECHAZADA) |
+| 7 | Funcionario Académico | `GET examenes-supletorios/docentes` para elegir al profesor y `POST .../funcionario/comprobante/aprobar` con `docenteUuid` y la observación opcional para el Estudiante (APROBADA, notifica al profesor), o `POST .../funcionario/comprobante/rechazar` con observación (RECHAZADA, sin profesor) |
+| 8 | Docente | `GET notificaciones-docente`, `PATCH notificaciones-docente/{uuid}/leida` al abrir y `GET notificaciones-docente/{uuid}/anexos/{uuidAnexo}` para descargar |
 
 ## 5. Lo que ve cada rol en el detalle
 

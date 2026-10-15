@@ -1,6 +1,7 @@
 package com.unicauca.cfiet.solicitudes.infraestructura.input.controladorExamenesSupletorios.mapeador;
 
 import com.unicauca.cfiet.solicitudes.aplicacion.output.ExcepcionesFormateadorIntPuerto;
+import com.unicauca.cfiet.solicitudes.dominio.helper.PaginacionRespuestaDTO;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorExamenesSupletorios.DTORespuesta.*;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudesAcademicas.mapeador.MapperSolicitudAcademicaInfraestructuraDominio;
@@ -11,7 +12,6 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
@@ -80,16 +80,50 @@ public class MapperExamenSupletorioInfraestructuraDominio {
                 .asignatura(mapearAsignaturaARespuesta(supletorio.getAsignaturaMatriculada()))
                 .tipoCausa(supletorio.getTipoCausa() == null ? null : nombreCausa(supletorio.getTipoCausa()))
                 .fechaExamenNoPresentado(texto(supletorio.getFechaExamenNoPresentado()))
-                .cruce(cruce == null ? null : CruceSupletorioDTORespuesta.builder()
-                        .asignatura(mapearAsignaturaARespuesta(cruce.getAsignaturaMatriculadaCruzada()))
-                        .fechaExamenCruzada(texto(cruce.getFechaExamenCruzada()))
-                        .horaExamenCruzada(cruce.getHoraExamenCruzada())
-                        .build())
-                .fechaAcordadaExamen(texto(supletorio.getFechaAcordadaExamen()))
+                .cruce(mapearCruceARespuesta(cruce))
+                .docente(mapearDocenteAsignado(supletorio.getDocente()))
                 .build();
     }
 
-    private AsignaturaSupletorioDTORespuesta mapearAsignaturaARespuesta(AsignaturaMatriculada matriculada) {
+    public PaginacionRespuestaDTO<DocenteDTORespuesta> mapearDocentesARespuesta(PaginacionRespuestaDTO<Docente> pagina) {
+        return new PaginacionRespuestaDTO<>(pagina.getContent().stream()
+                .map(docente -> DocenteDTORespuesta.builder()
+                        .uuidUsuario(docente.getUuidUsuario())
+                        .nombres(docente.getNombres())
+                        .apellidos(docente.getApellidos())
+                        .numeroDocumento(docente.getNumeroDocumento())
+                        .username(docente.getUsername())
+                        .build())
+                .toList(), pagina.getTotalElements());
+    }
+
+    public CruceSupletorioDTORespuesta mapearCruceARespuesta(CruceSupletorio cruce) {
+        if (cruce == null) return null;
+        return CruceSupletorioDTORespuesta.builder()
+                .asignatura(mapearAsignaturaARespuesta(cruce.getAsignaturaMatriculadaCruzada()))
+                .fechaExamenCruzada(texto(cruce.getFechaExamenCruzada()))
+                .horaExamenCruzada(cruce.getHoraExamenCruzada())
+                .build();
+    }
+
+    public String nombreCausaDe(SolicitudExamenSupletorio supletorio) {
+        return supletorio.getTipoCausa() == null ? null : nombreCausa(supletorio.getTipoCausa());
+    }
+
+    public String fechaExamenDe(SolicitudExamenSupletorio supletorio) {
+        return texto(supletorio.getFechaExamenNoPresentado());
+    }
+
+    private DocenteAsignadoDTORespuesta mapearDocenteAsignado(Docente docente) {
+        if (docente == null) return null;
+        return DocenteAsignadoDTORespuesta.builder()
+                .uuidUsuario(docente.getUuidUsuario())
+                .nombres(docente.getNombres())
+                .apellidos(docente.getApellidos())
+                .build();
+    }
+
+    public AsignaturaSupletorioDTORespuesta mapearAsignaturaARespuesta(AsignaturaMatriculada matriculada) {
         if (matriculada == null) return null;
         Asignatura asignatura = matriculada.getAsignatura();
         return AsignaturaSupletorioDTORespuesta.builder()
@@ -106,9 +140,5 @@ public class MapperExamenSupletorioInfraestructuraDominio {
 
     private String texto(LocalDate fecha) {
         return fecha == null ? null : fecha.toString();
-    }
-
-    private String texto(LocalDateTime fecha) {
-        return fecha == null ? null : fecha.toLocalDate().toString();
     }
 }

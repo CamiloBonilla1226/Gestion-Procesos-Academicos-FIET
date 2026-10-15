@@ -206,7 +206,7 @@ class ExamenSupletorioCUImplAdaptadorTest {
         assertEquals("am-1", guardada.getAsignaturaMatriculada().getUuidAsignaturaMatriculada());
         assertEquals(LUNES, guardada.getFechaExamenNoPresentado());
         assertEquals(CausaSupletorio.CRUCE, guardada.getTipoCausa());
-        assertNull(guardada.getFechaAcordadaExamen());
+        assertNull(guardada.getDocente());
         assertEquals("am-2", guardada.getCruce().getAsignaturaMatriculadaCruzada().getUuidAsignaturaMatriculada());
         assertEquals(LocalDate.of(2026, 10, 5), guardada.getCruce().getFechaExamenCruzada());
         assertEquals("08:30", guardada.getCruce().getHoraExamenCruzada());
@@ -221,7 +221,7 @@ class ExamenSupletorioCUImplAdaptadorTest {
         SolicitudExamenSupletorio guardada = guardada();
         assertEquals(CausaSupletorio.OTRA, guardada.getTipoCausa());
         assertNull(guardada.getCruce());
-        assertNull(guardada.getFechaAcordadaExamen());
+        assertNull(guardada.getDocente());
         verify(anexoCU).adjuntarAnexo(eq(SOLICITUD), eq(FOR_23), any(), any(), eq(TOKEN));
         verify(anexoCU).adjuntarAnexo(eq(SOLICITUD), eq(JUSTIFICACION), any(), any(), eq(TOKEN));
         verify(log).crearLog(eq("Radicar examen supletorio"), contains("causa otra con 2 anexos"), eq(TOKEN));

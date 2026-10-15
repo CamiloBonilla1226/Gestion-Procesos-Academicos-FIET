@@ -62,7 +62,8 @@ const CAMPOS_OBSERVACION: Partial<Record<AccionAcademica, CampoObservacion>> = {
   [ACCIONES_ACADEMICAS.APROBAR_DECANO]: { etiqueta: 'Observación (opcional)', obligatoria: false, aviso: AVISO_OBSERVACION_DECANO },
   [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: { etiqueta: 'Observación (opcional)', obligatoria: false, aviso: AVISO_OBSERVACION_DECANO },
   [ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA]: { etiqueta: ETIQUETA_OBSERVACION_ESTUDIANTE, obligatoria: false, aviso: null },
-  [ACCIONES_ACADEMICAS.RECHAZAR_COMPROBANTE]: { etiqueta: ETIQUETA_OBSERVACION_ESTUDIANTE, obligatoria: true, aviso: null }
+  [ACCIONES_ACADEMICAS.RECHAZAR_COMPROBANTE]: { etiqueta: ETIQUETA_OBSERVACION_ESTUDIANTE, obligatoria: true, aviso: null },
+  [ACCIONES_ACADEMICAS.APROBAR_COMPROBANTE]: { etiqueta: 'Observación para el estudiante (opcional)', obligatoria: false, aviso: null }
 };
 
 export function campoObservacion(accion: AccionAcademica | null | undefined): CampoObservacion | null {

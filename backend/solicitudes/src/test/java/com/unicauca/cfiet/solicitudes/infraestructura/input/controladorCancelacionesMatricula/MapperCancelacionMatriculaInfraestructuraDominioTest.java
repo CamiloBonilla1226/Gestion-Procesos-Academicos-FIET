@@ -2,7 +2,6 @@ package com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelac
 
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesMatricula.DTOPeticion.EvaluacionAsignaturaDTOPeticion;
-import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesMatricula.DTOPeticion.SituacionCancelarDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesMatricula.DTORespuesta.AsignaturaCancelacionDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesMatricula.DTORespuesta.CancelacionMatriculaDetalleDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesMatricula.DTORespuesta.FormularioCancelacionMatriculaDTORespuesta;
@@ -53,19 +52,15 @@ class MapperCancelacionMatriculaInfraestructuraDominioTest {
     }
 
     @Test
-    void lasEvaluacionesYSituacionesPasanTalCualAlDominio() {
+    void lasEvaluacionesPasanTalCualAlDominio() {
         List<EvaluacionAsignatura> evaluaciones = mapper.mapearEvaluaciones(List.of(
                 EvaluacionAsignaturaDTOPeticion.builder().asignaturaSolicitudUuid("as-1").numeroFaltas("3").nota("4.5").situacionMatriculaUuid("sit-1").build()));
-        List<SituacionCancelarAsignatura> situaciones = mapper.mapearSituaciones(List.of(
-                SituacionCancelarDTOPeticion.builder().asignaturaSolicitudUuid("as-1").situacionCancelarUuid("sit-2").build()));
 
         assertEquals("as-1", evaluaciones.get(0).getUuidAsignaturaSolicitud());
         assertEquals("3", evaluaciones.get(0).getNumeroFaltas());
         assertEquals("4.5", evaluaciones.get(0).getNota());
         assertEquals("sit-1", evaluaciones.get(0).getUuidSituacionMatricula());
-        assertEquals("sit-2", situaciones.get(0).getUuidSituacionCancelar());
         assertNull(mapper.mapearEvaluaciones(null));
-        assertNull(mapper.mapearSituaciones(null));
     }
 
     @Test

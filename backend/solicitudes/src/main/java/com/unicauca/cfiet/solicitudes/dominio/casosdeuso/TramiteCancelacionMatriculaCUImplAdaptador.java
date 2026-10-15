@@ -17,8 +17,6 @@ import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSoli
 
 public class TramiteCancelacionMatriculaCUImplAdaptador implements TramiteCancelacionMatriculaCUIntPuerto {
     private static final String CANCELACION_MATRICULA = "Solicitud de cancelación de matrícula";
-    private static final String SITUACION_MATRICULA = "la situación en la matrícula";
-    private static final String SITUACION_CANCELAR = "la situación al cancelar";
 
     private final SolicitudCancelacionMatriculaGatewayIntPuerto gateway;
     private final SolicitudAcademicaCUIntPuerto solicitudCU;
@@ -68,9 +66,8 @@ public class TramiteCancelacionMatriculaCUImplAdaptador implements TramiteCancel
             String nombre = tramite.nombreDe(asignatura);
             asignatura.setNumeroFaltas(tramite.faltasDe(evaluacion.getNumeroFaltas(), nombre));
             asignatura.setNota(tramite.notaDe(evaluacion.getNota(), nombre));
-            asignatura.setSituacionMatricula(tramite.situacionDe(catalogo, evaluacion.getUuidSituacionMatricula(), SITUACION_MATRICULA, nombre));
-            asignatura.setSituacionCancelar(tramite.tieneTexto(evaluacion.getUuidSituacionCancelar())
-                    ? tramite.situacionDe(catalogo, evaluacion.getUuidSituacionCancelar(), SITUACION_CANCELAR, nombre) : null);
+            asignatura.setSituacionMatricula(tramite.situacionDe(catalogo, evaluacion.getUuidSituacionMatricula()));
+            asignatura.setSituacionCancelar(tramite.situacionDe(catalogo, evaluacion.getUuidSituacionCancelar()));
         }
 
         SolicitudAcademica actualizada = solicitudCU.cambiarEtapa(uuidSolicitudAcademica, AccionEtapa.REMITIR_DECANO, actor, observacion, token);
@@ -83,28 +80,10 @@ public class TramiteCancelacionMatriculaCUImplAdaptador implements TramiteCancel
     }
 
     @Override
-    public SolicitudCancelacionMatricula aprobarPorDecano(String uuidSolicitudAcademica, List<SituacionCancelarAsignatura> situacionesAlCancelar,
-                                                          String observacion, String token) {
+    public SolicitudCancelacionMatricula aprobarPorDecano(String uuidSolicitudAcademica, String observacion, String token) {
         ActorSolicitud actor = tramite.actorDe(token, RolEtiquetaEtapa.DECANO);
         SolicitudCancelacionMatricula cancelacion = cancelacionDe(uuidSolicitudAcademica);
-        SolicitudAcademica solicitud = tramite.solicitudValidada(TipoProcesoAcademico.CANCELACION_MATRICULA, uuidSolicitudAcademica,
-                AccionEtapa.APROBAR_DECANO, actor);
-
-        Map<String, SituacionAcademicaAsignatura> catalogo = tramite.catalogoSituaciones();
-        Map<String, SituacionCancelarAsignatura> porAsignatura = tramite.cobertura(cancelacion.getAsignaturas(), solicitud.getRadicado(),
-                situacionesAlCancelar, SituacionCancelarAsignatura::getUuidAsignaturaSolicitud);
-        for (AsignaturaSolicitudAcademica asignatura : cancelacion.getAsignaturas()) {
-            SituacionCancelarAsignatura situacion = porAsignatura.get(asignatura.getUuidAsignaturaSolicitud());
-            asignatura.setSituacionCancelar(tramite.situacionDe(catalogo, situacion.getUuidSituacionCancelar(), SITUACION_CANCELAR,
-                    tramite.nombreDe(asignatura)));
-        }
-
         SolicitudAcademica actualizada = solicitudCU.cambiarEtapa(uuidSolicitudAcademica, AccionEtapa.APROBAR_DECANO, actor, observacion, token);
-        cancelacion.setAsignaturas(tramite.guardarAsignaturas(cancelacion.getAsignaturas()));
-        log.crearLog("Registrar situación al cancelar",
-                String.format("Solicitud académica %s, acción %s: situación al cancelar de %d asignaturas", actualizada.getRadicado(),
-                        AccionEtapa.APROBAR_DECANO, cancelacion.getAsignaturas().size()),
-                token);
         return conSolicitud(cancelacion, actualizada);
     }
 

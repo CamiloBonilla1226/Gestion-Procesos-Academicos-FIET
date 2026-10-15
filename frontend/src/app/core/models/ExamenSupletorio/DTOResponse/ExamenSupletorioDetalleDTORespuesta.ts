@@ -1,5 +1,6 @@
 import { AsignaturaSupletorioDTORespuesta } from './AsignaturaSupletorioDTORespuesta';
 import { CruceSupletorioDTORespuesta } from './CruceSupletorioDTORespuesta';
+import { DocenteAsignadoDTORespuesta } from './DocenteAsignadoDTORespuesta';
 import { SolicitudAcademicaDetalleDTORespuesta } from '../../SolicitudAcademica/DTOResponse/SolicitudAcademicaDetalleDTORespuesta';
 
 export interface ExamenSupletorioDetalleDTORespuesta {
@@ -8,5 +9,5 @@ export interface ExamenSupletorioDetalleDTORespuesta {
   tipoCausa: string;
   fechaExamenNoPresentado: string;
   cruce: CruceSupletorioDTORespuesta | null;
-  fechaAcordadaExamen: string | null;
+  docente: DocenteAsignadoDTORespuesta | null;
 }

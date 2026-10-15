@@ -107,7 +107,7 @@ public class TramiteCancelacion {
 
     private String valorAsignatura(String valor, String dato, String asignatura) {
         if (!tieneTexto(valor))
-            formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.DATO_ASIGNATURA_FALTANTE, dato, asignatura));
+            return null;
         String texto = valor.trim();
         if (texto.length() > MAXIMO_VALOR_ASIGNATURA)
             formateadorExcepciones.lanzarMalFormato(String.format(MensajesError.VALOR_ASIGNATURA_MUY_LARGO, asignatura, dato,
@@ -115,10 +115,9 @@ public class TramiteCancelacion {
         return texto;
     }
 
-    public SituacionAcademicaAsignatura situacionDe(Map<String, SituacionAcademicaAsignatura> catalogo, String uuidSituacion,
-                                                    String dato, String asignatura) {
+    public SituacionAcademicaAsignatura situacionDe(Map<String, SituacionAcademicaAsignatura> catalogo, String uuidSituacion) {
         if (!tieneTexto(uuidSituacion))
-            formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.DATO_ASIGNATURA_FALTANTE, dato, asignatura));
+            return null;
         SituacionAcademicaAsignatura situacion = catalogo.get(uuidSituacion);
         if (situacion == null)
             formateadorExcepciones.lanzarEntidadNoExiste(String.format(MensajesError.ENTIDAD_NO_ENCONTRADA, SITUACION_ACADEMICA, uuidSituacion));

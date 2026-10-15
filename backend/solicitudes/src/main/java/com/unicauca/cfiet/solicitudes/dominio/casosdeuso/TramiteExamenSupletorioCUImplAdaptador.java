@@ -9,33 +9,48 @@ import com.unicauca.cfiet.solicitudes.dominio.servicios.MaquinaEtapas;
 import com.unicauca.cfiet.solicitudes.dominio.servicios.TramiteSolicitud;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.MensajesError;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.APROBADA;
 
 public class TramiteExamenSupletorioCUImplAdaptador implements TramiteExamenSupletorioCUIntPuerto {
     private static final String EXAMEN_SUPLETORIO = "Solicitud de examen supletorio";
-    private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final String DOCENTE = "Docente";
+    private static final String TITULO_NOTIFICACION = "Examen supletorio %s, radicado %s";
+    private static final String RESULTADO_APROBADO = "aprobado";
+    private static final String RESULTADO_RECHAZADO = "rechazado";
 
     private final SolicitudExamenSupletorioGatewayIntPuerto gateway;
+    private final DocenteGatewayIntPuerto docenteGateway;
+    private final NotificacionDocenteGatewayIntPuerto notificacionGateway;
     private final SolicitudAcademicaCUIntPuerto solicitudCU;
     private final TramiteSolicitud tramite;
     private final ExcepcionesFormateadorIntPuerto formateadorExcepciones;
     private final LogCUIntPuerto log;
+    private final Clock reloj;
 
     public TramiteExamenSupletorioCUImplAdaptador(SolicitudExamenSupletorioGatewayIntPuerto gateway,
                                                   SolicitudAcademicaGatewayIntPuerto solicitudGateway,
                                                   UsuarioGatewayIntPuerto usuarioGateway,
                                                   SesionGatewayIntPuerto sesionGateway,
                                                   IJwtServicio jwtServicio,
+                                                  DocenteGatewayIntPuerto docenteGateway,
+                                                  NotificacionDocenteGatewayIntPuerto notificacionGateway,
                                                   SolicitudAcademicaCUIntPuerto solicitudCU,
                                                   MaquinaEtapas maquinaEtapas,
                                                   ExcepcionesFormateadorIntPuerto formateadorExcepciones,
-                                                  LogCUIntPuerto log) {
+                                                  LogCUIntPuerto log,
+                                                  Clock reloj) {
         this.gateway = gateway;
+        this.docenteGateway = docenteGateway;
+        this.notificacionGateway = notificacionGateway;
         this.solicitudCU = solicitudCU;
         this.tramite = new TramiteSolicitud(solicitudGateway, usuarioGateway, sesionGateway, jwtServicio, maquinaEtapas, formateadorExcepciones);
         this.formateadorExcepciones = formateadorExcepciones;
         this.log = log;
+        this.reloj = reloj;
     }
 
     @Override
@@ -74,25 +89,36 @@ public class TramiteExamenSupletorioCUImplAdaptador implements TramiteExamenSupl
     }
 
     @Override
-    public SolicitudExamenSupletorio aprobarComprobante(String uuidSolicitudAcademica, LocalDate fechaAcordadaExamen, String token) {
+    public SolicitudExamenSupletorio aprobarComprobante(String uuidSolicitudAcademica, String observacion, String uuidDocente, String token) {
         ActorSolicitud actor = tramite.actorDe(token, RolEtiquetaEtapa.FUNCIONARIO);
         SolicitudExamenSupletorio supletorio = supletorioDe(uuidSolicitudAcademica);
         tramite.solicitudValidada(TipoProcesoAcademico.EXAMEN_SUPLETORIO, uuidSolicitudAcademica, AccionEtapa.APROBAR_COMPROBANTE, actor);
-        LocalDate fechaExamen = supletorio.getFechaExamenNoPresentado();
-        if (fechaAcordadaExamen != null && fechaExamen != null && fechaAcordadaExamen.isBefore(fechaExamen))
-            formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.FECHA_ACORDADA_ANTERIOR,
-                    fechaAcordadaExamen.format(FORMATO_FECHA), fechaExamen.format(FORMATO_FECHA)));
+        if (!tramite.tieneTexto(uuidDocente))
+            formateadorExcepciones.lanzarReglaNegocioViolada(MensajesError.DOCENTE_SUPLETORIO_REQUERIDO);
+        Docente docente = docenteGateway.getActivo(uuidDocente.trim());
+        if (docente == null)
+            formateadorExcepciones.lanzarEntidadNoExiste(String.format(MensajesError.ENTIDAD_NO_ENCONTRADA, DOCENTE, uuidDocente));
 
-        SolicitudAcademica actualizada = solicitudCU.cambiarEtapa(uuidSolicitudAcademica, AccionEtapa.APROBAR_COMPROBANTE, actor, null, token);
-        if (fechaAcordadaExamen != null) {
-            gateway.actualizarFechaAcordada(uuidSolicitudAcademica, fechaAcordadaExamen.atStartOfDay());
-            supletorio.setFechaAcordadaExamen(fechaAcordadaExamen.atStartOfDay());
-            log.crearLog("Acordar fecha de examen supletorio",
-                    String.format("Solicitud académica %s, acción %s: fecha acordada %s", actualizada.getRadicado(),
-                            AccionEtapa.APROBAR_COMPROBANTE, fechaAcordadaExamen.format(FORMATO_FECHA)),
-                    token);
-        }
+        SolicitudAcademica actualizada = solicitudCU.cambiarEtapa(uuidSolicitudAcademica, AccionEtapa.APROBAR_COMPROBANTE, actor, observacion, token);
+        gateway.asignarDocente(uuidSolicitudAcademica, docente.getUuidUsuario());
+        supletorio.setDocente(docente);
+        notificacionGateway.crear(NotificacionDocente.builder()
+                .uuidNotificacion(UUID.randomUUID().toString())
+                .uuidSolicitudAcademica(uuidSolicitudAcademica)
+                .docente(docente)
+                .titulo(String.format(TITULO_NOTIFICACION, resultadoDe(actualizada), actualizada.getRadicado()))
+                .fechaCreacion(LocalDateTime.now(reloj))
+                .build());
+        log.crearLog("Asignar profesor de examen supletorio",
+                String.format("Solicitud académica %s, acción %s: profesor %s %s notificado", actualizada.getRadicado(),
+                        AccionEtapa.APROBAR_COMPROBANTE, docente.getNombres(), docente.getApellidos()),
+                token);
         return conSolicitud(supletorio, actualizada);
+    }
+
+    private String resultadoDe(SolicitudAcademica solicitud) {
+        boolean aprobada = solicitud.getEtapa() != null && APROBADA.equals(solicitud.getEtapa().getCodigo());
+        return aprobada ? RESULTADO_APROBADO : RESULTADO_RECHAZADO;
     }
 
     @Override

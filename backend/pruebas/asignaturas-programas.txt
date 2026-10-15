@@ -1,0 +1,32 @@
+1. Ingeniería Electrónica y Telecomunicaciones
+Semestre 1: Cálculo Diferencial, Álgebra Lineal, Introducción a la Ingeniería, Introducción a los Circuitos Eléctricos, Lectura y Escritura, Electiva FISH I
+Semestre 2: Cálculo Integral, Mecánica, Circuitos de Corriente Directa, Programación Orientada a Objetos, Ética, Electiva FISH II
+Semestre 3: Cálculo Vectorial, Electromagnetismo, Circuitos de Corriente Alterna, Circuitos Electrónicos, Circuitos Digitales, Ecuaciones Diferenciales Ordinarias
+Semestre 4: Campos, Algoritmos Computacionales, Circuitos Analógicos, Diseño de Circuitos con VHDL, Vibraciones y Ondas
+Semestres 5 y 6: Señales y Sistemas, Procesamiento Digital de Señales, Probabilidad y Estadística, Microcontroladores, Medios de Transmisión, Fundamentos de Redes de Telecomunicaciones, Modelado y Bases de Datos, Circuitos de RF, Comunicaciones Analógicas, Comunicaciones Digitales, Sistemas de Conmutación, Informática para Telecomunicaciones, Metodología de la Investigación
+Semestre 7: Sistemas Embebidos y Tiempo Real, Comunicaciones Móviles e Inalámbricas, Sistemas de Comunicaciones Ópticas, Radiocomunicaciones, Servicios Convergentes, Emprendimiento e Innovación en Ingeniería, Anteproyecto de Grado
+Semestre 8: Proyecto Integrador, Laboratorio de Sistemas de Telecomunicaciones, Énfasis I, Electiva I, Electiva II, Competencias Ciudadanas
+Semestre 9: Laboratorio II de Sistemas de Telecomunicaciones, Laboratorio de Servicios Telemáticos, Énfasis II, Énfasis III, Electiva III, Formulación y Gestión de Proyectos en TIC
+Semestre 10: Análisis Económico de Inversiones en TIC, Énfasis IV, Trabajo de Grado
+
+2. Ingeniería de Sistemas
+Semestres 1 y 2: Cálculo I, Cálculo II, Álgebra Lineal, Lectura y Escritura, Introducción a la Ingeniería de Sistemas, Introducción a la Informática (con laboratorio), Mecánica (con laboratorio), Programación Orientada a Objetos (con laboratorio), Electivas FISH I y II
+Semestres 3 y 4: Cálculo III, Electromagnetismo (con laboratorio), Ecuaciones Diferenciales Ordinarias, Vibraciones y Ondas, Estructura de Datos I y II (con laboratorios), Bases de Datos I (con laboratorio), Electiva FISH III
+Semestres 5 y 6: Análisis Numérico, Teoría de la Computación, Bases de Datos II (con laboratorio), Ingeniería de Software I y II (con laboratorios), Arquitectura Computacional, Estadística y Probabilidad, Estructuras de Lenguajes (con laboratorio), Sistemas Operativos (con laboratorio)
+Semestres 7 y 8: Inteligencia Artificial, Teoría Dinámica de Sistemas, Sistemas Distribuidos (con laboratorio), Ingeniería de Software III (con laboratorio), Redes, Investigación de Operaciones, Metodología de la Investigación, Proyecto I, Calidad de Software, Electivas I y II
+Semestres 9 y 10: Gestión de Proyectos Informáticos, Proyecto II, Fundamentos de Economía, Legislación Laboral, Gestión Empresarial, Ética, Electivas III, IV y V, Trabajo de Grado
+
+3. Ingeniería en Automática Industrial
+Semestres 1 y 2: Cálculo I, Cálculo II, Álgebra Lineal, Mecánica, Lectura y Escritura, Circuitos Lineales, Informática, Introducción a la Ingeniería, Fundamentos de Electrónica, Fundamentos de Electrónica Digital, Programación Orientada a Objetos
+Semestres 3 y 4: Ecuaciones Diferenciales Ordinarias, Física de Fluidos, Estadística, Electrónica Industrial, Fundamentos de Máquinas Eléctricas, Máquinas Eléctricas, Ingeniería del Producto, Señales y Sistemas, Sistemas Dinámicos, Diseño de Operaciones, Sistemas Digitales, Generación y Control de la Calidad
+Semestres 5 y 6: Modelado y Simulación de Sistemas, Sistemas de Control en Tiempo Continuo, Sistemas de Control en Tiempo Discreto, Programación de Sistemas de Automatización, Instrumentación Industrial, Laboratorio de Sistemas Electrónicos, Ingeniería de Operaciones, Control de Procesos Industriales, Sistemas SCADA, Sistemas de Comunicación Industrial, Electiva en Ingeniería, Empresarismo I
+Semestres 7 y 8: Laboratorio de Control, Metodología de Proyectos de Automática, Integración Empresarial, Sistemas Avanzados de Manufactura, Control Inteligente, Gestión de Bases de Datos, Proyecto de Automatización, Seminario de Investigación, Robótica Industrial, Empresarismo II y III, Electiva de Profundización I, Electiva de Libre Elección
+Semestre 9: Ética, Electiva de Profundización II, Seminario de Ecología Industrial, Trabajo de Grado
+
+4. Tecnología en Telemática
+Semestre 1: Matemáticas Generales, Pensamiento Computacional, Introducción a la Tecnología, Lectura y Escritura, Ética en las TIC
+Semestre 2: Cálculo Diferencial, Fundamentos de Programación, Fundamentos de Tecnologías de la Información, Comunicaciones Electrónicas, Constitución y Sociedad
+Semestre 3: Servidores, Programación Orientada a Objetos, Enfoques de Desarrollo de Software, Comunicaciones Inalámbricas y Ópticas, Introducción a las Redes de Datos
+Semestre 4: Plataformas de Computación en la Nube, Programación Avanzada, Bases de Datos, Fundamentos de Conmutación y Enrutamiento, Estadística Descriptiva, Electiva FISH
+Semestre 5: Servicios de Computación en la Nube, Aplicaciones Web, Comunicaciones Unificadas, Redes de Datos Empresariales, Economía Cuantitativa, Electiva TTM
+Semestre 6: Aplicaciones Móviles, Operaciones en Ciberseguridad, Profundización Tecnológica, Emprendimiento y Empresa

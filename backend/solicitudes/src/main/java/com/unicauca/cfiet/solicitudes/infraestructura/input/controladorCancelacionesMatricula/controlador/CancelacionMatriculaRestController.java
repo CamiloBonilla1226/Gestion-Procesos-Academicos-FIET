@@ -5,7 +5,6 @@ import com.unicauca.cfiet.solicitudes.aplicacion.input.ConsultaCancelacionMatric
 import com.unicauca.cfiet.solicitudes.aplicacion.input.TramiteCancelacionMatriculaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.dominio.helper.constantes.ApplicationConstantes;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.SolicitudCancelacionMatricula;
-import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesMatricula.DTOPeticion.AprobacionDecanoDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesMatricula.DTOPeticion.ObservacionDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesMatricula.DTOPeticion.RemisionDecanoDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesMatricula.DTORespuesta.CancelacionMatriculaDetalleDTORespuesta;
@@ -106,10 +105,10 @@ public class CancelacionMatriculaRestController {
     @Transactional
     @PostMapping(UUID_SOLICITUD + "/decano/aprobar")
     public ResponseEntity<?> aprobarPorDecano(@PathVariable String uuidSolicitud,
-                                              @Valid @RequestBody AprobacionDecanoDTOPeticion peticion,
+                                              @RequestBody(required = false) ObservacionDTOPeticion peticion,
                                               @RequestHeader("Authorization") String token) {
         return accion(uuidSolicitud, token, () -> tramiteCU.aprobarPorDecano(uuidSolicitud,
-                mapper.mapearSituaciones(peticion.getSituaciones()), peticion.getObservacion(), token.substring(7)));
+                peticion == null ? null : peticion.getObservacion(), token.substring(7)));
     }
 
     @PreAuthorize(ApplicationConstantes.DECANO_ACCESO)

@@ -689,29 +689,26 @@ class TramiteCancelacionAsignaturaCUImplAdaptadorTest {
     }
 
     @Test
-    void enviarRespuestaSinElAjusteDeUnaDecisionCambiadaNoGuardaNada() {
+    void enviarRespuestaSinElAjusteDeUnaDecisionCambiadaLaDejaSinSituacion() {
         conFilas(true, true, false);
         decididas(true, false, true);
         enEtapa(APROBADA_POR_DECANO);
         conEscaneo();
 
-        ErrorReglaNegocioVioladaExcepcion error = falla(() -> casoDeUso.enviarRespuesta(SOLICITUD, "Respuesta",
-                List.of(ajuste("as-2", null, "No procede")), TOKEN_FUNCIONARIO));
+        casoDeUso.enviarRespuesta(SOLICITUD, "Respuesta", List.of(ajuste("as-2", null, "No procede")), TOKEN_FUNCIONARIO);
 
-        assertEquals(String.format(MensajesError.AJUSTE_ASIGNATURA_FALTANTE, "Química I"), error.getMessage());
-        verificarQueNoSeEscribioNada();
+        assertEquals(APROBADA, etapaGuardada());
+        assertNull(filas.get(2).getSituacionCancelar());
     }
 
     @Test
-    void elAjusteDeUnaAprobadaExigeSituacionYElDeUnaRechazadaNoAdmiteSituacionNiMasDe255() {
+    void elAjusteDeUnaRechazadaNoAdmiteSituacionNiMasDe255() {
         conFilas(true, true, false);
         decididas(true, false, true);
         conSituacionGuardada(filas.get(0));
         enEtapa(APROBADA_POR_DECANO);
         conEscaneo();
 
-        assertTrue(falla(() -> casoDeUso.enviarRespuesta(SOLICITUD, "Respuesta", List.of(ajuste("as-2", null, "No procede"),
-                ajuste("as-3", null, null)), TOKEN_FUNCIONARIO)).getMessage().contains("situación al cancelar de la asignatura Química I"));
         assertEquals(String.format(MensajesError.SITUACION_CANCELAR_RECHAZADA, "Física I"), falla(() -> casoDeUso.enviarRespuesta(SOLICITUD,
                 "Respuesta", List.of(ajuste("as-2", "sit-c", "No"), ajuste("as-3", "sit-c", null)), TOKEN_FUNCIONARIO)).getMessage());
         assertThrows(ErrorMalFormatoExcepcion.class, () -> casoDeUso.enviarRespuesta(SOLICITUD, "Respuesta",
@@ -812,17 +809,18 @@ class TramiteCancelacionAsignaturaCUImplAdaptadorTest {
     }
 
     @Test
-    void unaAprobadaSinSituacionGuardadaNiEnElAjusteSeRechazaAntesDeCambiarLaEtapa() {
+    void unaAprobadaSinSituacionAlCancelarSeRespondeIgual() {
         conFilas(true, true, false);
         decididas(true, true, false);
         conSituacionGuardada(filas.get(0));
         enEtapa(APROBADA_POR_DECANO);
         conEscaneo();
 
-        ErrorReglaNegocioVioladaExcepcion error = falla(() -> casoDeUso.enviarRespuesta(SOLICITUD, "Química I no procede", null, TOKEN_FUNCIONARIO));
+        casoDeUso.enviarRespuesta(SOLICITUD, "Química I no procede", null, TOKEN_FUNCIONARIO);
 
-        assertEquals(String.format(MensajesError.DATO_ASIGNATURA_FALTANTE, "la situación al cancelar", "Física I"), error.getMessage());
-        verificarQueNoSeEscribioNada();
+        assertEquals(APROBADA, etapaGuardada());
+        assertNull(filas.get(1).getSituacionCancelar());
+        verify(asignaturaSolicitudGateway).cambiarEstadoAsignaturasMatriculadas(List.of("am-1", "am-2"), "cancelada");
     }
 
     @Test
