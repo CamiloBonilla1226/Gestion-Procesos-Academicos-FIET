@@ -1,4 +1,4 @@
-$Global:BaseUrl = "http://localhost:8080/api/unicauca/fiet/consejo/"
+$Global:BaseUrl = if ($env:PRUEBAS_BASE_URL) { $env:PRUEBAS_BASE_URL } else { "http://localhost:8080/api/unicauca/fiet/consejo/" }
 $Global:CedulaCiudadania = "C$([char]0x00E9)dula de ciudadan$([char]0x00ED)a"
 $Global:FuncionarioAcademico = "Funcionario Acad$([char]0x00E9)mico"
 

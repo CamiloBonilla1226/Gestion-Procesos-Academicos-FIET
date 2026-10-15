@@ -185,7 +185,7 @@ class TramiteCancelacionAsignaturaCUImplAdaptadorTest {
         MaquinaEtapas maquina = new MaquinaEtapas(formateador);
         SolicitudAcademicaCUImplAdaptador solicitudCU = new SolicitudAcademicaCUImplAdaptador(solicitudGateway, estudianteGateway,
                 tipoSolicitudGateway, etapaGateway, resolucionGateway, anexoGateway, usuarioGateway, almacenamiento, maquina, formateador, log,
-                Clock.fixed(Instant.parse("2026-10-06T15:00:00Z"), ZoneId.of("America/Bogota")));
+                Clock.fixed(Instant.parse("2026-10-06T15:00:00Z"), ZoneId.of("America/Bogota")), mock(CorreoIntPuerto.class));
         casoDeUso = new TramiteCancelacionAsignaturaCUImplAdaptador(gateway, asignaturaSolicitudGateway, solicitudGateway, situacionGateway,
                 usuarioGateway, sesionGateway, jwtServicio, solicitudCU, maquina, formateador, log);
 

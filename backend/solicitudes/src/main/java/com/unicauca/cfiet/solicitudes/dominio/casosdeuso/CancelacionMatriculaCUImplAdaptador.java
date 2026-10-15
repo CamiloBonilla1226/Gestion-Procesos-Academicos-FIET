@@ -13,6 +13,7 @@ import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepcione
 
 import java.util.*;
 
+import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.DOCUMENTO_ADICIONAL;
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.FORMATOS_SOPORTE_LIBRE;
 
 public class CancelacionMatriculaCUImplAdaptador implements CancelacionMatriculaCUIntPuerto {
@@ -138,6 +139,8 @@ public class CancelacionMatriculaCUImplAdaptador implements CancelacionMatricula
             String uuidTipo = anexo == null ? null : anexo.getUuidTipoAnexoAcademico();
             if (tieneTexto(uuidTipo) && !catalogo.containsKey(uuidTipo))
                 anexoDeOtroTipo(uuidTipo, tipo);
+            if (tieneTexto(uuidTipo) && DOCUMENTO_ADICIONAL.equals(catalogo.get(uuidTipo).getNombre()))
+                formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.ANEXO_SOLO_DEL_FUNCIONARIO, DOCUMENTO_ADICIONAL));
             if (tieneTexto(uuidTipo))
                 presentes.add(uuidTipo);
         }

@@ -4,6 +4,7 @@ import com.unicauca.cfiet.solicitudes.aplicacion.input.LogCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.SolicitudAcademicaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.AlmacenamientoAnexosIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.AnexoAcademicoGatewayIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.output.CorreoIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.EstudianteGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.EtapaSolicitudAcademicaGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.ExcepcionesFormateadorIntPuerto;
@@ -17,13 +18,19 @@ import com.unicauca.cfiet.solicitudes.dominio.servicios.ValidadorActorSolicitud;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.MensajesError;
 
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.COMPROBANTE_PAGO;
+import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.DOCUMENTO_ADICIONAL;
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.RECIBO_PAGO;
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.APROBADA;
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.RECHAZADA;
@@ -36,6 +43,17 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
     private static final String CODIGO = "codigo";
     private static final int MAXIMO_OBSERVACION = 500;
     private static final List<String> ETAPAS_FINALES = List.of(APROBADA, RECHAZADA);
+    private static final Map<TipoProcesoAcademico, String> ASUNTOS_RESPUESTA = Map.of(
+            TipoProcesoAcademico.CANCELACION_ASIGNATURA, "Notificación de Cancelación de asignatura",
+            TipoProcesoAcademico.CANCELACION_MATRICULA, "Notificación de Cancelación de matrícula",
+            TipoProcesoAcademico.EXAMEN_SUPLETORIO, "Notificación de examen supletorio");
+    private static final String ENCABEZADO_RESPUESTA = "Popayán, Cauca, %s%n%nSr(a) %s%n"
+            + "Estudiante Facultad de Ingeniería Electrónica y Telecomunicaciones%n%n";
+    private static final String CUERPO_RESOLUCION = "Se adjunta la resolución correspondiente a su solicitud.";
+    private static final String CUERPO_SUPLETORIO = "Su solicitud de examen supletorio con radicado %s ya tiene respuesta. "
+            + "Ingrese a la aplicación para consultarla.";
+    private static final DateTimeFormatter FECHA_CARTA = DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", Locale.forLanguageTag("es-CO"));
+    private static final String TIPO_PDF = "application/pdf";
 
     private final SolicitudAcademicaGatewayIntPuerto gateway;
     private final EstudianteGatewayIntPuerto estudianteGateway;
@@ -49,6 +67,7 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
     private final ExcepcionesFormateadorIntPuerto formateadorExcepciones;
     private final LogCUIntPuerto log;
     private final Clock reloj;
+    private final CorreoIntPuerto correo;
 
     public SolicitudAcademicaCUImplAdaptador(SolicitudAcademicaGatewayIntPuerto gateway,
                                              EstudianteGatewayIntPuerto estudianteGateway,
@@ -61,7 +80,8 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
                                              MaquinaEtapas maquinaEtapas,
                                              ExcepcionesFormateadorIntPuerto formateadorExcepciones,
                                              LogCUIntPuerto log,
-                                             Clock reloj) {
+                                             Clock reloj,
+                                             CorreoIntPuerto correo) {
         this.gateway = gateway;
         this.estudianteGateway = estudianteGateway;
         this.tipoSolicitudGateway = tipoSolicitudGateway;
@@ -74,6 +94,7 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
         this.formateadorExcepciones = formateadorExcepciones;
         this.log = log;
         this.reloj = reloj;
+        this.correo = correo;
     }
 
     @Override
@@ -132,8 +153,9 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
         ResultadoTransicion resultado = maquinaEtapas.transicionar(
                 proceso, etapaAnterior, accion, actor.getRol(), evidencias(solicitud, observacion));
         solicitud.setEtapa(etapaDe(solicitud.getTipoSolicitudAcademica(), resultado.getEtapaSiguiente()));
-        ResolucionAcademica escaneo = accion == AccionEtapa.REMITIR_DECANO
-                ? resolucionGateway.getPorSolicitud(solicitud.getUuidSolicitudAcademica()) : null;
+        boolean remite = accion == AccionEtapa.REMITIR_DECANO;
+        ResolucionAcademica escaneo = remite ? resolucionGateway.getPorSolicitud(solicitud.getUuidSolicitudAcademica()) : null;
+        List<AnexoAcademico> adicionales = remite ? documentosAdicionales(solicitud.getUuidSolicitudAcademica()) : List.of();
 
         LocalDateTime ahora = LocalDateTime.now(reloj);
         SolicitudAcademica actualizada = gateway.actualizarEtapa(solicitud, historial(solicitud, actor.getUuidUsuario(), accion, observacion, ahora));
@@ -141,11 +163,57 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
             resolucionGateway.eliminarPorSolicitud(solicitud.getUuidSolicitudAcademica());
             almacenamiento.eliminarTrasConfirmar(escaneo.getUrlArchivo());
         }
+        for (AnexoAcademico adicional : adicionales) {
+            anexoGateway.eliminar(adicional.getUuidAnexoAcademico());
+            almacenamiento.eliminarTrasConfirmar(adicional.getUrlArchivo());
+        }
         log.crearLog("Cambiar etapa de solicitud académica",
-                String.format("Solicitud académica %s, acción %s: de %s a %s%s", solicitud.getRadicado(), accion, etapaAnterior,
-                        resultado.getEtapaSiguiente(), escaneo == null ? "" : ", se retiró el escaneo de la Resolución"),
+                String.format("Solicitud académica %s, acción %s: de %s a %s%s%s", solicitud.getRadicado(), accion, etapaAnterior,
+                        resultado.getEtapaSiguiente(), escaneo == null ? "" : ", se retiró el escaneo de la Resolución",
+                        adicionales.isEmpty() ? "" : ", se retiró el documento adicional"),
                 token);
+        if (ETAPAS_FINALES.contains(resultado.getEtapaSiguiente()))
+            avisarRespuesta(solicitud, proceso, ahora.toLocalDate());
         return actualizada;
+    }
+
+    private void avisarRespuesta(SolicitudAcademica solicitud, TipoProcesoAcademico proceso, LocalDate fecha) {
+        Usuario usuario = solicitud.getEstudiante() == null ? null : solicitud.getEstudiante().getUsuario();
+        String destinatario = usuario == null ? null : usuario.getCorreoElectronico();
+        String uuidSolicitud = solicitud.getUuidSolicitudAcademica();
+        boolean supletorio = proceso == TipoProcesoAcademico.EXAMEN_SUPLETORIO;
+
+        List<AdjuntoCorreo> adjuntos = new ArrayList<>();
+        ResolucionAcademica resolucion = supletorio ? null : resolucionGateway.getPorSolicitud(uuidSolicitud);
+        if (resolucion != null)
+            adjuntos.add(AdjuntoCorreo.builder()
+                    .nombre("Resolucion-" + solicitud.getRadicado() + ".pdf")
+                    .tipoContenido(TIPO_PDF)
+                    .urlArchivo(resolucion.getUrlArchivo())
+                    .build());
+        for (AnexoAcademico adicional : documentosAdicionales(uuidSolicitud))
+            adjuntos.add(AdjuntoCorreo.builder()
+                    .nombre(adicional.getNombreArchivo())
+                    .tipoContenido(adicional.getTipoArchivo())
+                    .urlArchivo(adicional.getUrlArchivo())
+                    .build());
+
+        String texto = String.format(ENCABEZADO_RESPUESTA, fecha.format(FECHA_CARTA), nombreCompleto(usuario))
+                + (supletorio ? String.format(CUERPO_SUPLETORIO, solicitud.getRadicado()) : CUERPO_RESOLUCION);
+        correo.enviar(destinatario, ASUNTOS_RESPUESTA.get(proceso), texto, adjuntos);
+    }
+
+    private List<AnexoAcademico> documentosAdicionales(String uuidSolicitud) {
+        return anexoGateway.getPorSolicitud(uuidSolicitud).stream()
+                .filter(anexo -> anexo.getTipoAnexoAcademico() != null && DOCUMENTO_ADICIONAL.equals(anexo.getTipoAnexoAcademico().getNombre()))
+                .toList();
+    }
+
+    private String nombreCompleto(Usuario usuario) {
+        if (usuario == null) return "";
+        String nombres = usuario.getNombres() == null ? "" : usuario.getNombres().trim();
+        String apellidos = usuario.getApellidos() == null ? "" : usuario.getApellidos().trim();
+        return (nombres + " " + apellidos).trim();
     }
 
     private EntregaTransicion evidencias(SolicitudAcademica solicitud, String observacion) {

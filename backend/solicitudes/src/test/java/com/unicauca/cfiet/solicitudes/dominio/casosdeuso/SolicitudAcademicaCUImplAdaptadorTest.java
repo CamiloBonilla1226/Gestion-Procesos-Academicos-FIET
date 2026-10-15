@@ -3,6 +3,7 @@ package com.unicauca.cfiet.solicitudes.dominio.casosdeuso;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.LogCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.AlmacenamientoAnexosIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.AnexoAcademicoGatewayIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.output.CorreoIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.EstudianteGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.EtapaSolicitudAcademicaGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.ResolucionAcademicaGatewayIntPuerto;
@@ -80,12 +81,16 @@ class SolicitudAcademicaCUImplAdaptadorTest {
     @Mock
     private LogCUIntPuerto log;
 
+    @Mock
+    private CorreoIntPuerto correo;
+
     private List<EtapaSolicitudAcademica> etapas;
 
     private SolicitudAcademicaCUImplAdaptador casoDeUso(Clock reloj) {
         ExcepcionesFormateadorImplAdaptador formateador = new ExcepcionesFormateadorImplAdaptador();
         return new SolicitudAcademicaCUImplAdaptador(gateway, estudianteGateway, tipoSolicitudGateway, etapaGateway,
-                resolucionGateway, anexoGateway, usuarioGateway, almacenamiento, new MaquinaEtapas(formateador), formateador, log, reloj);
+                resolucionGateway, anexoGateway, usuarioGateway, almacenamiento, new MaquinaEtapas(formateador), formateador, log, reloj,
+                correo);
     }
 
     private ResolucionAcademica escaneo() {
@@ -593,7 +598,6 @@ class SolicitudAcademicaCUImplAdaptadorTest {
 
         casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.RECHAZAR_FUNCIONARIO, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), "No cumple", TOKEN);
 
-        verify(resolucionGateway, never()).getPorSolicitud(any());
         verify(resolucionGateway, never()).eliminarPorSolicitud(any());
         verify(almacenamiento, never()).eliminarTrasConfirmar(any());
     }
@@ -695,5 +699,136 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         assertTrue(resultado.getValue().contains(EN_REVISION_DECANO));
         assertTrue(resultado.getValue().contains(APROBADA_POR_DECANO));
         assertFalse(resultado.getValue().contains("escaneo"));
+    }
+
+    private static final String RUTA_ADICIONAL = "/api/anexos/sol-1/adicional.pdf";
+
+    private SolicitudAcademica conDatosDeContacto(SolicitudAcademica solicitud) {
+        Usuario usuario = solicitud.getEstudiante().getUsuario();
+        usuario.setCorreoElectronico("est@unicauca.edu.co");
+        usuario.setNombres("Ana María");
+        usuario.setApellidos("Pérez Gómez");
+        return solicitud;
+    }
+
+    private AnexoAcademico documentoAdicional() {
+        AnexoAcademico anexo = anexo("Documento adicional de la respuesta");
+        anexo.setNombreArchivo("acta.pdf");
+        anexo.setTipoArchivo("application/pdf");
+        anexo.setUrlArchivo(RUTA_ADICIONAL);
+        return anexo;
+    }
+
+    @SuppressWarnings("unchecked")
+    private ArgumentCaptor<List<AdjuntoCorreo>> capturaAdjuntos() {
+        return ArgumentCaptor.forClass(List.class);
+    }
+
+    @Test
+    void laRespuestaDeMatriculaSaleConLaResolucionYElDocumentoAdicionalDespuesDeGuardar() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(conDatosDeContacto(solicitud(tipoMatricula(), APROBADA_POR_DECANO)));
+        when(resolucionGateway.existePorSolicitud(SOLICITUD)).thenReturn(true);
+        when(resolucionGateway.getPorSolicitud(SOLICITUD)).thenReturn(escaneo());
+        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(anexo(RECIBO_PAGO), documentoAdicional()));
+
+        casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.ENVIAR_RESPUESTA, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), "Observación privada", TOKEN);
+
+        ArgumentCaptor<String> texto = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<List<AdjuntoCorreo>> adjuntos = capturaAdjuntos();
+        InOrder orden = inOrder(gateway, correo);
+        orden.verify(gateway).actualizarEtapa(any(), any());
+        orden.verify(correo).enviar(eq("est@unicauca.edu.co"), eq("Notificación de Cancelación de matrícula"), texto.capture(), adjuntos.capture());
+        assertEquals("Popayán, Cauca, 10 de marzo de 2026" + System.lineSeparator() + System.lineSeparator()
+                + "Sr(a) Ana María Pérez Gómez" + System.lineSeparator()
+                + "Estudiante Facultad de Ingeniería Electrónica y Telecomunicaciones" + System.lineSeparator() + System.lineSeparator()
+                + "Se adjunta la resolución correspondiente a su solicitud.", texto.getValue());
+        assertFalse(texto.getValue().contains("Observación privada"));
+        assertEquals(2, adjuntos.getValue().size());
+        assertEquals("Resolucion-2026-XX-0001.pdf", adjuntos.getValue().get(0).getNombre());
+        assertEquals("application/pdf", adjuntos.getValue().get(0).getTipoContenido());
+        assertEquals(RUTA_ESCANEO, adjuntos.getValue().get(0).getUrlArchivo());
+        assertEquals("acta.pdf", adjuntos.getValue().get(1).getNombre());
+        assertEquals(RUTA_ADICIONAL, adjuntos.getValue().get(1).getUrlArchivo());
+    }
+
+    @Test
+    void elRechazoDelFuncionarioEnAsignaturaSaleConLaResolucionSinDecirElResultado() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(conDatosDeContacto(solicitud(tipo(TIPO_CA, "Cancelación de Asignatura"), RADICADA)));
+        when(resolucionGateway.existePorSolicitud(SOLICITUD)).thenReturn(true);
+        when(resolucionGateway.getPorSolicitud(SOLICITUD)).thenReturn(escaneo());
+
+        casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.RECHAZAR_FUNCIONARIO, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), "No cumple", TOKEN);
+
+        ArgumentCaptor<String> texto = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<List<AdjuntoCorreo>> adjuntos = capturaAdjuntos();
+        verify(correo).enviar(eq("est@unicauca.edu.co"), eq("Notificación de Cancelación de asignatura"), texto.capture(), adjuntos.capture());
+        assertTrue(texto.getValue().contains("Se adjunta la resolución correspondiente a su solicitud."));
+        assertFalse(texto.getValue().toLowerCase().contains("rechazada"));
+        assertFalse(texto.getValue().toLowerCase().contains("aprobada"));
+        assertFalse(texto.getValue().contains("No cumple"));
+        assertEquals(List.of("Resolucion-2026-XX-0001.pdf"), adjuntos.getValue().stream().map(AdjuntoCorreo::getNombre).toList());
+    }
+
+    @Test
+    void laRespuestaDelSupletorioInvitaAIngresarYNoBuscaResolucion() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(conDatosDeContacto(solicitud(tipoSupletorio(), RECHAZADA_POR_DECANO)));
+        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(documentoAdicional()));
+
+        casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.ENVIAR_RESPUESTA, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null, TOKEN);
+
+        ArgumentCaptor<String> texto = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<List<AdjuntoCorreo>> adjuntos = capturaAdjuntos();
+        verify(correo).enviar(eq("est@unicauca.edu.co"), eq("Notificación de examen supletorio"), texto.capture(), adjuntos.capture());
+        assertTrue(texto.getValue().contains("2026-XX-0001 ya tiene respuesta"));
+        assertTrue(texto.getValue().contains("Ingrese a la aplicación"));
+        assertFalse(texto.getValue().contains("resolución"));
+        assertEquals(List.of("acta.pdf"), adjuntos.getValue().stream().map(AdjuntoCorreo::getNombre).toList());
+        verify(resolucionGateway, never()).getPorSolicitud(any());
+    }
+
+    @Test
+    void aprobarElComprobanteDelSupletorioTambienAvisa() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoSupletorio(), EN_VERIFICACION_PAGO));
+
+        casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.APROBAR_COMPROBANTE, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null, TOKEN);
+
+        verify(correo).enviar(isNull(), eq("Notificación de examen supletorio"), any(), eq(List.of()));
+    }
+
+    @Test
+    void lasEtapasIntermediasNoEnvianCorreo() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoMatricula(), EN_REVISION_DECANO));
+
+        casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.APROBAR_DECANO, actor(DECANO, RolEtiquetaEtapa.DECANO), null, TOKEN);
+
+        verify(correo, never()).enviar(any(), any(), any(), any());
+    }
+
+    @Test
+    void siElCambioDeEtapaFallaNoSeEnviaCorreo() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoSupletorio(), RECHAZADA_POR_DECANO));
+        when(gateway.actualizarEtapa(any(), any())).thenThrow(new IllegalStateException("base caida"));
+
+        assertThrows(IllegalStateException.class, () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.ENVIAR_RESPUESTA,
+                actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null, TOKEN));
+
+        verify(correo, never()).enviar(any(), any(), any(), any());
+    }
+
+    @Test
+    void remitirAlDecanoRetiraElDocumentoAdicionalTrasConfirmar() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoMatricula(), RADICADA));
+        AnexoAcademico adicional = documentoAdicional();
+        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(anexo(RECIBO_PAGO), adicional));
+
+        casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.REMITIR_DECANO, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null, TOKEN);
+
+        InOrder orden = inOrder(gateway, anexoGateway, almacenamiento);
+        orden.verify(gateway).actualizarEtapa(any(), any());
+        orden.verify(anexoGateway).eliminar(adicional.getUuidAnexoAcademico());
+        orden.verify(almacenamiento).eliminarTrasConfirmar(RUTA_ADICIONAL);
+        verify(anexoGateway, times(1)).eliminar(any());
+        verify(log).crearLog(any(), contains("se retiró el documento adicional"), eq(TOKEN));
+        verify(correo, never()).enviar(any(), any(), any(), any());
     }
 }

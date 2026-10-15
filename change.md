@@ -2,6 +2,59 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-15 - Documento adicional rechazado como "solo del estudiante": diagnóstico, error visible y prueba de integración del correo
+- Qué se hizo: se encontró que el error venía del backend desplegado en Docker, construido a las 15:23 con el jar anterior a la regla del documento adicional (sin `AdjuntoCorreo` ni la constante del tipo). Con ese código cualquier anexo con tipo distinto de recibo o comprobante se validaba como del rol ESTUDIANTE. El código fuente ya tenía la regla correcta, así que la corrección del backend es reconstruir la imagen. Además, el frontend muestra un error propio cuando falla la subida del documento adicional, se agregaron pruebas unitarias de permisos y una prueba de integración completa del correo con un SMTP local.
+- Archivos:
+  - `frontend/src/app/core/utils/documento-adicional.ts` (modificado: `mensajeDeFalla`, `TITULO_FALLA_DOCUMENTO_ADICIONAL`)
+  - `frontend/src/app/shared/others/documento-adicional-component/documento-adicional-component.ts` y `.html` (modificados: `errorServidor`)
+  - `frontend/src/app/shared/pages/content/cancelacion-matricula-proceso-component/*.ts`, `*.html`, `*.spec.ts`, y los equivalentes de `cancelacion-asignatura-proceso-component` y `examen-supletorio-proceso-component` (modificados)
+  - `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/AnexoAcademicoCUImplAdaptadorTest.java` (modificado: 3 pruebas nuevas)
+  - `backend/pruebas/smtp_prueba.py` (creado), `backend/pruebas/t9_correo_respuesta.ps1` (creado), `backend/pruebas/comun.ps1` (modificado: `PRUEBAS_BASE_URL`), `backend/pruebas/todo.ps1` (modificado: `t9` con `PRUEBAS_CORREOS`)
+  - `backend/CLAUDE.md` (modificado: cómo correr `t9`)
+- Notas:
+  - Reglas de subida, sin cambios en el código de producción del backend: el Funcionario asignado sube solo el "Documento adicional de la respuesta" (en las etapas desde las que puede cerrar) y el "Recibo de pago" del supletorio, que ya era suyo; el resto de tipos y el soporte libre siguen siendo del Estudiante; el Estudiante no sube el documento adicional. La Resolución va por `ResolucionAcademicaCUImplAdaptador` y no cambió.
+  - Frontend: si falla la subida del documento adicional, la acción no se envía, el toast dice "No se pudo subir el documento adicional" con el mensaje del backend y el mismo mensaje sale bajo el campo. Si el documento sube y falla la acción, el aviso sigue siendo el de la acción y el reintento no vuelve a subirlo.
+  - Integración (`t9_correo_respuesta.ps1` contra el jar nuevo en el puerto 8091, la base de Docker y `smtp_prueba.py`): 123 PASS y 0 FAIL. Cubre rechazo del Funcionario y respuesta final aprobada y rechazada en Matrícula y Asignatura, y rechazo del Funcionario, respuesta rechazada, aprobar y rechazar comprobante en el Supletorio; cada acción cambia la etapa y produce exactamente un correo con el asunto, la carta y los adjuntos esperados (Resolución en las cancelaciones, documento adicional cuando se subió); las etapas intermedias no envían correo; un destinatario rechazado por el SMTP deja la respuesta guardada y el error en el log. La limpieza no dejó filas, usuarios ni carpetas.
+  - Pruebas: backend completo pasa (con las variables de la base); frontend 601 specs con las mismas 58 fallas NG0201 de Julián; build con bundle inicial de 838,92 kB.
+
+## 2026-10-15 - Correo de respuesta por proceso con Resolución y documento adicional
+- Qué se hizo: el correo de la respuesta final cambia según el proceso (asunto, carta con fecha y nombre, sin decir aprobada ni rechazada) y adjunta el escaneo de la Resolución en las cancelaciones. El Funcionario puede adjuntar un documento adicional opcional (PDF, 5 MB) en las acciones que cierran la solicitud, que también va en el correo. Decisión P54 y D-F45.
+- Archivos:
+  - Backend, creados: `dominio/modelos/AdjuntoCorreo.java`, `src/test/.../infraestructura/output/correo/ServicioCorreoTest.java` (reescrito)
+  - Backend, modificados: `aplicacion/output/CorreoIntPuerto.java`, `aplicacion/output/AnexoAcademicoGatewayIntPuerto.java` (`eliminar`), `infraestructura/output/correo/ServicioCorreo.java` (MimeMessage con adjuntos leídos en el hilo asíncrono), `infraestructura/output/correo/CorreoImplAdaptador.java`, `infraestructura/output/persistencia/gateway/AnexoAcademicoGatewayImplAdaptador.java`, `dominio/casosdeuso/SolicitudAcademicaCUImplAdaptador.java`, `dominio/casosdeuso/AnexoAcademicoCUImplAdaptador.java`, `dominio/casosdeuso/CancelacionMatriculaCUImplAdaptador.java`, `dominio/casosdeuso/ConsultaCancelacionMatriculaCUImplAdaptador.java`, `dominio/casosdeuso/ExamenSupletorioCUImplAdaptador.java`, `dominio/helper/constantes/AnexoAcademicoConstantes.java`, `infraestructura/output/manejadorExcepciones/MensajesError.java`
+  - Backend, pruebas modificadas: `SolicitudAcademicaCUImplAdaptadorTest`, `AnexoAcademicoCUImplAdaptadorTest`, `CancelacionMatriculaCUImplAdaptadorTest`, `ConsultaCancelacionMatriculaCUImplAdaptadorTest`, `ExamenSupletorioCUImplAdaptadorTest`; `backend/pruebas/t5_catalogos.ps1` (conteos del catálogo)
+  - Frontend, creados: `core/utils/documento-adicional.ts` y su spec, `shared/others/documento-adicional-component/` (ts, html, spec)
+  - Frontend, modificados: `core/constantes/procesos-academicos.ts`, los componentes de proceso de Cancelación de Matrícula, Cancelación de Asignatura y Examen Supletorio (ts, html y spec)
+  - Datos y documentación: `docs/database/seed-procesos-academicos.sql` (3 filas de `TIPO_ANEXO_ACADEMICO`), `docs/database/etapas-por-proceso.md` (P54), `docs/api/contrato-api-procesos-academicos.md`, `backend/CLAUDE.md` (correo y catálogo en 14 tipos), `frontend/CLAUDE.md` (D-F45)
+- Notas:
+  - Orden: el frontend sube el escaneo y el documento adicional en peticiones propias antes de la acción, y el backend exige el escaneo para cambiar la etapa; cuando se ejecuta `cambiarEtapa` todo está confirmado. El correo se arma ahí y `CorreoImplAdaptador` lo envía solo después del commit; los archivos se leen en el hilo asíncrono. Un fallo de correo (también por tamaño) solo queda en el log.
+  - El documento adicional es un anexo del tipo "Documento adicional de la respuesta" (uno por proceso, no obligatorio, pdf). Lo sube solo el Funcionario asignado en las etapas desde las que puede cerrar; uno nuevo reemplaza al anterior y `REMITIR_DECANO` lo retira, como al escaneo. No se acepta al radicar y no sale en el formulario de Cancelación de Matrícula. Lo ven los tres roles en los anexos del detalle.
+  - Las 3 filas nuevas se cargaron en la base local con `INSERT IGNORE` (el catálogo queda en 14 tipos de anexo). Otra base las recibe corriendo de nuevo `seed-procesos-academicos.sql`.
+  - Pruebas: backend 1466 pruebas pasan (con las variables de la base); frontend 599 specs con las mismas 58 fallas NG0201 de Julián y 184 de 184 en las carpetas tocadas; `npm run build` con bundle inicial de 838,92 kB. `t5_catalogos.ps1` se ajustó pero no se corrió, porque necesita el backend nuevo en Docker.
+
+## 2026-10-15 - Aviso por correo al estudiante cuando se responde su solicitud
+- Qué se hizo: cuando una solicitud académica de cualquiera de los tres procesos llega a `APROBADA` o `RECHAZADA`, además de verse en la aplicación se envía un correo al `correoElectronico` del usuario del estudiante, con asunto "Respuesta a su solicitud [radicado]" y solo radicado, tipo de solicitud y estado. El envío es asíncrono, sale después del commit y un fallo solo queda en el log.
+- Archivos:
+  - `backend/solicitudes/pom.xml` (modificado: `spring-boot-starter-mail`)
+  - `backend/solicitudes/src/main/resources/application.properties` (modificado: SMTP de Gmail con `MAIL_USER` y `MAIL_PASSWORD`)
+  - `backend/docker-compose.yml` (modificado: pasa `MAIL_USER` y `MAIL_PASSWORD` del entorno del host)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/aplicacion/output/CorreoIntPuerto.java` (creado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/output/correo/ServicioCorreo.java` (creado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/output/correo/CorreoImplAdaptador.java` (creado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/configuracion/ConfiguracionAsincrona.java` (creado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/SolicitudAcademicaCUImplAdaptador.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/configuracion/BeanConfiguracion.java` (modificado: `crearSolicitudAcademicaCU` recibe `CorreoIntPuerto`)
+  - `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/infraestructura/output/correo/ServicioCorreoTest.java` (creado)
+  - `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/SolicitudAcademicaCUImplAdaptadorTest.java` (modificado)
+  - `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/TramiteCancelacionMatriculaCUImplAdaptadorTest.java`, `TramiteCancelacionAsignaturaCUImplAdaptadorTest.java`, `TramiteExamenSupletorioCUImplAdaptadorTest.java` (modificados: nuevo argumento del constructor)
+  - `backend/CLAUDE.md` (modificado)
+- Notas:
+  - El aviso se dispara en `cambiarEtapa`, después de guardar la etapa y el historial, para toda transición que termina en etapa final: `RECHAZAR_FUNCIONARIO`, `ENVIAR_RESPUESTA` (aprobada o rechazada) y, en el supletorio, `APROBAR_COMPROBANTE` y `RECHAZAR_COMPROBANTE`. Las etapas intermedias no envían correo.
+  - `CorreoImplAdaptador` registra el envío para después del commit: si la transacción del controlador se revierte (por ejemplo al cancelar las asignaturas), no sale ningún correo.
+  - No incluye observaciones, asignaturas, Resolución ni adjuntos. Sin correo del estudiante o con el SMTP caído solo se registra el error en el log.
+  - `MAIL_USER` y `MAIL_PASSWORD` llevan valor vacío por defecto para que el backend y `SolicitudesApplicationTests` arranquen sin ellas. Ninguna credencial queda en el repositorio.
+  - Pruebas: 1455 unitarias pasan; `contextLoads` pasa con las variables de la base definidas.
+
 ## 2026-10-15 - Restauración de los procesos académicos y limpieza que no los borra (Tarea T12.27)
 - Qué se hizo: la limpieza de T12.24 había borrado los tres procesos con sus etapas, etiquetas y tipos de anexo, porque `TIPO_SOLICITUD_ACADEMICA` depende de `FUNCIONARIO_ACADEMICO`. Se restauraron en la base local con `seed-procesos-academicos.sql`, asignados a un Funcionario Académico creado por la API (`funcionario.academico`). `limpieza_local.sql` ahora conserva el catálogo y reasigna los procesos a `rootfiet` antes de borrar a los funcionarios. `backend/CLAUDE.md` tiene la regla de que el catálogo de procesos no se borra en ninguna limpieza.
 - Archivos:

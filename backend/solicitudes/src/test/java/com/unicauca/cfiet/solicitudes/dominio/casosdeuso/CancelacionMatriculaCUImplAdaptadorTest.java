@@ -6,6 +6,7 @@ import com.unicauca.cfiet.solicitudes.aplicacion.input.SolicitudAcademicaCUIntPu
 import com.unicauca.cfiet.solicitudes.aplicacion.output.*;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.formateador.ExcepcionesFormateadorImplAdaptador;
+import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.MensajesError;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.excepcionesPropias.ErrorEntidadNoExisteExcepcion;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.excepcionesPropias.ErrorMalFormatoExcepcion;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.excepcionesPropias.ErrorReglaNegocioVioladaExcepcion;
@@ -232,6 +233,18 @@ class CancelacionMatriculaCUImplAdaptadorTest {
                 () -> casoDeUso.radicarCancelacionMatricula(ESTUDIANTE, "Motivo", null, TOKEN));
 
         OBLIGATORIOS.forEach(nombre -> assertTrue(error.getMessage().contains(nombre), nombre));
+        verificarQueNoSeGuardoNada();
+    }
+
+    @Test
+    void elDocumentoAdicionalDelFuncionarioNoSeEntregaAlRadicar() {
+        catalogo.add(TipoAnexoAcademico.builder().uuidTipoAnexoAcademico("anexo-adicional").tipoSolicitudAcademica(matricula)
+                .nombre("Documento adicional de la respuesta").formatosPermitidos("pdf").obligatorio(false).build());
+
+        ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
+                () -> casoDeUso.radicarCancelacionMatricula(ESTUDIANTE, "Motivo", anexosCompletos(), TOKEN));
+
+        assertEquals(String.format(MensajesError.ANEXO_SOLO_DEL_FUNCIONARIO, "Documento adicional de la respuesta"), error.getMessage());
         verificarQueNoSeGuardoNada();
     }
 

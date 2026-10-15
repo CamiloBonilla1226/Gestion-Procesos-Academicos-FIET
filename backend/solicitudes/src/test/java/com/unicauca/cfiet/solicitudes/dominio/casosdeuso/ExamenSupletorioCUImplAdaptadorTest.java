@@ -157,6 +157,7 @@ class ExamenSupletorioCUImplAdaptadorTest {
                 tipoAnexo(DOCENTE_CRUCE, "Formato firmado por el docente de la asignatura con la que se cruza", "pdf,jpg,png", false),
                 tipoAnexo(RECIBO, "Recibo de pago", "pdf", false),
                 tipoAnexo(COMPROBANTE, "Comprobante de pago", "pdf,jpg,png", false),
+                tipoAnexo("an-adicional", "Documento adicional de la respuesta", "pdf", false),
                 tipoAnexo(FOR_23, "Formato firmado por el docente que orienta la asignatura", "pdf,jpg,png", true)));
         lenient().when(solicitudCU.crearSolicitud(ESTUDIANTE, TIPO_ES, TOKEN)).thenReturn(SolicitudAcademica.builder()
                 .uuidSolicitudAcademica(SOLICITUD).radicado("2026-ES-0001").tipoSolicitudAcademica(supletorio).build());
@@ -459,7 +460,7 @@ class ExamenSupletorioCUImplAdaptadorTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"an-recibo, Recibo de pago", "an-comp, Comprobante de pago"})
+    @CsvSource({"an-recibo, Recibo de pago", "an-comp, Comprobante de pago", "an-adicional, Documento adicional de la respuesta"})
     void elReciboYElComprobanteNoSeEntreganAlRadicar(String uuidTipo, String nombre) {
         assertEquals(String.format(MensajesError.ANEXO_NO_PERMITIDO_AL_RADICAR, nombre),
                 reglaViolada(() -> casoDeUso.radicarExamenSupletorio(ESTUDIANTE, "am-1", LUNES, "otra", null, null, null,

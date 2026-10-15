@@ -3,6 +3,7 @@ package com.unicauca.cfiet.solicitudes.dominio.casosdeuso;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.ConsultaCancelacionMatriculaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.ConsultaSolicitudAcademicaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.*;
+import com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes;
 import com.unicauca.cfiet.solicitudes.dominio.helper.constantes.ApplicationConstantes;
 import com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EstadoAsignaturaMatriculadaConstantes;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
@@ -78,7 +79,9 @@ public class ConsultaCancelacionMatriculaCUImplAdaptador implements ConsultaCanc
                 .toList();
         return FormularioCancelacionMatricula.builder()
                 .codigoEstudiantil(estudianteGateway.getPorUuid(uuidEstudiante).getCodigoEstudiantil())
-                .anexos(tipoAnexoGateway.getPorTipo(tipo.getUuidTipoSolicitudAcademica()))
+                .anexos(tipoAnexoGateway.getPorTipo(tipo.getUuidTipoSolicitudAcademica()).stream()
+                        .filter(tipoAnexo -> !AnexoAcademicoConstantes.DOCUMENTO_ADICIONAL.equals(tipoAnexo.getNombre()))
+                        .toList())
                 .asignaturas(activas)
                 .build();
     }

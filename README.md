@@ -41,9 +41,9 @@ Julián (ver `docs/database/`).
 ├── frontend/   Angular 20 + PrimeNG — SPA
 └── docs/
     ├── api/
-    │   └── contrato-api-procesos-academicos.md   Contrato de los 66 endpoints académicos
+    │   └── contrato-api-procesos-academicos.md   Contrato de los 71 endpoints académicos
     ├── database/
-    │   ├── script_bd_extension.sql          DDL de referencia de las 19 tablas nuevas (no se ejecuta)
+    │   ├── script_bd_extension.sql          DDL de referencia de las 20 tablas nuevas (no se ejecuta)
     │   ├── diccionario-datos-extension.md   Diccionario de datos de la extensión
     │   ├── etapas-por-proceso.md            Etapas, transiciones, anexos, plazos y decisiones
     │   ├── seed-roles-extension.sql         Roles y tipo de usuario de la extensión

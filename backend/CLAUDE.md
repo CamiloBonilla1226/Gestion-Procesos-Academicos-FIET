@@ -25,6 +25,22 @@ fijos: lee las variables de entorno `SERVER_PORT`, `DB_URL`, `DB_USER_NAME`,
 define `docker-compose.yml` y la carpeta `backend/uploads` del host se monta
 en `/app/uploads`.
 
+`MAIL_USER` y `MAIL_PASSWORD` son la cuenta de Gmail (y su contraseña de
+aplicación) que envía el correo al estudiante cuando su solicitud académica
+llega a `APROBADA` o `RECHAZADA` (SMTP `smtp.gmail.com:587`, auth y
+STARTTLS). No tienen valor en el repositorio: `docker-compose.yml` las toma
+del entorno del host. Sin ellas el backend arranca igual y el envío solo deja
+el error en el log. El correo lo arma `SolicitudAcademicaCUImplAdaptador.cambiarEtapa`
+(asunto y texto por proceso, escaneo de la Resolución en las cancelaciones y
+el anexo "Documento adicional de la respuesta" si existe, P54) y lo pasa a
+`CorreoIntPuerto` con `AdjuntoCorreo` (nombre, tipo y ruta, sin bytes).
+`CorreoImplAdaptador` espera al commit de la transacción y llama a
+`ServicioCorreo` (`@Async`, `@EnableAsync` en `ConfiguracionAsincrona`), que
+lee los archivos con `AlmacenamientoAnexosIntPuerto.leer` en el hilo
+asíncrono y envía un `MimeMessage`. Si falta un archivo, el destinatario no
+tiene correo o el SMTP falla, solo se registra el error; la respuesta nunca
+se revierte.
+
 ### Orden de arranque con una base nueva
 
 `spring.sql.init.mode=never`: nada se siembra solo. Con una base vacía:
@@ -44,7 +60,7 @@ en `/app/uploads`.
 4. Correr `docs/database/seed-procesos-academicos.sql` con
    `@funcionario_uuid` apuntando a ese funcionario (el archivo trae el
    comando exacto para Docker). Siembra los cinco programas académicos, los
-   tres tipos de solicitud, las 8 etapas, las 23 etiquetas por rol, los 11
+   tres tipos de solicitud, las 8 etapas, las 23 etiquetas por rol, los 14
    tipos de anexo y las situaciones R0 a R3. Usa `INSERT IGNORE` con UUID
    fijos y se puede repetir; sin `@funcionario_uuid` no se insertan los
    tipos ni lo que depende de ellos (los programas sí).
@@ -66,7 +82,7 @@ Julián, que ya existe en `data.sql`.
 **Regla: los procesos académicos son datos predefinidos y no se borran en
 ninguna limpieza.** `TIPO_SOLICITUD_ACADEMICA` (los tres procesos),
 `ETAPA_SOLICITUD_ACADEMICA` (las 8 etapas, con y sin tipo),
-`ETAPA_ETIQUETA_ROL` (23 etiquetas) y `TIPO_ANEXO_ACADEMICO` (11 tipos de
+`ETAPA_ETIQUETA_ROL` (23 etiquetas) y `TIPO_ANEXO_ACADEMICO` (14 tipos de
 anexo) se conservan siempre, igual que `roles`, `tiposUsuario`,
 `PROGRAMA_ACADEMICO` y `SITUACION_ACADEMICA_ASIGNATURA`. Ningún script de
 limpieza, de pruebas ni manual les hace `DELETE`; si un proceso necesita otro
@@ -91,7 +107,7 @@ rol `Funcionario Académico` y no puede tramitar solicitudes. Conserva
 `PROGRAMA_ACADEMICO` (5, con `ultimoConsecutivoAsignatura` en 0),
 `SITUACION_ACADEMICA_ASIGNATURA` (R0 a R3) y todo el catálogo de procesos, y
 al final muestra los conteos de procesos, etapas, etiquetas y tipos de
-anexo (3, 8, 23 y 11). Busca a `rootfiet` por `username` y, si no existe, no
+anexo (3, 8, 23 y 14). Busca a `rootfiet` por `username` y, si no existe, no
 borra nada. Es una sola transacción, en orden de llaves foráneas, y se puede
 repetir. No hay columnas `AUTO_INCREMENT` en las tablas que vacía.
 
@@ -1422,10 +1438,35 @@ Scripts que hay hoy:
 | `t5_solicitudes.ps1` | Bandejas, detalle, historial, anexos y Resolución de `solicitudes-academicas` |
 | `t6_cancelacion_matricula.ps1`, `t7_cancelacion_asignatura.ps1`, `t8_examen_supletorio.ps1` | Recorrido completo de cada proceso con usuarios reales |
 | `matriz-permisos.ps1` | Matriz de los 71 endpoints por rol |
-| `todo.ps1` | Corre todos los anteriores y verifica la limpieza |
+| `t9_correo_respuesta.ps1` | Integración del correo de la respuesta final (P54) con el Funcionario: en cada proceso y cada acción que cierra la solicitud sube la Resolución y el documento adicional, verifica la etapa y el correo capturado (asunto, carta, adjuntos), los permisos de subida y que un correo rechazado por el servidor no revierte la respuesta |
+| `todo.ps1` | Corre todos los anteriores y verifica la limpieza; `t9` solo si está definida `PRUEBAS_CORREOS` |
 
 `comun.ps1` tiene las funciones compartidas y `generar_plantilla_*.ps1`
 genera las plantillas `.xlsx` de carga masiva que están en la misma carpeta.
+`$Global:BaseUrl` sale de `PRUEBAS_BASE_URL` si está definida (por defecto
+`http://localhost:8080/api/unicauca/fiet/consejo/`).
+
+`t9_correo_respuesta.ps1` no habla con Gmail: necesita `smtp_prueba.py`, un
+SMTP local que guarda cada mensaje recibido como JSON (remitente,
+destinatarios, asunto, texto y adjuntos) y rechaza con 550 a cualquier
+destinatario que contenga `smtp-rechaza`. Se corre con un backend apuntando a
+ese SMTP; Spring toma `SPRING_MAIL_HOST` y `SPRING_MAIL_PORT` del entorno
+por encima de `application.properties`. Desde `backend/`, con la base de
+Docker arriba y el jar construido (`./mvnw clean package -DskipTests`):
+
+```
+python -I pruebas\smtp_prueba.py 2525 C:\ruta\correos
+$env:SERVER_PORT="8091"; $env:DB_URL="jdbc:mysql://localhost:3307/cfiet?serverTimezone=UTC"; $env:DB_USER_NAME="root"; $env:DB_PASSWORD="mysql"
+$env:UPLOADS_PATH="$PWD\uploads"; $env:MAIL_USER="fiet.prueba@localhost"; $env:MAIL_PASSWORD="prueba"
+$env:SPRING_MAIL_HOST="127.0.0.1"; $env:SPRING_MAIL_PORT="2525"
+java -jar solicitudes\target\solicitudes-0.0.1.jar > C:\ruta\backend.log
+$env:PRUEBAS_BASE_URL="http://localhost:8091/api/unicauca/fiet/consejo/"; $env:PRUEBAS_CORREOS="C:\ruta\correos"; $env:PRUEBAS_LOG_BACKEND="C:\ruta\backend.log"
+powershell -File .\pruebas\t9_correo_respuesta.ps1
+```
+
+Cada comando largo va en su propia consola (el SMTP y el backend se quedan
+corriendo). Con `PRUEBAS_LOG_BACKEND` además comprueba que el fallo del correo
+quedó en el log.
 
 Los `.ps1` se escriben en ASCII puro, sin tildes ni eñes, ni siquiera en
 los textos que se envían. Windows PowerShell 5.1 lee un `.ps1` sin BOM como

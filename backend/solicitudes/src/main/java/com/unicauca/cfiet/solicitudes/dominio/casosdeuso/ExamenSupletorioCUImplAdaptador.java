@@ -230,7 +230,7 @@ public class ExamenSupletorioCUImplAdaptador implements ExamenSupletorioCUIntPue
             if (tipoAnexo == null)
                 anexoDeOtroTipo(uuidTipo, tipo);
             String nombre = tipoAnexo.getNombre();
-            if (RECIBO_PAGO.equals(nombre) || COMPROBANTE_PAGO.equals(nombre))
+            if (RECIBO_PAGO.equals(nombre) || COMPROBANTE_PAGO.equals(nombre) || DOCUMENTO_ADICIONAL.equals(nombre))
                 formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.ANEXO_NO_PERMITIDO_AL_RADICAR, nombre));
             if (ajenoALaCausa.equals(nombre))
                 formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.ANEXO_NO_CORRESPONDE_CAUSA, nombre, nombreCausa(causa)));

@@ -49,4 +49,11 @@ public class AnexoAcademicoGatewayImplAdaptador implements AnexoAcademicoGateway
                 .map(mapper::toDominio)
                 .toList();
     }
+
+    @Override
+    @Transactional
+    public void eliminar(String uuidAnexoAcademico) {
+        repositorio.deleteById(uuidAnexoAcademico);
+        repositorio.flush();
+    }
 }

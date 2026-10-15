@@ -111,6 +111,7 @@ Una solicitud que existe pero que el usuario no puede ver responde con
 | Examen Supletorio | Formato firmado por el docente de la asignatura con la que se cruza | pdf, jpg, png | Si la causa es `cruce` |
 | Examen Supletorio | Recibo de pago | pdf | Lo sube el Funcionario para pasar a PENDIENTE_PAGO |
 | Examen Supletorio | Comprobante de pago | pdf, jpg, png | Lo sube el Estudiante para pasar a EN_VERIFICACION_PAGO |
+| Los tres procesos | Documento adicional de la respuesta | pdf | No. Lo sube solo el Funcionario, antes de una acción que cierra la solicitud; uno nuevo reemplaza al anterior, `REMITIR_DECANO` lo retira y va en el correo de la respuesta (P54). No se entrega al radicar ni sale en `GET cancelaciones-matricula/formulario` |
 | Cancelaciones | Soporte libre (sin tipo) | pdf, jpg, jpeg, png | No |
 | Cancelaciones | Escaneo de la Resolución | pdf | Para rechazar en el Funcionario y para enviar la respuesta |
 

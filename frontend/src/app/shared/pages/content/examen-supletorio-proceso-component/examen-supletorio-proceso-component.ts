@@ -1,5 +1,5 @@
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
-import { Observable, finalize, map, of, switchMap, tap } from 'rxjs';
+import { Observable, catchError, finalize, map, of, switchMap, tap, throwError } from 'rxjs';
 import { GenericDialogFormComponent } from '../../../generic-dialog-form-component/generic-dialog-form-component';
 import { SimpleButtonComponent } from '../../../buttons/simple-button-component/simple-button-component';
 import { InputTextTareaComponent } from '../../../inputs/input-text-tarea-component/input-text-tarea-component';
@@ -40,6 +40,14 @@ import {
 import { formatearFecha } from '../../../../core/utils/formato';
 import { ResumenSolicitudComponent } from '../../../others/resumen-solicitud-component/resumen-solicitud-component';
 import { SelectorDocenteComponent } from '../../../others/selector-docente-component/selector-docente-component';
+import { DocumentoAdicionalComponent } from '../../../others/documento-adicional-component/documento-adicional-component';
+import {
+  TITULO_FALLA_DOCUMENTO_ADICIONAL,
+  admiteDocumentoAdicional,
+  mensajeDeFalla,
+  subirDocumentoAdicional,
+  tieneDocumentoAdicional
+} from '../../../../core/utils/documento-adicional';
 
 const ACCIONES_DEL_PROCESO: AccionAcademica[] = [
   ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO,
@@ -131,7 +139,8 @@ function mismoNombre(a: string | null | undefined, b: string): boolean {
     InputTextTareaComponent,
     InputAnexoUploadComponent,
     ResumenSolicitudComponent,
-    SelectorDocenteComponent
+    SelectorDocenteComponent,
+    DocumentoAdicionalComponent
   ],
   templateUrl: './examen-supletorio-proceso-component.html',
   styleUrl: '../estilos-academicos.css'
@@ -163,6 +172,9 @@ export class ExamenSupletorioProcesoComponent implements OnChanges {
   campoAnexoPago: TipoAnexoDTORespuesta | null = null;
   archivoPago: File | null = null;
   anexoPagoSubido = false;
+  archivoAdicional: File | null = null;
+  adicionalSubido = false;
+  errorAdicional = '';
   errores: Record<string, string> = {};
   erroresServidor: string[] = [];
 
@@ -177,6 +189,7 @@ export class ExamenSupletorioProcesoComponent implements OnChanges {
   ngOnChanges(cambios: SimpleChanges): void {
     if (cambios['uuidSolicitud'] || cambios['solicitud']) {
       this.anexoPagoSubido = false;
+      this.adicionalSubido = false;
       this.cargarDetalle();
     }
   }
@@ -229,6 +242,14 @@ export class ExamenSupletorioProcesoComponent implements OnChanges {
     return campo ? etiquetaCampoObservacion(campo) : '';
   }
 
+  get pideDocumentoAdicional(): boolean {
+    return admiteDocumentoAdicional(this.accionActiva);
+  }
+
+  get hayDocumentoAdicional(): boolean {
+    return this.adicionalSubido || tieneDocumentoAdicional(this.solicitud?.anexos);
+  }
+
   get pideAnexoPago(): boolean {
     return !!this.accionActiva && !!ANEXO_DE_ACCION[this.accionActiva];
   }
@@ -274,6 +295,8 @@ export class ExamenSupletorioProcesoComponent implements OnChanges {
     this.observacion = '';
     this.docenteElegido = null;
     this.archivoPago = null;
+    this.archivoAdicional = null;
+    this.errorAdicional = '';
     this.tipoAnexoPago = null;
     this.campoAnexoPago = null;
     this.errores = {};
@@ -315,6 +338,7 @@ export class ExamenSupletorioProcesoComponent implements OnChanges {
     if (Object.keys(this.errores).length > 0) return;
     this.enviando = true;
     this.erroresServidor = [];
+    this.errorAdicional = '';
     this.ejecutar(accion)
       .pipe(finalize(() => (this.enviando = false)))
       .subscribe({
@@ -326,7 +350,11 @@ export class ExamenSupletorioProcesoComponent implements OnChanges {
         },
         error: err => {
           this.erroresServidor = Object.entries(erroresDeCampos(err)).map(([campo, mensaje]) => `${campo}: ${mensaje}`);
-          this.errorHandlerService.handleError(err, 'Error', 'No se pudo completar la acción');
+          this.errorHandlerService.handleError(
+            err,
+            'Error',
+            this.errorAdicional ? TITULO_FALLA_DOCUMENTO_ADICIONAL : 'No se pudo completar la acción'
+          );
         }
       });
   }
@@ -370,6 +398,30 @@ export class ExamenSupletorioProcesoComponent implements OnChanges {
   }
 
   private ejecutar(accion: AccionAcademica): Observable<unknown> {
+    if (!admiteDocumentoAdicional(accion)) return this.ejecutarAccion(accion);
+    return this.subirAdicional().pipe(switchMap(() => this.ejecutarAccion(accion)));
+  }
+
+  private subirAdicional(): Observable<void> {
+    return subirDocumentoAdicional(
+      this.catalogoAcademicoService,
+      this.solicitudAcademicaService,
+      this.solicitud.uuidTipoSolicitudAcademica,
+      this.uuidSolicitud,
+      this.archivoAdicional
+    ).pipe(
+      tap(() => {
+        if (this.archivoAdicional) this.adicionalSubido = true;
+        this.archivoAdicional = null;
+      }),
+      catchError(err => {
+        this.errorAdicional = mensajeDeFalla(err);
+        return throwError(() => err);
+      })
+    );
+  }
+
+  private ejecutarAccion(accion: AccionAcademica): Observable<unknown> {
     const uuid = this.uuidSolicitud;
     const observacion = this.observacion.trim();
     const opcional = observacion === '' ? null : observacion;

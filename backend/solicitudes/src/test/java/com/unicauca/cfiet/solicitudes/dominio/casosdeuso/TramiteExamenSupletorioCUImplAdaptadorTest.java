@@ -200,7 +200,7 @@ class TramiteExamenSupletorioCUImplAdaptadorTest {
         MaquinaEtapas maquina = new MaquinaEtapas(formateador);
         SolicitudAcademicaCUImplAdaptador solicitudCU = new SolicitudAcademicaCUImplAdaptador(solicitudGateway, estudianteGateway,
                 tipoSolicitudGateway, etapaGateway, resolucionGateway, anexoGateway, usuarioGateway, almacenamiento, maquina, formateador, log,
-                RELOJ);
+                RELOJ, mock(CorreoIntPuerto.class));
         casoDeUso = new TramiteExamenSupletorioCUImplAdaptador(gateway, solicitudGateway, usuarioGateway, sesionGateway, jwtServicio,
                 docenteGateway, notificacionGateway, solicitudCU, maquina, formateador, log, RELOJ);
         lenient().when(docenteGateway.getActivo(DOCENTE)).thenReturn(Docente.builder().uuidUsuario(DOCENTE).nombres("Ana").apellidos("Ruiz")

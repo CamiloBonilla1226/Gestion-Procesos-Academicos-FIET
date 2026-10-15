@@ -172,10 +172,11 @@ public class BeanConfiguracion {
                                                                      AlmacenamientoAnexosIntPuerto almacenamiento,
                                                                      MaquinaEtapas maquinaEtapas,
                                                                      ExcepcionesFormateadorIntPuerto formateadorExcepciones,
-                                                                     LogCUIntPuerto log){
+                                                                     LogCUIntPuerto log,
+                                                                     CorreoIntPuerto correo){
         return new SolicitudAcademicaCUImplAdaptador(gateway, estudianteGateway, tipoSolicitudGateway, etapaGateway,
                 resolucionGateway, anexoGateway, usuarioGateway, almacenamiento, maquinaEtapas, formateadorExcepciones, log,
-                Clock.system(ZoneId.of("America/Bogota")));
+                Clock.system(ZoneId.of("America/Bogota")), correo);
     }
 
     @Bean

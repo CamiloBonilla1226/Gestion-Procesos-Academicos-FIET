@@ -22,6 +22,8 @@ services:
       DB_PASSWORD: mysql
       UPLOADS_PATH: /app/uploads
       JWT_SECRET: ${JWT_SECRET:-586E3272357538782F413F4428472B4B6250655368566B597033733676397924}
+      MAIL_USER: ${MAIL_USER:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
     volumes:
       - ./uploads:/app/uploads
     restart: always
@@ -40,4 +42,4 @@ services:
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 10s
-      retries: 10
+      retries: 10

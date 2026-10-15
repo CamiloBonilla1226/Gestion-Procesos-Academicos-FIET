@@ -98,6 +98,11 @@
     @case (acciones.RECHAZAR_FUNCIONARIO) {
     <p class="nota-gris">La solicitud quedará rechazada y terminará el trámite. Escribe la observación que verá el estudiante.</p>
     }
+    @case (acciones.REMITIR_DECANO) {
+    @if (hayDocumentoAdicional) {
+    <p class="nota-aviso" data-aviso-retira-adicional>Al remitir se retira el documento adicional que estaba cargado.</p>
+    }
+    }
     @case (acciones.APROBAR_DECANO) {
     <p class="nota-gris" data-nota-aprobar>{{ notaAprobarDecano }}</p>
     <p class="mb-0">El Funcionario Académico enviará después el recibo de pago al estudiante.</p>
@@ -143,6 +148,12 @@
       </app-input-anexo-upload-component>
       <small class="texto-error" data-error="anexoPago">{{ errores['anexoPago'] || '' }}</small>
     </div>
+    }
+
+    @if (pideDocumentoAdicional) {
+    <app-documento-adicional-component [archivo]="archivoAdicional" [yaCargado]="hayDocumentoAdicional" [errorServidor]="errorAdicional"
+      (archivoChange)="archivoAdicional = $event">
+    </app-documento-adicional-component>
     }
 
     @if (campoObservacion; as campo) {

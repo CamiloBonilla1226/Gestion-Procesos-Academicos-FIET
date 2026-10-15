@@ -10,6 +10,7 @@ public class AnexoAcademicoConstantes {
     public static final String SOPORTE_JUSTIFICACION = "Soporte de la justificación de la no presentación";
     public static final String FORMATO_DOCENTE_CRUCE = "Formato firmado por el docente de la asignatura con la que se cruza";
     public static final String FORMATO_FOR_23 = "Formato firmado por el docente que orienta la asignatura";
+    public static final String DOCUMENTO_ADICIONAL = "Documento adicional de la respuesta";
     public static final Map<String, String> TIPOS_CONTENIDO = Map.of(
             "pdf", "application/pdf",
             "jpg", "image/jpeg",

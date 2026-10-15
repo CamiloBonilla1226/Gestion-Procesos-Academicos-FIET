@@ -1,5 +1,10 @@
 . "$PSScriptRoot\comun.ps1"
 
+function Es-DocumentoAdicional($Anexos) {
+    $a = @($Anexos | Where-Object { $_.nombre -ceq "Documento adicional de la respuesta" })
+    return ($a.Count -eq 1) -and ($a[0].formatosPermitidos -ceq "pdf") -and ($a[0].obligatorio -eq $false)
+}
+
 $tokenRoot = Iniciar-Sesion -Usuario "rootfiet" -Clave "rootfiet1234"
 $inicio = Inicio-Corrida
 $fotoInicial = Foto-Base
@@ -149,17 +154,17 @@ try {
     $lista = Leer-Json $r
     $anexos = @($lista)
     $malos = @($AnexosMatricula.Keys | Where-Object { $nombre = $_; $a = @($anexos | Where-Object { $_.nombre -ceq $nombre }); ($a.Count -ne 1) -or ($a[0].formatosPermitidos -cne $AnexosMatricula[$nombre]) -or ($a[0].obligatorio -ne $true) })
-    Escribir-Resultado "matricula tiene los seis anexos obligatorios con sus formatos (obtuvo $($anexos.Count), distintos: $($malos.Count))" (($anexos.Count -eq 6) -and ($malos.Count -eq 0))
+    Escribir-Resultado "matricula tiene los seis anexos obligatorios con sus formatos y el documento adicional (obtuvo $($anexos.Count), distintos: $($malos.Count))" (($anexos.Count -eq 7) -and ($malos.Count -eq 0) -and (Es-DocumentoAdicional $anexos))
 
     $r = Invoke-Api -Metodo GET -Ruta "catalogos-academicos/tipos-solicitud/$TipoAsignatura/tipos-anexo" -Token $tokenRoot
     $lista = Leer-Json $r
-    Escribir-Resultado "asignatura no tiene tipos de anexo (obtuvo $(@($lista).Count))" (($r.Status -eq 200) -and (@($lista).Count -eq 0))
+    Escribir-Resultado "asignatura solo tiene el documento adicional de la respuesta (obtuvo $(@($lista).Count))" (($r.Status -eq 200) -and (@($lista).Count -eq 1) -and (Es-DocumentoAdicional @($lista)))
 
     $r = Invoke-Api -Metodo GET -Ruta "catalogos-academicos/tipos-solicitud/$TipoSupletorio/tipos-anexo" -Token $tokenRoot
     $lista = Leer-Json $r
     $anexos = @($lista)
     $malos = @($AnexosSupletorio.Keys | Where-Object { $nombre = $_; $e = $AnexosSupletorio[$nombre]; $a = @($anexos | Where-Object { $_.nombre -ceq $nombre }); ($a.Count -ne 1) -or ($a[0].formatosPermitidos -cne $e.Formatos) -or ($a[0].obligatorio -ne $e.Obligatorio) })
-    Escribir-Resultado "supletorio tiene sus cinco anexos y solo el FOR-23 es obligatorio (obtuvo $($anexos.Count), distintos: $($malos.Count))" (($anexos.Count -eq 5) -and ($malos.Count -eq 0))
+    Escribir-Resultado "supletorio tiene sus cinco anexos, el documento adicional y solo el FOR-23 es obligatorio (obtuvo $($anexos.Count), distintos: $($malos.Count))" (($anexos.Count -eq 6) -and ($malos.Count -eq 0) -and (Es-DocumentoAdicional $anexos))
 
     $r = Invoke-Api -Metodo GET -Ruta "catalogos-academicos/situaciones" -Token $tokenRoot
     $lista = Leer-Json $r

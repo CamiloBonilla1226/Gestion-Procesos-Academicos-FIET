@@ -1,5 +1,5 @@
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
-import { Observable, finalize, map, of, switchMap, tap } from 'rxjs';
+import { Observable, catchError, finalize, map, of, switchMap, tap, throwError } from 'rxjs';
 import { GenericDialogFormComponent } from '../../../generic-dialog-form-component/generic-dialog-form-component';
 import { SimpleButtonComponent } from '../../../buttons/simple-button-component/simple-button-component';
 import { InputTextTareaComponent } from '../../../inputs/input-text-tarea-component/input-text-tarea-component';
@@ -30,6 +30,14 @@ import {
 import { NOTA_SIMCA } from '../../../../core/constantes/textos-cancelacion-matricula';
 import { CeldaEncabezado, agruparEncabezados } from '../../../../core/utils/encabezado-agrupado';
 import { ResumenSolicitudComponent } from '../../../others/resumen-solicitud-component/resumen-solicitud-component';
+import { DocumentoAdicionalComponent } from '../../../others/documento-adicional-component/documento-adicional-component';
+import {
+  TITULO_FALLA_DOCUMENTO_ADICIONAL,
+  admiteDocumentoAdicional,
+  mensajeDeFalla,
+  subirDocumentoAdicional,
+  tieneDocumentoAdicional
+} from '../../../../core/utils/documento-adicional';
 import {
   comoTipoAnexo,
   errorDeArchivo,
@@ -120,7 +128,8 @@ const COLUMNAS_FIJAS = ['Código', 'Asignatura'];
     SimpleButtonComponent,
     InputTextTareaComponent,
     InputAnexoUploadComponent,
-    ResumenSolicitudComponent
+    ResumenSolicitudComponent,
+    DocumentoAdicionalComponent
   ],
   templateUrl: './cancelacion-matricula-proceso-component.html',
   styleUrls: ['../estilos-academicos.css', '../tabla-asignaturas.css']
@@ -155,6 +164,9 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
   observacion = '';
   archivoResolucion: File | null = null;
   resolucionSubida = false;
+  archivoAdicional: File | null = null;
+  adicionalSubido = false;
+  errorAdicional = '';
   evaluaciones: Record<string, EvaluacionEnEdicion> = {};
   errores: Record<string, string> = {};
   erroresServidor: string[] = [];
@@ -170,6 +182,7 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
   ngOnChanges(cambios: SimpleChanges): void {
     if (cambios['uuidSolicitud'] || cambios['solicitud']) {
       this.resolucionSubida = false;
+      this.adicionalSubido = false;
       this.cargarDetalle();
     }
   }
@@ -197,6 +210,14 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
 
   get hayResolucion(): boolean {
     return this.solicitud?.tieneResolucion || this.resolucionSubida;
+  }
+
+  get pideDocumentoAdicional(): boolean {
+    return admiteDocumentoAdicional(this.accionActiva);
+  }
+
+  get hayDocumentoAdicional(): boolean {
+    return this.adicionalSubido || tieneDocumentoAdicional(this.solicitud?.anexos);
   }
 
   get campoObservacion() {
@@ -258,6 +279,8 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
     this.accionActiva = accion;
     this.observacion = '';
     this.archivoResolucion = null;
+    this.archivoAdicional = null;
+    this.errorAdicional = '';
     this.errores = {};
     this.erroresServidor = [];
     this.faltanDatosTabla = false;
@@ -321,6 +344,7 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
     if (Object.keys(this.errores).length > 0) return;
     this.enviando = true;
     this.erroresServidor = [];
+    this.errorAdicional = '';
     this.ejecutar(accion)
       .pipe(finalize(() => (this.enviando = false)))
       .subscribe({
@@ -332,7 +356,11 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
         },
         error: err => {
           this.erroresServidor = Object.entries(erroresDeCampos(err)).map(([campo, mensaje]) => `${campo}: ${mensaje}`);
-          this.errorHandlerService.handleError(err, 'Error', 'No se pudo completar la acción');
+          this.errorHandlerService.handleError(
+            err,
+            'Error',
+            this.errorAdicional ? TITULO_FALLA_DOCUMENTO_ADICIONAL : 'No se pudo completar la acción'
+          );
         }
       });
   }
@@ -351,6 +379,7 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
     switch (accion) {
       case ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO:
         return this.subirResolucion().pipe(
+          switchMap(() => this.subirAdicional()),
           switchMap(() => this.cancelacionMatriculaService.rechazarPorFuncionario(uuid, { observacion }))
         );
       case ACCIONES_ACADEMICAS.REMITIR_DECANO:
@@ -364,9 +393,29 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
         return this.cancelacionMatriculaService.rechazarPorDecano(uuid, { observacion: opcional });
       default:
         return this.subirResolucion().pipe(
+          switchMap(() => this.subirAdicional()),
           switchMap(() => this.cancelacionMatriculaService.enviarRespuesta(uuid, { observacion: opcional }))
         );
     }
+  }
+
+  private subirAdicional(): Observable<void> {
+    return subirDocumentoAdicional(
+      this.catalogoAcademicoService,
+      this.solicitudAcademicaService,
+      this.solicitud.uuidTipoSolicitudAcademica,
+      this.uuidSolicitud,
+      this.archivoAdicional
+    ).pipe(
+      tap(() => {
+        if (this.archivoAdicional) this.adicionalSubido = true;
+        this.archivoAdicional = null;
+      }),
+      catchError(err => {
+        this.errorAdicional = mensajeDeFalla(err);
+        return throwError(() => err);
+      })
+    );
   }
 
   private subirResolucion(): Observable<void> {

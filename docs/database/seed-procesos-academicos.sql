@@ -65,7 +65,10 @@ INSERT IGNORE INTO TIPO_ANEXO_ACADEMICO (uuidTipoAnexoAcademico, TipoSolicitudAc
 ('2bfc61be-7787-4772-8b86-ca64488f2578', '459cde47-f3a3-4a74-9b44-1063a516326c', 'Soporte de la justificación de la no presentación', 'pdf,jpg,png', 0),
 ('3cba6336-4de6-492b-838d-602f28a9efbe', '459cde47-f3a3-4a74-9b44-1063a516326c', 'Formato firmado por el docente de la asignatura con la que se cruza', 'pdf,jpg,png', 0),
 ('422163e2-81b8-48f8-a054-2c40033de17c', '459cde47-f3a3-4a74-9b44-1063a516326c', 'Recibo de pago', 'pdf', 0),
-('8408772b-8b61-472e-ac44-a83923dea147', '459cde47-f3a3-4a74-9b44-1063a516326c', 'Comprobante de pago', 'pdf,jpg,png', 0);
+('8408772b-8b61-472e-ac44-a83923dea147', '459cde47-f3a3-4a74-9b44-1063a516326c', 'Comprobante de pago', 'pdf,jpg,png', 0),
+('60c22473-ad8d-48d1-a189-9195668a636a', '3b6dccc9-ff78-48ef-8e66-05fb9932e302', 'Documento adicional de la respuesta', 'pdf', 0),
+('a6305ab3-9e82-40da-ba52-7f9cc6cce16f', '7b3d4347-3525-4ab7-a2b4-723b1ced80c8', 'Documento adicional de la respuesta', 'pdf', 0),
+('ea7c3bf9-cb3c-459a-8834-120cfcdda9d2', '459cde47-f3a3-4a74-9b44-1063a516326c', 'Documento adicional de la respuesta', 'pdf', 0);
 
 INSERT IGNORE INTO SITUACION_ACADEMICA_ASIGNATURA (uuidSituacionAcademica, codigo, nombre) VALUES
 ('6eec86b1-53da-4c65-baa9-96bf67669c13', 'R0', 'No cursada'),

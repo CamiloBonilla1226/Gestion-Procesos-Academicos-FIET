@@ -10,6 +10,7 @@ import { CatalogoAcademicoService } from '../../../../core/services/catalogo-aca
 import { ErrorHandlerService } from '../../../../core/services/error-handler-service';
 import { ToastService } from '../../../../core/services/toast-service';
 import { SolicitudAcademicaDetalleDTORespuesta } from '../../../../core/models/SolicitudAcademica/DTOResponse/SolicitudAcademicaDetalleDTORespuesta';
+import { AnexoAcademicoDTORespuesta } from '../../../../core/models/SolicitudAcademica/DTOResponse/AnexoAcademicoDTORespuesta';
 import { CancelacionMatriculaDetalleDTORespuesta } from '../../../../core/models/CancelacionMatricula/DTOResponse/CancelacionMatriculaDetalleDTORespuesta';
 import { InputAnexoUploadComponent } from '../../../inputs/input-anexo-upload-component/input-anexo-upload-component';
 import { environment } from '../../../../../enviroments/environment';
@@ -50,12 +51,16 @@ describe('CancelacionMatriculaProcesoComponent', () => {
     cancelaciones = jasmine.createSpyObj<CancelacionMatriculaService>('CancelacionMatriculaService', [
       'getDetalle', 'rechazarPorFuncionario', 'remitirADecano', 'enviarRespuesta', 'aprobarPorDecano', 'rechazarPorDecano'
     ]);
-    solicitudes = jasmine.createSpyObj<SolicitudAcademicaService>('SolicitudAcademicaService', ['adjuntarResolucion']);
-    catalogo = jasmine.createSpyObj<CatalogoAcademicoService>('CatalogoAcademicoService', ['getSituaciones']);
+    solicitudes = jasmine.createSpyObj<SolicitudAcademicaService>('SolicitudAcademicaService', ['adjuntarResolucion', 'adjuntarAnexo']);
+    catalogo = jasmine.createSpyObj<CatalogoAcademicoService>('CatalogoAcademicoService', ['getSituaciones', 'getTiposAnexoPorTipo']);
     errores = jasmine.createSpyObj<ErrorHandlerService>('ErrorHandlerService', ['handleError']);
     toast = jasmine.createSpyObj<ToastService>('ToastService', ['showSuccess', 'showError']);
     recargar = jasmine.createSpy('recargar');
     cancelaciones.getDetalle.and.returnValue(of(DETALLE));
+    catalogo.getTiposAnexoPorTipo.and.returnValue(of([
+      { uuidTipoAnexoAcademico: 'u-paz', uuidTipoSolicitudAcademica: 't', nombre: 'Paz y salvo - División Financiera', formatosPermitidos: 'pdf', obligatorio: true },
+      { uuidTipoAnexoAcademico: 'u-adicional', uuidTipoSolicitudAcademica: 't', nombre: 'Documento adicional de la respuesta', formatosPermitidos: 'pdf', obligatorio: false }
+    ]));
     catalogo.getSituaciones.and.returnValue(of([
       { uuidSituacionAcademica: 'r0', codigo: 'R0', nombre: 'No cursada' },
       { uuidSituacionAcademica: 'r1', codigo: 'R1', nombre: 'Aprobada' }
@@ -321,6 +326,90 @@ describe('CancelacionMatriculaProcesoComponent', () => {
     expect(solicitudes.adjuntarResolucion).toHaveBeenCalledWith('s-1', jasmine.any(File));
     expect(cancelaciones.enviarRespuesta).toHaveBeenCalledWith('s-1', { observacion: null });
     expect(recargar).toHaveBeenCalled();
+  });
+
+  it('enviar la respuesta sube la Resolucion, despues el documento adicional y al final responde', () => {
+    const orden: string[] = [];
+    solicitudes.adjuntarResolucion.and.callFake(() => { orden.push('resolucion'); return of({ uuidSolicitudAcademica: 's-1', nombreArchivo: 'r.pdf', fechaSubida: '' }); });
+    solicitudes.adjuntarAnexo.and.callFake(() => { orden.push('adicional'); return of({} as AnexoAcademicoDTORespuesta); });
+    cancelaciones.enviarRespuesta.and.callFake(() => { orden.push('responder'); return of(DETALLE); });
+    const fixture = crear(solicitud(['ENVIAR_RESPUESTA'], false, 'APROBADA_POR_DECANO'));
+    const componente = fixture.componentInstance;
+    componente.abrir('ENVIAR_RESPUESTA');
+    fixture.detectChanges();
+    expect(document.querySelector('[data-campo-documento-adicional]')?.textContent).toContain('Documento adicional (opcional)');
+    componente.alSeleccionarResolucion(new File(['%PDF-'], 'resolucion.pdf'), entrada);
+    const archivo = new File(['%PDF-'], 'acta.pdf');
+    componente.archivoAdicional = archivo;
+    componente.confirmar();
+    expect(orden).toEqual(['resolucion', 'adicional', 'responder']);
+    expect(catalogo.getTiposAnexoPorTipo).toHaveBeenCalledWith('t');
+    expect(solicitudes.adjuntarAnexo).toHaveBeenCalledWith('s-1', { archivo, tipoAnexo: 'u-adicional' });
+    expect(recargar).toHaveBeenCalled();
+  });
+
+  it('el rechazo del Funcionario tambien acepta el documento adicional y sin el no lo sube', () => {
+    solicitudes.adjuntarAnexo.and.returnValue(of({} as AnexoAcademicoDTORespuesta));
+    cancelaciones.rechazarPorFuncionario.and.returnValue(of(DETALLE));
+    const componente = crear(solicitud(['RECHAZAR_FUNCIONARIO'], true)).componentInstance;
+    componente.abrir('RECHAZAR_FUNCIONARIO');
+    expect(componente.pideDocumentoAdicional).toBeTrue();
+    componente.observacion = 'Faltan paz y salvos';
+    componente.confirmar();
+    expect(catalogo.getTiposAnexoPorTipo).not.toHaveBeenCalled();
+    expect(solicitudes.adjuntarAnexo).not.toHaveBeenCalled();
+    expect(cancelaciones.rechazarPorFuncionario).toHaveBeenCalled();
+  });
+
+  it('el documento adicional no se ofrece al remitir ni al Decano', () => {
+    const remitir = crear(solicitud(['REMITIR_DECANO'])).componentInstance;
+    remitir.abrir('REMITIR_DECANO');
+    expect(remitir.pideDocumentoAdicional).toBeFalse();
+    const decano = crear(solicitud(['APROBAR_DECANO']), 'DECANO').componentInstance;
+    decano.abrir('APROBAR_DECANO');
+    expect(decano.pideDocumentoAdicional).toBeFalse();
+  });
+
+  it('si falla la subida del documento adicional avisa al funcionario y no envia la respuesta', () => {
+    const falla = new HttpErrorResponse({ status: 500, error: { codigoError: 4, mensaje: 'El anexo Documento adicional de la respuesta no se pudo validar...' } });
+    solicitudes.adjuntarAnexo.and.returnValue(throwError(() => falla));
+    const fixture = crear(solicitud(['ENVIAR_RESPUESTA'], true, 'APROBADA_POR_DECANO'));
+    const componente = fixture.componentInstance;
+    componente.abrir('ENVIAR_RESPUESTA');
+    componente.archivoAdicional = new File(['%PDF-'], 'acta.pdf');
+    componente.confirmar();
+    fixture.detectChanges();
+    expect(cancelaciones.enviarRespuesta).not.toHaveBeenCalled();
+    expect(errores.handleError).toHaveBeenCalledWith(falla, 'Error', 'No se pudo subir el documento adicional');
+    expect(componente.errorAdicional).toBe('El anexo Documento adicional de la respuesta no se pudo validar...');
+    expect(document.querySelector('[data-error="documento-adicional"]')?.textContent).toContain('no se pudo validar');
+    expect(componente.dialogoVisible).toBeTrue();
+    expect(recargar).not.toHaveBeenCalled();
+  });
+
+  it('si la accion falla despues de subir el documento el aviso es el de la accion', () => {
+    solicitudes.adjuntarAnexo.and.returnValue(of({} as AnexoAcademicoDTORespuesta));
+    const falla = new HttpErrorResponse({ status: 500, error: { codigoError: 4, mensaje: 'Regla violada' } });
+    cancelaciones.enviarRespuesta.and.returnValue(throwError(() => falla));
+    const componente = crear(solicitud(['ENVIAR_RESPUESTA'], true, 'APROBADA_POR_DECANO')).componentInstance;
+    componente.abrir('ENVIAR_RESPUESTA');
+    componente.archivoAdicional = new File(['%PDF-'], 'acta.pdf');
+    componente.confirmar();
+    expect(errores.handleError).toHaveBeenCalledWith(falla, 'Error', 'No se pudo completar la acción');
+    expect(componente.errorAdicional).toBe('');
+    expect(componente.hayDocumentoAdicional).toBeTrue();
+  });
+
+  it('si el catalogo no tiene el tipo del documento adicional no envia la respuesta', () => {
+    catalogo.getTiposAnexoPorTipo.and.returnValue(of([]));
+    const componente = crear(solicitud(['ENVIAR_RESPUESTA'], true, 'APROBADA_POR_DECANO')).componentInstance;
+    componente.abrir('ENVIAR_RESPUESTA');
+    componente.archivoAdicional = new File(['%PDF-'], 'acta.pdf');
+    componente.confirmar();
+    expect(solicitudes.adjuntarAnexo).not.toHaveBeenCalled();
+    expect(cancelaciones.enviarRespuesta).not.toHaveBeenCalled();
+    expect(errores.handleError).toHaveBeenCalled();
+    expect(componente.dialogoVisible).toBeTrue();
   });
 
   it('no permite un doble envio mientras la accion esta en curso', () => {

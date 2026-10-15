@@ -144,8 +144,21 @@ class ConsultaCancelacionMatriculaCUImplAdaptadorTest {
 
         assertEquals("104618021", formulario.getCodigoEstudiantil());
 
-        assertSame(anexos, formulario.getAnexos());
+        assertEquals(anexos, formulario.getAnexos());
         assertEquals(List.of("am-1", "am-3"), formulario.getAsignaturas().stream().map(AsignaturaMatriculada::getUuidAsignaturaMatriculada).toList());
+    }
+
+    @Test
+    void elFormularioNoOfreceElDocumentoAdicionalDelFuncionario() {
+        TipoSolicitudAcademica matricula = TipoSolicitudAcademica.builder().uuidTipoSolicitudAcademica(TIPO_CM).nombre("Cancelación de Matrícula").build();
+        TipoAnexoAcademico paz = TipoAnexoAcademico.builder().uuidTipoAnexoAcademico("an-1").nombre("Paz y salvo").obligatorio(true).build();
+        TipoAnexoAcademico adicional = TipoAnexoAcademico.builder().uuidTipoAnexoAcademico("an-2").nombre("Documento adicional de la respuesta")
+                .obligatorio(false).build();
+        when(tipoSolicitudGateway.getTodos()).thenReturn(List.of(matricula));
+        when(tipoAnexoGateway.getPorTipo(TIPO_CM)).thenReturn(List.of(paz, adicional));
+        when(estudianteGateway.getAsignaturasMatriculadas(ESTUDIANTE)).thenReturn(List.of());
+
+        assertEquals(List.of(paz), casoDeUso.getFormulario(TOKEN).getAnexos());
     }
 
     @Test

@@ -11,6 +11,7 @@ import { CatalogoAcademicoService } from '../../../../core/services/catalogo-aca
 import { ErrorHandlerService } from '../../../../core/services/error-handler-service';
 import { ToastService } from '../../../../core/services/toast-service';
 import { SolicitudAcademicaDetalleDTORespuesta } from '../../../../core/models/SolicitudAcademica/DTOResponse/SolicitudAcademicaDetalleDTORespuesta';
+import { AnexoAcademicoDTORespuesta } from '../../../../core/models/SolicitudAcademica/DTOResponse/AnexoAcademicoDTORespuesta';
 import { CancelacionAsignaturaDetalleDTORespuesta } from '../../../../core/models/CancelacionAsignatura/DTOResponse/CancelacionAsignaturaDetalleDTORespuesta';
 import { AsignaturaSolicitadaDTORespuesta } from '../../../../core/models/CancelacionAsignatura/DTOResponse/AsignaturaSolicitadaDTORespuesta';
 import { InputAnexoUploadComponent } from '../../../inputs/input-anexo-upload-component/input-anexo-upload-component';
@@ -66,8 +67,8 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
     cancelaciones = jasmine.createSpyObj<CancelacionAsignaturaService>('CancelacionAsignaturaService', [
       'getDetalle', 'rechazarPorFuncionario', 'remitirADecano', 'enviarRespuesta', 'aprobarPorDecano', 'rechazarPorDecano'
     ]);
-    solicitudes = jasmine.createSpyObj<SolicitudAcademicaService>('SolicitudAcademicaService', ['adjuntarResolucion']);
-    catalogo = jasmine.createSpyObj<CatalogoAcademicoService>('CatalogoAcademicoService', ['getSituaciones']);
+    solicitudes = jasmine.createSpyObj<SolicitudAcademicaService>('SolicitudAcademicaService', ['adjuntarResolucion', 'adjuntarAnexo']);
+    catalogo = jasmine.createSpyObj<CatalogoAcademicoService>('CatalogoAcademicoService', ['getSituaciones', 'getTiposAnexoPorTipo']);
     errores = jasmine.createSpyObj<ErrorHandlerService>('ErrorHandlerService', ['handleError']);
     recargar = jasmine.createSpy('recargar');
     catalogo.getSituaciones.and.returnValue(of([
@@ -548,6 +549,27 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
     componente.confirmar();
     expect(orden).toEqual(['resolucion', 'rechazar']);
     expect(recargar).toHaveBeenCalled();
+  });
+
+  it('rechazar en el Funcionario sube el documento adicional despues de la Resolucion y antes de rechazar', () => {
+    const orden: string[] = [];
+    catalogo.getTiposAnexoPorTipo.and.returnValue(of([
+      { uuidTipoAnexoAcademico: 'u-adicional', uuidTipoSolicitudAcademica: 't', nombre: 'Documento adicional de la respuesta', formatosPermitidos: 'pdf', obligatorio: false }
+    ]));
+    solicitudes.adjuntarResolucion.and.callFake(() => { orden.push('resolucion'); return of({ uuidSolicitudAcademica: 's-1', nombreArchivo: 'r.pdf', fechaSubida: '' }); });
+    solicitudes.adjuntarAnexo.and.callFake(() => { orden.push('adicional'); return of({} as AnexoAcademicoDTORespuesta); });
+    cancelaciones.rechazarPorFuncionario.and.callFake(() => { orden.push('rechazar'); return of(detalle(EVALUADAS)); });
+    const fixture = crear(solicitud(['RECHAZAR_FUNCIONARIO']), EVALUADAS);
+    const componente = fixture.componentInstance;
+    componente.abrir('RECHAZAR_FUNCIONARIO');
+    fixture.detectChanges();
+    expect(document.querySelector('[data-campo-documento-adicional]')).toBeTruthy();
+    componente.observacion = 'Ninguna cumple';
+    componente.alSeleccionarResolucion(new File(['%PDF-'], 'resolucion.pdf'), entrada);
+    componente.archivoAdicional = new File(['%PDF-'], 'acta.pdf');
+    componente.confirmar();
+    expect(orden).toEqual(['resolucion', 'adicional', 'rechazar']);
+    expect(solicitudes.adjuntarAnexo).toHaveBeenCalledWith('s-1', jasmine.objectContaining({ tipoAnexo: 'u-adicional' }));
   });
 
   describe('respuesta final del Funcionario', () => {

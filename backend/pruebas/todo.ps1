@@ -16,6 +16,7 @@ $Global:Scripts = @(
     "t8_examen_supletorio",
     "matriz-permisos"
 )
+if ($env:PRUEBAS_CORREOS) { $Global:Scripts += "t9_correo_respuesta" }
 
 function Probar-Contenedor {
     try {

@@ -11,4 +11,6 @@ public interface AnexoAcademicoGatewayIntPuerto {
     AnexoAcademico getPorUuid(String uuidAnexoAcademico);
 
     List<AnexoAcademico> getPorSolicitud(String uuidSolicitudAcademica);
+
+    void eliminar(String uuidAnexoAcademico);
 }

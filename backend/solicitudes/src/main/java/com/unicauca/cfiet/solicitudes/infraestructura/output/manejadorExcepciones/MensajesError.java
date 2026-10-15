@@ -108,6 +108,7 @@ public class MensajesError {
     public static final String HORA_CRUCE_MAL_FORMADA = "La hora del examen cruzado %s no tiene el formato HH:mm...";
     public static final String DATOS_CRUCE_NO_PERMITIDOS = "Con causa otra no se aceptan la asignatura, la fecha ni la hora de un examen cruzado...";
     public static final String ANEXO_NO_PERMITIDO_AL_RADICAR = "El anexo %s no se entrega al radicar el examen supletorio...";
+    public static final String ANEXO_SOLO_DEL_FUNCIONARIO = "El anexo %s lo sube el Funcionario Académico con la respuesta final, no se entrega al radicar...";
     public static final String ANEXO_NO_CORRESPONDE_CAUSA = "El anexo %s no corresponde a la causa %s...";
     public static final String ANEXO_REPETIDO = "El anexo %s viene más de una vez...";
     public static final String DOCENTE_SUPLETORIO_REQUERIDO = "Para aprobar el pago debe seleccionar el profesor que atenderá el examen supletorio...";

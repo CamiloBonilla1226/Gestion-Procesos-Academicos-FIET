@@ -130,6 +130,9 @@
     @if (solicitud.tieneResolucion) {
     <p class="nota-aviso">Al remitir se retira el escaneo de la Resolución que estaba cargado.</p>
     }
+    @if (hayDocumentoAdicional) {
+    <p class="nota-aviso" data-aviso-retira-adicional>Al remitir se retira el documento adicional que estaba cargado.</p>
+    }
     }
     @case (acciones.APROBAR_DECANO) {
     <p class="nota-gris" data-nota-aprobar>{{ notaAprobarDecano }}</p>
@@ -160,6 +163,12 @@
       </app-input-anexo-upload-component>
       <small class="texto-error" data-error="resolucion">{{ errores['resolucion'] || '' }}</small>
     </div>
+    }
+
+    @if (pideDocumentoAdicional) {
+    <app-documento-adicional-component [archivo]="archivoAdicional" [yaCargado]="hayDocumentoAdicional" [errorServidor]="errorAdicional"
+      (archivoChange)="archivoAdicional = $event">
+    </app-documento-adicional-component>
     }
 
     @if (campoObservacion; as campo) {

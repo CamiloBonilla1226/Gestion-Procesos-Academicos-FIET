@@ -102,10 +102,10 @@ Carpeta `infraestructura/input/controlador<X>/` con sus cuatro subcarpetas:
 - `DTORespuesta/<X>DTORespuesta.java`
 - `mapeador/MapperXInfraestructuraDominio.java` — usa `ModelMapper`
   (`@Qualifier("mapeadorSimple")`), igual que `MapperRolInfraestructuraDominio`
-  y `MapperAsignaturaInfraestructuraDominio`, cuando el DTO es plano. Si los
-  nombres de campo quedan ambiguos o hay objetos anidados, el mapeo se arma a
-  mano en un `@Component`, como en los demás controladores de la extensión
-  (estudiantes, funcionarios académicos y los procesos académicos).
+  de Julián, cuando el DTO es plano. Si los nombres de campo quedan ambiguos
+  o hay objetos anidados, el mapeo se arma a mano en un `@Component`, como en
+  los controladores de la extensión (asignaturas, que ahora llevan su
+  programa, estudiantes, funcionarios académicos y los procesos académicos).
 - `controlador/<X>RestController.java` — `@RestController`,
   `@RequestMapping("${url.application}<recurso>")`,
   `@CrossOrigin(origins = "${url.frontend}")`, `@RequiredArgsConstructor`,
@@ -204,7 +204,30 @@ con casos de uso propios:
   no llevan `@Transactional`: el dominio no depende de Spring.
 - Se crean por formulario y por carga masiva desde Excel (patrón de la
   sección "Carga masiva por Excel" de `backend/CLAUDE.md`); el estudiante se
-  crea con sus asignaturas matriculadas.
+  crea con su programa académico, que no se edita después, y con sus
+  asignaturas matriculadas, que deben existir en el catálogo y ser de ese
+  programa. Ningún flujo de estudiantes crea asignaturas.
+
+## Caso especial — programas académicos y asignaturas
+
+- Los cinco programas viven en `PROGRAMA_ACADEMICO`, sembrados con UUID
+  fijos; no hay endpoint para crearlos. Una tabla o un flujo nuevo que
+  dependa del programa usa `ProgramaAcademicoGatewayIntPuerto` y la FK
+  `ProgramaAcademico_uuid`.
+- El código de una asignatura lo genera el backend (sigla, guion y
+  consecutivo con al menos tres dígitos) y no se recibe del cliente. Toda
+  creación pasa por `AsignaturaCUIntPuerto.crearAsignatura` o
+  `crearAsignaturas`, que bloquean la fila del programa
+  (`ProgramaAcademicoGatewayIntPuerto.bloquear`) dentro de la transacción
+  del controlador; no se escribe en `ASIGNATURA` por otro camino. El
+  contador nunca baja.
+- El nombre y el código se comparan con `ReglasAsignatura`
+  (`dominio/servicios`), no con `equalsIgnoreCase` suelto.
+- Reglas completas en "Programas académicos y código de asignatura" de
+  `backend/CLAUDE.md` y P28 a P35 de `docs/database/etapas-por-proceso.md`.
+- Un script de humo que matricule estudiantes crea antes sus asignaturas con
+  `Crear-AsignaturaPrueba` de `backend/pruebas/comun.ps1` y guarda el código
+  devuelto para la limpieza.
 - Los endpoints se restringen a `SECRETARIO_GENERAL` y `DECANO` con su
   propio `requestMatchers`, como `POST`/`PUT` de `usuarios/**`.
 
@@ -219,8 +242,8 @@ docker compose up --build
 
 En una base nueva: levanta el backend (Hibernate crea las tablas), ejecuta
 `data.sql` a mano (`spring.sql.init.mode=never`), crea el Funcionario
-Académico y corre `docs/database/seed-procesos-academicos.sql` con su uuid,
-y recién entonces prueba (detalle en "Orden de arranque con una base nueva"
+Académico y corre `docs/database/seed-procesos-academicos.sql` con su uuid
+(siembra también los cinco programas), y recién entonces prueba (detalle en "Orden de arranque con una base nueva"
 de `backend/CLAUDE.md`).
 
 Sigue la sección "Pruebas" de `backend/CLAUDE.md`: prueba unitaria del caso

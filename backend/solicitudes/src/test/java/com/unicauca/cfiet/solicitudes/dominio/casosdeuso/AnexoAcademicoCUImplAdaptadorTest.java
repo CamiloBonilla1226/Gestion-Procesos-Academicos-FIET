@@ -12,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -428,6 +429,101 @@ class AnexoAcademicoCUImplAdaptadorTest {
         solicitud(supletorio, PENDIENTE_PAGO);
         assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> adjuntar(porNombre(RECIBO), archivo("recibo.pdf", pdf(200)), funcionario()));
         verificarQueNoSeGuardoNada();
+    }
+
+    @Test
+    void elFuncionarioSubeElDocumentoAdicionalDondePuedeCerrarLaSolicitud() {
+        TipoAnexoAcademico adicionalMatricula = tipoAnexo(matricula, "Documento adicional de la respuesta", "pdf", false);
+        TipoAnexoAcademico adicionalSupletorio = tipoAnexo(supletorio, "Documento adicional de la respuesta", "pdf", false);
+
+        for (String etapa : List.of(RADICADA, APROBADA_POR_DECANO, RECHAZADA_POR_DECANO)) {
+            solicitud(matricula, etapa);
+            assertEquals(FUNCIONARIO, adjuntar(adicionalMatricula, archivo("acta.pdf", pdf(200)), funcionario()).getUsuario().getUuidUsuario());
+        }
+        for (String etapa : List.of(RADICADA, RECHAZADA_POR_DECANO, EN_VERIFICACION_PAGO)) {
+            solicitud(supletorio, etapa);
+            assertEquals("application/pdf", adjuntar(adicionalSupletorio, archivo("acta.pdf", pdf(200)), funcionario()).getTipoArchivo());
+        }
+    }
+
+    @Test
+    void elFuncionarioSubeElDocumentoAdicionalEnCancelacionDeAsignatura() {
+        TipoAnexoAcademico adicionalAsignatura = tipoAnexo(asignatura, "Documento adicional de la respuesta", "pdf", false);
+
+        for (String etapa : List.of(RADICADA, APROBADA_POR_DECANO, RECHAZADA_POR_DECANO)) {
+            solicitud(asignatura, etapa);
+            AnexoAcademico anexo = adjuntar(adicionalAsignatura, archivo("acta.pdf", pdf(200)), funcionario());
+            assertEquals(FUNCIONARIO, anexo.getUsuario().getUuidUsuario());
+            assertSame(adicionalAsignatura, anexo.getTipoAnexoAcademico());
+        }
+        verify(anexoGateway, times(3)).guardar(any());
+    }
+
+    @Test
+    void elFuncionarioNoSubeNingunOtroTipoDeAnexoEnLosTresProcesos() {
+        solicitud(matricula, RADICADA);
+        ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
+                () -> adjuntar(porNombre(PAZ_BIBLIOTECAS), archivo("paz.pdf", pdf(200)), funcionario()));
+        assertTrue(error.getMessage().contains("ESTUDIANTE"));
+        assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> adjuntar(null, archivo("libre.pdf", pdf(200)), funcionario()));
+
+        solicitud(asignatura, RADICADA);
+        assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> adjuntar(null, archivo("libre.pdf", pdf(200)), funcionario()));
+
+        solicitud(supletorio, RADICADA);
+        assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> adjuntar(porNombre(FOR_23), archivo("for23.pdf", pdf(200)), funcionario()));
+        solicitud(supletorio, PENDIENTE_PAGO);
+        assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> adjuntar(porNombre(COMPROBANTE), archivo("comprobante.pdf", pdf(200)), funcionario()));
+        verificarQueNoSeGuardoNada();
+    }
+
+    @Test
+    void elEstudianteDuenioNoSubeElDocumentoAdicionalEnNingunProceso() {
+        for (TipoSolicitudAcademica tipo : List.of(matricula, asignatura, supletorio)) {
+            TipoAnexoAcademico adicional = tipoAnexo(tipo, "Documento adicional de la respuesta", "pdf", false);
+            solicitud(tipo, RADICADA);
+            ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
+                    () -> adjuntar(adicional, archivo("acta.pdf", pdf(200)), estudiante()));
+            assertTrue(error.getMessage().contains("FUNCIONARIO"), tipo.getNombre());
+        }
+        verificarQueNoSeGuardoNada();
+    }
+
+    @Test
+    void elDocumentoAdicionalNoLoSubeElEstudianteNiFueraDeLasEtapasDeRespuestaNiEnOtroFormato() {
+        TipoAnexoAcademico adicionalMatricula = tipoAnexo(matricula, "Documento adicional de la respuesta", "pdf", false);
+        TipoAnexoAcademico adicionalSupletorio = tipoAnexo(supletorio, "Documento adicional de la respuesta", "pdf", false);
+
+        solicitud(matricula, RADICADA);
+        assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> adjuntar(adicionalMatricula, archivo("acta.pdf", pdf(200)), estudiante()));
+        assertThrows(ErrorMalFormatoExcepcion.class, () -> adjuntar(adicionalMatricula, archivo("acta.png", png()), funcionario()));
+        for (String etapa : List.of(EN_REVISION_DECANO, APROBADA, RECHAZADA)) {
+            solicitud(matricula, etapa);
+            assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> adjuntar(adicionalMatricula, archivo("acta.pdf", pdf(200)), funcionario()));
+        }
+        solicitud(supletorio, APROBADA_POR_DECANO);
+        assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> adjuntar(adicionalSupletorio, archivo("acta.pdf", pdf(200)), funcionario()));
+        verificarQueNoSeGuardoNada();
+    }
+
+    @Test
+    void unDocumentoAdicionalNuevoReemplazaAlAnteriorTrasConfirmar() {
+        TipoAnexoAcademico adicional = tipoAnexo(matricula, "Documento adicional de la respuesta", "pdf", false);
+        solicitud(matricula, APROBADA_POR_DECANO);
+        AnexoAcademico anterior = AnexoAcademico.builder().uuidAnexoAcademico("anterior").tipoAnexoAcademico(adicional)
+                .urlArchivo("/api/anexos/sol-1/anterior.pdf").build();
+        AnexoAcademico otro = AnexoAcademico.builder().uuidAnexoAcademico("paz").tipoAnexoAcademico(porNombre(PAZ_BIBLIOTECAS))
+                .urlArchivo("/api/anexos/sol-1/paz.pdf").build();
+        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(otro, anterior));
+
+        adjuntar(adicional, archivo("nueva.pdf", pdf(200)), funcionario());
+
+        InOrder orden = inOrder(anexoGateway, almacenamiento);
+        orden.verify(anexoGateway).guardar(any());
+        orden.verify(anexoGateway).eliminar("anterior");
+        orden.verify(almacenamiento).eliminarTrasConfirmar("/api/anexos/sol-1/anterior.pdf");
+        verify(anexoGateway, never()).eliminar("paz");
+        verify(almacenamiento, never()).eliminar(any());
     }
 
     @Test

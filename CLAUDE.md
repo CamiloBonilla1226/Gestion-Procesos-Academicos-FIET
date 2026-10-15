@@ -14,7 +14,7 @@ misma base de datos:
 - `docs/database/` — script de extensión del esquema, diccionario de datos
   de las tablas nuevas (no tocan las tablas de Julián), reglas por proceso
   (`etapas-por-proceso.md`) y scripts de siembra.
-- `docs/api/contrato-api-procesos-academicos.md` — contrato de los 66
+- `docs/api/contrato-api-procesos-academicos.md` — contrato de los 71
   endpoints académicos para quien construya el frontend.
 
 ## Regla de estilo, válida para todo el repositorio
@@ -41,12 +41,12 @@ Ver `README.md` en la raíz (Opción A con Docker, Opción B sin Docker).
 
 ## Dónde está la info de los tres procesos
 
-`docs/database/diccionario-datos-extension.md` tiene las 19 tablas nuevas
+`docs/database/diccionario-datos-extension.md` tiene las 20 tablas nuevas
 campo por campo (programas académicos, etapas de la solicitud, anexos
 obligatorios por tipo, situación académica, Resolución física escaneada), y
 `docs/database/script_bd_extension.sql` su DDL de referencia: no se ejecuta,
 las tablas las crea Hibernate desde las entidades (`ddl-auto=update`), igual
-que en Julián. Las 19 tablas coinciden con la base real (`SHOW TABLES` y
+que en Julián. Las 20 tablas coinciden con la base real (`SHOW TABLES` y
 `DESCRIBE`). Esa documentación es la fuente de verdad del modelo de datos — antes de modelar una entidad o
 endpoint nuevo, revisa ahí primero. El diccionario anota en cada columna la
 regla que la afecta (rangos, valores permitidos, cuándo es obligatoria), pero

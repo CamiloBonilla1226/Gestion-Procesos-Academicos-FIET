@@ -363,6 +363,66 @@ describe('ExamenSupletorioProcesoComponent', () => {
     terminar(req);
   });
 
+  it('el documento adicional se ofrece en las acciones que cierran la solicitud y no al enviar el recibo', () => {
+    const casos: [string[], string, string, boolean][] = [
+      [['RECHAZAR_FUNCIONARIO'], 'RADICADA', 'RECHAZAR_FUNCIONARIO', true],
+      [['ENVIAR_RESPUESTA'], 'RECHAZADA_POR_DECANO', 'ENVIAR_RESPUESTA', true],
+      [['APROBAR_COMPROBANTE', 'RECHAZAR_COMPROBANTE'], 'EN_VERIFICACION_PAGO', 'APROBAR_COMPROBANTE', true],
+      [['APROBAR_COMPROBANTE', 'RECHAZAR_COMPROBANTE'], 'EN_VERIFICACION_PAGO', 'RECHAZAR_COMPROBANTE', true],
+      [['REMITIR_DECANO'], 'RADICADA', 'REMITIR_DECANO', false]
+    ];
+    for (const [acciones, etapa, accionActiva, ofrece] of casos) {
+      const fixture = crear(solicitud(acciones, etapa));
+      fixture.componentInstance.abrir(accionActiva as never);
+      fixture.detectChanges();
+      expect(!!document.querySelector('[data-campo-documento-adicional]')).withContext(accionActiva).toBe(ofrece);
+      fixture.destroy();
+    }
+  });
+
+  it('aprobar el comprobante sube primero el documento adicional con su tipo del catalogo y luego aprueba', () => {
+    const componente = crear(solicitud(['APROBAR_COMPROBANTE'], 'EN_VERIFICACION_PAGO')).componentInstance;
+    componente.abrir('APROBAR_COMPROBANTE');
+    componente.alElegirDocente({ uuidUsuario: 'doc-1', nombres: 'Ana', apellidos: 'Ruiz', numeroDocumento: '1061', username: 'aruiz' });
+    componente.archivoAdicional = new File(['%PDF-'], 'acta.pdf');
+    componente.confirmar();
+    http.expectNone(`${URL}/funcionario/comprobante/aprobar`);
+    http.expectOne(URL_TIPOS).flush([
+      ...TIPOS,
+      { uuidTipoAnexoAcademico: 'u-adicional', uuidTipoSolicitudAcademica: 't-sup', nombre: 'Documento adicional de la respuesta', formatosPermitidos: 'pdf', obligatorio: false }
+    ]);
+    const subida = http.expectOne(URL_ANEXOS);
+    expect((subida.request.body as FormData).get('tipoAnexo')).toBe('u-adicional');
+    expect(((subida.request.body as FormData).get('archivo') as File).name).toBe('acta.pdf');
+    subida.flush(anexo('u-adicional', 'Documento adicional de la respuesta'));
+    terminar(accion('funcionario/comprobante/aprobar'));
+  });
+
+  it('si la accion falla despues de subir el documento adicional, el reintento no lo sube otra vez', () => {
+    const componente = crear(solicitud(['RECHAZAR_FUNCIONARIO'])).componentInstance;
+    componente.abrir('RECHAZAR_FUNCIONARIO');
+    componente.observacion = 'No adjuntó el FOR-23 firmado';
+    componente.archivoAdicional = new File(['%PDF-'], 'acta.pdf');
+    componente.confirmar();
+    http.expectOne(URL_TIPOS).flush([
+      { uuidTipoAnexoAcademico: 'u-adicional', uuidTipoSolicitudAcademica: 't-sup', nombre: 'Documento adicional de la respuesta', formatosPermitidos: 'pdf', obligatorio: false }
+    ]);
+    http.expectOne(URL_ANEXOS).flush(anexo('u-adicional', 'Documento adicional de la respuesta'));
+    accion('funcionario/rechazar').flush({ codigoError: 1 }, { status: 500, statusText: 'Error' });
+    expect(componente.hayDocumentoAdicional).toBeTrue();
+    componente.confirmar();
+    http.expectNone(URL_TIPOS);
+    http.expectNone(URL_ANEXOS);
+    terminar(accion('funcionario/rechazar'));
+  });
+
+  it('remitir avisa que se retira el documento adicional cargado', () => {
+    const fixture = crear(solicitud(['REMITIR_DECANO'], 'RADICADA', [anexo('u-adicional', 'Documento adicional de la respuesta')]));
+    fixture.componentInstance.abrir('REMITIR_DECANO');
+    fixture.detectChanges();
+    expect(document.querySelector('[data-aviso-retira-adicional]')).toBeTruthy();
+  });
+
   it('sin observacion la aprobacion envia observacion nula y el profesor', () => {
     const componente = crear(solicitud(['APROBAR_COMPROBANTE'], 'EN_VERIFICACION_PAGO')).componentInstance;
     componente.abrir('APROBAR_COMPROBANTE');
