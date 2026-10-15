@@ -1,5 +1,6 @@
 package com.unicauca.cfiet.solicitudes.infraestructura.input.controladorUsuarios.controlador;
 
+import com.unicauca.cfiet.solicitudes.aplicacion.input.AccesoRecursoConsejoCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.UsuarioCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.dominio.helper.PaginacionRespuestaDTO;
 import com.unicauca.cfiet.solicitudes.dominio.helper.constantes.ApplicationConstantes;
@@ -44,15 +45,18 @@ public class UsuarioRestController{
     private final MapperUsuarioInfraestructuraDominio mapper;
     private final ProcesadorArchivos<UsuarioDTOPeticion> procesadorArchivos;
     private final ValidadorPeticionesExcel<UsuarioDTOPeticion> validadorPeticion;
+    private final AccesoRecursoConsejoCUIntPuerto accesoCU;
 
     public UsuarioRestController(UsuarioCUIntPuerto casoDeUso,
                                  MapperUsuarioInfraestructuraDominio mapper,
                                  @Qualifier("archivos-usuarios") ProcesadorArchivos<UsuarioDTOPeticion> procesadorArchivos,
-                                 @Qualifier("validador-usuarios") ValidadorPeticionesExcel<UsuarioDTOPeticion> validadorPeticion){
+                                 @Qualifier("validador-usuarios") ValidadorPeticionesExcel<UsuarioDTOPeticion> validadorPeticion,
+                                 AccesoRecursoConsejoCUIntPuerto accesoCU){
         this.casoDeUso = casoDeUso;
         this.mapper = mapper;
         this.procesadorArchivos = procesadorArchivos;
         this.validadorPeticion = validadorPeticion;
+        this.accesoCU = accesoCU;
     }
 
     @PreAuthorize(ApplicationConstantes.SECRETARIO_DECANO_ACCESO)
@@ -112,9 +116,12 @@ public class UsuarioRestController{
         );
     }
 
+    @PreAuthorize(ApplicationConstantes.AUTHENTICATED)
+    @Transactional(readOnly = true)
     @GetMapping("/{uuidUsuario}")
-    public ResponseEntity<?> getUsuario(@PathVariable String uuidUsuario){
-        Usuario usuario = casoDeUso.getUsuario(uuidUsuario);
+    public ResponseEntity<?> getUsuario(@PathVariable String uuidUsuario,
+                                        @RequestHeader("Authorization") String token){
+        Usuario usuario = accesoCU.getUsuarioVisible(uuidUsuario, token.substring(7));
         return new ResponseEntity<UsuarioDTORespuesta>(
                 mapper.mapearModeloARespuesta(usuario), HttpStatus.OK
         );
@@ -188,10 +195,12 @@ public class UsuarioRestController{
         );
     }
 
+    @PreAuthorize(ApplicationConstantes.AUTHENTICATED)
     @Transactional
     @PatchMapping("/{uuidUsuario}")
     public ResponseEntity<?> actualizarContraseña(@PathVariable String uuidUsuario, @Valid @RequestBody CambioContraseñaDTOPeticion peticion,
                                                   @RequestHeader("Authorization") String token){
+        accesoCU.verificarCambioPropio(uuidUsuario, token.substring(7));
         try{
             casoDeUso.cambiarContraseña(uuidUsuario, peticion.getContraseña(), peticion.getNuevaContraseña(), token.substring(7));
         } catch (DataAccessException ex){

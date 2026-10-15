@@ -104,8 +104,8 @@ class TramiteExamenSupletorioCUImplAdaptadorTest {
         return (cu, token) -> cu.rechazarPorFuncionario(SOLICITUD, observacion, token);
     }
 
-    private static Accion remitir(Boolean confirmado) {
-        return (cu, token) -> cu.remitirADecano(SOLICITUD, confirmado, "Requisitos revisados", token);
+    private static Accion remitir(String observacion) {
+        return (cu, token) -> cu.remitirADecano(SOLICITUD, observacion, token);
     }
 
     private static Accion aprobarDecano() {
@@ -139,7 +139,7 @@ class TramiteExamenSupletorioCUImplAdaptadorTest {
     static Stream<Arguments> acciones() {
         return Stream.of(
                 Arguments.of("rechazarPorFuncionario", rechazarFuncionario("No cumple"), RADICADA, RECHAZADA, TOKEN_FUNCIONARIO, TOKEN_DECANO),
-                Arguments.of("remitirADecano", remitir(true), RADICADA, EN_REVISION_DECANO, TOKEN_FUNCIONARIO, TOKEN_ESTUDIANTE),
+                Arguments.of("remitirADecano", remitir("Requisitos revisados"), RADICADA, EN_REVISION_DECANO, TOKEN_FUNCIONARIO, TOKEN_ESTUDIANTE),
                 Arguments.of("aprobarPorDecano", aprobarDecano(), EN_REVISION_DECANO, APROBADA_POR_DECANO, TOKEN_DECANO, TOKEN_FUNCIONARIO),
                 Arguments.of("rechazarPorDecano", rechazarDecano("No procede"), EN_REVISION_DECANO, RECHAZADA_POR_DECANO, TOKEN_DECANO, TOKEN_FUNCIONARIO),
                 Arguments.of("enviarRespuesta", enviarRespuesta(), RECHAZADA_POR_DECANO, RECHAZADA, TOKEN_FUNCIONARIO, TOKEN_DECANO),
@@ -355,27 +355,20 @@ class TramiteExamenSupletorioCUImplAdaptadorTest {
 
     @ParameterizedTest
     @NullSource
-    @ValueSource(booleans = false)
-    void remitirSinConfirmarLosRequisitosPideRechazarEnLugarDeRemitir(Boolean confirmado) {
+    @ValueSource(strings = "Requisitos revisados")
+    void remitirNoPideConfirmarRequisitosYLaObservacionEsOpcional(String observacion) {
         enEtapa(RADICADA);
 
-        String mensaje = falla(remitir(confirmado), TOKEN_FUNCIONARIO);
+        casoDeUso.remitirADecano(SOLICITUD, observacion, TOKEN_FUNCIONARIO);
 
-        assertEquals(String.format(MensajesError.REQUISITOS_NO_CONFIRMADOS, "2026-ES-0001"), mensaje);
-        assertTrue(mensaje.contains("debe rechazar la solicitud en lugar de remitirla"));
-    }
-
-    @Test
-    void laConfirmacionSeValidaDespuesDeLaEtapa() {
-        enEtapa(EN_REVISION_DECANO);
-
-        assertFalse(falla(remitir(false), TOKEN_FUNCIONARIO).contains("en lugar de remitirla"));
+        assertEquals(EN_REVISION_DECANO, etapaGuardada());
+        assertEquals(observacion, historialGuardado().getObservaciones());
     }
 
     @Test
     void enviarElReciboSinElReciboCargadoSeRechaza() {
         enEtapa(APROBADA_POR_DECANO);
-        conAnexos("Formato PM-FO-4-FOR-23 firmado por el docente que orienta la asignatura", "Comprobante de pago");
+        conAnexos("Formato firmado por el docente que orienta la asignatura", "Comprobante de pago");
 
         assertTrue(falla(enviarRecibo(), TOKEN_FUNCIONARIO).contains("el recibo de pago"));
     }

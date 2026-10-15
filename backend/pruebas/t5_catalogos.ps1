@@ -100,7 +100,7 @@ try {
         (Texto "Carn\u00e9 estudiantil o constancia de no tr\u00e1mite - DARCA")                      = "pdf,jpg,jpeg,png"
     }
     $AnexosSupletorio = @{
-        "Formato PM-FO-4-FOR-23 firmado por el docente que orienta la asignatura"       = @{ Formatos = "pdf,jpg,png"; Obligatorio = $true }
+        "Formato firmado por el docente que orienta la asignatura"       = @{ Formatos = "pdf,jpg,png"; Obligatorio = $true }
         (Texto "Soporte de la justificaci\u00f3n de la no presentaci\u00f3n")           = @{ Formatos = "pdf,jpg,png"; Obligatorio = $false }
         "Formato firmado por el docente de la asignatura con la que se cruza"           = @{ Formatos = "pdf,jpg,png"; Obligatorio = $false }
         "Recibo de pago"                                                                = @{ Formatos = "pdf"; Obligatorio = $false }

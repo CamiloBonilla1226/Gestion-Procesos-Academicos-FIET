@@ -2,6 +2,50 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-15 - Secretaria sin rutas de más y PUT de solicitudes con dueño (Tarea T12.23)
+- Qué se hizo: se quitó Secretaria Decanatura FIET de GET `solicitudes/{uuid}`, GET `respuestas/paginado/funcionario*` y PATCH `respuestas/{uuid}/archivo`. En PUT `solicitudes/{uuid}`, `AccesoRecursoConsejoCUImplAdaptador.verificarActualizacionSolicitud` exige que el Funcionario sea el asignado y le impide reasignar; el Secretario General y el Decano no cambian. Una solicitud inexistente responde con código 3 en vez de 500.
+- Archivos:
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/configuracion/seguridad/configuracion/ConfiguracionSeguridad.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/aplicacion/input/AccesoRecursoConsejoCUIntPuerto.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/AccesoRecursoConsejoCUImplAdaptador.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/SolicitudCUImplAdaptador.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorSolicitudes/controlador/SolicitudesRestController.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/output/manejadorExcepciones/MensajesError.java` (modificado)
+  - `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/SolicitudCUImplAdaptadorTest.java` (creado)
+  - `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/AccesoRecursoConsejoCUImplAdaptadorTest.java` (modificado)
+  - `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/infraestructura/configuracion/seguridad/configuracion/ConfiguracionSeguridadRolesTest.java` (modificado)
+  - `backend/CLAUDE.md` (modificado)
+  - `docs/analisis/VERIFICACION-SEGURIDAD.md` (modificado)
+- Notas: la respuesta no guarda funcionario propio; el responsable de una respuesta es el funcionario asignado a su solicitud, así que ese caso queda en la misma regla. Las pantallas `funcionario/solicitudes` y `funcionario/respuestas` no se ven afectadas: solo editan solicitudes propias y no reasignan. Pendiente fuera del alcance: si una solicitud no tiene funcionario y el Secretario General o el Decano envían `uuidFuncionario`, `actualizarSolicitud` sigue respondiendo 500. Pruebas: 151 (3 clases), 0 fallos.
+
+## 2026-10-15 - Revisión de la Secretaria Decanatura FIET en solicitudes (Tarea T12.22)
+- Qué se hizo: se revisó qué llama de verdad `sec-fiet/respuestas`. No llama `PUT solicitudes/{uuid}`, así que se quitó Secretaria Decanatura FIET de esa regla y se ajustó `ConfiguracionSeguridadRolesTest` (ese caso pasa a 403).
+- Archivos:
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/configuracion/seguridad/configuracion/ConfiguracionSeguridad.java` (modificado)
+  - `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/infraestructura/configuracion/seguridad/configuracion/ConfiguracionSeguridadRolesTest.java` (modificado)
+  - `backend/CLAUDE.md` (modificado)
+  - `docs/analisis/VERIFICACION-SEGURIDAD.md` (modificado)
+- Notas: el error de T12.21 vino de un import sin uso (`FunRespuestasComponent`) en la página de la Secretaria. Quedan solo reportados: la Secretaria tampoco usa `GET solicitudes/{uuid}`, `respuestas/paginado/funcionario*` ni `PATCH respuestas/{uuid}/archivo`, que T12.21 le abrió; la pantalla no tiene botón para adjuntar respuesta, así que no hay 403 visible; el Funcionario puede hacer `PUT solicitudes/{uuid}` sobre solicitudes que no son suyas y reasignarlas, aunque sus pantallas solo editan las propias. `ConfiguracionSeguridadRolesTest`: 109 pruebas, 0 fallos.
+
+## 2026-10-15 - Autorización de los endpoints de Julián (Tarea T12.21)
+- Qué se hizo: reglas por URL para los 21 endpoints de Julián que solo protegía `@PreAuthorize`, para `PATCH respuestas/{uuid}/archivo` y para `GET`/`PATCH usuarios/{uuid}`, siguiendo el uso real del frontend; control de dueño en usuarios y en la descarga de anexos y respuestas; rechazo de tokens de usuarios deshabilitados; resolución de archivos sin recorrido de directorios; clave JWT por variable de entorno `JWT_SECRET`. Sin `@EnableMethodSecurity`.
+- Archivos:
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/aplicacion/input/AccesoRecursoConsejoCUIntPuerto.java` (creado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/AccesoRecursoConsejoCUImplAdaptador.java` (creado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/configuracion/seguridad/configuracion/ConfiguracionSeguridad.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/configuracion/seguridad/jwt/JwtFiltroAutenticacion.java` y `JwtServicio.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/configuracion/BeanConfiguracion.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/configuracion/lectorArchivos/almacenador/AlmacenadorArchivos.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorUsuarios/controlador/UsuarioRestController.java`, `controladorSolicitudes/controlador/SolicitudesRestController.java`, `controladorRespuestas/controlador/RespuestaRestController.java` (modificado)
+  - `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/dominio/helper/constantes/ApplicationConstantes.java` y `infraestructura/output/manejadorExcepciones/MensajesError.java` (modificado)
+  - `backend/solicitudes/src/main/resources/application.properties` y `backend/docker-compose.yml` (modificado)
+  - `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/infraestructura/configuracion/seguridad/configuracion/ConfiguracionSeguridadRolesTest.java` (creado)
+  - `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/dominio/casosdeuso/AccesoRecursoConsejoCUImplAdaptadorTest.java` (creado)
+  - `backend/solicitudes/src/test/java/com/unicauca/cfiet/solicitudes/infraestructura/configuracion/lectorArchivos/almacenador/AlmacenadorArchivosRecorridoTest.java` (creado)
+  - `backend/CLAUDE.md` (modificado)
+  - `docs/analisis/VERIFICACION-SEGURIDAD.md` (modificado)
+- Notas: roles que la regla agrega respecto al `@PreAuthorize` por uso real del frontend: Funcionario en `GET solicitudes/funcionario/{uuid}` y `PUT solicitudes/{uuid}`; Secretaria Decanatura FIET en `GET`/`PUT solicitudes/{uuid}`, `GET respuestas/paginado/funcionario*` y `PATCH respuestas/{uuid}/archivo`. Las anotaciones no se cambiaron. `GET tipos/solicitudes/paginado` y `filtro` siguen públicos y la vista pública no los usa. La construcción anterior de la ruta de descarga salía de `uploads` con doble codificación; por HTTP el firewall de Spring Security probablemente lo bloqueaba (no verificado en ejecución). Pendiente: `POST respuestas/{uuid}/archivo` lo llama la Secretaria Decanatura FIET y la regla de Julián no la incluye (ya daba 403); límite de intentos de login; rotar la clave fuera del entorno local. El proyecto usa `application.properties`, no `application.yml`. Se corrieron 217 pruebas (6 clases), sin la suite completa ni los scripts de humo.
+
 ## 2026-10-14 - Textos informativos de Cancelación de Asignatura (Tarea T12.19)
 - Qué se hizo: textos del formato PA-GA-4.2-FOR-9, sin cambiar reglas ni validaciones. El Artículo 5 del Acuerdo 002 de 1988 va al inicio del formulario del Estudiante, antes de los datos del estudiante; la notificación por correo institucional va justo debajo de la lista de asignaturas del formulario; la nota SIMCA va justo encima de la tabla del detalle, solo para Funcionario y Decano, reutilizando `NOTA_SIMCA`.
 - Archivos:

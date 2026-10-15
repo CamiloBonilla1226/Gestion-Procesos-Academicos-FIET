@@ -5,6 +5,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -90,5 +93,26 @@ public class AlmacenadorArchivos {
 
         // URL pública
         return "/api/respuestas/" + uuidRespuesta + "/" + destino.getName();
+    }
+
+    public File resolverArchivo(String carpeta, String uuidRecurso, String nombreArchivo) {
+        if (uuidRecurso == null || uuidRecurso.isBlank() || nombreArchivo == null || nombreArchivo.isBlank())
+            return null;
+        if (tieneSeparador(uuidRecurso) || tieneSeparador(nombreArchivo))
+            return null;
+        try {
+            Path raiz = Paths.get(basePath, carpeta).toAbsolutePath().normalize();
+            Path carpetaRecurso = raiz.resolve(uuidRecurso).normalize();
+            Path archivo = carpetaRecurso.resolve(nombreArchivo).normalize();
+            if (!raiz.equals(carpetaRecurso.getParent()) || !carpetaRecurso.equals(archivo.getParent()))
+                return null;
+            return archivo.toFile();
+        } catch (InvalidPathException ex) {
+            return null;
+        }
+    }
+
+    private boolean tieneSeparador(String valor) {
+        return valor.contains("/") || valor.contains("\\");
     }
 }

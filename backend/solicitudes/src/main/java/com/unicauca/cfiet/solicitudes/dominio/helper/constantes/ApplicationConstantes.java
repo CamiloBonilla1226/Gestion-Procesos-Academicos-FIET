@@ -14,6 +14,7 @@ public final class ApplicationConstantes {
     public static final String FUNCIONARIO = "FUNCIONARIO";
     public static final String ESTUDIANTE_ROL = "Estudiante";
     public static final String FUNCIONARIO_ACADEMICO_ROL = "Funcionario Académico";
+    public static final String SECRETARIA_DECANATURA_ROL = "Secretaria Decanatura FIET";
     /*Secciones del Orden del Día*/
     public static final String ASUNTOS_DECANO = "asuntos decano";
     public static final String ASUNTOS_PREGRADO = "asuntos pregrado";

@@ -51,6 +51,8 @@ public class MensajesError {
     public static final String TIPO_SOLICITUD_SIN_PROCESO = "El tipo de solicitud %s no corresponde a ningún proceso académico...";
     public static final String ACTOR_SIN_ROL = "El usuario %s no tiene el rol %s...";
     public static final String SOLICITUD_AJENA = "La solicitud %s no pertenece al estudiante %s...";
+    public static final String USUARIO_AJENO = "El usuario %s no puede modificar al usuario %s...";
+    public static final String REASIGNACION_NO_PERMITIDA = "El funcionario %s no puede reasignar la solicitud %s a otro funcionario...";
     public static final String TIPO_NO_ASIGNADO_FUNCIONARIO = "El tipo de solicitud %s no está asignado al funcionario académico %s...";
     public static final String OBSERVACION_MUY_LARGA = "La observación supera los %d caracteres permitidos...";
     public static final String ARCHIVO_VACIO = "El archivo adjunto está vacío...";
@@ -109,7 +111,6 @@ public class MensajesError {
     public static final String ANEXO_NO_PERMITIDO_AL_RADICAR = "El anexo %s no se entrega al radicar el examen supletorio...";
     public static final String ANEXO_NO_CORRESPONDE_CAUSA = "El anexo %s no corresponde a la causa %s...";
     public static final String ANEXO_REPETIDO = "El anexo %s viene más de una vez...";
-    public static final String REQUISITOS_NO_CONFIRMADOS = "Para remitir la solicitud %s al Decano debe confirmar que verificó los requisitos; si no se cumplen, debe rechazar la solicitud en lugar de remitirla...";
     public static final String FECHA_ACORDADA_ANTERIOR = "La fecha acordada para el supletorio (%s) no puede ser anterior a la fecha del examen no presentado (%s)...";
     public static final String FECHA_MAL_FORMADA = "El valor %s de %s no es una fecha con el formato AAAA-MM-DD...";
     public static final String PROGRAMA_ACADEMICO_REQUERIDO = "Debe indicar el programa académico...";

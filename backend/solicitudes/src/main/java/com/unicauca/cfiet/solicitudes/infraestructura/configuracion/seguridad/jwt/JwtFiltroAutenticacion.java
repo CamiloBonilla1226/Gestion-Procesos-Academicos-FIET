@@ -5,6 +5,8 @@ import java.io.IOException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.estructura.Error;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.estructura.CodigoError;
+import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.MensajesError;
+import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.entidades.UsuarioLivianoEntidad;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -48,6 +50,10 @@ public class JwtFiltroAutenticacion extends OncePerRequestFilter {
             username = jwtServicio.getUsernameFromToken(token);
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
+                if (estaDeshabilitado(userDetails)) {
+                    sendErrorResponse(response, request, MensajesError.NO_ACCESO, HttpServletResponse.SC_UNAUTHORIZED);
+                    return;
+                }
 
                 if (jwtServicio.isTokenValid(token, userDetails)) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
@@ -88,6 +94,11 @@ public class JwtFiltroAutenticacion extends OncePerRequestFilter {
         response.getWriter().write(mapper.writeValueAsString(error));
     }
 
+
+    private boolean estaDeshabilitado(UserDetails userDetails) {
+        return !userDetails.isEnabled()
+                || userDetails instanceof UsuarioLivianoEntidad usuario && !Boolean.TRUE.equals(usuario.getEstado());
+    }
 
     private String getTokenFromRequest(HttpServletRequest request) {
         final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);

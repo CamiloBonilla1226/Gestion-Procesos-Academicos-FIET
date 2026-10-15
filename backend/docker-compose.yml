@@ -21,6 +21,7 @@ services:
       DB_USER_NAME: root
       DB_PASSWORD: mysql
       UPLOADS_PATH: /app/uploads
+      JWT_SECRET: ${JWT_SECRET:-586E3272357538782F413F4428472B4B6250655368566B597033733676397924}
     volumes:
       - ./uploads:/app/uploads
     restart: always

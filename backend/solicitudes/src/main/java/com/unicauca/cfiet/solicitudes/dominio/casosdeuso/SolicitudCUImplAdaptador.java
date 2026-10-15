@@ -157,6 +157,8 @@ public class SolicitudCUImplAdaptador implements SolicitudCUintPuerto {
     @Override
     public Solicitud actualizarSolicitud(String uuidSolicitud, Solicitud solicitud, String token) {
         Solicitud solicitudOriginal = gateway.getSolicitud(uuidSolicitud);
+        if (solicitudOriginal == null)
+            formateadorExcepciones.lanzarEntidadNoExiste(String.format(MensajesError.ENTIDAD_NO_ENCONTRADA, SOLICITUD, uuidSolicitud));
 
         if(solicitud.getUuidFuncionario() != null && !solicitud.getUuidFuncionario().isBlank()) {
             if (!solicitud.getUuidFuncionario().equals(solicitudOriginal.getObjFuncionario().getUuidUsuario())) {

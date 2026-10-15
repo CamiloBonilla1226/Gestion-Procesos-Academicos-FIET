@@ -122,7 +122,7 @@ class ConsultaExamenSupletorioCUImplAdaptadorTest {
                 tipoAnexo("an-recibo", "Recibo de pago", "pdf"),
                 tipoAnexo("an-just", "Soporte de la justificación de la no presentación", "pdf,jpg,png"),
                 tipoAnexo("an-comp", "Comprobante de pago", "pdf,jpg,png"),
-                tipoAnexo("an-for23", "Formato PM-FO-4-FOR-23 firmado por el docente que orienta la asignatura", "pdf,jpg,png"),
+                tipoAnexo("an-for23", "Formato firmado por el docente que orienta la asignatura", "pdf,jpg,png"),
                 tipoAnexo("an-otro", "Otro documento", "pdf")));
 
         FormularioExamenSupletorio formulario = casoDeUso.getFormulario(TOKEN);

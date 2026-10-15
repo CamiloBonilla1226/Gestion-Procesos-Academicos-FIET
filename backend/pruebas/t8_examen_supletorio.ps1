@@ -234,9 +234,9 @@ function Quitar-Trigger {
 $tokenRoot = Iniciar-Sesion -Usuario "rootfiet" -Clave "rootfiet1234"
 $tipoEs = Ejecutar-Sql "select uuidTipoSolicitudAcademica from TIPO_SOLICITUD_ACADEMICA where nombre like 'Examen Supletorio'"
 $tipoCm = Ejecutar-Sql "select uuidTipoSolicitudAcademica from TIPO_SOLICITUD_ACADEMICA where nombre like 'Cancelaci%n de Matr%cula'"
-$for23 = Tipo-Anexo "Formato PM-FO-4-FOR-23%"
+$for23 = Tipo-Anexo "Formato firmado por el docente que orienta la asignatura"
 $justificacion = Tipo-Anexo "Soporte de la justificaci%"
-$docente = Tipo-Anexo "Formato firmado por el docente%"
+$docente = Tipo-Anexo "Formato firmado por el docente de la asignatura con la que se cruza"
 $recibo = Tipo-Anexo "Recibo de pago"
 $comprobante = Tipo-Anexo "Comprobante de pago"
 $responsableEs = Ejecutar-Sql "select coalesce(FuncionarioAcademico_uuid, '') from TIPO_SOLICITUD_ACADEMICA where uuidTipoSolicitudAcademica = '$tipoEs'"
@@ -284,7 +284,7 @@ try {
         @{ Nombre = "POST / (radicar)"; Metodo = "MULTIPART"; Ruta = $Global:Ruta; Cuerpo = $null; Prohibidos = @{ "Funcionario Academico" = $fa1.Token; "Decano" = $decano.Token; "Secretario General" = $tokenRoot } },
         @{ Nombre = "GET /{uuid}"; Metodo = "GET"; Ruta = "$Global:Ruta/$falsa"; Cuerpo = $null; Prohibidos = @{ "Secretario General" = $tokenRoot } },
         @{ Nombre = "POST funcionario/rechazar"; Metodo = "POST"; Ruta = "$Global:Ruta/$falsa/funcionario/rechazar"; Cuerpo = $observacion; Prohibidos = @{ "Estudiante" = $est1.Token; "Decano" = $decano.Token; "Secretario General" = $tokenRoot } },
-        @{ Nombre = "POST funcionario/remitir"; Metodo = "POST"; Ruta = "$Global:Ruta/$falsa/funcionario/remitir"; Cuerpo = @{ requisitosVerificados = $true }; Prohibidos = @{ "Estudiante" = $est1.Token; "Decano" = $decano.Token; "Secretario General" = $tokenRoot } },
+        @{ Nombre = "POST funcionario/remitir"; Metodo = "POST"; Ruta = "$Global:Ruta/$falsa/funcionario/remitir"; Cuerpo = @{ observacion = "Para el Decano" }; Prohibidos = @{ "Estudiante" = $est1.Token; "Decano" = $decano.Token; "Secretario General" = $tokenRoot } },
         @{ Nombre = "POST funcionario/responder"; Metodo = "POST"; Ruta = "$Global:Ruta/$falsa/funcionario/responder"; Cuerpo = $null; Prohibidos = @{ "Estudiante" = $est1.Token; "Decano" = $decano.Token; "Secretario General" = $tokenRoot } },
         @{ Nombre = "POST funcionario/recibo"; Metodo = "POST"; Ruta = "$Global:Ruta/$falsa/funcionario/recibo"; Cuerpo = $null; Prohibidos = @{ "Estudiante" = $est1.Token; "Decano" = $decano.Token; "Secretario General" = $tokenRoot } },
         @{ Nombre = "POST funcionario/comprobante/aprobar"; Metodo = "POST"; Ruta = "$Global:Ruta/$falsa/funcionario/comprobante/aprobar"; Cuerpo = @{ fechaAcordadaExamen = $acordada }; Prohibidos = @{ "Estudiante" = $est1.Token; "Decano" = $decano.Token; "Secretario General" = $tokenRoot } },
@@ -348,7 +348,7 @@ try {
     $r = Radicar -Token $est1.Token -Asignatura $a1 -Fecha $hoy -Causa "otra" -Tipos @($for23) -Pdf $pdf
     Escribir-Resultado "con causa otra falta el soporte de justificacion (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "Falta el anexo obligatorio: Soporte de la justificaci*"))
     $r = Radicar -Token $est1.Token -Asignatura $a1 -Fecha $hoy -Causa "cruce" -Cruzada $a2 -FechaCruzada $hoy -Hora "10:30" -Tipos @($docente) -Pdf $pdf
-    Escribir-Resultado "con causa cruce falta el FOR-23 (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "Falta el anexo obligatorio: Formato PM-FO-4-FOR-23*"))
+    Escribir-Resultado "con causa cruce falta el FOR-23 (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "Falta el anexo obligatorio: Formato firmado por el docente que orienta la asignatura*"))
     $r = Radicar -Token $est1.Token -Asignatura $a1 -Fecha $hoy -Causa "otra" -Tipos @($for23, $justificacion, $docente) -Pdf $pdf
     Escribir-Resultado "con causa otra el formato del docente cruzado se rechaza (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "*no corresponde a la causa otra*"))
     $r = Radicar -Token $est1.Token -Asignatura $a1 -Fecha $hoy -Causa "cruce" -Cruzada $a2 -FechaCruzada $hoy -Hora "10:30" -Tipos @($for23, $docente, $justificacion) -Pdf $pdf
@@ -397,14 +397,12 @@ try {
     Escribir-Resultado "una solicitud propia de otro tipo responde igual que una inexistente" ((Firma-Error (Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$solCm" -Token $est3.Token) $solCm) -eq $firmaNoExiste)
     Ejecutar-Sql "delete from SOLICITUD_ACADEMICA where uuidSolicitudAcademica = '$solCm'" | Out-Null
 
-    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol1/funcionario/remitir" -Token $fa1.Token -Cuerpo @{ requisitosVerificados = $false }
-    Escribir-Resultado "remitir sin confirmar los requisitos se rechaza pidiendo rechazar (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "*rechazar la solicitud en lugar de remitirla*") -and ((Etapa-De $sol1) -eq "RADICADA"))
-    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol1/funcionario/remitir" -Token $fa1.Token -Cuerpo @{ observacion = "Sin confirmar" }
-    Escribir-Resultado "remitir sin el campo de confirmacion tambien se rechaza (obtuvo $($r.Status))" (($r.Status -ne 200) -and ((Etapa-De $sol1) -eq "RADICADA"))
-    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol1/funcionario/remitir" -Token $fa2.Token -Cuerpo @{ requisitosVerificados = $true }
+    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol1/funcionario/remitir" -Token $fa2.Token -Cuerpo @{ observacion = "No me corresponde" }
     Escribir-Resultado "un funcionario no asignado no puede remitir (obtuvo $($r.Status))" (($r.Status -ne 200) -and ((Etapa-De $sol1) -eq "RADICADA"))
-    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol1/funcionario/remitir" -Token $fa1.Token -Cuerpo @{ requisitosVerificados = $true; observacion = "Requisitos verificados" }
-    Escribir-Resultado "el funcionario asignado remite y pasa a EN_REVISION_DECANO (obtuvo $($r.Status), etapa $(Etapa-De $sol1))" (($r.Status -eq 200) -and ((Etapa-De $sol1) -eq "EN_REVISION_DECANO"))
+    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol1/funcionario/remitir" -Token $fa1.Token -Cuerpo @{ requisitosVerificados = $false; observacion = "Para el Decano T8" }
+    Escribir-Resultado "remitir ya no exige confirmar requisitos: con requisitosVerificados falso se ignora y pasa a EN_REVISION_DECANO (obtuvo $($r.Status), etapa $(Etapa-De $sol1))" (($r.Status -eq 200) -and ((Etapa-De $sol1) -eq "EN_REVISION_DECANO"))
+    $obsRemision = Ejecutar-Sql "select coalesce(observaciones, '') from HISTORIAL_SOLICITUD_ACADEMICA where SolicitudAcademica_uuid = '$sol1' and accion = 'REMITIR_DECANO'"
+    Escribir-Resultado "la observacion para el Decano se guarda (obtuvo $obsRemision)" ($obsRemision -eq "Para el Decano T8")
     Verificar-EtapaHttp -Solicitud $sol1 -Esperada "EN_REVISION_DECANO" -Estudiante $est1.Token -Funcionario $fa1.Token -Decano $decano.Token
     $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol1/decano/aprobar" -Token $decano.Token -Cuerpo @{}
     Escribir-Resultado "el Decano aprueba sin observacion y pasa a APROBADA_POR_DECANO (obtuvo $($r.Status), etapa $(Etapa-De $sol1))" (($r.Status -eq 200) -and ((Etapa-De $sol1) -eq "APROBADA_POR_DECANO"))
@@ -478,8 +476,8 @@ try {
     $c1 = @(Activas $est3)[0]
     $r = Radicar -Token $est3.Token -Asignatura $c1 -Fecha $hoy -Causa "otra" -Tipos @($for23, $justificacion) -Pdf $pdf
     $sol3 = (Leer-Json $r).uuidSolicitudAcademica
-    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol3/funcionario/remitir" -Token $fa1.Token -Cuerpo @{ requisitosVerificados = $true }
-    Escribir-Resultado "el estudiante 3 radica y el funcionario remite (obtuvo $($r.Status), etapa $(Etapa-De $sol3))" (($r.Status -eq 200) -and ((Etapa-De $sol3) -eq "EN_REVISION_DECANO"))
+    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol3/funcionario/remitir" -Token $fa1.Token -Cuerpo @{}
+    Escribir-Resultado "el estudiante 3 radica y el funcionario remite sin requisitosVerificados ni observacion (obtuvo $($r.Status), etapa $(Etapa-De $sol3))" (($r.Status -eq 200) -and ((Etapa-De $sol3) -eq "EN_REVISION_DECANO"))
     Verificar-EtapaHttp -Solicitud $sol3 -Esperada "EN_REVISION_DECANO" -Estudiante $est3.Token -Funcionario $fa1.Token -Decano $decano.Token
     $motivoDecano = "No procede: la causa no esta soportada"
     $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol3/decano/rechazar" -Token $decano.Token -Cuerpo @{ observacion = $motivoDecano }

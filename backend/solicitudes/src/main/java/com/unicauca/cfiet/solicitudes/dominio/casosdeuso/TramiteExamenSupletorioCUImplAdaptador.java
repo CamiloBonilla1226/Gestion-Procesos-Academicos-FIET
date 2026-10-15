@@ -44,14 +44,8 @@ public class TramiteExamenSupletorioCUImplAdaptador implements TramiteExamenSupl
     }
 
     @Override
-    public SolicitudExamenSupletorio remitirADecano(String uuidSolicitudAcademica, Boolean requisitosVerificados, String observacion, String token) {
-        ActorSolicitud actor = tramite.actorDe(token, RolEtiquetaEtapa.FUNCIONARIO);
-        SolicitudExamenSupletorio supletorio = supletorioDe(uuidSolicitudAcademica);
-        SolicitudAcademica solicitud = tramite.solicitudValidada(TipoProcesoAcademico.EXAMEN_SUPLETORIO, uuidSolicitudAcademica,
-                AccionEtapa.REMITIR_DECANO, actor);
-        if (!Boolean.TRUE.equals(requisitosVerificados))
-            formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.REQUISITOS_NO_CONFIRMADOS, solicitud.getRadicado()));
-        return conSolicitud(supletorio, solicitudCU.cambiarEtapa(uuidSolicitudAcademica, AccionEtapa.REMITIR_DECANO, actor, observacion, token));
+    public SolicitudExamenSupletorio remitirADecano(String uuidSolicitudAcademica, String observacion, String token) {
+        return accion(uuidSolicitudAcademica, AccionEtapa.REMITIR_DECANO, RolEtiquetaEtapa.FUNCIONARIO, observacion, token);
     }
 
     @Override

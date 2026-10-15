@@ -157,7 +157,7 @@ class ExamenSupletorioCUImplAdaptadorTest {
                 tipoAnexo(DOCENTE_CRUCE, "Formato firmado por el docente de la asignatura con la que se cruza", "pdf,jpg,png", false),
                 tipoAnexo(RECIBO, "Recibo de pago", "pdf", false),
                 tipoAnexo(COMPROBANTE, "Comprobante de pago", "pdf,jpg,png", false),
-                tipoAnexo(FOR_23, "Formato PM-FO-4-FOR-23 firmado por el docente que orienta la asignatura", "pdf,jpg,png", true)));
+                tipoAnexo(FOR_23, "Formato firmado por el docente que orienta la asignatura", "pdf,jpg,png", true)));
         lenient().when(solicitudCU.crearSolicitud(ESTUDIANTE, TIPO_ES, TOKEN)).thenReturn(SolicitudAcademica.builder()
                 .uuidSolicitudAcademica(SOLICITUD).radicado("2026-ES-0001").tipoSolicitudAcademica(supletorio).build());
         lenient().when(gateway.guardar(any())).thenAnswer(invocacion -> invocacion.getArgument(0));
@@ -421,7 +421,7 @@ class ExamenSupletorioCUImplAdaptadorTest {
 
     @Test
     void elFor23EsObligatorioConCualquierCausa() {
-        String nombreFor23 = "Formato PM-FO-4-FOR-23 firmado por el docente que orienta la asignatura";
+        String nombreFor23 = "Formato firmado por el docente que orienta la asignatura";
         assertEquals(String.format(MensajesError.ANEXOS_OBLIGATORIOS_FALTANTES, nombreFor23),
                 reglaViolada(() -> radicarCruce("am-2", LUNES, "08:00", List.of(anexo(DOCENTE_CRUCE)))));
         assertEquals(String.format(MensajesError.ANEXOS_OBLIGATORIOS_FALTANTES, nombreFor23),
@@ -441,7 +441,7 @@ class ExamenSupletorioCUImplAdaptadorTest {
                 reglaViolada(() -> casoDeUso.radicarExamenSupletorio(ESTUDIANTE, "am-1", LUNES, "otra", null, null, null,
                         List.of(anexo(FOR_23)), TOKEN)));
         assertEquals(String.format(MensajesError.ANEXOS_OBLIGATORIOS_FALTANTES,
-                        "Formato PM-FO-4-FOR-23 firmado por el docente que orienta la asignatura; Soporte de la justificación de la no presentación"),
+                        "Formato firmado por el docente que orienta la asignatura; Soporte de la justificación de la no presentación"),
                 reglaViolada(() -> casoDeUso.radicarExamenSupletorio(ESTUDIANTE, "am-1", LUNES, "otra", null, null, null, null, TOKEN)));
     }
 
@@ -468,7 +468,7 @@ class ExamenSupletorioCUImplAdaptadorTest {
 
     @Test
     void unAnexoRepetidoSeRechaza() {
-        assertEquals(String.format(MensajesError.ANEXO_REPETIDO, "Formato PM-FO-4-FOR-23 firmado por el docente que orienta la asignatura"),
+        assertEquals(String.format(MensajesError.ANEXO_REPETIDO, "Formato firmado por el docente que orienta la asignatura"),
                 reglaViolada(() -> casoDeUso.radicarExamenSupletorio(ESTUDIANTE, "am-1", LUNES, "otra", null, null, null,
                         List.of(anexo(FOR_23), anexo(JUSTIFICACION), anexo(FOR_23)), TOKEN)));
     }

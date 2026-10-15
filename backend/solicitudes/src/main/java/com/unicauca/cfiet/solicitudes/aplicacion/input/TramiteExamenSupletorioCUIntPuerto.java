@@ -8,7 +8,7 @@ public interface TramiteExamenSupletorioCUIntPuerto {
 
     SolicitudExamenSupletorio rechazarPorFuncionario(String uuidSolicitudAcademica, String observacion, String token);
 
-    SolicitudExamenSupletorio remitirADecano(String uuidSolicitudAcademica, Boolean requisitosVerificados, String observacion, String token);
+    SolicitudExamenSupletorio remitirADecano(String uuidSolicitudAcademica, String observacion, String token);
 
     SolicitudExamenSupletorio aprobarPorDecano(String uuidSolicitudAcademica, String observacion, String token);
 

@@ -97,8 +97,7 @@ public class ExamenSupletorioRestController {
     public ResponseEntity<?> remitirADecano(@PathVariable String uuidSolicitud,
                                             @RequestBody RemisionSupletorioDTOPeticion peticion,
                                             @RequestHeader("Authorization") String token) {
-        return accion(uuidSolicitud, token, () -> tramiteCU.remitirADecano(uuidSolicitud, peticion.getRequisitosVerificados(),
-                peticion.getObservacion(), token.substring(7)));
+        return accion(uuidSolicitud, token, () -> tramiteCU.remitirADecano(uuidSolicitud, peticion.getObservacion(), token.substring(7)));
     }
 
     @PreAuthorize(ApplicationConstantes.FUNCIONARIO_ACADEMICO_ACCESO)

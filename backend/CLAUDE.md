@@ -20,7 +20,8 @@ docker compose up --build           # backend (8080) + MySQL (3307 host / 3306 c
 
 Sin Docker: JDK 17 + MySQL 8 local. `application.properties` no trae valores
 fijos: lee las variables de entorno `SERVER_PORT`, `DB_URL`, `DB_USER_NAME`,
-`DB_PASSWORD` y `UPLOADS_PATH` (por defecto `/app/uploads`). En Docker las
+`DB_PASSWORD`, `UPLOADS_PATH` (por defecto `/app/uploads`) y `JWT_SECRET`
+(clave de firma del JWT; sin ella se usa el valor local por defecto). En Docker las
 define `docker-compose.yml` y la carpeta `backend/uploads` del host se monta
 en `/app/uploads`.
 
@@ -331,6 +332,61 @@ demás métodos sobre `usuarios/**` son para Secretario General y Decano.
 Estudiantes y funcionarios académicos se crean por sus propios endpoints
 (`estudiantes` y `funcionarios-academicos`), no por `usuarios`.
 
+Desde T12.21 los endpoints de Julián que solo protegía su `@PreAuthorize`
+tienen regla propia, antes de `solicitudes/**`, de `GET respuestas/**` y de
+`GET usuarios/**`. La regla sigue el uso real del frontend, que en algunos
+casos incluye roles que la anotación no tiene (las anotaciones no se
+cambiaron):
+
+- `GET solicitudes`, `paginado`, `buscar` y `fun/**`: Secretario General,
+  Decano, Funcionario. `buscar/solicitante`, `anexos/download` y
+  `exportar/**`: Secretario General, Decano.
+- `GET solicitudes/funcionario/{uuid}`: Secretario General, Decano y
+  Funcionario (lo usa `funcionario/solicitudes`).
+- `GET solicitudes/estado`: `authenticated()`, explícito para que no lo tome
+  la regla de `{uuidSolicitud}`.
+- `GET` y `PUT solicitudes/{uuidSolicitud}`, `GET respuestas/paginado/funcionario`,
+  `GET respuestas/paginado/funcionario-nombre-solicitud` y
+  `PATCH respuestas/{uuid}/archivo`: Secretario General, Decano y Funcionario.
+  La Secretaria Decanatura FIET solo usa, desde `sec-fiet/respuestas`,
+  `respuestas/paginado`, `paginado/nombre-solicitud`, `respuestas/{uuid}` y la
+  descarga, que siguen en `GET respuestas/**`.
+- En `PUT solicitudes/{uuidSolicitud}` el controlador llama antes a
+  `AccesoRecursoConsejoCUIntPuerto.verificarActualizacionSolicitud`: una
+  solicitud inexistente da ENTIDAD_NO_ENCONTRADA (código 3); el Secretario
+  General y el Decano siguen igual, incluida la reasignación; el Funcionario
+  solo edita las solicitudes que tiene asignadas (si no, ENTIDAD_NO_ENCONTRADA)
+  y no puede reasignar (REGLA_NEGOCIO_VIOLADA con `REASIGNACION_NO_PERMITIDA`).
+- `GET` y `PATCH usuarios/{uuidUsuario}`: `authenticated()` explícito; el
+  dueño lo controla `AccesoRecursoConsejoCUImplAdaptador`.
+
+Con eso un token de Estudiante, Funcionario Académico o Docente recibe 403
+en los listados, búsquedas, exportaciones y edición de solicitudes al
+Consejo. Siguen públicos `tipos/solicitudes/paginado` y `filtro` (los usa
+solo el Secretario General, no la vista pública).
+
+`AccesoRecursoConsejoCUImplAdaptador` (bean `crearAccesoRecursoConsejoCU`)
+controla el dueño en cuatro endpoints de Julián: `GET usuarios/{uuid}` (el
+propio usuario o el Secretario General; si no, ENTIDAD_NO_ENCONTRADA),
+`PATCH usuarios/{uuid}` (igual; si no, REGLA_NEGOCIO_VIOLADA con
+`USUARIO_AJENO`) y la descarga de anexos y de respuestas (solicitante por tipo
+y número de documento, Funcionario asignado, o Secretario General, Decano y
+Secretaria Decanatura FIET; si no, ENTIDAD_NO_ENCONTRADA). Las descargas
+resuelven el archivo con `AlmacenadorArchivos.resolverArchivo`, que normaliza
+la ruta y devuelve `null` si sale de `uploads/<carpeta>/<uuid>/`.
+
+`JwtFiltroAutenticacion` responde 401 con `NO_ACCESO` cuando el usuario del
+token está deshabilitado (`estado` en falso), aunque el token siga vigente.
+La clave de firma de `JwtServicio` sale de `jwt.secreto`, que lee la variable
+`JWT_SECRET`; `application.properties` y `docker-compose.yml` traen el valor
+anterior solo como valor por defecto local.
+
+`solicitudes/src/test/.../seguridad/configuracion/ConfiguracionSeguridadRolesTest`
+prueba la cadena real (`@WebMvcTest` con `ConfiguracionSeguridad`,
+`JwtFiltroAutenticacion` y `JwtServicio`, y un controlador comodín) sin base
+de datos: 403, 401 y 200 por rol. Un endpoint nuevo de Julián o un cambio de
+regla agrega su fila ahí.
+
 ## Persistencia
 
 Las entidades JPA son `@Entity` con Lombok (`@Getter @Setter
@@ -454,7 +510,7 @@ Julián (ver "Solicitudes académicas, historial, anexos y Resolución").
 
 APROBADA y RECHAZADA son finales. Los casos de uso de trámite agregan sus
 propias exigencias encima de la tabla (evaluaciones, situaciones, decisiones
-por asignatura, `requisitosVerificados`).
+por asignatura).
 
 ### Patrón de los controladores de la extensión
 
@@ -904,10 +960,9 @@ El resto de `cancelaciones-asignatura/**` es `denyAll()`.
   y log:
   - `rechazarPorFuncionario(uuid, observacion, token)`: RADICADA a
     RECHAZADA, sin escaneo.
-  - `remitirADecano(uuid, requisitosVerificados, observacion, token)`:
-    RADICADA a EN_REVISION_DECANO. Sin `requisitosVerificados` verdadero se
-    rechaza (después de validar actor y etapa) pidiendo rechazar la solicitud
-    en lugar de remitirla.
+  - `remitirADecano(uuid, observacion, token)`: RADICADA a
+    EN_REVISION_DECANO, con observación opcional para el Decano. Desde T12.16
+    no exige confirmar requisitos (P49).
   - `aprobarPorDecano(uuid, observacion, token)`: observación opcional, a
     APROBADA_POR_DECANO. `rechazarPorDecano`: observación opcional, a
     RECHAZADA_POR_DECANO.
@@ -939,7 +994,7 @@ formato.
 | `POST /` | Estudiante | Multipart: `asignaturaMatriculada`, `fechaExamenNoPresentado`, `tipoCausa`, y con cruce `asignaturaCruzada`, `fechaExamenCruzada`, `horaExamenCruzada`; una parte por archivo con el uuid de su tipo como nombre. Responde uuid y radicado |
 | `GET /{uuid}` | los tres | Detalle de `solicitudes-academicas` (radicado, etiqueta, anexos con su tipo, acciones) más asignatura, causa, fecha del examen, cruce si lo hay y `fechaAcordadaExamen` si existe |
 | `POST /{uuid}/funcionario/rechazar` | Funcionario Académico | Cuerpo `observacion` |
-| `POST /{uuid}/funcionario/remitir` | Funcionario Académico | Cuerpo `requisitosVerificados` y `observacion` opcional |
+| `POST /{uuid}/funcionario/remitir` | Funcionario Académico | Cuerpo con `observacion` opcional (`requisitosVerificados` se ignora, P49) |
 | `POST /{uuid}/funcionario/responder` | Funcionario Académico | Cuerpo opcional `observacion` |
 | `POST /{uuid}/funcionario/recibo` | Funcionario Académico | Sin cuerpo; usa `enviarRecibo` |
 | `POST /{uuid}/funcionario/comprobante/aprobar` | Funcionario Académico | Cuerpo `fechaAcordadaExamen` opcional |

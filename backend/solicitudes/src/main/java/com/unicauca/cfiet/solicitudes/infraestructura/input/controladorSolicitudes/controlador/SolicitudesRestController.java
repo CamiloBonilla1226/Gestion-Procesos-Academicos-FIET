@@ -1,11 +1,13 @@
 package com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudes.controlador;
 
+import com.unicauca.cfiet.solicitudes.aplicacion.input.AccesoRecursoConsejoCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.OrdenDelDiaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.SolicitudCUintPuerto;
 import com.unicauca.cfiet.solicitudes.dominio.helper.PaginacionRespuestaDTO;
 import com.unicauca.cfiet.solicitudes.dominio.helper.constantes.ApplicationConstantes;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.OrdenDelDia;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.Solicitud;
+import com.unicauca.cfiet.solicitudes.infraestructura.configuracion.lectorArchivos.almacenador.AlmacenadorArchivos;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudes.DTOPeticion.OrdenDelDiaDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudes.DTOPeticion.SolicitudActualizarDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudes.DTOPeticion.SolicitudDTOPeticion;
@@ -51,6 +53,8 @@ public class SolicitudesRestController {
     private final SolicitudCUintPuerto solicitudCU;
     private final MapperSolicitudesInfraestructuraDominio mapper;
     private final ValidadorAnexosService validadorAnexosService;
+    private final AccesoRecursoConsejoCUIntPuerto accesoCU;
+    private final AlmacenadorArchivos almacenadorArchivos;
     @Value("${app.uploads.base-path}")
     private String basePath;
 
@@ -211,6 +215,7 @@ public class SolicitudesRestController {
     public ResponseEntity<?> actualizarOrdenDelDia(@PathVariable String uuidSolicitud,
                                                    @Valid @RequestBody SolicitudActualizarDTOPeticion peticion,
                                                    @RequestHeader("Authorization") String token){
+        accesoCU.verificarActualizacionSolicitud(uuidSolicitud, peticion.getUuidFuncionario(), token.substring(7));
         Solicitud solicitud;
         try{
             solicitud = solicitudCU.actualizarSolicitud(uuidSolicitud, mapper.mapearPeticionAModelo(peticion), token.substring(7));
@@ -327,16 +332,19 @@ public class SolicitudesRestController {
     }
 
     @PreAuthorize(ApplicationConstantes.AUTHENTICATED)
+    @Transactional(readOnly = true)
     @GetMapping("/anexos/{uuidSolicitud}/{fileName:.+}")
     public ResponseEntity<Resource> descargarAnexo(
             @PathVariable String uuidSolicitud,
-            @PathVariable String fileName) {
+            @PathVariable String fileName,
+            @RequestHeader("Authorization") String token) {
 
+        accesoCU.verificarAccesoAnexo(uuidSolicitud, token.substring(7));
         try {
             String decodedFileName = URLDecoder.decode(fileName, StandardCharsets.UTF_8);
-            File file = new File(basePath + "/anexos/" + uuidSolicitud + "/" + decodedFileName);
+            File file = almacenadorArchivos.resolverArchivo("anexos", uuidSolicitud, decodedFileName);
 
-            if (!file.exists() || !file.isFile()) {
+            if (file == null || !file.exists() || !file.isFile()) {
                 return ResponseEntity.notFound().build();
             }
 

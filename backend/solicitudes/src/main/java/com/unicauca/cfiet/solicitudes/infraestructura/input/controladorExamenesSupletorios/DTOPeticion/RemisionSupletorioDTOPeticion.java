@@ -10,6 +10,5 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class RemisionSupletorioDTOPeticion {
-    private Boolean requisitosVerificados;
     private String observacion;
 }

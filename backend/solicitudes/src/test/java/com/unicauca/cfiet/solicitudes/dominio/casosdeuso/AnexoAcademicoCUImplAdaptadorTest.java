@@ -48,7 +48,7 @@ class AnexoAcademicoCUImplAdaptadorTest {
     private static final int CINCO_MB = 5 * 1024 * 1024;
     private static final String PAZ_BIBLIOTECAS = "Paz y salvo - División de Bibliotecas";
     private static final String DARCA = "Carné estudiantil o constancia de no trámite - DARCA";
-    private static final String FOR_23 = "Formato PM-FO-4-FOR-23 firmado por el docente que orienta la asignatura";
+    private static final String FOR_23 = "Formato firmado por el docente que orienta la asignatura";
     private static final String JUSTIFICACION = "Soporte de la justificación de la no presentación";
     private static final String CRUCE = "Formato firmado por el docente de la asignatura con la que se cruza";
     private static final String RECIBO = "Recibo de pago";

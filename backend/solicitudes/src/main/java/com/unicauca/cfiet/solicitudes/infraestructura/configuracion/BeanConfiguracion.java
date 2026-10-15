@@ -342,4 +342,15 @@ public class BeanConfiguracion {
         return new ConsultaExamenSupletorioCUImplAdaptador(gateway, estudianteGateway, tipoSolicitudGateway, tipoAnexoGateway,
                 sesionGateway, jwtServicio, consultaCU, formateadorExcepciones);
     }
+
+    @Bean
+    public AccesoRecursoConsejoCUImplAdaptador crearAccesoRecursoConsejoCU(UsuarioGatewayIntPuerto usuarioGateway,
+                                                                         SesionGatewayIntPuerto sesionGateway,
+                                                                         SolicitudGatewayIntPuerto solicitudGateway,
+                                                                         RespuestaGatewayIntPuerto respuestaGateway,
+                                                                         IJwtServicio jwtServicio,
+                                                                         ExcepcionesFormateadorIntPuerto formateadorExcepciones){
+        return new AccesoRecursoConsejoCUImplAdaptador(usuarioGateway, sesionGateway, solicitudGateway, respuestaGateway,
+                jwtServicio, formateadorExcepciones);
+    }
 }

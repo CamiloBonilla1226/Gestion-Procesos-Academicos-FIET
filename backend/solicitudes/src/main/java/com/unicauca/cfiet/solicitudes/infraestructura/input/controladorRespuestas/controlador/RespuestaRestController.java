@@ -1,9 +1,11 @@
 package com.unicauca.cfiet.solicitudes.infraestructura.input.controladorRespuestas.controlador;
 
+import com.unicauca.cfiet.solicitudes.aplicacion.input.AccesoRecursoConsejoCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.RespuestaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.dominio.helper.PaginacionRespuestaDTO;
 import com.unicauca.cfiet.solicitudes.dominio.helper.constantes.ApplicationConstantes;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.Respuesta;
+import com.unicauca.cfiet.solicitudes.infraestructura.configuracion.lectorArchivos.almacenador.AlmacenadorArchivos;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorRespuestas.DTOPeticion.RespuestaDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorRespuestas.DTORespuesta.RespuestaDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorRespuestas.mapeador.MapperRespuestaInfraestructuraDominio;
@@ -42,6 +44,8 @@ import java.util.Map;
 public class RespuestaRestController {
     private final RespuestaCUIntPuerto respuestaCU;
     private final MapperRespuestaInfraestructuraDominio mapper;
+    private final AccesoRecursoConsejoCUIntPuerto accesoCU;
+    private final AlmacenadorArchivos almacenadorArchivos;
     @Value("${app.uploads.base-path}")
     private String basePath;
 
@@ -188,15 +192,18 @@ public class RespuestaRestController {
     }
 
     @PreAuthorize(ApplicationConstantes.AUTHENTICATED)
+    @Transactional(readOnly = true)
     @GetMapping("/{uuidRespuesta}/{fileName:.+}")
     public ResponseEntity<Resource> descargarRespuesta(
             @PathVariable String uuidRespuesta,
-            @PathVariable String fileName) {
+            @PathVariable String fileName,
+            @RequestHeader("Authorization") String token) {
+        accesoCU.verificarAccesoRespuesta(uuidRespuesta, token.substring(7));
         try {
             String decodedFileName = URLDecoder.decode(fileName, StandardCharsets.UTF_8);
-            File file = new File(basePath + "/respuestas/" + uuidRespuesta + "/" + decodedFileName);
+            File file = almacenadorArchivos.resolverArchivo("respuestas", uuidRespuesta, decodedFileName);
 
-            if (!file.exists() || !file.isFile())
+            if (file == null || !file.exists() || !file.isFile())
                 return ResponseEntity.notFound().build();
 
             Resource resource = new UrlResource(file.toURI());
