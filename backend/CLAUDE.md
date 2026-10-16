@@ -31,8 +31,9 @@ llega a `APROBADA` o `RECHAZADA` (SMTP `smtp.gmail.com:587`, auth y
 STARTTLS). No tienen valor en el repositorio: `docker-compose.yml` las toma
 del entorno del host. Sin ellas el backend arranca igual y el envío solo deja
 el error en el log. El correo lo arma `SolicitudAcademicaCUImplAdaptador.cambiarEtapa`
-(asunto y texto por proceso, escaneo de la Resolución en las cancelaciones y
-el anexo "Documento adicional de la respuesta" si existe, P54) y lo pasa a
+(asunto y texto por proceso, escaneo de la Resolución en las cancelaciones
+después del Decano y el anexo "Documento adicional de la respuesta" si existe,
+P54) y lo pasa a
 `CorreoIntPuerto` con `AdjuntoCorreo` (nombre, tipo y ruta, sin bytes).
 `CorreoImplAdaptador` espera al commit de la transacción y llama a
 `ServicioCorreo` (`@Async`, `@EnableAsync` en `ConfiguracionAsincrona`), que
@@ -40,6 +41,15 @@ lee los archivos con `AlmacenamientoAnexosIntPuerto.leer` en el hilo
 asíncrono y envía un `MimeMessage`. Si falta un archivo, el destinatario no
 tiene correo o el SMTP falla, solo se registra el error; la respuesta nunca
 se revierte.
+
+En el rechazo directo del Funcionario (`RECHAZAR_FUNCIONARIO`) de las
+cancelaciones no se adjunta la Resolución aunque haya una cargada, y el texto
+dice que la solicitud fue respondida e invita a entrar a la aplicación (P56);
+el correo a DARCA de ese caso lleva el PDF generado y el documento adicional,
+sin Resolución. Todos los correos salen con el remitente visible
+`Decanatura FIET - Procesos académicos` (la dirección sigue siendo
+`MAIL_USER`) y con dos versiones del mismo contenido: texto plano y un HTML
+simple sin imágenes ni enlaces (`ServicioCorreo.html`), P57.
 
 Para no definirlas en cada consola, `MAIL_USER`, `MAIL_PASSWORD` y
 `CORREO_DARCA` pueden ir en `backend/.env`, que Docker Compose carga solo al
@@ -109,7 +119,7 @@ memoria (`AdjuntoCorreo.contenido`), sin escribirse en disco.
 4. Correr `docs/database/seed-procesos-academicos.sql` con
    `@funcionario_uuid` apuntando a ese funcionario (el archivo trae el
    comando exacto para Docker). Siembra los cinco programas académicos, los
-   tres tipos de solicitud, las 8 etapas, las 23 etiquetas por rol, los 14
+   tres tipos de solicitud, las 8 etapas, las 23 etiquetas por rol, los 15
    tipos de anexo y las situaciones R0 a R3. Usa `INSERT IGNORE` con UUID
    fijos y se puede repetir; sin `@funcionario_uuid` no se insertan los
    tipos ni lo que depende de ellos (los programas sí).
@@ -131,8 +141,8 @@ Julián, que ya existe en `data.sql`.
 **Regla: los procesos académicos son datos predefinidos y no se borran en
 ninguna limpieza.** `TIPO_SOLICITUD_ACADEMICA` (los tres procesos),
 `ETAPA_SOLICITUD_ACADEMICA` (las 8 etapas, con y sin tipo),
-`ETAPA_ETIQUETA_ROL` (23 etiquetas) y `TIPO_ANEXO_ACADEMICO` (14 tipos de
-anexo) se conservan siempre, igual que `roles`, `tiposUsuario`,
+`ETAPA_ETIQUETA_ROL` (23 etiquetas) y `TIPO_ANEXO_ACADEMICO` (15 tipos de
+anexo, seis de ellos retirados con `vigente = 0`) se conservan siempre, igual que `roles`, `tiposUsuario`,
 `PROGRAMA_ACADEMICO` y `SITUACION_ACADEMICA_ASIGNATURA`. Ningún script de
 limpieza, de pruebas ni manual les hace `DELETE`; si un proceso necesita otro
 responsable, se reasigna (`PUT catalogos-academicos/tipos-solicitud/{uuid}/funcionario`
@@ -156,7 +166,7 @@ rol `Funcionario Académico` y no puede tramitar solicitudes. Conserva
 `PROGRAMA_ACADEMICO` (5, con `ultimoConsecutivoAsignatura` en 0),
 `SITUACION_ACADEMICA_ASIGNATURA` (R0 a R3) y todo el catálogo de procesos, y
 al final muestra los conteos de procesos, etapas, etiquetas y tipos de
-anexo (3, 8, 23 y 14). Busca a `rootfiet` por `username` y, si no existe, no
+anexo (3, 8, 23 y 15). Busca a `rootfiet` por `username` y, si no existe, no
 borra nada. Es una sola transacción, en orden de llaves foráneas, y se puede
 repetir. No hay columnas `AUTO_INCREMENT` en las tablas que vacía.
 
@@ -168,6 +178,8 @@ docker compose stop solicitudes-consejo-de-facultad
 docker compose cp ../limpieza_local.sql cfiet_database:/tmp/limpieza.sql
 docker compose exec cfiet_database sh -c "mysql -u root -p --default-character-set=utf8mb4 cfiet < /tmp/limpieza.sql"
 ```
+
+Para borrar solo los estudiantes y todas las solicitudes académicas (con sus archivos en `uploads/anexos`, sin tocar catálogo, actores ni el Consejo de Julián), desde `backend/` y con el backend detenido: `powershell -File .\pruebas\limpiar-estudiantes.ps1` (fuera de git como `limpieza_local.sql`; una transacción, se puede repetir, responde `OK` o `FALLO` con el motivo; T12.30).
 
 Luego se vacía `backend/uploads` dejando solo su `README` (el backend crea
 las subcarpetas al subir), y se levanta el backend. Para dejar el sistema
@@ -624,7 +636,7 @@ Julián (ver "Solicitudes académicas, historial, anexos y Resolución").
 | Acción (`AccionEtapa`) | De | A | Rol | Procesos | Exige |
 |---|---|---|---|---|---|
 | `RADICAR` | (nueva) | RADICADA | Estudiante | los tres | |
-| `RECHAZAR_FUNCIONARIO` | RADICADA | RECHAZADA | Funcionario | los tres | observación; escaneo en las cancelaciones |
+| `RECHAZAR_FUNCIONARIO` | RADICADA | RECHAZADA | Funcionario | los tres | observación (sin escaneo desde T12.31, P56) |
 | `REMITIR_DECANO` | RADICADA | EN_REVISION_DECANO | Funcionario | los tres | |
 | `APROBAR_DECANO` | EN_REVISION_DECANO | APROBADA_POR_DECANO | Decano | los tres | |
 | `RECHAZAR_DECANO` | EN_REVISION_DECANO | RECHAZADA_POR_DECANO | Decano | los tres | |
@@ -705,7 +717,11 @@ por asignatura).
   subirla otra vez reemplaza la fila y el archivo viejo se borra al confirmar
   la transacción. En `APROBADA` o `RECHAZADA` ya no se sube ni se reemplaza.
   La descargan el Estudiante dueño solo en etapa final, y el Funcionario
-  asignado y el Decano en cualquier etapa.
+  asignado y el Decano en cualquier etapa. Desde T12.31 (P56) solo la exige
+  `ENVIAR_RESPUESTA`, después del Decano; el rechazo directo no la pide. Si el
+  Funcionario la sube en `RADICADA` y después rechaza directo, se conserva
+  como antes (no se borra); si remite al Decano, `REMITIR_DECANO` la retira.
+  La pantalla del Estudiante no ofrece descargarla en un rechazo directo.
 - `ValidadorActorSolicitud` usa `UsuarioGatewayIntPuerto.getUsuario` de
   Julián, cuyo mapper recorre `UsuarioEntidad.logs` (perezosa). Por eso estos
   casos de uso deben correr dentro de una transacción: el método del
@@ -810,9 +826,15 @@ El resto de `solicitudes-academicas/**` es `denyAll()`.
 - Antes de escribir nada valida, en este orden: usuario con rol Estudiante y
   fila en `ESTUDIANTE`; al menos una asignatura matriculada `activa`; motivo
   obligatorio de hasta 255 caracteres (la columna); que cada tipo de anexo sea
-  de Cancelación de Matrícula; que estén los obligatorios de
+  de Cancelación de Matrícula y esté vigente (un tipo con `vigente = 0` se
+  rechaza con `ANEXO_NO_VIGENTE`); que estén los obligatorios vigentes de
   `TIPO_ANEXO_ACADEMICO` (el error nombra los que faltan); y cada archivo con
-  `ValidadorArchivoAdjunto`.
+  `ValidadorArchivoAdjunto`. Desde T12.31 (P55) el único obligatorio vigente es
+  "Paz y salvos (un solo PDF con todos los paz y salvos)", que admite hasta
+  10 MB (`AnexoAcademicoConstantes.tamanioMaximoDe`); los demás archivos siguen
+  en 5 MB. El formulario solo ofrece los tipos vigentes y trae
+  `tamanioMaximoBytes` por anexo. Los anexos ya radicados con los seis tipos
+  anteriores se siguen viendo y descargando.
 - Después llama a `crearSolicitud` (radicado, una en curso por tipo, primer
   historial y su log), guarda `SOLICITUD_CANCELACION_MATRICULA` y una fila de
   `ASIGNATURA_SOLICITUD_ACADEMICA` por cada asignatura activa (evaluación en
@@ -836,7 +858,7 @@ El resto de `solicitudes-academicas/**` es `denyAll()`.
   que con `MaquinaEtapas` valida rol, etapa, funcionario asignado,
   observación y escaneo, y escribe historial y log:
   - `rechazarPorFuncionario(uuid, observacion, token)`: RADICADA a
-    RECHAZADA, con observación y escaneo de la Resolución.
+    RECHAZADA, con observación y sin escaneo de la Resolución (P56).
   - `remitirADecano(uuid, evaluaciones, observacion, token)`: RADICADA a
     EN_REVISION_DECANO. Cada `EvaluacionAsignatura` trae
     `uuidAsignaturaSolicitud` (fila de `ASIGNATURA_SOLICITUD_ACADEMICA`),
@@ -1487,7 +1509,7 @@ Scripts que hay hoy:
 | `t5_solicitudes.ps1` | Bandejas, detalle, historial, anexos y Resolución de `solicitudes-academicas` |
 | `t6_cancelacion_matricula.ps1`, `t7_cancelacion_asignatura.ps1`, `t8_examen_supletorio.ps1` | Recorrido completo de cada proceso con usuarios reales |
 | `matriz-permisos.ps1` | Matriz de los 71 endpoints por rol |
-| `t9_correo_respuesta.ps1` | Integración de los correos de la respuesta final (P54) con el Funcionario: en cada proceso y cada acción que cierra la solicitud sube la Resolución y el documento adicional, verifica la etapa, el correo al estudiante, el de DARCA (asunto, frase, PDF generado con su contenido y adjuntos) y en el supletorio el del profesor; además los permisos de subida y que un correo rechazado por el servidor (del estudiante o del profesor) no revierte la respuesta ni frena los demás |
+| `t9_correo_respuesta.ps1` | Integración de los correos de la respuesta final (P54) con el Funcionario: en cada proceso y cada acción que cierra la solicitud sube la Resolución y el documento adicional, verifica la etapa, el correo al estudiante, el de DARCA (asunto, frase, PDF generado con su contenido y adjuntos) y en el supletorio el del profesor; además los permisos de subida y que un correo rechazado por el servidor (del estudiante o del profesor) no revierte la respuesta ni frena los demás. Desde T12.31 también el PDF único de paz y salvos (más de 5 MB, tipos retirados rechazados), el rechazo directo sin Resolución en las cancelaciones (correos sin Resolución, detalle sin fallar), la Resolución obligatoria tras el Decano, el remitente visible y la versión HTML |
 | `todo.ps1` | Corre todos los anteriores y verifica la limpieza; `t9` solo si está definida `PRUEBAS_CORREOS` |
 
 `comun.ps1` tiene las funciones compartidas y `generar_plantilla_*.ps1`

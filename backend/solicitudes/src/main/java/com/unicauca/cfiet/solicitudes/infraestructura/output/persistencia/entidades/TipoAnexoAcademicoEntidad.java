@@ -30,4 +30,8 @@ public class TipoAnexoAcademicoEntidad {
     @ColumnDefault("1")
     @Column(name = "obligatorio", nullable = false, columnDefinition = "tinyint(1)")
     private Boolean obligatorio;
+    @ColumnDefault("1")
+    @Column(name = "vigente", nullable = false, columnDefinition = "tinyint(1)")
+    @Builder.Default
+    private Boolean vigente = true;
 }

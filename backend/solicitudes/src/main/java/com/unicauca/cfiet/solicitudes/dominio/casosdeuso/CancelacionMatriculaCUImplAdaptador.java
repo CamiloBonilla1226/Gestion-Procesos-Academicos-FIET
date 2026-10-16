@@ -15,6 +15,7 @@ import java.util.*;
 
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.DOCUMENTO_ADICIONAL;
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.FORMATOS_SOPORTE_LIBRE;
+import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.tamanioMaximoDe;
 
 public class CancelacionMatriculaCUImplAdaptador implements CancelacionMatriculaCUIntPuerto {
     private static final String USUARIO = "Usuario";
@@ -141,11 +142,14 @@ public class CancelacionMatriculaCUImplAdaptador implements CancelacionMatricula
                 anexoDeOtroTipo(uuidTipo, tipo);
             if (tieneTexto(uuidTipo) && DOCUMENTO_ADICIONAL.equals(catalogo.get(uuidTipo).getNombre()))
                 formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.ANEXO_SOLO_DEL_FUNCIONARIO, DOCUMENTO_ADICIONAL));
+            if (tieneTexto(uuidTipo) && !catalogo.get(uuidTipo).estaVigente())
+                formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.ANEXO_NO_VIGENTE,
+                        catalogo.get(uuidTipo).getNombre(), tipo.getNombre(), String.join("; ", obligatoriosVigentes(catalogo))));
             if (tieneTexto(uuidTipo))
                 presentes.add(uuidTipo);
         }
         List<String> faltantes = catalogo.values().stream()
-                .filter(tipoAnexo -> Boolean.TRUE.equals(tipoAnexo.getObligatorio()))
+                .filter(tipoAnexo -> Boolean.TRUE.equals(tipoAnexo.getObligatorio()) && tipoAnexo.estaVigente())
                 .filter(tipoAnexo -> !presentes.contains(tipoAnexo.getUuidTipoAnexoAcademico()))
                 .map(TipoAnexoAcademico::getNombre)
                 .toList();
@@ -156,8 +160,16 @@ public class CancelacionMatriculaCUImplAdaptador implements CancelacionMatricula
             TipoAnexoAcademico tipoAnexo = anexo == null ? null : catalogo.get(anexo.getUuidTipoAnexoAcademico());
             validadorArchivo.validar(anexo == null ? null : anexo.getArchivo(),
                     tipoAnexo == null ? SOPORTE_LIBRE : tipoAnexo.getNombre(),
-                    tipoAnexo == null ? FORMATOS_SOPORTE_LIBRE : tipoAnexo.getFormatosPermitidos());
+                    tipoAnexo == null ? FORMATOS_SOPORTE_LIBRE : tipoAnexo.getFormatosPermitidos(),
+                    tamanioMaximoDe(tipoAnexo == null ? null : tipoAnexo.getNombre()));
         }
+    }
+
+    private List<String> obligatoriosVigentes(Map<String, TipoAnexoAcademico> catalogo) {
+        return catalogo.values().stream()
+                .filter(tipoAnexo -> Boolean.TRUE.equals(tipoAnexo.getObligatorio()) && tipoAnexo.estaVigente())
+                .map(TipoAnexoAcademico::getNombre)
+                .toList();
     }
 
     private void anexoDeOtroTipo(String uuidTipoAnexo, TipoSolicitudAcademica tipo) {

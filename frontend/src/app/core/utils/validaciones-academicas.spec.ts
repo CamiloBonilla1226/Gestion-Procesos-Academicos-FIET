@@ -43,9 +43,12 @@ describe('validaciones academicas', () => {
     expect(errorDeArchivo(archivo('a.png', 10), 'pdf')).toContain('pdf');
   });
 
-  it('acepta un maximo menor por tipo, pero nunca mayor a 5 MB', () => {
+  it('acepta un maximo propio por tipo, hasta 10 MB para el PDF unico de paz y salvos', () => {
     expect(errorDeArchivo(archivo('a.pdf', 2048), 'pdf', 1024)).toContain('1,0 KB');
-    expect(errorDeArchivo(archivo('a.pdf', 5242881), 'pdf', 10485760)).toContain('5 MB');
+    expect(errorDeArchivo(archivo('a.pdf', 5242881), 'pdf', 10485760)).toBeNull();
+    expect(errorDeArchivo(archivo('a.pdf', 10485761), 'pdf', 10485760)).toContain('10 MB');
+    expect(errorDeArchivo(archivo('a.pdf', 10485761), 'pdf', 20971520)).toContain('10 MB');
+    expect(errorDeArchivo(archivo('a.pdf', 5242881), 'pdf', 0)).toContain('5 MB');
     expect(errorDeArchivo(archivo('a.pdf', 5242880), 'pdf', 0)).toBeNull();
   });
 

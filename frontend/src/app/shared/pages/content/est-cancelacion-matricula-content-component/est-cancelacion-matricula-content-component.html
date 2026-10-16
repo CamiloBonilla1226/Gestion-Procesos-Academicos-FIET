@@ -73,7 +73,7 @@
       <h3>Anexos obligatorios</h3>
     </header>
     <div class="tarjeta-body d-flex flex-column gap-3">
-      <p class="ayuda mb-0">Cada archivo puede pesar máximo 5 MB.</p>
+      <p class="ayuda mb-0" data-ayuda-paz-y-salvos>Sube en un solo PDF todos los paz y salvos. Ese PDF puede pesar máximo 10 MB y cada soporte del motivo, máximo 5 MB.</p>
       <p class="nota-aviso" data-nota="vigencia-paz-y-salvos">{{ vigenciaPazYSalvos }}</p>
       @for (campo of campos; track campo.requerido.uuidTipoAnexoAcademico) {
       <div [attr.data-campo-anexo]="campo.requerido.uuidTipoAnexoAcademico">

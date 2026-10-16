@@ -10,6 +10,9 @@ $Global:AsuntoCa = "Notificaci$($o)n de Cancelaci$($o)n de asignatura"
 $Global:AsuntoCm = "Notificaci$($o)n de Cancelaci$($o)n de matr$([char]0x00ED)cula"
 $Global:AsuntoEs = "Notificaci$($o)n de examen supletorio"
 $Global:TextoResolucion = "Se adjunta la resoluci$($o)n correspondiente a su solicitud."
+$Global:TextoRechazoDirecto = "fue respondida. Ingrese a la aplicaci$($o)n para ver la respuesta."
+$Global:PazYSalvos = "Paz y salvos (un solo PDF con todos los paz y salvos)"
+$Global:Remitente = "Decanatura FIET - Procesos acad$([char]0x00E9)micos"
 $Global:Privada = "OBSERVACION-PRIVADA-T9"
 $Global:CorreoDarca = $env:PRUEBAS_CORREO_DARCA
 $Global:DarcaCa = "DARCA - Notificaci$($o)n de Cancelaci$($o)n de asignatura"
@@ -194,12 +197,22 @@ function Esperar-Correo {
     return @()
 }
 
+function Verificar-Formato {
+    param([string]$Caso, $Correo)
+    $html = [string]$Correo.html
+    Escribir-Resultado "$Caso`: el remitente se muestra como '$($Global:Remitente)' (obtuvo '$($Correo.de)')" (([string]$Correo.de).Contains($Global:Remitente))
+    $primera = (([string]$Correo.texto) -split "`r?`n" | Where-Object { $_.Trim() } | Select-Object -First 1)
+    Escribir-Resultado "$Caso`: trae texto plano y una version HTML simple con el mismo contenido" (($html -match "(?i)<html") -and $primera -and $html.Contains($primera.Trim()))
+    Escribir-Resultado "$Caso`: el HTML no lleva imagenes ni enlaces" ($html -notmatch "(?i)<img|<a |https?://")
+}
+
 function Verificar-Correo {
     param([string]$Caso, $Estudiante, [string]$Asunto, [string[]]$Adjuntos, [string[]]$Textos)
     $correos = @(Esperar-Correo $Estudiante.Correo)
     Escribir-Resultado "$Caso`: sale exactamente un correo al estudiante (obtuvo $($correos.Count))" ($correos.Count -eq 1)
     if ($correos.Count -eq 0) { return }
     $correo = $correos[0]
+    Verificar-Formato "$Caso (estudiante)" $correo
     $nombres = @($correo.adjuntos | ForEach-Object { $_.nombre })
     $esperados = (@($Adjuntos | Sort-Object) -join "|")
     Escribir-Resultado "$Caso`: asunto correcto (obtuvo '$($correo.asunto)')" ($correo.asunto -ceq $Asunto)
@@ -252,6 +265,7 @@ function Verificar-Darca {
     Escribir-Resultado "$Caso`: sale exactamente un correo a DARCA con el asunto '$asunto' (obtuvo $($correos.Count))" ($correos.Count -eq 1)
     if ($correos.Count -eq 0) { return }
     $correo = $correos[0]
+    Verificar-Formato "$Caso (DARCA)" $correo
     $comunes = @($Solicitud.Radicado, $Tipo, $Estudiante.Nombre, $Estudiante.Codigo, $script:programaIsi.nombre, $Estado)
     Verificar-Adjuntos-Pdf "$Caso (DARCA)" $correo "Radicado-$($Solicitud.Radicado).pdf" $Adjuntos (@($comunes) + @($TextosPdf))
     $texto = Normalizar $correo.texto
@@ -277,6 +291,7 @@ function Verificar-Profesor {
     Escribir-Resultado "$Caso`: sale exactamente un correo al profesor con el asunto '$asunto' (obtuvo $($correos.Count))" ($correos.Count -eq 1)
     if ($correos.Count -eq 0) { return }
     $correo = $correos[0]
+    Verificar-Formato "$Caso (profesor)" $correo
     $materia = $Estudiante.Materias[0]
     Verificar-Adjuntos-Pdf "$Caso (profesor)" $correo "Radicado-$($Solicitud.Radicado).pdf" @() @($Solicitud.Radicado, $Estudiante.Nombre, $Estudiante.Codigo, "$($materia.Codigo) - $($materia.Nombre)", $Profesor.Nombre, "Aprobado")
     $texto = Normalizar $correo.texto
@@ -295,7 +310,9 @@ $tokenRoot = Iniciar-Sesion -Usuario "rootfiet" -Clave "rootfiet1234"
 $tipoCm = Ejecutar-Sql "select uuidTipoSolicitudAcademica from TIPO_SOLICITUD_ACADEMICA where nombre like 'Cancelaci%n de Matr%cula'"
 $tipoCa = Ejecutar-Sql "select uuidTipoSolicitudAcademica from TIPO_SOLICITUD_ACADEMICA where nombre like 'Cancelaci%n de Asignatura'"
 $tipoEs = Ejecutar-Sql "select uuidTipoSolicitudAcademica from TIPO_SOLICITUD_ACADEMICA where nombre like 'Examen Supletorio'"
-$obligatoriosCm = @(Ejecutar-Sql "select uuidTipoAnexoAcademico from TIPO_ANEXO_ACADEMICO where TipoSolicitudAcademica_uuid = '$tipoCm' and obligatorio = 1")
+$obligatoriosCm = @(Ejecutar-Sql "select uuidTipoAnexoAcademico from TIPO_ANEXO_ACADEMICO where TipoSolicitudAcademica_uuid = '$tipoCm' and obligatorio = 1 and vigente = 1")
+$nombreObligatorioCm = Ejecutar-Sql "select nombre from TIPO_ANEXO_ACADEMICO where TipoSolicitudAcademica_uuid = '$tipoCm' and obligatorio = 1 and vigente = 1"
+$retiradosCm = @(Ejecutar-Sql "select uuidTipoAnexoAcademico from TIPO_ANEXO_ACADEMICO where TipoSolicitudAcademica_uuid = '$tipoCm' and vigente = 0")
 $adicionalCm = Tipo-Anexo $tipoCm $Global:Adicional
 $adicionalCa = Tipo-Anexo $tipoCa $Global:Adicional
 $adicionalEs = Tipo-Anexo $tipoEs $Global:Adicional
@@ -305,10 +322,11 @@ $recibo = Tipo-Anexo $tipoEs "Recibo de pago"
 $comprobante = Tipo-Anexo $tipoEs "Comprobante de pago"
 $situacion = Ejecutar-Sql "select uuidSituacionAcademica from SITUACION_ACADEMICA_ASIGNATURA where codigo = 'R1'"
 $nombreSituacion = Ejecutar-Sql "select nombre from SITUACION_ACADEMICA_ASIGNATURA where codigo = 'R1'"
-if (-not $tipoCm -or -not $tipoCa -or -not $tipoEs -or $obligatoriosCm.Count -ne 6 -or -not $adicionalCm -or -not $adicionalCa -or -not $adicionalEs -or -not $for23 -or -not $justificacion -or -not $recibo -or -not $comprobante -or -not $situacion) {
-    Write-Host "FAIL faltan catalogos sembrados (procesos, anexos o el Documento adicional de la respuesta); corre docs/database/seed-procesos-academicos.sql"
+if (-not $tipoCm -or -not $tipoCa -or -not $tipoEs -or $obligatoriosCm.Count -ne 1 -or $retiradosCm.Count -ne 6 -or -not $adicionalCm -or -not $adicionalCa -or -not $adicionalEs -or -not $for23 -or -not $justificacion -or -not $recibo -or -not $comprobante -or -not $situacion) {
+    Write-Host "FAIL faltan catalogos sembrados (procesos, anexos, el Documento adicional de la respuesta o el PDF unico de paz y salvos); corre docs/database/seed-procesos-academicos.sql"
     exit 1
 }
+Escribir-Resultado "matricula: el unico anexo obligatorio vigente es '$($Global:PazYSalvos)' (obtuvo '$nombreObligatorioCm') y los seis anteriores quedan retirados" ($nombreObligatorioCm -ceq $Global:PazYSalvos)
 $responsables = @{}
 foreach ($tipo in @($tipoCm, $tipoCa, $tipoEs)) {
     $responsables[$tipo] = Ejecutar-Sql "select coalesce(FuncionarioAcademico_uuid, '') from TIPO_SOLICITUD_ACADEMICA where uuidTipoSolicitudAcademica = '$tipo'"
@@ -346,9 +364,9 @@ try {
     $observacion = @{ observacion = $Global:Privada }
 
     function Radicar-Matricula {
-        param($Estudiante)
+        param($Estudiante, [string]$Pdf = $pdfAnexo)
         $argumentos = @("-F", "motivo=Calamidad domestica T9")
-        foreach ($tipo in $obligatoriosCm) { $argumentos += @("-F", "$tipo=@$pdfAnexo;type=application/pdf") }
+        foreach ($tipo in $obligatoriosCm) { $argumentos += @("-F", "$tipo=@$Pdf;type=application/pdf") }
         $r = Ejecutar-Curl -Argumentos $argumentos -Ruta "cancelaciones-matricula" -Token $Estudiante.Token
         if ($r.Status -ne 200) { throw "No se pudo radicar la cancelacion de matricula ($($r.Status)): $($r.Body)" }
         $uuid = (Leer-Json $r).uuidSolicitudAcademica
@@ -391,18 +409,45 @@ try {
         }
     }
 
+    $pdfPazGrande = Nuevo-Pdf "paz_y_salvos"
+    $relleno = New-Object byte[] (7 * 1024 * 1024)
+    $flujo = [System.IO.File]::Open($pdfPazGrande, [System.IO.FileMode]::Append)
+    try { $flujo.Write($relleno, 0, $relleno.Length) } finally { $flujo.Close() }
+
+    $estViejo = Nuevo-Estudiante -Token $tokenRoot -Materias 1
+    $argumentos = @("-F", "motivo=Calamidad domestica T9", "-F", "$($obligatoriosCm[0])=@$pdfAnexo;type=application/pdf", "-F", "$($retiradosCm[0])=@$pdfAnexo;type=application/pdf")
+    $r = Ejecutar-Curl -Argumentos $argumentos -Ruta "cancelaciones-matricula" -Token $estViejo.Token
+    Escribir-Resultado "matricula: un anexo de los seis anteriores ya no se recibe (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "*ya no se recibe*"))
+    $r = Ejecutar-Curl -Argumentos @("-F", "motivo=Calamidad domestica T9") -Ruta "cancelaciones-matricula" -Token $estViejo.Token
+    Escribir-Resultado "matricula: sin el PDF unico de paz y salvos no se radica (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "*Paz y salvos (un solo PDF*"))
+    $enCurso = Ejecutar-Sql "select count(*) from SOLICITUD_ACADEMICA where Estudiante_uuid = '$($estViejo.Uuid)'"
+    Escribir-Resultado "matricula: los intentos fallidos no dejan solicitud (obtuvo $enCurso)" ($enCurso -eq "0")
+
     $estCm1 = Nuevo-Estudiante -Token $tokenRoot -Materias 2
-    $sol = Radicar-Matricula $estCm1
+    $sol = Radicar-Matricula $estCm1 $pdfPazGrande
+    $tamanio = Ejecutar-Sql "select tamanioBytes from ANEXO_ACADEMICO where SolicitudAcademica_uuid = '$($sol.Uuid)' and TipoAnexoAcademico_uuid = '$($obligatoriosCm[0])'"
+    Escribir-Resultado "matricula: se radica con un solo PDF de paz y salvos de mas de 5 MB (obtuvo $tamanio bytes)" ([long]$tamanio -gt 5242880)
     $r = Subir-Anexo -Solicitud $sol.Uuid -Tipo $adicionalCm -Pdf $pdfAdicional -Token $estCm1.Token
     Escribir-Resultado "matricula: el estudiante no puede subir el documento adicional (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "*FUNCIONARIO*"))
     $r = Subir-Anexo -Solicitud $sol.Uuid -Tipo $obligatoriosCm[0] -Pdf $pdfAnexo -Token $fa.Token
     Escribir-Resultado "matricula: el funcionario no puede subir un anexo del estudiante (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "*ESTUDIANTE*"))
     $r = Subir-Anexo -Solicitud $sol.Uuid -Tipo "" -Pdf $pdfAnexo -Token $fa.Token
     Escribir-Resultado "matricula: el funcionario no puede subir un soporte libre (obtuvo $($r.Status))" ($r.Status -ne 200)
-    Cargar-Archivos "matricula rechazo del funcionario" $sol.Uuid $adicionalCm $true $true
-    Paso "matricula: el funcionario rechaza" (Invoke-Api -Metodo POST -Ruta "cancelaciones-matricula/$($sol.Uuid)/funcionario/rechazar" -Token $fa.Token -Cuerpo $observacion) $sol.Uuid "RECHAZADA"
-    Verificar-Correo "matricula rechazo del funcionario" $estCm1 $Global:AsuntoCm @("Resolucion-$($sol.Radicado).pdf", $nombreAdicional) (Textos-Carta $estCm1 $Global:TextoResolucion)
-    Verificar-Darca "matricula rechazo del funcionario" $estCm1 $sol $Global:DarcaCm "Cancelaci$($o)n de Matr$([char]0x00ED)cula" "Rechazada" @("Resolucion-$($sol.Radicado).pdf", $nombreAdicional) "solicita cancelar su $($Global:Matricula) (rechazada)." @("Decisi$($o)n de la solicitud")
+    Cargar-Archivos "matricula rechazo directo sin Resolucion" $sol.Uuid $adicionalCm $false $true
+    Paso "matricula: el funcionario rechaza sin subir la Resolucion" (Invoke-Api -Metodo POST -Ruta "cancelaciones-matricula/$($sol.Uuid)/funcionario/rechazar" -Token $fa.Token -Cuerpo $observacion) $sol.Uuid "RECHAZADA"
+    $filas = Ejecutar-Sql "select count(*) from RESOLUCION_ACADEMICA where SolicitudAcademica_uuid = '$($sol.Uuid)'"
+    Escribir-Resultado "matricula rechazo directo: la solicitud queda sin fila en RESOLUCION_ACADEMICA (obtuvo $filas)" ($filas -eq "0")
+    Verificar-Correo "matricula rechazo directo sin Resolucion" $estCm1 $Global:AsuntoCm @($nombreAdicional) (Textos-Carta $estCm1 "Su solicitud con radicado $($sol.Radicado) $($Global:TextoRechazoDirecto)")
+    $correoEstudiante = @(Correos-Para $estCm1.Correo)[0]
+    Escribir-Resultado "matricula rechazo directo: el correo no dice que se adjunta la resolucion" (-not ([string]$correoEstudiante.texto).ToLower().Contains("resoluci"))
+    Verificar-Darca "matricula rechazo directo sin Resolucion" $estCm1 $sol $Global:DarcaCm "Cancelaci$($o)n de Matr$([char]0x00ED)cula" "Rechazada" @($nombreAdicional) "solicita cancelar su $($Global:Matricula) (rechazada)." @("Decisi$($o)n de la solicitud")
+    $r = Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$($sol.Uuid)" -Token $estCm1.Token
+    $detalleEstudiante = Leer-Json $r
+    Escribir-Resultado "matricula rechazo directo: el detalle del estudiante responde 200 sin Resolucion ni descarga (obtuvo $($r.Status))" (($r.Status -eq 200) -and (-not $detalleEstudiante.tieneResolucion) -and (-not $detalleEstudiante.puedeDescargarResolucion))
+    $r = Invoke-Api -Metodo GET -Ruta "cancelaciones-matricula/$($sol.Uuid)" -Token $fa.Token
+    Escribir-Resultado "matricula rechazo directo: el detalle del funcionario responde 200 sin Resolucion (obtuvo $($r.Status))" ($r.Status -eq 200)
+    $r = Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$($sol.Uuid)/resolucion" -Token $estCm1.Token
+    Escribir-Resultado "matricula rechazo directo: pedir la Resolucion inexistente no rompe el backend (obtuvo $($r.Status))" ($r.Status -ne 200 -and $r.Status -lt 600)
 
     $estCm2 = Nuevo-Estudiante -Token $tokenRoot -Materias 2
     $sol = Radicar-Matricula $estCm2
@@ -419,6 +464,9 @@ try {
     $evaluaciones = @(Filas-Asignatura $sol.Uuid | ForEach-Object { @{ asignaturaSolicitudUuid = $_ } })
     Paso "matricula: remite al Decano" (Invoke-Api -Metodo POST -Ruta "cancelaciones-matricula/$($sol.Uuid)/funcionario/remitir" -Token $fa.Token -Cuerpo @{ evaluaciones = $evaluaciones }) $sol.Uuid "EN_REVISION_DECANO"
     Paso "matricula: el Decano rechaza" (Invoke-Api -Metodo POST -Ruta "cancelaciones-matricula/$($sol.Uuid)/decano/rechazar" -Token $decano.Token -Cuerpo @{ observacion = "No procede" }) $sol.Uuid "RECHAZADA_POR_DECANO"
+    $r = Invoke-Api -Metodo POST -Ruta "cancelaciones-matricula/$($sol.Uuid)/funcionario/responder" -Token $fa.Token -Cuerpo $observacion
+    $etapa = Etapa-De $sol.Uuid
+    Escribir-Resultado "matricula: tras el Decano la respuesta final sin Resolucion se rechaza (obtuvo $($r.Status) y ${etapa}: $(Mensaje-De $r))" (($r.Status -ne 200) -and ($etapa -eq "RECHAZADA_POR_DECANO") -and ((Mensaje-De $r) -like "*Resoluci*"))
     Cargar-Archivos "matricula respuesta rechazada sin documento adicional" $sol.Uuid $adicionalCm $true $false
     Paso "matricula: el funcionario envia la respuesta rechazada" (Invoke-Api -Metodo POST -Ruta "cancelaciones-matricula/$($sol.Uuid)/funcionario/responder" -Token $fa.Token -Cuerpo $observacion) $sol.Uuid "RECHAZADA"
     Verificar-Correo "matricula respuesta rechazada sin documento adicional" $estCm3 $Global:AsuntoCm @("Resolucion-$($sol.Radicado).pdf") (Textos-Carta $estCm3 $Global:TextoResolucion)
@@ -430,10 +478,12 @@ try {
     Escribir-Resultado "asignatura: el estudiante no puede subir el documento adicional (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "*FUNCIONARIO*"))
     $r = Subir-Anexo -Solicitud $sol.Uuid -Tipo "" -Pdf $pdfAnexo -Token $fa.Token
     Escribir-Resultado "asignatura: el funcionario no puede subir un soporte libre (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "*ESTUDIANTE*"))
-    Cargar-Archivos "asignatura rechazo del funcionario" $sol.Uuid $adicionalCa $true $true
-    Paso "asignatura: el funcionario rechaza" (Invoke-Api -Metodo POST -Ruta "cancelaciones-asignatura/$($sol.Uuid)/funcionario/rechazar" -Token $fa.Token -Cuerpo $observacion) $sol.Uuid "RECHAZADA"
-    Verificar-Correo "asignatura rechazo del funcionario" $estCa1 $Global:AsuntoCa @("Resolucion-$($sol.Radicado).pdf", $nombreAdicional) (Textos-Carta $estCa1 $Global:TextoResolucion)
-    Verificar-Darca "asignatura rechazo del funcionario" $estCa1 $sol $Global:DarcaCa "Cancelaci$($o)n de Asignatura" "Rechazada" @("Resolucion-$($sol.Radicado).pdf", $nombreAdicional) "solicita cancelar 2 asignaturas: 0 aprobadas y 2 rechazadas." @($estCa1.Materias[0].Codigo, $estCa1.Materias[0].Nombre, $estCa1.Materias[1].Codigo, $estCa1.Materias[1].Nombre, "Situaci$($o)n acad$([char]0x00E9)mica al cancelar", "No aplica")
+    Cargar-Archivos "asignatura rechazo directo con una Resolucion cargada antes" $sol.Uuid $adicionalCa $true $true
+    Paso "asignatura: el funcionario rechaza directo" (Invoke-Api -Metodo POST -Ruta "cancelaciones-asignatura/$($sol.Uuid)/funcionario/rechazar" -Token $fa.Token -Cuerpo $observacion) $sol.Uuid "RECHAZADA"
+    $filas = Ejecutar-Sql "select count(*) from RESOLUCION_ACADEMICA where SolicitudAcademica_uuid = '$($sol.Uuid)'"
+    Escribir-Resultado "asignatura rechazo directo: la Resolucion que ya estaba cargada se conserva como hoy (obtuvo $filas filas)" ($filas -eq "1")
+    Verificar-Correo "asignatura rechazo directo con una Resolucion cargada antes" $estCa1 $Global:AsuntoCa @($nombreAdicional) (Textos-Carta $estCa1 "Su solicitud con radicado $($sol.Radicado) $($Global:TextoRechazoDirecto)")
+    Verificar-Darca "asignatura rechazo directo con una Resolucion cargada antes" $estCa1 $sol $Global:DarcaCa "Cancelaci$($o)n de Asignatura" "Rechazada" @($nombreAdicional) "solicita cancelar 2 asignaturas: 0 aprobadas y 2 rechazadas." @($estCa1.Materias[0].Codigo, $estCa1.Materias[0].Nombre, $estCa1.Materias[1].Codigo, $estCa1.Materias[1].Nombre, "Situaci$($o)n acad$([char]0x00E9)mica al cancelar", "No aplica")
 
     $estCa2 = Nuevo-Estudiante -Token $tokenRoot -Materias 2
     $sol = Radicar-Asignatura $estCa2
@@ -541,13 +591,13 @@ try {
 
     $estFalla = Nuevo-Estudiante -Token $tokenRoot -Materias 1 -Correo "smtp-rechaza"
     $sol = Radicar-Matricula $estFalla
-    Cargar-Archivos "matricula con el correo rechazado por el servidor" $sol.Uuid $adicionalCm $true $true
+    Cargar-Archivos "matricula con el correo rechazado por el servidor" $sol.Uuid $adicionalCm $false $true
     Paso "matricula: si el servidor de correo rechaza el envio la respuesta igual queda guardada" (Invoke-Api -Metodo POST -Ruta "cancelaciones-matricula/$($sol.Uuid)/funcionario/rechazar" -Token $fa.Token -Cuerpo $observacion) $sol.Uuid "RECHAZADA"
     Start-Sleep -Seconds 5
     Escribir-Resultado "matricula: el correo rechazado no queda entregado" (@(Correos-Para $estFalla.Correo).Count -eq 0)
     $historial = Ejecutar-Sql "select count(*) from HISTORIAL_SOLICITUD_ACADEMICA where SolicitudAcademica_uuid = '$($sol.Uuid)' and accion = 'RECHAZAR_FUNCIONARIO'"
     Escribir-Resultado "matricula: el rechazo queda en el historial aunque el correo falle (obtuvo $historial)" ($historial -eq "1")
-    Verificar-Darca "matricula con el correo del estudiante rechazado" $estFalla $sol $Global:DarcaCm "Cancelaci$($o)n de Matr$([char]0x00ED)cula" "Rechazada" @("Resolucion-$($sol.Radicado).pdf", $nombreAdicional) "solicita cancelar su $($Global:Matricula) (rechazada)." @("Decisi$($o)n de la solicitud")
+    Verificar-Darca "matricula con el correo del estudiante rechazado" $estFalla $sol $Global:DarcaCm "Cancelaci$($o)n de Matr$([char]0x00ED)cula" "Rechazada" @($nombreAdicional) "solicita cancelar su $($Global:Matricula) (rechazada)." @("Decisi$($o)n de la solicitud")
     if ($Global:LogBackend -and (Test-Path $Global:LogBackend)) {
         $nuevas = @(Get-Content -LiteralPath $Global:LogBackend | Select-Object -Skip $lineasLogIniciales)
         $registro = @($nuevas | Where-Object { $_ -like "*No se pudo enviar el correo*" -and $_ -like "*$($estFalla.Correo)*" })

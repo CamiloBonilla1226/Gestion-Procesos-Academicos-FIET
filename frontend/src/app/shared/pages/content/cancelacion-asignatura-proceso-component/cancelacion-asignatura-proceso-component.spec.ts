@@ -532,26 +532,27 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
     });
   });
 
-  it('rechazar en el Funcionario sube el escaneo antes y exige la observacion para el estudiante', () => {
+  it('rechazar en el Funcionario no pide Resolucion y exige la observacion para el estudiante', () => {
     const orden: string[] = [];
-    solicitudes.adjuntarResolucion.and.callFake(() => { orden.push('resolucion'); return of({ uuidSolicitudAcademica: 's-1', nombreArchivo: 'r.pdf', fechaSubida: '' }); });
     cancelaciones.rechazarPorFuncionario.and.callFake(() => { orden.push('rechazar'); return of(detalle(EVALUADAS)); });
     const fixture = crear(solicitud(['RECHAZAR_FUNCIONARIO']), EVALUADAS);
     const componente = fixture.componentInstance;
     componente.abrir('RECHAZAR_FUNCIONARIO');
     fixture.detectChanges();
     expect(document.querySelector('[data-campo-observacion]')?.textContent).toContain('Observación solo para el estudiante (se entrega como respuesta)');
+    expect(document.querySelector('[data-campo-resolucion]')).toBeNull();
+    expect(document.querySelector('[data-nota-rechazo-directo]')?.textContent).toContain('no lleva Resolución');
     componente.confirmar();
     expect(componente.errores['observacion']).toBeTruthy();
-    expect(componente.errores['resolucion']).toBeTruthy();
+    expect(componente.errores['resolucion']).toBeUndefined();
     componente.observacion = 'Ninguna cumple';
-    componente.alSeleccionarResolucion(new File(['%PDF-'], 'resolucion.pdf'), entrada);
     componente.confirmar();
-    expect(orden).toEqual(['resolucion', 'rechazar']);
+    expect(orden).toEqual(['rechazar']);
+    expect(solicitudes.adjuntarResolucion).not.toHaveBeenCalled();
     expect(recargar).toHaveBeenCalled();
   });
 
-  it('rechazar en el Funcionario sube el documento adicional despues de la Resolucion y antes de rechazar', () => {
+  it('rechazar en el Funcionario sube el documento adicional antes de rechazar y sin Resolucion', () => {
     const orden: string[] = [];
     catalogo.getTiposAnexoPorTipo.and.returnValue(of([
       { uuidTipoAnexoAcademico: 'u-adicional', uuidTipoSolicitudAcademica: 't', nombre: 'Documento adicional de la respuesta', formatosPermitidos: 'pdf', obligatorio: false }
@@ -565,10 +566,10 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
     fixture.detectChanges();
     expect(document.querySelector('[data-campo-documento-adicional]')).toBeTruthy();
     componente.observacion = 'Ninguna cumple';
-    componente.alSeleccionarResolucion(new File(['%PDF-'], 'resolucion.pdf'), entrada);
     componente.archivoAdicional = new File(['%PDF-'], 'acta.pdf');
     componente.confirmar();
-    expect(orden).toEqual(['resolucion', 'adicional', 'rechazar']);
+    expect(orden).toEqual(['adicional', 'rechazar']);
+    expect(solicitudes.adjuntarResolucion).not.toHaveBeenCalled();
     expect(solicitudes.adjuntarAnexo).toHaveBeenCalledWith('s-1', jasmine.objectContaining({ tipoAnexo: 'u-adicional' }));
   });
 

@@ -118,9 +118,9 @@
     <app-resumen-solicitud-component [solicitud]="solicitud"></app-resumen-solicitud-component>
     @switch (accionActiva) {
     @case (acciones.RECHAZAR_FUNCIONARIO) {
-    <p class="nota-gris">
-      La solicitud quedará rechazada y terminará el trámite. Sube el escaneo de la Resolución firmada por el Decano y
-      escribe la observación que verá el estudiante.
+    <p class="nota-gris" data-nota-rechazo-directo>
+      La solicitud quedará rechazada y terminará el trámite sin pasar por el Decano, así que no lleva Resolución.
+      Escribe la observación que verá el estudiante.
     </p>
     }
     @case (acciones.REMITIR_DECANO) {
@@ -153,7 +153,7 @@
     }
     }
 
-    @if (accionActiva === acciones.RECHAZAR_FUNCIONARIO || accionActiva === acciones.ENVIAR_RESPUESTA) {
+    @if (accionActiva === acciones.ENVIAR_RESPUESTA) {
     <div data-campo-resolucion>
       @if (hayResolucion) {
       <p class="nota-gris mb-2">Ya hay un escaneo de la Resolución cargado. Puedes reemplazarlo si lo necesitas.</p>

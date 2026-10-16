@@ -14,4 +14,5 @@ public class AnexoRequeridoDTORespuesta {
     private String nombre;
     private String formatosPermitidos;
     private Boolean obligatorio;
+    private Long tamanioMaximoBytes;
 }

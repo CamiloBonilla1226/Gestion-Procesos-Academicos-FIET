@@ -257,12 +257,20 @@ class TramiteCancelacionAsignaturaCUImplAdaptadorTest {
     }
 
     @Test
-    void rechazarPorFuncionarioSinEscaneoOSinObservacionNoCambiaNada() {
+    void rechazarPorFuncionarioSinObservacionNoCambiaNada() {
         enEtapa(RADICADA);
-        assertTrue(falla(() -> casoDeUso.rechazarPorFuncionario(SOLICITUD, "No cumple", TOKEN_FUNCIONARIO)).getMessage().contains("escaneo de la Resolución"));
-        conEscaneo();
         assertTrue(falla(() -> casoDeUso.rechazarPorFuncionario(SOLICITUD, "  ", TOKEN_FUNCIONARIO)).getMessage().contains("observación"));
         verificarQueNoSeEscribioNada();
+    }
+
+    @Test
+    void rechazarPorFuncionarioSinEscaneoPasaARechazada() {
+        enEtapa(RADICADA);
+
+        SolicitudCancelacionAsignatura resultado = casoDeUso.rechazarPorFuncionario(SOLICITUD, "No cumple", TOKEN_FUNCIONARIO);
+
+        assertEquals(RECHAZADA, resultado.getSolicitudAcademica().getEtapa().getCodigo());
+        verify(resolucionGateway, never()).eliminarPorSolicitud(any());
     }
 
     @Test

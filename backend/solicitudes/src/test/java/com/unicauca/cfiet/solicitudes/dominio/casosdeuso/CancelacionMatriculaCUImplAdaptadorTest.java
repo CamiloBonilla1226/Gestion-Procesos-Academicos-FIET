@@ -391,4 +391,81 @@ class CancelacionMatriculaCUImplAdaptadorTest {
         verify(anexoCU, never()).adjuntarAnexo(any(), any(), any(), any(), any());
         verify(log, never()).crearLog(any(), any(), any());
     }
+
+    private static final String PAZ_Y_SALVOS = "Paz y salvos (un solo PDF con todos los paz y salvos)";
+
+    private void conPazYSalvosUnico() {
+        catalogo.forEach(tipoAnexo -> {
+            tipoAnexo.setVigente(false);
+            tipoAnexo.setObligatorio(false);
+        });
+        catalogo.add(TipoAnexoAcademico.builder()
+                .uuidTipoAnexoAcademico("anexo-paz")
+                .tipoSolicitudAcademica(matricula)
+                .nombre(PAZ_Y_SALVOS)
+                .formatosPermitidos("pdf")
+                .obligatorio(true)
+                .vigente(true)
+                .build());
+    }
+
+    private byte[] pdfDe(int bytes) {
+        return Arrays.copyOf(pdf(), bytes);
+    }
+
+    @Test
+    void conElPdfUnicoDePazYSalvosSeRadicaSinLosSeisAnteriores() {
+        conPazYSalvosUnico();
+
+        casoDeUso.radicarCancelacionMatricula(ESTUDIANTE, "Motivo", new ArrayList<>(List.of(anexo("anexo-paz", "paz-y-salvos.pdf", pdf()))), TOKEN);
+
+        ArgumentCaptor<String> tipos = ArgumentCaptor.forClass(String.class);
+        verify(anexoCU, times(1)).adjuntarAnexo(eq(SOLICITUD), tipos.capture(), any(), any(), eq(TOKEN));
+        assertEquals(List.of("anexo-paz"), tipos.getAllValues());
+    }
+
+    @Test
+    void sinElPdfUnicoDePazYSalvosNoSeRadicaYSoloSeNombraEse() {
+        conPazYSalvosUnico();
+
+        ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
+                () -> casoDeUso.radicarCancelacionMatricula(ESTUDIANTE, "Motivo", new ArrayList<>(), TOKEN));
+
+        assertEquals(String.format(MensajesError.ANEXOS_OBLIGATORIOS_FALTANTES, PAZ_Y_SALVOS), error.getMessage());
+        verificarQueNoSeGuardoNada();
+    }
+
+    @Test
+    void unoDeLosSeisAnexosAnterioresYaNoSeRecibe() {
+        conPazYSalvosUnico();
+        List<AnexoRadicacion> anexos = new ArrayList<>(List.of(anexo("anexo-paz", "paz.pdf", pdf()), anexo("anexo-0", "biblioteca.pdf", pdf())));
+
+        ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
+                () -> casoDeUso.radicarCancelacionMatricula(ESTUDIANTE, "Motivo", anexos, TOKEN));
+
+        assertEquals(String.format(MensajesError.ANEXO_NO_VIGENTE, OBLIGATORIOS.get(0), "Cancelación de Matrícula", PAZ_Y_SALVOS), error.getMessage());
+        verificarQueNoSeGuardoNada();
+    }
+
+    @Test
+    void elPdfUnicoAdmiteHasta10MbYNoMas() {
+        conPazYSalvosUnico();
+        int diezMb = 10 * 1024 * 1024;
+
+        casoDeUso.radicarCancelacionMatricula(ESTUDIANTE, "Motivo", new ArrayList<>(List.of(anexo("anexo-paz", "paz.pdf", pdfDe(diezMb)))), TOKEN);
+        verify(anexoCU, times(1)).adjuntarAnexo(eq(SOLICITUD), eq("anexo-paz"), any(), any(), eq(TOKEN));
+
+        ErrorMalFormatoExcepcion error = assertThrows(ErrorMalFormatoExcepcion.class, () -> casoDeUso.radicarCancelacionMatricula(ESTUDIANTE,
+                "Motivo", new ArrayList<>(List.of(anexo("anexo-paz", "paz.pdf", pdfDe(diezMb + 1)))), TOKEN));
+        assertEquals(String.format(MensajesError.ARCHIVO_MUY_GRANDE_ANEXO, PAZ_Y_SALVOS, diezMb + 1, (long) diezMb, 10L), error.getMessage());
+    }
+
+    @Test
+    void unSoporteLibreSigueLimitadoA5Mb() {
+        conPazYSalvosUnico();
+        List<AnexoRadicacion> anexos = new ArrayList<>(List.of(anexo("anexo-paz", "paz.pdf", pdf()), anexo(null, "soporte.pdf", pdfDe(5 * 1024 * 1024 + 1))));
+
+        assertThrows(ErrorMalFormatoExcepcion.class, () -> casoDeUso.radicarCancelacionMatricula(ESTUDIANTE, "Motivo", anexos, TOKEN));
+        verificarQueNoSeGuardoNada();
+    }
 }

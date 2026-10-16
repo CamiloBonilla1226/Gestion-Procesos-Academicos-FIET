@@ -1,5 +1,6 @@
 package com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesMatricula.mapeador;
 
+import com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesMatricula.DTOPeticion.EvaluacionAsignaturaDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesMatricula.DTORespuesta.*;
@@ -53,6 +54,7 @@ public class MapperCancelacionMatriculaInfraestructuraDominio {
                                 .nombre(tipo.getNombre())
                                 .formatosPermitidos(tipo.getFormatosPermitidos())
                                 .obligatorio(tipo.getObligatorio())
+                                .tamanioMaximoBytes(AnexoAcademicoConstantes.tamanioMaximoDe(tipo.getNombre()))
                                 .build())
                         .toList())
                 .asignaturas(formulario.getAsignaturas().stream()

@@ -65,12 +65,14 @@ def adjunto(parte):
 def guardar(destinatarios, datos):
     mensaje = email.message_from_bytes(datos, policy=policy.default)
     cuerpo = mensaje.get_body(preferencelist=("plain",))
+    html = mensaje.get_body(preferencelist=("html",))
     adjuntos = [adjunto(parte) for parte in mensaje.iter_attachments()]
     registro = {
         "de": str(mensaje["from"]),
         "para": destinatarios,
         "asunto": str(mensaje["subject"]),
         "texto": cuerpo.get_content() if cuerpo is not None else "",
+        "html": html.get_content() if html is not None else "",
         "adjuntos": adjuntos,
     }
     with BLOQUEO:

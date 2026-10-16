@@ -4,4 +4,6 @@ export interface TipoAnexoAcademicoDTORespuesta {
   nombre: string;
   formatosPermitidos: string;
   obligatorio: boolean;
+  vigente?: boolean;
+  tamanioMaximoBytes?: number | null;
 }

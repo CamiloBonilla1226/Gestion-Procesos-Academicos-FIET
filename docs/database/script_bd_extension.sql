@@ -289,6 +289,7 @@ CREATE TABLE IF NOT EXISTS TIPO_ANEXO_ACADEMICO (
     nombre                       VARCHAR(150) NOT NULL,
     formatosPermitidos           VARCHAR(60)  NOT NULL,
     obligatorio                  TINYINT(1)   NOT NULL DEFAULT 1,
+    vigente                      TINYINT(1)   NOT NULL DEFAULT 1,
     PRIMARY KEY (uuidTipoAnexoAcademico),
     CONSTRAINT fk_tipoanexo_tiposolicitud
         FOREIGN KEY (TipoSolicitudAcademica_uuid) REFERENCES TIPO_SOLICITUD_ACADEMICA (uuidTipoSolicitudAcademica)

@@ -74,7 +74,7 @@ public class NotificadorRespuestaFinal {
             ResumenRespuesta resumen = resumen(solicitud, proceso, accion, fecha);
             List<AdjuntoCorreo> adjuntos = new ArrayList<>();
             adjuntos.add(pdf(resumen));
-            adjuntos.addAll(adjuntosDeLaRespuesta(solicitud, proceso));
+            adjuntos.addAll(adjuntosDeLaRespuesta(solicitud, proceso, accion));
             String texto = String.format(ENCABEZADO, fecha.format(FECHA_CARTA)) + frase(resumen, proceso) + String.format(PIE_DARCA);
             correo.enviar(destinatarioDarca, String.format(ASUNTOS_DARCA.get(proceso), solicitud.getRadicado()), texto, adjuntos);
         });
@@ -182,10 +182,11 @@ public class NotificadorRespuestaFinal {
                 .orElse(null));
     }
 
-    private List<AdjuntoCorreo> adjuntosDeLaRespuesta(SolicitudAcademica solicitud, TipoProcesoAcademico proceso) {
+    private List<AdjuntoCorreo> adjuntosDeLaRespuesta(SolicitudAcademica solicitud, TipoProcesoAcademico proceso, AccionEtapa accion) {
         List<AdjuntoCorreo> adjuntos = new ArrayList<>();
         String uuidSolicitud = solicitud.getUuidSolicitudAcademica();
-        ResolucionAcademica resolucion = proceso == TipoProcesoAcademico.EXAMEN_SUPLETORIO ? null : resolucionGateway.getPorSolicitud(uuidSolicitud);
+        boolean sinResolucion = proceso == TipoProcesoAcademico.EXAMEN_SUPLETORIO || accion == AccionEtapa.RECHAZAR_FUNCIONARIO;
+        ResolucionAcademica resolucion = sinResolucion ? null : resolucionGateway.getPorSolicitud(uuidSolicitud);
         if (resolucion != null)
             adjuntos.add(AdjuntoCorreo.builder()
                     .nombre("Resolucion-" + solicitud.getRadicado() + ".pdf")

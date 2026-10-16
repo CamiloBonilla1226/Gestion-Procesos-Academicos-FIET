@@ -279,14 +279,14 @@ try {
     Escribir-Resultado "el formulario trae el codigo estudiantil del estudiante (obtuvo $($formulario.codigoEstudiantil))" ($formulario.codigoEstudiantil -and ($formulario.codigoEstudiantil -eq $codigoBase))
     $requeridos = @($formulario.anexosRequeridos)
     $obligatorios = @($requeridos | Where-Object { $_.obligatorio -eq $true })
-    Escribir-Resultado "el formulario trae los seis anexos requeridos con uuid, nombre y formatos (obtuvo $($requeridos.Count))" (($r.Status -eq 200) -and ($requeridos.Count -eq 6) -and ($obligatorios.Count -eq 6) -and (@($requeridos | Where-Object { $_.uuidTipoAnexoAcademico -and $_.nombre -and $_.formatosPermitidos }).Count -eq 6))
+    Escribir-Resultado "el formulario trae solo el PDF unico de paz y salvos con uuid, nombre, formato y 10 MB (obtuvo $($requeridos.Count))" (($r.Status -eq 200) -and ($requeridos.Count -eq 1) -and ($obligatorios.Count -eq 1) -and ($requeridos[0].nombre -ceq "Paz y salvos (un solo PDF con todos los paz y salvos)") -and ($requeridos[0].formatosPermitidos -ceq "pdf") -and ($requeridos[0].tamanioMaximoBytes -eq 10485760))
     $materias = @($formulario.asignaturas)
     Escribir-Resultado "el formulario trae las tres asignaturas activas con nombre y codigo (obtuvo $($materias.Count))" (($materias.Count -eq 3) -and (@($materias | Where-Object { $est1.Codigos -contains $_.codigoAsignatura -and $_.nombreAsignatura }).Count -eq 3))
     Escribir-Resultado "el formulario no expone rol ni tipo de usuario" (($r.Body -notmatch '"rol') -and ($r.Body -notmatch 'tipoUsuario'))
     $tipos = @($requeridos | ForEach-Object { $_.uuidTipoAnexoAcademico })
 
     $antes = Conteos $est1.Uuid
-    $r = Radicar -Token $est1.Token -Tipos @($tipos | Select-Object -Skip 1) -Pdf $pdf -ConSoporte $true
+    $r = Radicar -Token $est1.Token -Tipos @() -Pdf $pdf -ConSoporte $true
     Escribir-Resultado "radicar sin un anexo obligatorio falla (obtuvo $($r.Status): $(([string]((Leer-Json $r).mensaje))))" (($r.Status -ne 200) -and ((Leer-Json $r).mensaje -like "Falta el anexo obligatorio*"))
     $despues = Conteos $est1.Uuid
     Escribir-Resultado "el intento fallido no dejo solicitud, historial, asignaturas, anexos ni archivos ($despues)" ($despues -eq $antes)
@@ -299,11 +299,11 @@ try {
     $r = Radicar -Token $est1.Token -Tipos $tipos -Pdf $pdf -ConSoporte $true
     $radicada = if ($r.Status -eq 200) { Leer-Json $r } else { $null }
     $sol1 = $radicada.uuidSolicitudAcademica
-    Escribir-Resultado "radicar con los seis anexos y un soporte responde uuid y radicado $esperado (obtuvo $($r.Status) $($radicada.radicado))" (($r.Status -eq 200) -and $sol1 -and ($radicada.radicado -eq $esperado))
+    Escribir-Resultado "radicar con el PDF unico de paz y salvos y un soporte responde uuid y radicado $esperado (obtuvo $($r.Status) $($radicada.radicado))" (($r.Status -eq 200) -and $sol1 -and ($radicada.radicado -eq $esperado))
     Escribir-Resultado "la solicitud queda RADICADA (obtuvo $(Etapa-De $sol1))" ((Etapa-De $sol1) -eq "RADICADA")
     Verificar-EtapaHttp -Solicitud $sol1 -Esperada "RADICADA" -Estudiante $est1.Token -Funcionario $fa1.Token -Decano $decano.Token
     $anexos = Ejecutar-Sql "select count(*), sum(TipoAnexoAcademico_uuid is null) from ANEXO_ACADEMICO where SolicitudAcademica_uuid = '$sol1'"
-    Escribir-Resultado "quedaron 7 anexos, uno de ellos soporte libre, y sus 7 archivos (obtuvo $anexos y $(@(Get-ChildItem (Join-Path $Global:CarpetaAnexos $sol1) -File).Count))" (($anexos -eq "7`t1") -and (@(Get-ChildItem (Join-Path $Global:CarpetaAnexos $sol1) -File).Count -eq 7))
+    Escribir-Resultado "quedaron 2 anexos, el PDF unico de paz y salvos y un soporte libre, y sus 2 archivos (obtuvo $anexos y $(@(Get-ChildItem (Join-Path $Global:CarpetaAnexos $sol1) -File).Count))" (($anexos -eq "2`t1") -and (@(Get-ChildItem (Join-Path $Global:CarpetaAnexos $sol1) -File).Count -eq 2))
     $filas1 = Filas-Asignatura $sol1
     Escribir-Resultado "la solicitud incluye las tres asignaturas activas (obtuvo $($filas1.Count))" ($filas1.Count -eq 3)
     $r = Radicar -Token $est1.Token -Tipos $tipos -Pdf $pdf -ConSoporte $false
@@ -393,13 +393,13 @@ try {
     $sol2 = (Leer-Json $r).uuidSolicitudAcademica
     Escribir-Resultado "el estudiante 2 radica (200, obtuvo $($r.Status))" (($r.Status -eq 200) -and $sol2)
     Verificar-EtapaHttp -Solicitud $sol2 -Esperada "RADICADA" -Estudiante $est2.Token -Funcionario $fa1.Token -Decano $decano.Token
-    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol2/funcionario/rechazar" -Token $fa1.Token -Cuerpo @{ observacion = "No cumple requisitos" }
-    Escribir-Resultado "rechazar sin escaneo falla y sigue RADICADA (obtuvo $($r.Status))" (($r.Status -ne 200) -and ((Etapa-De $sol2) -eq "RADICADA"))
+    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol2/funcionario/rechazar" -Token $fa1.Token -Cuerpo @{ observacion = " " }
+    Escribir-Resultado "rechazar sin observacion falla por la observacion y no pide Resolucion (obtuvo $($r.Status))" (($r.Status -ne 200) -and ((Etapa-De $sol2) -eq "RADICADA") -and ([string](Leer-Json $r).mensaje -notlike "*Resoluci*"))
     $r = Subir-Escaneo -Solicitud $sol2 -Pdf $pdfResolucion -Token $fa1.Token
     $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol2/funcionario/rechazar" -Token $fa1.Token -Cuerpo @{ observacion = " " }
     Escribir-Resultado "rechazar sin observacion falla aun con escaneo (obtuvo $($r.Status))" (($r.Status -ne 200) -and ((Etapa-De $sol2) -eq "RADICADA"))
     $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol2/funcionario/rechazar" -Token $fa1.Token -Cuerpo @{ observacion = "No cumple requisitos" }
-    Escribir-Resultado "rechazo del funcionario con escaneo deja la solicitud RECHAZADA (obtuvo $($r.Status), etapa $(Etapa-De $sol2))" (($r.Status -eq 200) -and ((Etapa-De $sol2) -eq "RECHAZADA"))
+    Escribir-Resultado "rechazo del funcionario con un escaneo cargado antes deja la solicitud RECHAZADA (obtuvo $($r.Status), etapa $(Etapa-De $sol2))" (($r.Status -eq 200) -and ((Etapa-De $sol2) -eq "RECHAZADA"))
     Verificar-EtapaHttp -Solicitud $sol2 -Esperada "RECHAZADA" -Estudiante $est2.Token -Funcionario $fa1.Token -Decano $decano.Token
     Escribir-Resultado "tras el rechazo del funcionario las asignaturas siguen activas (obtuvo $(Estados-Matricula $est2.Uuid))" ((Estados-Matricula $est2.Uuid) -eq "activa,activa")
     $d = Descargar -Ruta "solicitudes-academicas/$sol2/resolucion" -Token $est2.Token

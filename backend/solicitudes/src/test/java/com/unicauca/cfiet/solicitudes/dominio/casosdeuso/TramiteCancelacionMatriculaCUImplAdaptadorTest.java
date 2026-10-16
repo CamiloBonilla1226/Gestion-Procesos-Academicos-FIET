@@ -215,14 +215,15 @@ class TramiteCancelacionMatriculaCUImplAdaptadorTest {
     }
 
     @Test
-    void rechazarPorFuncionarioSinEscaneoNoCambiaNada() {
+    void rechazarPorFuncionarioSinEscaneoPasaARechazada() {
         enEtapa(RADICADA);
+        lenient().when(resolucionGateway.existePorSolicitud(SOLICITUD)).thenReturn(false);
 
-        ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
-                () -> casoDeUso.rechazarPorFuncionario(SOLICITUD, "No cumple requisitos", TOKEN_FUNCIONARIO));
+        SolicitudCancelacionMatricula resultado = casoDeUso.rechazarPorFuncionario(SOLICITUD, "No cumple requisitos", TOKEN_FUNCIONARIO);
 
-        assertTrue(error.getMessage().contains("escaneo de la Resolución"));
-        verificarQueNoSeEscribioNada();
+        assertEquals(RECHAZADA, etapaGuardada());
+        assertEquals(RECHAZADA, resultado.getSolicitudAcademica().getEtapa().getCodigo());
+        verify(resolucionGateway, never()).eliminarPorSolicitud(any());
     }
 
     @ParameterizedTest

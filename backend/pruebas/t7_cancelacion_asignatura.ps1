@@ -495,11 +495,11 @@ Escribir-Resultado "tras responder la bandeja del funcionario conserva APROBADA_
     $sol2 = (Leer-Json $r).uuidSolicitudAcademica
     Escribir-Resultado "el estudiante 2 radica sin soporte (200, obtuvo $($r.Status))" (($r.Status -eq 200) -and $sol2)
     Verificar-EtapaHttp -Solicitud $sol2 -Esperada "RADICADA" -Estudiante $est2.Token -Funcionario $fa1.Token -Decano $decano.Token
-    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol2/funcionario/rechazar" -Token $fa1.Token -Cuerpo @{ observacion = "No cumple las condiciones" }
-    Escribir-Resultado "rechazar sin escaneo falla y sigue RADICADA (obtuvo $($r.Status))" (($r.Status -ne 200) -and ((Etapa-De $sol2) -eq "RADICADA"))
+    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol2/funcionario/rechazar" -Token $fa1.Token -Cuerpo @{ observacion = " " }
+    Escribir-Resultado "rechazar sin observacion falla por la observacion y no pide Resolucion (obtuvo $($r.Status))" (($r.Status -ne 200) -and ((Etapa-De $sol2) -eq "RADICADA") -and ([string](Leer-Json $r).mensaje -notlike "*Resoluci*"))
     $r = Subir-Escaneo -Solicitud $sol2 -Pdf $pdfResolucion -Token $fa1.Token
     $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol2/funcionario/rechazar" -Token $fa1.Token -Cuerpo @{ observacion = "No cumple las condiciones" }
-    Escribir-Resultado "el rechazo del funcionario con escaneo deja la solicitud RECHAZADA (obtuvo $($r.Status), etapa $(Etapa-De $sol2))" (($r.Status -eq 200) -and ((Etapa-De $sol2) -eq "RECHAZADA"))
+    Escribir-Resultado "el rechazo del funcionario con un escaneo cargado antes deja la solicitud RECHAZADA (obtuvo $($r.Status), etapa $(Etapa-De $sol2))" (($r.Status -eq 200) -and ((Etapa-De $sol2) -eq "RECHAZADA"))
     Verificar-EtapaHttp -Solicitud $sol2 -Esperada "RECHAZADA" -Estudiante $est2.Token -Funcionario $fa1.Token -Decano $decano.Token
     Escribir-Resultado "tras el rechazo del funcionario las asignaturas siguen activas (obtuvo $(Estados $activas2))" ((Estados $activas2) -eq "activa,activa")
     $d = Descargar -Ruta "solicitudes-academicas/$sol2/resolucion" -Token $est2.Token

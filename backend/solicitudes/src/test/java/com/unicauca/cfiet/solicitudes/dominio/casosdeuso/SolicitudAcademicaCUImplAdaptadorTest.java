@@ -424,11 +424,11 @@ class SolicitudAcademicaCUImplAdaptadorTest {
 
     @Test
     void faltaDeRequisitosNoGuardaNada() {
-        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoMatricula(), RADICADA));
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoMatricula(), APROBADA_POR_DECANO));
 
         ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
-                () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.RECHAZAR_FUNCIONARIO, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO),
-                        "No cumple", TOKEN));
+                () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.ENVIAR_RESPUESTA, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO),
+                        "Respuesta", TOKEN));
 
         assertTrue(error.getMessage().contains("Resolución"));
         verificarQueNoSeGuardoNada();
@@ -761,21 +761,40 @@ class SolicitudAcademicaCUImplAdaptadorTest {
     }
 
     @Test
-    void elRechazoDelFuncionarioEnAsignaturaSaleConLaResolucionSinDecirElResultado() {
+    void elRechazoDirectoEnAsignaturaSaleSinResolucionYConElDocumentoAdicional() {
         when(gateway.getPorUuid(SOLICITUD)).thenReturn(conDatosDeContacto(solicitud(tipo(TIPO_CA, "Cancelación de Asignatura"), RADICADA)));
-        when(resolucionGateway.existePorSolicitud(SOLICITUD)).thenReturn(true);
-        when(resolucionGateway.getPorSolicitud(SOLICITUD)).thenReturn(escaneo());
+        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(documentoAdicional()));
 
         casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.RECHAZAR_FUNCIONARIO, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), "No cumple", TOKEN);
 
         ArgumentCaptor<String> texto = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<List<AdjuntoCorreo>> adjuntos = capturaAdjuntos();
         verify(correo).enviar(eq("est@unicauca.edu.co"), eq("Notificación de Cancelación de asignatura"), texto.capture(), adjuntos.capture());
-        assertTrue(texto.getValue().contains("Se adjunta la resolución correspondiente a su solicitud."));
+        assertTrue(texto.getValue().contains("Su solicitud con radicado 2026-XX-0001 fue respondida. Ingrese a la aplicación para ver la respuesta."));
+        assertTrue(texto.getValue().startsWith("Popayán, Cauca, 10 de marzo de 2026"));
+        assertFalse(texto.getValue().toLowerCase().contains("resolución"));
         assertFalse(texto.getValue().toLowerCase().contains("rechazada"));
-        assertFalse(texto.getValue().toLowerCase().contains("aprobada"));
         assertFalse(texto.getValue().contains("No cumple"));
-        assertEquals(List.of("Resolucion-2026-XX-0001.pdf"), adjuntos.getValue().stream().map(AdjuntoCorreo::getNombre).toList());
+        assertEquals(List.of("acta.pdf"), adjuntos.getValue().stream().map(AdjuntoCorreo::getNombre).toList());
+        verify(resolucionGateway, never()).getPorSolicitud(any());
+        verify(gateway).actualizarEtapa(any(), any());
+    }
+
+    @Test
+    void elRechazoDirectoEnMatriculaNoAdjuntaUnaResolucionCargadaAntes() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(conDatosDeContacto(solicitud(tipoMatricula(), RADICADA)));
+        lenient().when(resolucionGateway.existePorSolicitud(SOLICITUD)).thenReturn(true);
+        lenient().when(resolucionGateway.getPorSolicitud(SOLICITUD)).thenReturn(escaneo());
+
+        casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.RECHAZAR_FUNCIONARIO, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), "No cumple", TOKEN);
+
+        ArgumentCaptor<String> texto = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<List<AdjuntoCorreo>> adjuntos = capturaAdjuntos();
+        verify(correo).enviar(eq("est@unicauca.edu.co"), eq("Notificación de Cancelación de matrícula"), texto.capture(), adjuntos.capture());
+        assertTrue(texto.getValue().contains("fue respondida"));
+        assertTrue(adjuntos.getValue().isEmpty());
+        verify(resolucionGateway, never()).eliminarPorSolicitud(any());
+        verify(almacenamiento, never()).eliminarTrasConfirmar(any());
     }
 
     @Test

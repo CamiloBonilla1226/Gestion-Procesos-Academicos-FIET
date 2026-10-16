@@ -190,6 +190,7 @@ como "situación al cancelar" en `ASIGNATURA_SOLICITUD_ACADEMICA`.
 | nombre | varchar(150) |  | No | Nombre del anexo requerido. El recibo, el comprobante, el soporte de justificación y el formato del docente cruzado se reconocen por este nombre sembrado |
 | formatosPermitidos | varchar(60) |  | No | Extensiones separadas por coma, en minúscula y sin espacios. Ej. "pdf,jpg,png" |
 | obligatorio | tinyint(1) |  | No | 1 = obligatorio, 0 = opcional. Valor por defecto 1 |
+| vigente | tinyint(1) |  | No | 1 = se pide en la radicación, 0 = retirado: no se ofrece ni se exige ni se puede subir, pero sus anexos ya radicados se conservan y se descargan. Valor por defecto 1. Desde T12.31 los seis anexos anteriores de Cancelación de Matrícula quedan en 0 y los reemplaza "Paz y salvos (un solo PDF con todos los paz y salvos)", el único que admite hasta 10 MB (P55) |
 
 ## ANEXO\_ACADEMICO
 

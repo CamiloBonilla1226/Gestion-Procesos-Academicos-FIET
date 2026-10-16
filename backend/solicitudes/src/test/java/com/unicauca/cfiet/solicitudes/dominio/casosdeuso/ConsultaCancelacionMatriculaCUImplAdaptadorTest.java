@@ -162,6 +162,20 @@ class ConsultaCancelacionMatriculaCUImplAdaptadorTest {
     }
 
     @Test
+    void elFormularioSoloOfreceElPdfUnicoYNoLosSeisAnexosRetirados() {
+        TipoSolicitudAcademica matricula = TipoSolicitudAcademica.builder().uuidTipoSolicitudAcademica(TIPO_CM).nombre("Cancelación de Matrícula").build();
+        TipoAnexoAcademico retirado = TipoAnexoAcademico.builder().uuidTipoAnexoAcademico("an-1").nombre("Paz y salvo - División de Bibliotecas")
+                .obligatorio(false).vigente(false).build();
+        TipoAnexoAcademico unico = TipoAnexoAcademico.builder().uuidTipoAnexoAcademico("an-3")
+                .nombre("Paz y salvos (un solo PDF con todos los paz y salvos)").obligatorio(true).vigente(true).build();
+        when(tipoSolicitudGateway.getTodos()).thenReturn(List.of(matricula));
+        when(tipoAnexoGateway.getPorTipo(TIPO_CM)).thenReturn(List.of(retirado, unico));
+        when(estudianteGateway.getAsignaturasMatriculadas(ESTUDIANTE)).thenReturn(List.of());
+
+        assertEquals(List.of(unico), casoDeUso.getFormulario(TOKEN).getAnexos());
+    }
+
+    @Test
     void sinTipoDeCancelacionDeMatriculaElFormularioFalla() {
         when(tipoSolicitudGateway.getTodos()).thenReturn(List.of());
 

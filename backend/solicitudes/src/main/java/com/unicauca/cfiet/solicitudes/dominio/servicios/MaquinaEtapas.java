@@ -42,8 +42,7 @@ public class MaquinaEtapas {
 
     private static final List<Transicion> TRANSICIONES = List.of(
             new Transicion(TODOS, null, AccionEtapa.RADICAR, RADICADA, RolEtiquetaEtapa.ESTUDIANTE, false, false, false, false),
-            new Transicion(CANCELACIONES, RADICADA, AccionEtapa.RECHAZAR_FUNCIONARIO, RECHAZADA, RolEtiquetaEtapa.FUNCIONARIO, true, true, false, false),
-            new Transicion(SUPLETORIO, RADICADA, AccionEtapa.RECHAZAR_FUNCIONARIO, RECHAZADA, RolEtiquetaEtapa.FUNCIONARIO, true, false, false, false),
+            new Transicion(TODOS, RADICADA, AccionEtapa.RECHAZAR_FUNCIONARIO, RECHAZADA, RolEtiquetaEtapa.FUNCIONARIO, true, false, false, false),
             new Transicion(TODOS, RADICADA, AccionEtapa.REMITIR_DECANO, EN_REVISION_DECANO, RolEtiquetaEtapa.FUNCIONARIO, false, false, false, false),
             new Transicion(TODOS, EN_REVISION_DECANO, AccionEtapa.APROBAR_DECANO, APROBADA_POR_DECANO, RolEtiquetaEtapa.DECANO, false, false, false, false),
             new Transicion(TODOS, EN_REVISION_DECANO, AccionEtapa.RECHAZAR_DECANO, RECHAZADA_POR_DECANO, RolEtiquetaEtapa.DECANO, false, false, false, false),

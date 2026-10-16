@@ -192,6 +192,43 @@ class NotificadorRespuestaFinalTest {
     }
 
     @Test
+    void enElRechazoDirectoDarcaRecibeElPdfYElDocumentoAdicionalSinResolucion() {
+        conResolucionYAdicional();
+
+        notificador.avisarDarca(solicitud("2026-CM-0009", RECHAZADA), TipoProcesoAcademico.CANCELACION_MATRICULA, AccionEtapa.RECHAZAR_FUNCIONARIO, FECHA);
+
+        ArgumentCaptor<String> texto = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<List<AdjuntoCorreo>> adjuntos = capturaAdjuntos();
+        verify(correo).enviar(eq(DARCA), eq("DARCA - Notificación de Cancelación de matrícula - Radicado 2026-CM-0009"), texto.capture(), adjuntos.capture());
+        assertEquals(List.of("Radicado-2026-CM-0009.pdf", "acta.pdf"), adjuntos.getValue().stream().map(AdjuntoCorreo::getNombre).toList());
+        assertTrue(texto.getValue().contains("solicita cancelar su matrícula (rechazada)."));
+        verify(resolucionGateway, never()).getPorSolicitud(any());
+    }
+
+    @Test
+    void elRechazoDirectoEnAsignaturaTampocoAdjuntaResolucion() {
+        cancelacionCon(asignatura("ISI-001", "Cálculo I", null, null));
+        conResolucionYAdicional();
+
+        notificador.avisarDarca(solicitud("2026-CA-0009", RECHAZADA), TipoProcesoAcademico.CANCELACION_ASIGNATURA, AccionEtapa.RECHAZAR_FUNCIONARIO, FECHA);
+
+        ArgumentCaptor<List<AdjuntoCorreo>> adjuntos = capturaAdjuntos();
+        verify(correo).enviar(eq(DARCA), any(), any(), adjuntos.capture());
+        assertEquals(List.of("Radicado-2026-CA-0009.pdf", "acta.pdf"), adjuntos.getValue().stream().map(AdjuntoCorreo::getNombre).toList());
+    }
+
+    @Test
+    void sinResolucionCargadaLaRespuestaFinalSaleSoloConElPdf() {
+        when(resolucionGateway.getPorSolicitud(SOLICITUD)).thenReturn(null);
+
+        notificador.avisarDarca(solicitud("2026-CM-0010", APROBADA), TipoProcesoAcademico.CANCELACION_MATRICULA, AccionEtapa.ENVIAR_RESPUESTA, FECHA);
+
+        ArgumentCaptor<List<AdjuntoCorreo>> adjuntos = capturaAdjuntos();
+        verify(correo).enviar(eq(DARCA), any(), any(), adjuntos.capture());
+        assertEquals(List.of("Radicado-2026-CM-0010.pdf"), adjuntos.getValue().stream().map(AdjuntoCorreo::getNombre).toList());
+    }
+
+    @Test
     void laMatriculaAprobadaDiceQueCancelaSuMatricula() {
         notificador.avisarDarca(solicitud("2026-CM-0003", APROBADA), TipoProcesoAcademico.CANCELACION_MATRICULA, AccionEtapa.ENVIAR_RESPUESTA, FECHA);
 

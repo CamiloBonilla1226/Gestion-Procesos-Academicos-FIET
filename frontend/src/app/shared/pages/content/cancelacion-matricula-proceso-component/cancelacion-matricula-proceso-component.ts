@@ -378,8 +378,7 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
     const opcional = observacion === '' ? null : observacion;
     switch (accion) {
       case ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO:
-        return this.subirResolucion().pipe(
-          switchMap(() => this.subirAdicional()),
+        return this.subirAdicional().pipe(
           switchMap(() => this.cancelacionMatriculaService.rechazarPorFuncionario(uuid, { observacion }))
         );
       case ACCIONES_ACADEMICAS.REMITIR_DECANO:
@@ -447,9 +446,7 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
     const errorObservacion = errorDeObservacion(accion, this.observacion);
     if (errorObservacion) errores['observacion'] = errorObservacion;
 
-    const exigeResolucion =
-      accion === ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO || accion === ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA;
-    if (exigeResolucion && !this.archivoResolucion && !this.hayResolucion) {
+    if (accion === ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA && !this.archivoResolucion && !this.hayResolucion) {
       errores['resolucion'] = 'Debes subir el escaneo de la Resolución firmada (PDF).';
     }
 

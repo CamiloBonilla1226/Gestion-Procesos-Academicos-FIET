@@ -16,6 +16,7 @@ import {
   MAXIMO_CARACTERES_MOTIVO,
   RUTAS_SOLICITUDES_POR_ROL,
   ROLES_ETIQUETA,
+  TAMANIO_MAXIMO_ARCHIVO_BYTES,
   TAMANIO_MAXIMO_PETICION_BYTES
 } from '../../../../core/constantes/procesos-academicos';
 import {
@@ -132,7 +133,7 @@ export class EstCancelacionMatriculaContentComponent implements OnInit {
 
   alSeleccionarAnexo(campo: CampoAnexo, archivo: File, entrada: InputAnexoUploadComponent): void {
     const uuid = campo.requerido.uuidTipoAnexoAcademico;
-    const error = errorDeArchivo(archivo, campo.requerido.formatosPermitidos);
+    const error = errorDeArchivo(archivo, campo.requerido.formatosPermitidos, this.maximoDe(campo));
     if (error) {
       this.archivos[uuid] = null;
       this.errores[uuid] = error;
@@ -141,6 +142,10 @@ export class EstCancelacionMatriculaContentComponent implements OnInit {
     }
     this.archivos[uuid] = archivo;
     this.revalidar();
+  }
+
+  private maximoDe(campo: CampoAnexo): number {
+    return campo.requerido.tamanioMaximoBytes || TAMANIO_MAXIMO_ARCHIVO_BYTES;
   }
 
   alQuitarAnexo(campo: CampoAnexo): void {
@@ -228,7 +233,7 @@ export class EstCancelacionMatriculaContentComponent implements OnInit {
         continue;
       }
       total += archivo.size;
-      const error = errorDeArchivo(archivo, campo.requerido.formatosPermitidos);
+      const error = errorDeArchivo(archivo, campo.requerido.formatosPermitidos, this.maximoDe(campo));
       if (error) errores[uuid] = error;
     }
     for (const soporte of this.soportes) {

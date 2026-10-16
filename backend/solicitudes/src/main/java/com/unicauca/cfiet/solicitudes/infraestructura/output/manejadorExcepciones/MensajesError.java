@@ -57,6 +57,8 @@ public class MensajesError {
     public static final String OBSERVACION_MUY_LARGA = "La observación supera los %d caracteres permitidos...";
     public static final String ARCHIVO_VACIO = "El archivo adjunto está vacío...";
     public static final String ARCHIVO_MUY_GRANDE = "El archivo pesa %d bytes y el máximo permitido es %d bytes (5 MB)...";
+    public static final String ARCHIVO_MUY_GRANDE_ANEXO = "El archivo de %s pesa %d bytes y el máximo permitido es %d bytes (%d MB)...";
+    public static final String ANEXO_NO_VIGENTE = "El anexo %s ya no se recibe en %s: ahora se pide %s...";
     public static final String FORMATO_ANEXO_NO_PERMITIDO = "El formato %s no está permitido para %s, se aceptan %s...";
     public static final String CONTENIDO_ANEXO_NO_COINCIDE = "El contenido del archivo no corresponde a un archivo %s...";
     public static final String ANEXO_DE_OTRO_TIPO = "El tipo de anexo %s no pertenece al tipo de solicitud %s...";

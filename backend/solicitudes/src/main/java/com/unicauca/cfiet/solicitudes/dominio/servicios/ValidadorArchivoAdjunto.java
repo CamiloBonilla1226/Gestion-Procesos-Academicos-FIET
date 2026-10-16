@@ -24,11 +24,17 @@ public class ValidadorArchivoAdjunto {
     }
 
     public String validar(ArchivoAdjunto archivo, String documento, String formatos) {
+        return validar(archivo, documento, formatos, TAMANIO_MAXIMO_BYTES);
+    }
+
+    public String validar(ArchivoAdjunto archivo, String documento, String formatos, long maximoBytes) {
         if (archivo == null || archivo.getContenido() == null || archivo.getContenido().length == 0)
             formateadorExcepciones.lanzarMalFormato(MensajesError.ARCHIVO_VACIO);
         long tamanio = archivo.getContenido().length;
-        if (tamanio > TAMANIO_MAXIMO_BYTES)
-            formateadorExcepciones.lanzarMalFormato(String.format(MensajesError.ARCHIVO_MUY_GRANDE, tamanio, TAMANIO_MAXIMO_BYTES));
+        if (tamanio > maximoBytes)
+            formateadorExcepciones.lanzarMalFormato(maximoBytes == TAMANIO_MAXIMO_BYTES
+                    ? String.format(MensajesError.ARCHIVO_MUY_GRANDE, tamanio, TAMANIO_MAXIMO_BYTES)
+                    : String.format(MensajesError.ARCHIVO_MUY_GRANDE_ANEXO, documento, tamanio, maximoBytes, maximoBytes / (1024 * 1024)));
 
         Set<String> permitidos = Arrays.stream(formatos == null ? new String[0] : formatos.split(","))
                 .map(this::normalizarExtension)

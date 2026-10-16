@@ -51,6 +51,8 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
     private static final String ENCABEZADO_RESPUESTA = "Popayán, Cauca, %s%n%nSr(a) %s%n"
             + "Estudiante Facultad de Ingeniería Electrónica y Telecomunicaciones%n%n";
     private static final String CUERPO_RESOLUCION = "Se adjunta la resolución correspondiente a su solicitud.";
+    private static final String CUERPO_RECHAZO_DIRECTO = "Su solicitud con radicado %s fue respondida. "
+            + "Ingrese a la aplicación para ver la respuesta.";
     private static final String CUERPO_SUPLETORIO = "Su solicitud de examen supletorio con radicado %s ya tiene respuesta. "
             + "Ingrese a la aplicación para consultarla.";
     private static final DateTimeFormatter FECHA_CARTA = DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", Locale.forLanguageTag("es-CO"));
@@ -186,9 +188,10 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
         String destinatario = usuario == null ? null : usuario.getCorreoElectronico();
         String uuidSolicitud = solicitud.getUuidSolicitudAcademica();
         boolean supletorio = proceso == TipoProcesoAcademico.EXAMEN_SUPLETORIO;
+        boolean rechazoDirecto = accion == AccionEtapa.RECHAZAR_FUNCIONARIO;
 
         List<AdjuntoCorreo> adjuntos = new ArrayList<>();
-        ResolucionAcademica resolucion = supletorio ? null : resolucionGateway.getPorSolicitud(uuidSolicitud);
+        ResolucionAcademica resolucion = supletorio || rechazoDirecto ? null : resolucionGateway.getPorSolicitud(uuidSolicitud);
         if (resolucion != null)
             adjuntos.add(AdjuntoCorreo.builder()
                     .nombre("Resolucion-" + solicitud.getRadicado() + ".pdf")
@@ -203,7 +206,8 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
                     .build());
 
         String texto = String.format(ENCABEZADO_RESPUESTA, fecha.format(FECHA_CARTA), nombreCompleto(usuario))
-                + (supletorio ? String.format(CUERPO_SUPLETORIO, solicitud.getRadicado()) : CUERPO_RESOLUCION);
+                + (supletorio ? String.format(CUERPO_SUPLETORIO, solicitud.getRadicado())
+                : rechazoDirecto ? String.format(CUERPO_RECHAZO_DIRECTO, solicitud.getRadicado()) : CUERPO_RESOLUCION);
         correo.enviar(destinatario, ASUNTOS_RESPUESTA.get(proceso), texto, adjuntos);
         notificador.avisarDarca(solicitud, proceso, accion, fecha);
     }

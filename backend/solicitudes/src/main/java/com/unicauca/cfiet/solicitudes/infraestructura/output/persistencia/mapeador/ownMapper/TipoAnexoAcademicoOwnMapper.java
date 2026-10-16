@@ -18,6 +18,7 @@ public class TipoAnexoAcademicoOwnMapper implements OwnMapper<TipoAnexoAcademico
                 .nombre(source.getNombre())
                 .formatosPermitidos(source.getFormatosPermitidos())
                 .obligatorio(source.getObligatorio())
+                .vigente(source.getVigente())
                 .build();
     }
 
@@ -29,6 +30,7 @@ public class TipoAnexoAcademicoOwnMapper implements OwnMapper<TipoAnexoAcademico
                 .nombre(source.getNombre())
                 .formatosPermitidos(source.getFormatosPermitidos())
                 .obligatorio(source.getObligatorio())
+                .vigente(source.getVigente())
                 .build();
     }
 }

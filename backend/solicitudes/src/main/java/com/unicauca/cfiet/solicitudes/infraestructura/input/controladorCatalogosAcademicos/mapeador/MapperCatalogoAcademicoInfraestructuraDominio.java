@@ -1,5 +1,6 @@
 package com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCatalogosAcademicos.mapeador;
 
+import com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.EtapaEtiquetaRol;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.EtapaSolicitudAcademica;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.FuncionarioAcademico;
@@ -53,6 +54,8 @@ public class MapperCatalogoAcademicoInfraestructuraDominio {
                         .nombre(tipoAnexo.getNombre())
                         .formatosPermitidos(tipoAnexo.getFormatosPermitidos())
                         .obligatorio(tipoAnexo.getObligatorio())
+                        .vigente(tipoAnexo.estaVigente())
+                        .tamanioMaximoBytes(AnexoAcademicoConstantes.tamanioMaximoDe(tipoAnexo.getNombre()))
                         .build())
                 .toList();
     }

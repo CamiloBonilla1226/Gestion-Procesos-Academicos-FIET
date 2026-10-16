@@ -2,6 +2,34 @@
 
 La entrada más reciente va primero. Formato y reglas en `CLAUDE.md`.
 
+## 2026-10-16 - T12.31 PDF único de paz y salvos, Resolución solo tras el Decano y correos con remitente y HTML
+- Qué se hizo: Cancelación de Matrícula pide un solo PDF con todos los paz y salvos (hasta 10 MB) en lugar de seis anexos, que quedan retirados sin borrarse (P55). En las cancelaciones el rechazo directo del Funcionario ya no pide la Resolución y sus correos no la adjuntan; la respuesta final después del Decano la sigue exigiendo (P56). Todos los correos salen con el remitente visible "Decanatura FIET - Procesos académicos" y con texto plano más un HTML simple (P57).
+- Archivos:
+  - Backend, modificados: `dominio/helper/constantes/AnexoAcademicoConstantes.java` (`PAZ_Y_SALVOS`, 10 MB, `tamanioMaximoDe`), `dominio/modelos/TipoAnexoAcademico.java` (`vigente`, `estaVigente`), `infraestructura/output/persistencia/entidades/TipoAnexoAcademicoEntidad.java` (columna `vigente`), `TipoAnexoAcademicoOwnMapper.java`, `dominio/servicios/ValidadorArchivoAdjunto.java` (máximo por anexo), `dominio/servicios/MaquinaEtapas.java` (rechazo directo sin escaneo), `dominio/servicios/NotificadorRespuestaFinal.java`, `dominio/casosdeuso/CancelacionMatriculaCUImplAdaptador.java`, `AnexoAcademicoCUImplAdaptador.java`, `ConsultaCancelacionMatriculaCUImplAdaptador.java`, `SolicitudAcademicaCUImplAdaptador.java`, `infraestructura/output/correo/ServicioCorreo.java`, `infraestructura/output/manejadorExcepciones/MensajesError.java` (`ARCHIVO_MUY_GRANDE_ANEXO`, `ANEXO_NO_VIGENTE`), DTO y mapper de `controladorCatalogosAcademicos` y `controladorCancelacionesMatricula` (`vigente`, `tamanioMaximoBytes`)
+  - Backend, pruebas: `MaquinaEtapasTest`, `SolicitudAcademicaCUImplAdaptadorTest`, `TramiteCancelacionMatriculaCUImplAdaptadorTest`, `TramiteCancelacionAsignaturaCUImplAdaptadorTest`, `CancelacionMatriculaCUImplAdaptadorTest`, `ConsultaCancelacionMatriculaCUImplAdaptadorTest`, `AnexoAcademicoCUImplAdaptadorTest`, `NotificadorRespuestaFinalTest`, `ServicioCorreoTest` (modificados)
+  - Frontend, modificados: `core/constantes/procesos-academicos.ts`, `core/utils/validaciones-academicas.ts` y su spec, modelos `AnexoRequeridoDTORespuesta.ts` y `TipoAnexoAcademicoDTORespuesta.ts`, `est-cancelacion-matricula-content-component` (ts, html, spec), `cancelacion-matricula-proceso-component` y `cancelacion-asignatura-proceso-component` (ts, html, spec), `detalle-solicitud-academica-component` (ts, html, spec)
+  - Datos: `docs/database/seed-procesos-academicos.sql` (tipo nuevo y `UPDATE` de los seis anteriores), `docs/database/script_bd_extension.sql` y `docs/database/diccionario-datos-extension.md` (columna `vigente`)
+  - Pruebas de integración: `backend/pruebas/t9_correo_respuesta.ps1`, `backend/pruebas/smtp_prueba.py` (guarda la versión HTML), `backend/pruebas/t5_catalogos.ps1`, `backend/pruebas/t6_cancelacion_matricula.ps1`, `backend/pruebas/t7_cancelacion_asignatura.ps1`
+  - Documentación: `CLAUDE.md`, `backend/CLAUDE.md`, `frontend/CLAUDE.md` (D-F46), `docs/api/contrato-api-procesos-academicos.md`, `docs/database/etapas-por-proceso.md` (P55, P56, P57)
+- Notas:
+  - `TIPO_ANEXO_ACADEMICO.vigente` la crea Hibernate al arrancar (`tinyint(1)`, por defecto 1). Después hay que correr el seed para insertar el tipo nuevo y retirar los seis anteriores; los datos predefinidos no se borran (quedan 15 tipos de anexo).
+  - Si el Funcionario ya subió una Resolución y rechaza directo, se conserva (como antes), pero el correo no la adjunta y el Estudiante no ve la descarga; si remite al Decano, se retira como antes.
+  - Pruebas: backend 1513 sin fallos; frontend 608 specs con las mismas 58 fallas NG0201 de Julián y build con bundle inicial de 838,94 kB; `t9` 358 PASS, `t5_catalogos` 43, `t6` 110 y `t7` 142, todos sin FAIL, contra el jar nuevo en el puerto 8091.
+
+## 2026-10-16 - T12.30 Script para borrar estudiantes y solicitudes académicas en local
+- Qué se hizo: `backend/pruebas/limpiar-estudiantes.ps1` borra, en una sola transacción contra `cfiet_database`, todas las solicitudes de los tres procesos con todo lo que cuelga de ellas, todos los estudiantes con sus matrículas y los usuarios con rol Estudiante (con sus roles y logs). Después borra solo las carpetas `uploads/anexos/<uuid>` de esas solicitudes. Responde una línea: `OK` o `FALLO` y el motivo.
+- Archivos: `backend/pruebas/limpiar-estudiantes.ps1` (creado, fuera de git), `.gitignore` (modificado), `backend/CLAUDE.md` (modificado)
+- Notas:
+  - Un usuario solo se borra si no tiene otro rol que Estudiante, no está en `FUNCIONARIO_ACADEMICO` ni en `funcionarios` y no es `rootfiet`; la fila de `ESTUDIANTE` y sus matrículas se borran siempre.
+  - Las carpetas se eligen por los uuid de `SOLICITUD_ACADEMICA` leídos antes de borrar, descartando cualquiera que sea de una solicitud del Consejo (`solicitudes`), que no tenga forma de uuid o que no esté justo dentro de `uploads/anexos`.
+  - Además de las tablas de la tarea, borra `SOLICITUD_CANCELACION_MATRICULA`, que también depende de `SOLICITUD_ACADEMICA`.
+  - Validado sin borrar nada: el mismo SQL dentro de una transacción terminada en ROLLBACK dejó en 0 las 12 tablas de solicitudes y estudiantes, bajó `usuarios` y `usuariosLivianos` exactamente en los 4 estudiantes, no movió las otras 18 tablas y, después del ROLLBACK, las 34 tablas quedaron con los mismos conteos. La selección de carpetas eligió las 10 de `uploads/anexos`, todas de solicitudes académicas, sin borrar ninguna.
+
+## 2026-10-15 - Lombok 1.18.42 para quitar el falso error de VS Code
+- Qué se hizo: se fijó `lombok.version` en 1.18.42 en el `pom.xml` (Spring Boot 3.5.4 traía 1.18.38). La extensión de Java de VS Code (redhat.java 1.57) usa el Lombok del proyecto, y con 1.18.38 marcaba en rojo toda clase con `@AllArgsConstructor` o `@Builder` ("Flexible Constructor Bodies ... source level 25"), aunque Maven compilaba bien.
+- Archivos: `backend/solicitudes/pom.xml` (modificado)
+- Notas: no cambia el código ni el nivel de Java (sigue en 17). Con la versión nueva el backend compila y pasan las 1496 pruebas. Para que VS Code la tome hay que reiniciar su servidor de Java (Java: Clean Java Language Server Workspace). El jar de Docker se reconstruye como siempre con `./mvnw clean install -DskipTests`.
+
 ## 2026-10-15 - Variables del correo desde backend/.env
 - Qué se hizo: `MAIL_USER`, `MAIL_PASSWORD` y `CORREO_DARCA` se pueden poner en `backend/.env`, que Docker Compose carga solo; se agregó la plantilla `backend/.env.example` y las reglas para que `.env` nunca se suba.
 - Archivos: `backend/.env.example` (creado), `backend/.gitignore` (modificado), `.gitignore` (modificado), `backend/CLAUDE.md` (modificado)

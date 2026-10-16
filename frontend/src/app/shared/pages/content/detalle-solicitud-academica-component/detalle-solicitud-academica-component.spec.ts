@@ -282,6 +282,63 @@ describe('DetalleSolicitudAcademicaComponent', () => {
     expect(crear(detalle(false, false)).nativeElement.querySelector('[data-boton-resolucion]')).toBeNull();
   });
 
+  describe('rechazo directo del Funcionario en una cancelacion', () => {
+    const rechazoDirecto: HistorialSolicitudAcademicaDTORespuesta[] = [
+      { accion: 'RADICAR', etapaCodigo: 'RADICADA', observaciones: null, fecha: '2026-10-08T00:00:00', nombresUsuario: 'María', apellidosUsuario: 'Pérez' },
+      { accion: 'RECHAZAR_FUNCIONARIO', etapaCodigo: 'RECHAZADA', observaciones: 'Faltan paz y salvos', fecha: '2026-10-09T08:00:00', nombresUsuario: 'Ana', apellidosUsuario: 'Ruiz' }
+    ];
+
+    function crearCon(datos: SolicitudAcademicaDetalleDTORespuesta, entradas: HistorialSolicitudAcademicaDTORespuesta[], rol = 'ESTUDIANTE') {
+      servicio.getSolicitud.and.returnValue(of(datos));
+      servicio.getHistorial.and.returnValue(of(entradas));
+      const fixture = TestBed.createComponent(DetalleSolicitudAcademicaComponent);
+      fixture.componentRef.setInput('rol', rol);
+      fixture.detectChanges();
+      return fixture;
+    }
+
+    function rechazada(tieneResolucion: boolean, tipoSolicitud = 'Cancelación de Matrícula'): SolicitudAcademicaDetalleDTORespuesta {
+      return { ...detalle(tieneResolucion, tieneResolucion), tipoSolicitud, etiqueta: 'Rechazada', etapaCodigo: 'RECHAZADA' };
+    }
+
+    it('al Estudiante le dice que fue rechazada sin Resolucion y no ofrece descargarla', () => {
+      const fixture = crearCon(rechazada(false), rechazoDirecto);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('[data-rechazo-sin-resolucion]').textContent).toContain('no tiene Resolución');
+      expect(fixture.nativeElement.querySelector('[data-boton-resolucion]')).toBeNull();
+      expect(fixture.nativeElement.textContent).not.toContain('pendiente');
+    });
+
+    it('aunque quede un escaneo cargado antes, el Estudiante no ve la descarga en el rechazo directo', () => {
+      const fixture = crearCon(rechazada(true, 'Cancelación de Asignatura'), rechazoDirecto);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('[data-rechazo-sin-resolucion]')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('[data-boton-resolucion]')).toBeNull();
+    });
+
+    it('el Funcionario no ve el aviso y conserva la descarga si hay escaneo', () => {
+      const fixture = crearCon(rechazada(true), rechazoDirecto, 'FUNCIONARIO');
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('[data-rechazo-sin-resolucion]')).toBeNull();
+      expect(fixture.nativeElement.querySelector('[data-boton-resolucion]')).toBeTruthy();
+    });
+
+    it('una cancelacion rechazada despues del Decano no muestra el aviso', () => {
+      const fixture = crearCon(rechazada(true), [
+        { accion: 'ENVIAR_RESPUESTA', etapaCodigo: 'RECHAZADA', observaciones: 'No procede', fecha: '2026-10-10T08:00:00', nombresUsuario: 'Ana', apellidosUsuario: 'Ruiz' }
+      ]);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('[data-rechazo-sin-resolucion]')).toBeNull();
+      expect(fixture.nativeElement.querySelector('[data-boton-resolucion]')).toBeTruthy();
+    });
+
+    it('el supletorio rechazado por el Funcionario no muestra el aviso', () => {
+      const fixture = crearCon(rechazada(false, 'Examen Supletorio'), rechazoDirecto);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('[data-rechazo-sin-resolucion]')).toBeNull();
+    });
+  });
+
   it('descarga la Resolucion con el nombre Resolucion-<radicado>.pdf', () => {
     const nombres: string[] = [];
     spyOn(HTMLAnchorElement.prototype, 'click').and.callFake(function (this: HTMLAnchorElement) {

@@ -153,8 +153,10 @@ try {
     $r = Invoke-Api -Metodo GET -Ruta "catalogos-academicos/tipos-solicitud/$TipoMatricula/tipos-anexo" -Token $tokenRoot
     $lista = Leer-Json $r
     $anexos = @($lista)
-    $malos = @($AnexosMatricula.Keys | Where-Object { $nombre = $_; $a = @($anexos | Where-Object { $_.nombre -ceq $nombre }); ($a.Count -ne 1) -or ($a[0].formatosPermitidos -cne $AnexosMatricula[$nombre]) -or ($a[0].obligatorio -ne $true) })
-    Escribir-Resultado "matricula tiene los seis anexos obligatorios con sus formatos y el documento adicional (obtuvo $($anexos.Count), distintos: $($malos.Count))" (($anexos.Count -eq 7) -and ($malos.Count -eq 0) -and (Es-DocumentoAdicional $anexos))
+    $malos = @($AnexosMatricula.Keys | Where-Object { $nombre = $_; $a = @($anexos | Where-Object { $_.nombre -ceq $nombre }); ($a.Count -ne 1) -or ($a[0].formatosPermitidos -cne $AnexosMatricula[$nombre]) -or ($a[0].obligatorio -ne $false) -or ($a[0].vigente -ne $false) })
+    Escribir-Resultado "matricula conserva los seis anexos anteriores retirados (no obligatorios ni vigentes) y el documento adicional (obtuvo $($anexos.Count), distintos: $($malos.Count))" (($anexos.Count -eq 8) -and ($malos.Count -eq 0) -and (Es-DocumentoAdicional $anexos))
+    $unico = @($anexos | Where-Object { $_.nombre -ceq "Paz y salvos (un solo PDF con todos los paz y salvos)" })
+    Escribir-Resultado "matricula pide un solo PDF obligatorio y vigente de paz y salvos de hasta 10 MB (obtuvo $($unico.Count))" (($unico.Count -eq 1) -and ($unico[0].formatosPermitidos -ceq "pdf") -and ($unico[0].obligatorio -eq $true) -and ($unico[0].vigente -eq $true) -and ($unico[0].tamanioMaximoBytes -eq 10485760))
 
     $r = Invoke-Api -Metodo GET -Ruta "catalogos-academicos/tipos-solicitud/$TipoAsignatura/tipos-anexo" -Token $tokenRoot
     $lista = Leer-Json $r

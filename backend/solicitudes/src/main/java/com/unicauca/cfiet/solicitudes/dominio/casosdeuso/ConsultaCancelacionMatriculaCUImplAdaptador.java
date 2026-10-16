@@ -81,6 +81,7 @@ public class ConsultaCancelacionMatriculaCUImplAdaptador implements ConsultaCanc
                 .codigoEstudiantil(estudianteGateway.getPorUuid(uuidEstudiante).getCodigoEstudiantil())
                 .anexos(tipoAnexoGateway.getPorTipo(tipo.getUuidTipoSolicitudAcademica()).stream()
                         .filter(tipoAnexo -> !AnexoAcademicoConstantes.DOCUMENTO_ADICIONAL.equals(tipoAnexo.getNombre()))
+                        .filter(TipoAnexoAcademico::estaVigente)
                         .toList())
                 .asignaturas(activas)
                 .build();

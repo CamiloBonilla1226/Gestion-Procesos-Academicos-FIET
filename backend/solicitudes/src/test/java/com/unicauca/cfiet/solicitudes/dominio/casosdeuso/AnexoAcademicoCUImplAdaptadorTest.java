@@ -706,4 +706,46 @@ class AnexoAcademicoCUImplAdaptadorTest {
 
         assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso.getAnexosObligatorios("no-existe", null));
     }
+
+    private TipoAnexoAcademico conPazYSalvosUnico() {
+        catalogo.stream().filter(t -> t.getTipoSolicitudAcademica() == matricula).forEach(t -> {
+            t.setVigente(false);
+            t.setObligatorio(false);
+        });
+        TipoAnexoAcademico unico = tipoAnexo(matricula, "Paz y salvos (un solo PDF con todos los paz y salvos)", "pdf", true);
+        unico.setVigente(true);
+        return unico;
+    }
+
+    @Test
+    void unAnexoRetiradoDeMatriculaYaNoSeSube() {
+        conPazYSalvosUnico();
+        solicitud(matricula, RADICADA);
+
+        ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
+                () -> adjuntar(porNombre(PAZ_BIBLIOTECAS), archivo("biblioteca.pdf", pdf(100)), estudiante()));
+
+        assertTrue(error.getMessage().contains(PAZ_BIBLIOTECAS));
+        assertTrue(error.getMessage().contains("Paz y salvos (un solo PDF con todos los paz y salvos)"));
+        verificarQueNoSeGuardoNada();
+    }
+
+    @Test
+    void elPdfUnicoDePazYSalvosAdmiteHasta10Mb() {
+        TipoAnexoAcademico unico = conPazYSalvosUnico();
+        solicitud(matricula, RADICADA);
+
+        adjuntar(unico, archivo("paz-y-salvos.pdf", pdf(10 * 1024 * 1024)), estudiante());
+        verify(anexoGateway).guardar(any());
+
+        assertThrows(ErrorMalFormatoExcepcion.class, () -> adjuntar(unico, archivo("paz-y-salvos.pdf", pdf(10 * 1024 * 1024 + 1)), estudiante()));
+    }
+
+    @Test
+    void losObligatoriosDeMatriculaSonSoloElPdfUnicoVigente() {
+        conPazYSalvosUnico();
+        when(tipoSolicitudGateway.getPorUuid(TIPO_CM)).thenReturn(matricula);
+
+        assertEquals(List.of("Paz y salvos (un solo PDF con todos los paz y salvos)"), nombres(casoDeUso.getAnexosObligatorios(TIPO_CM, null)));
+    }
 }

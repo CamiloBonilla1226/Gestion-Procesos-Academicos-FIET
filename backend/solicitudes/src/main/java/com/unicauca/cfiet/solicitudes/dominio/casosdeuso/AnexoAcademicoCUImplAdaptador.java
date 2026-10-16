@@ -70,7 +70,8 @@ public class AnexoAcademicoCUImplAdaptador implements AnexoAcademicoCUIntPuerto 
         validarQuienYCuando(solicitud, tipoAnexo, actor, proceso);
         List<AnexoAcademico> reemplazados = esDocumentoAdicional(tipoAnexo) ? documentosAdicionales(solicitud) : List.of();
         String extension = validadorArchivo.validar(archivo, tipoAnexo == null ? SOPORTE_LIBRE : tipoAnexo.getNombre(),
-                tipoAnexo == null ? FORMATOS_SOPORTE_LIBRE : tipoAnexo.getFormatosPermitidos());
+                tipoAnexo == null ? FORMATOS_SOPORTE_LIBRE : tipoAnexo.getFormatosPermitidos(),
+                tamanioMaximoDe(tipoAnexo == null ? null : tipoAnexo.getNombre()));
 
         String uuidAnexo = UUID.randomUUID().toString();
         String ruta = null;
@@ -159,6 +160,7 @@ public class AnexoAcademicoCUImplAdaptador implements AnexoAcademicoCUIntPuerto 
         if (supletorio && causa == null)
             formateadorExcepciones.lanzarReglaNegocioViolada(MensajesError.CAUSA_SUPLETORIO_REQUERIDA);
         return tipoAnexoGateway.getPorTipo(tipo.getUuidTipoSolicitudAcademica()).stream()
+                .filter(TipoAnexoAcademico::estaVigente)
                 .filter(tipoAnexo -> Boolean.TRUE.equals(tipoAnexo.getObligatorio())
                         || (supletorio && causa == CausaSupletorio.OTRA && SOPORTE_JUSTIFICACION.equals(tipoAnexo.getNombre()))
                         || (supletorio && causa == CausaSupletorio.CRUCE && FORMATO_DOCENTE_CRUCE.equals(tipoAnexo.getNombre())))
@@ -189,6 +191,12 @@ public class AnexoAcademicoCUImplAdaptador implements AnexoAcademicoCUIntPuerto 
         if (!tipoSolicitud.getUuidTipoSolicitudAcademica().equals(tipoDelAnexo))
             formateadorExcepciones.lanzarReglaNegocioViolada(String.format(
                     MensajesError.ANEXO_DE_OTRO_TIPO, tipoAnexo.getNombre(), tipoSolicitud.getNombre()));
+        if (!tipoAnexo.estaVigente())
+            formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.ANEXO_NO_VIGENTE, tipoAnexo.getNombre(),
+                    tipoSolicitud.getNombre(), String.join("; ", tipoAnexoGateway.getPorTipo(tipoSolicitud.getUuidTipoSolicitudAcademica()).stream()
+                            .filter(vigente -> vigente.estaVigente() && Boolean.TRUE.equals(vigente.getObligatorio()))
+                            .map(TipoAnexoAcademico::getNombre)
+                            .toList())));
         return tipoAnexo;
     }
 

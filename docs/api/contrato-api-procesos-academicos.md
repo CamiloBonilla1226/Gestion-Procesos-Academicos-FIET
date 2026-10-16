@@ -84,7 +84,10 @@ Una solicitud que existe pero que el usuario no puede ver responde con
 
 - Tamaño máximo por archivo: 5 MB (5242880 bytes). Más de eso responde
   `codigoError` 6: `El archivo pesa <n> bytes y el máximo permitido es 5242880
-  bytes (5 MB)...`. Spring además corta cualquier archivo o petición de más de
+  bytes (5 MB)...`. La única excepción es el PDF único de paz y salvos de
+  Cancelación de Matrícula, que admite 10 MB (10485760 bytes; el error dice
+  `El archivo de <anexo> pesa <n> bytes y el máximo permitido es 10485760 bytes
+  (10 MB)...`), P55. Spring además corta cualquier archivo o petición de más de
   20 MB.
 - El archivo no puede venir vacío (`El archivo adjunto está vacío...`, código
   6).
@@ -100,12 +103,13 @@ Una solicitud que existe pero que el usuario no puede ver responde con
 
 | Proceso | Anexo | Formatos | Obligatorio |
 | --- | --- | --- | --- |
-| Cancelación de Matrícula | Paz y salvo - División de Bibliotecas | pdf | Sí |
-| Cancelación de Matrícula | Paz y salvo - División de Deportes y Recreación | pdf | Sí |
-| Cancelación de Matrícula | Paz y salvo - División de Salud Integral | pdf | Sí |
-| Cancelación de Matrícula | Cupón de Confirmación de la Intervención Psicosocial - División de Salud Integral | pdf | Sí |
-| Cancelación de Matrícula | Paz y salvo - División Financiera | pdf | Sí |
-| Cancelación de Matrícula | Carné estudiantil o constancia de no trámite - DARCA | pdf, jpg, jpeg, png | Sí |
+| Cancelación de Matrícula | Paz y salvos (un solo PDF con todos los paz y salvos) | pdf, hasta 10 MB | Sí (P55) |
+| Cancelación de Matrícula | Paz y salvo - División de Bibliotecas | pdf | Retirado (`vigente = 0`): ya no se recibe; solo existe en solicitudes radicadas antes de T12.31 |
+| Cancelación de Matrícula | Paz y salvo - División de Deportes y Recreación | pdf | Retirado |
+| Cancelación de Matrícula | Paz y salvo - División de Salud Integral | pdf | Retirado |
+| Cancelación de Matrícula | Cupón de Confirmación de la Intervención Psicosocial - División de Salud Integral | pdf | Retirado |
+| Cancelación de Matrícula | Paz y salvo - División Financiera | pdf | Retirado |
+| Cancelación de Matrícula | Carné estudiantil o constancia de no trámite - DARCA | pdf, jpg, jpeg, png | Retirado |
 | Examen Supletorio | Formato firmado por el docente que orienta la asignatura | pdf, jpg, png | Sí |
 | Examen Supletorio | Soporte de la justificación de la no presentación | pdf, jpg, png | Si la causa es `otra` |
 | Examen Supletorio | Formato firmado por el docente de la asignatura con la que se cruza | pdf, jpg, png | Si la causa es `cruce` |
@@ -113,10 +117,12 @@ Una solicitud que existe pero que el usuario no puede ver responde con
 | Examen Supletorio | Comprobante de pago | pdf, jpg, png | Lo sube el Estudiante para pasar a EN_VERIFICACION_PAGO |
 | Los tres procesos | Documento adicional de la respuesta | pdf | No. Lo sube solo el Funcionario, antes de una acción que cierra la solicitud; uno nuevo reemplaza al anterior, `REMITIR_DECANO` lo retira y va en el correo de la respuesta (P54). No se entrega al radicar ni sale en `GET cancelaciones-matricula/formulario` |
 | Cancelaciones | Soporte libre (sin tipo) | pdf, jpg, jpeg, png | No |
-| Cancelaciones | Escaneo de la Resolución | pdf | Para rechazar en el Funcionario y para enviar la respuesta |
+| Cancelaciones | Escaneo de la Resolución | pdf | Solo para enviar la respuesta después del Decano; el rechazo directo del Funcionario no la pide (P56) |
 
 Los uuid de los tipos de anexo los entregan los formularios de radicación y
-`GET catalogos-academicos/tipos-solicitud/{uuidTipo}/tipos-anexo`.
+`GET catalogos-academicos/tipos-solicitud/{uuidTipo}/tipos-anexo`. Un tipo
+retirado responde `El anexo <nombre> ya no se recibe en <proceso>: ahora se pide
+<obligatorios vigentes>...` (código 4) si se entrega al radicar o se sube.
 
 - Las descargas responden el archivo binario con `Content-Type` del archivo
   y `Content-Disposition: attachment` con el nombre original.
@@ -158,7 +164,7 @@ código se ejecuta con este endpoint (`<proceso>` es `cancelaciones-matricula`,
 
 | Acción | Endpoint | Rol | Exige |
 | --- | --- | --- | --- |
-| RECHAZAR_FUNCIONARIO | `POST <proceso>/{uuid}/funcionario/rechazar` | Funcionario Académico | Observación; en cancelaciones, escaneo de la Resolución subido antes |
+| RECHAZAR_FUNCIONARIO | `POST <proceso>/{uuid}/funcionario/rechazar` | Funcionario Académico | Observación. Sin Resolución desde T12.31 (P56) |
 | REMITIR_DECANO | `POST <proceso>/{uuid}/funcionario/remitir` | Funcionario Académico | Evaluaciones (cancelaciones); en el supletorio nada más (desde T12.16 no hay `requisitosVerificados`, P49). Una sola `observacion`, opcional, para el Decano |
 | APROBAR_DECANO | `POST <proceso>/{uuid}/decano/aprobar` | Decano | En matrícula nada (desde T12.28 el Decano no registra situaciones, P51); en asignatura `aceptarEvaluacion` o `decisiones` por asignatura. `observacion` opcional |
 | RECHAZAR_DECANO | `POST <proceso>/{uuid}/decano/rechazar` | Decano | Nada: `observacion` opcional |
@@ -466,7 +472,7 @@ aparece en la fila <m> del archivo...`.
 | --- | --- | --- | --- | --- |
 | `GET catalogos-academicos/tipos-solicitud` | Cualquier usuario autenticado | | | Lista de TipoSolicitudAcademicaDTORespuesta, por nombre |
 | `GET catalogos-academicos/tipos-solicitud/{uuidTipo}/etapas` | Cualquier usuario autenticado | | | Lista de `{uuidEtapa, codigo, uuidTipoSolicitudAcademica}` (universales y propias del tipo), por código |
-| `GET catalogos-academicos/tipos-solicitud/{uuidTipo}/tipos-anexo` | Cualquier usuario autenticado | | | Lista de `{uuidTipoAnexoAcademico, uuidTipoSolicitudAcademica, nombre, formatosPermitidos, obligatorio}`, por nombre |
+| `GET catalogos-academicos/tipos-solicitud/{uuidTipo}/tipos-anexo` | Cualquier usuario autenticado | | | Lista de `{uuidTipoAnexoAcademico, uuidTipoSolicitudAcademica, nombre, formatosPermitidos, obligatorio, vigente, tamanioMaximoBytes}`, por nombre. Incluye los tipos retirados (`vigente: false`) |
 | `GET catalogos-academicos/etiquetas` | Cualquier usuario autenticado | `rol`: `ESTUDIANTE`, `FUNCIONARIO` o `DECANO` (sin distinguir mayúsculas) | | Lista de `{uuidEtapa, codigoEtapa, rol, etiqueta}`, por código de etapa |
 | `GET catalogos-academicos/situaciones` | Cualquier usuario autenticado | | | Lista de SituacionAsignaturaDTORespuesta, por código |
 | `GET catalogos-academicos/programas` | Cualquier usuario autenticado | | | Lista de ProgramaAcademicoDTORespuesta de los cinco programas, por nombre |
@@ -541,7 +547,7 @@ en el sistema...` si el anexo no es de esa solicitud.
 
 | Método y ruta | Roles | Cuerpo | Respuesta |
 | --- | --- | --- | --- |
-| `GET cancelaciones-matricula/formulario` | Estudiante | | `{codigoEstudiantil, anexosRequeridos: [{uuidTipoAnexoAcademico, nombre, formatosPermitidos, obligatorio}], asignaturas: [{codigoAsignatura, nombreAsignatura}]}` |
+| `GET cancelaciones-matricula/formulario` | Estudiante | | `{codigoEstudiantil, anexosRequeridos: [{uuidTipoAnexoAcademico, nombre, formatosPermitidos, obligatorio, tamanioMaximoBytes}], asignaturas: [{codigoAsignatura, nombreAsignatura}]}` |
 | `POST cancelaciones-matricula` | Estudiante | Multipart (ver abajo) | `{uuidSolicitudAcademica, radicado}` |
 | `GET cancelaciones-matricula/{uuidSolicitud}` | Estudiante, Funcionario Académico, Decano | | CancelacionMatriculaDetalle |
 | `POST cancelaciones-matricula/{uuidSolicitud}/funcionario/rechazar` | Funcionario Académico | `{observacion}` | CancelacionMatriculaDetalle |
@@ -550,8 +556,11 @@ en el sistema...` si el anexo no es de esa solicitud.
 | `POST cancelaciones-matricula/{uuidSolicitud}/decano/aprobar` | Decano | `{observacion}` opcional, `{}` o sin cuerpo; un `situaciones` que llegue se ignora (P51) | CancelacionMatriculaDetalle |
 | `POST cancelaciones-matricula/{uuidSolicitud}/decano/rechazar` | Decano | `{observacion}` opcional, `{}` o sin cuerpo | CancelacionMatriculaDetalle |
 
-El formulario lista los seis anexos obligatorios y las asignaturas activas
-del estudiante; la solicitud incluye todas esas asignaturas.
+El formulario lista solo los anexos vigentes, hoy uno: "Paz y salvos (un solo
+PDF con todos los paz y salvos)", obligatorio, PDF de hasta 10 MB (P55). Los
+seis anexos anteriores ya no se ofrecen ni se exigen; las solicitudes radicadas
+con ellos los siguen mostrando y descargando. Trae también las asignaturas
+activas del estudiante; la solicitud incluye todas esas asignaturas.
 
 Radicación (`multipart/form-data`):
 
@@ -601,8 +610,9 @@ Cuerpos de las acciones:
   académicas (P51): las de la tabla son las que dejó el Funcionario al
   remitir, o ninguna. Si el cuerpo trae `situaciones` se ignoran sin error,
   como el `requisitosVerificados` del supletorio (P49).
-- `rechazar` del Funcionario: `observacion` obligatoria y escaneo de la
-  Resolución, subido antes con `POST solicitudes-academicas/{uuid}/resolucion`.
+- `rechazar` del Funcionario: `observacion` obligatoria; no pide el escaneo de
+  la Resolución (P56). Si ya había uno cargado se conserva, pero el correo del
+  rechazo directo no lo adjunta.
   `rechazar` del Decano: `observacion` opcional.
 - `responder`: `observacion` opcional (máximo 500), mensaje para el Estudiante
   que queda en el historial; exige el escaneo de la Resolución. Desde

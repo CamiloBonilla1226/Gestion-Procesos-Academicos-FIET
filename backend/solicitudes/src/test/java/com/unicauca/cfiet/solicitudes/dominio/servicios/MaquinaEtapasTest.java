@@ -53,7 +53,7 @@ class MaquinaEtapasTest {
     private static List<Fila> tablaCancelacion(TipoProcesoAcademico tipo) {
         return List.of(
                 new Fila(tipo, null, RADICAR, ESTUDIANTE, RADICADA, false, false, false, false),
-                new Fila(tipo, RADICADA, RECHAZAR_FUNCIONARIO, FUNCIONARIO, RECHAZADA, true, true, false, false),
+                new Fila(tipo, RADICADA, RECHAZAR_FUNCIONARIO, FUNCIONARIO, RECHAZADA, true, false, false, false),
                 new Fila(tipo, RADICADA, REMITIR_DECANO, FUNCIONARIO, EN_REVISION_DECANO, false, false, false, false),
                 new Fila(tipo, EN_REVISION_DECANO, APROBAR_DECANO, DECANO, APROBADA_POR_DECANO, false, false, false, false),
                 new Fila(tipo, EN_REVISION_DECANO, RECHAZAR_DECANO, DECANO, RECHAZADA_POR_DECANO, false, false, false, false),
@@ -231,22 +231,33 @@ class MaquinaEtapasTest {
 
     @ParameterizedTest
     @EnumSource(value = TipoProcesoAcademico.class, names = {"CANCELACION_MATRICULA", "CANCELACION_ASIGNATURA"})
-    void rechazarFuncionarioEnCancelacionesExigeObservacionYEscaneo(TipoProcesoAcademico tipo) {
+    void rechazarFuncionarioEnCancelacionesSoloExigeObservacionSinEscaneo(TipoProcesoAcademico tipo) {
         EntregaTransicion soloObservacion = EntregaTransicion.builder().observacion("No cumple").build();
         EntregaTransicion soloEscaneo = EntregaTransicion.builder().resolucion(true).build();
-        EntregaTransicion ambas = EntregaTransicion.builder().observacion("No cumple").resolucion(true).build();
 
-        assertRechazo("Resolución", () -> maquina.transicionar(tipo, RADICADA, RECHAZAR_FUNCIONARIO, FUNCIONARIO, soloObservacion));
+        ResultadoTransicion resultado = maquina.transicionar(tipo, RADICADA, RECHAZAR_FUNCIONARIO, FUNCIONARIO, soloObservacion);
+        assertEquals(RECHAZADA, resultado.getEtapaSiguiente());
+        assertFalse(resultado.isResolucionObligatoria());
         assertRechazo("observación", () -> maquina.transicionar(tipo, RADICADA, RECHAZAR_FUNCIONARIO, FUNCIONARIO, soloEscaneo));
-        assertEquals(RECHAZADA, maquina.transicionar(tipo, RADICADA, RECHAZAR_FUNCIONARIO, FUNCIONARIO, ambas).getEtapaSiguiente());
     }
 
     @Test
-    void rechazarFuncionarioEnCancelacionesSinNadaNombraAmbosRequisitos() {
+    void rechazarFuncionarioEnCancelacionesSinNadaSoloPideLaObservacion() {
         ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
                 () -> maquina.transicionar(CANCELACION_MATRICULA, RADICADA, RECHAZAR_FUNCIONARIO, FUNCIONARIO, null));
         assertTrue(error.getMessage().contains("observación"));
-        assertTrue(error.getMessage().contains("Resolución"));
+        assertFalse(error.getMessage().contains("Resolución"));
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = TipoProcesoAcademico.class, names = {"CANCELACION_MATRICULA", "CANCELACION_ASIGNATURA"})
+    void laRespuestaFinalTrasElDecanoSigueExigiendoElEscaneo(TipoProcesoAcademico tipo) {
+        EntregaTransicion sinEscaneo = EntregaTransicion.builder().observacion("Respuesta").build();
+
+        assertRechazo("Resolución", () -> maquina.transicionar(tipo, APROBADA_POR_DECANO, ENVIAR_RESPUESTA, FUNCIONARIO, sinEscaneo));
+        assertRechazo("Resolución", () -> maquina.transicionar(tipo, RECHAZADA_POR_DECANO, ENVIAR_RESPUESTA, FUNCIONARIO, sinEscaneo));
+        assertTrue(maquina.transicionar(tipo, APROBADA_POR_DECANO, ENVIAR_RESPUESTA, FUNCIONARIO,
+                EntregaTransicion.builder().resolucion(true).build()).isResolucionObligatoria());
     }
 
     @Test

@@ -5,6 +5,7 @@ import com.unicauca.cfiet.solicitudes.dominio.modelos.AdjuntoCorreo;
 import jakarta.mail.BodyPart;
 import jakarta.mail.Multipart;
 import jakarta.mail.Session;
+import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,10 +53,51 @@ class ServicioCorreoTest {
         servicio.enviar("est@unicauca.edu.co", "Notificación de examen supletorio", "Texto", List.of());
 
         MimeMessage mensaje = enviado();
-        assertEquals("fiet@gmail.com", mensaje.getFrom()[0].toString());
+        mensaje.saveChanges();
+        InternetAddress remitente = (InternetAddress) mensaje.getFrom()[0];
+        assertEquals("fiet@gmail.com", remitente.getAddress());
+        assertEquals("Decanatura FIET - Procesos académicos", remitente.getPersonal());
         assertEquals("est@unicauca.edu.co", mensaje.getAllRecipients()[0].toString());
         assertEquals("Notificación de examen supletorio", mensaje.getSubject());
-        assertEquals("Texto", mensaje.getContent());
+        assertEquals("Texto", parteDeTipo((Multipart) mensaje.getContent(), "text/plain"));
+    }
+
+    @Test
+    void cadaCorreoLlevaTextoPlanoYUnHtmlSimpleSinImagenesNiEnlaces() throws Exception {
+        String texto = "Popayán, Cauca, 15 de octubre de 2026" + System.lineSeparator() + System.lineSeparator()
+                + "Sr(a) Ana <Pérez> & Cía" + System.lineSeparator() + "Estudiante" + System.lineSeparator() + System.lineSeparator()
+                + "Ingrese a la aplicación.";
+        when(almacenamiento.leer(RUTA_RESOLUCION)).thenReturn(new byte[]{1, 2, 3});
+
+        servicio.enviar("est@unicauca.edu.co", "Asunto", texto, List.of(adjunto("Resolucion.pdf", RUTA_RESOLUCION)));
+
+        MimeMessage mensaje = enviado();
+        mensaje.saveChanges();
+        Multipart partes = (Multipart) mensaje.getContent();
+        assertEquals(texto, parteDeTipo(partes, "text/plain"));
+        String html = parteDeTipo(partes, "text/html");
+        assertTrue(html.contains("<p style=\"margin:0 0 12px 0\">Popayán, Cauca, 15 de octubre de 2026</p>"));
+        assertTrue(html.contains("Sr(a) Ana &lt;Pérez&gt; &amp; Cía<br>Estudiante"));
+        assertTrue(html.contains("Ingrese a la aplicación."));
+        assertFalse(html.contains("<img"));
+        assertFalse(html.contains("<a "));
+        assertFalse(html.contains("http"));
+        List<String> nombres = new ArrayList<>();
+        recogerAdjuntos(partes, nombres);
+        assertEquals(List.of("Resolucion.pdf"), nombres);
+    }
+
+    private String parteDeTipo(Multipart partes, String tipo) throws Exception {
+        for (int i = 0; i < partes.getCount(); i++) {
+            BodyPart parte = partes.getBodyPart(i);
+            if (parte.getContent() instanceof Multipart interno) {
+                String encontrado = parteDeTipo(interno, tipo);
+                if (encontrado != null) return encontrado;
+            } else if (parte.isMimeType(tipo) && parte.getFileName() == null) {
+                return (String) parte.getContent();
+            }
+        }
+        return null;
     }
 
     @Test

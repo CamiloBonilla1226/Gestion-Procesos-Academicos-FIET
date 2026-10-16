@@ -6,7 +6,8 @@ import {
   MAXIMO_CARACTERES_VALOR_ASIGNATURA,
   NOTA_MAXIMA,
   NOTA_MINIMA,
-  TAMANIO_MAXIMO_ARCHIVO_BYTES
+  TAMANIO_MAXIMO_ARCHIVO_BYTES,
+  TAMANIO_MAXIMO_PAZ_Y_SALVOS_BYTES
 } from '../constantes/procesos-academicos';
 import { campoObservacion } from '../constantes/etiquetas-academicas';
 import { formatearTamanio } from './formato';
@@ -41,7 +42,7 @@ export function errorDeArchivo(
   formatos: string | null | undefined,
   maximoBytes: number = TAMANIO_MAXIMO_ARCHIVO_BYTES
 ): string | null {
-  const maximo = Math.min(maximoBytes > 0 ? maximoBytes : TAMANIO_MAXIMO_ARCHIVO_BYTES, TAMANIO_MAXIMO_ARCHIVO_BYTES);
+  const maximo = Math.min(maximoBytes > 0 ? maximoBytes : TAMANIO_MAXIMO_ARCHIVO_BYTES, TAMANIO_MAXIMO_PAZ_Y_SALVOS_BYTES);
   if (archivo.size === 0) return 'El archivo está vacío.';
   if (archivo.size > maximo) return `El archivo supera el máximo de ${textoMaximo(maximo)}.`;
   if (!extensionPermitida(archivo.name, formatos)) {

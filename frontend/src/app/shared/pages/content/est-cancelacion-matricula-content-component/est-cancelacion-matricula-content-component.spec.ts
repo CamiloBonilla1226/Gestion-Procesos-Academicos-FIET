@@ -163,6 +163,25 @@ describe('EstCancelacionMatriculaContentComponent', () => {
     expect(entrada.reset).toHaveBeenCalled();
   });
 
+  it('con el PDF unico de paz y salvos acepta hasta 10 MB y avisa el limite en la ayuda', () => {
+    const fixture = crear({
+      anexosRequeridos: [{
+        uuidTipoAnexoAcademico: 't-paz', nombre: 'Paz y salvos (un solo PDF con todos los paz y salvos)',
+        formatosPermitidos: 'pdf', obligatorio: true, tamanioMaximoBytes: 10485760
+      }],
+      asignaturas: [{ codigoAsignatura: 'A1', nombreAsignatura: 'Asignatura 1' }]
+    });
+    const componente = fixture.componentInstance;
+    expect(componente.campos.length).toBe(1);
+    expect(fixture.nativeElement.querySelector('[data-ayuda-paz-y-salvos]').textContent).toContain('10 MB');
+    componente.alSeleccionarAnexo(componente.campos[0], archivo('paz.pdf', 8 * 1024 * 1024), entrada);
+    expect(componente.archivos['t-paz']).not.toBeNull();
+    expect(componente.errores['t-paz']).toBeUndefined();
+    componente.alSeleccionarAnexo(componente.campos[0], archivo('paz.pdf', 10485761), entrada);
+    expect(componente.archivos['t-paz']).toBeNull();
+    expect(componente.errores['t-paz']).toContain('10 MB');
+  });
+
   it('acepta jpeg en DARCA y rechaza formatos no permitidos', () => {
     const componente = crear().componentInstance;
     componente.alSeleccionarAnexo(componente.campos[5], archivo('carne.jpeg'), entrada);

@@ -15,4 +15,6 @@ public class TipoAnexoAcademicoDTORespuesta {
     private String nombre;
     private String formatosPermitidos;
     private Boolean obligatorio;
+    private Boolean vigente;
+    private Long tamanioMaximoBytes;
 }

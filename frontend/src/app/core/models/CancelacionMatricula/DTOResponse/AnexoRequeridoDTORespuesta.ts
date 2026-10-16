@@ -3,4 +3,5 @@ export interface AnexoRequeridoDTORespuesta {
   nombre: string;
   formatosPermitidos: string;
   obligatorio: boolean;
+  tamanioMaximoBytes?: number | null;
 }

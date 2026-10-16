@@ -136,6 +136,17 @@ export class DetalleSolicitudAcademicaComponent implements OnInit {
     return this.ultimaObservacion(ACCIONES_ACADEMICAS.REMITIR_DECANO);
   }
 
+  get rechazadaSinResolucion(): boolean {
+    if (!this.solicitud || this.solicitud.etapaCodigo !== 'RECHAZADA') return false;
+    const proceso = procesoDeTipoSolicitud(this.solicitud.tipoSolicitud);
+    const esCancelacion = proceso === PROCESOS_ACADEMICOS.CANCELACION_MATRICULA || proceso === PROCESOS_ACADEMICOS.CANCELACION_ASIGNATURA;
+    return esCancelacion && this.historial.some(entrada => entrada.accion === ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO);
+  }
+
+  get muestraDescargaResolucion(): boolean {
+    return !!this.solicitud?.puedeDescargarResolucion && !(this.esEstudiante && this.rechazadaSinResolucion);
+  }
+
   get mensajeEstudiante(): string | null {
     return this.ultimaObservacion(...ACCIONES_MENSAJE_ESTUDIANTE);
   }

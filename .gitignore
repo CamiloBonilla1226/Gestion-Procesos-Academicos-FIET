@@ -18,6 +18,7 @@ frontend/*.log
 .DS_Store
 Thumbs.db
 limpieza_local.sql
+backend/pruebas/limpiar-estudiantes.ps1
 *.local.md
 
 # --- Variables de entorno locales ---

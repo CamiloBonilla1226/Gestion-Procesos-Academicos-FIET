@@ -152,23 +152,24 @@ describe('CancelacionMatriculaProcesoComponent', () => {
     expect(componente.dialogoVisible).toBeTrue();
     expect(componente.tituloDialogo).toBe('Rechazar la solicitud');
     expect(document.querySelector('[data-dialogo]')).toBeTruthy();
+    expect(document.querySelector('[data-campo-resolucion]')).toBeNull();
+    expect(document.querySelector('[data-nota-rechazo-directo]')?.textContent).toContain('no lleva Resolución');
     componente.confirmar();
     expect(componente.errores['observacion']).toBeTruthy();
-    expect(componente.errores['resolucion']).toBeTruthy();
+    expect(componente.errores['resolucion']).toBeUndefined();
     expect(solicitudes.adjuntarResolucion).not.toHaveBeenCalled();
     expect(cancelaciones.rechazarPorFuncionario).not.toHaveBeenCalled();
   });
 
-  it('rechazar sube primero el escaneo, luego rechaza y recarga', () => {
+  it('rechazar no sube Resolucion: rechaza y recarga', () => {
     const orden: string[] = [];
-    solicitudes.adjuntarResolucion.and.callFake(() => { orden.push('resolucion'); return of({ uuidSolicitudAcademica: 's-1', nombreArchivo: 'r.pdf', fechaSubida: '' }); });
     cancelaciones.rechazarPorFuncionario.and.callFake(() => { orden.push('rechazar'); return of(DETALLE); });
     const componente = crear(solicitud(['RECHAZAR_FUNCIONARIO'])).componentInstance;
     componente.abrir('RECHAZAR_FUNCIONARIO');
     componente.observacion = 'Faltan paz y salvos vigentes';
-    componente.alSeleccionarResolucion(new File(['%PDF-'], 'resolucion.pdf'), entrada);
     componente.confirmar();
-    expect(orden).toEqual(['resolucion', 'rechazar']);
+    expect(orden).toEqual(['rechazar']);
+    expect(solicitudes.adjuntarResolucion).not.toHaveBeenCalled();
     expect(cancelaciones.rechazarPorFuncionario).toHaveBeenCalledWith('s-1', { observacion: 'Faltan paz y salvos vigentes' });
     expect(recargar).toHaveBeenCalled();
     expect(componente.dialogoVisible).toBeFalse();
@@ -182,6 +183,14 @@ describe('CancelacionMatriculaProcesoComponent', () => {
     componente.confirmar();
     expect(solicitudes.adjuntarResolucion).not.toHaveBeenCalled();
     expect(cancelaciones.rechazarPorFuncionario).toHaveBeenCalled();
+  });
+
+  it('la respuesta final tras el Decano sigue exigiendo el escaneo de la Resolucion', () => {
+    const componente = crear(solicitud(['ENVIAR_RESPUESTA'])).componentInstance;
+    componente.abrir('ENVIAR_RESPUESTA');
+    componente.confirmar();
+    expect(componente.errores['resolucion']).toContain('Resolución');
+    expect(cancelaciones.enviarRespuesta).not.toHaveBeenCalled();
   });
 
   it('el escaneo solo admite PDF de hasta 5 MB', () => {

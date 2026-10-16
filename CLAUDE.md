@@ -71,21 +71,25 @@ revierten están en la sección siguiente.
   digital ni documento nativo digital. Se distribuyen tres copias físicas.
 - Una copia escaneada de la Resolución firmada la sube el Funcionario Académico
   y la descarga el Estudiante. Aplica solo a Cancelación de Matrícula y
-  Cancelación de Asignatura, y se sube en el punto donde termina el proceso:
-  rechazo en el Funcionario o decisión final después del Decano. Vive en
+  Cancelación de Asignatura, y se sube cuando la solicitud pasó por el Decano,
+  en la respuesta final (aprobada o rechazada). Vive en
   `RESOLUCION_ACADEMICA` (1 a 0..1 con `SOLICITUD_ACADEMICA`), separada de
   `ANEXO_ACADEMICO`.
-- En Cancelación de Matrícula y Cancelación de Asignatura, un rechazo en la
-  etapa del Funcionario siempre produce una Resolución formal firmada
-  físicamente por el Decano: el backend no deja rechazar sin el escaneo.
+- En Cancelación de Matrícula y Cancelación de Asignatura, el rechazo directo
+  del Funcionario (sin remitir al Decano) no lleva Resolución: el backend no la
+  pide y el correo no la adjunta. La respuesta final después del Decano sí la
+  exige, como antes (P56, desde T12.31).
 - Cancelación de Asignatura tiene aprobación parcial: el Decano aprueba o
   rechaza cada asignatura por separado y solo se cancelan las aprobadas
   (decisión P14 de `docs/database/etapas-por-proceso.md`).
 - Examen Supletorio no produce Resolución y tiene un plazo de tres días
   hábiles. Tras la aprobación del Decano, el Funcionario sube el recibo de
   pago y el Estudiante el comprobante; el Funcionario lo aprueba o lo rechaza.
-- Cancelación de Matrícula tiene seis anexos obligatorios. Cancelación de
-  Asignatura tiene cuatro condiciones académicas.
+- Cancelación de Matrícula tiene un solo anexo obligatorio: un PDF con todos
+  los paz y salvos, de hasta 10 MB. Los seis anexos anteriores quedan retirados
+  en el catálogo (`vigente = 0`) para conservar las solicitudes ya radicadas
+  (P55, desde T12.31). Cancelación de Asignatura tiene cuatro condiciones
+  académicas.
 - Secretario General o Decano crean los usuarios Estudiante y Funcionario
   Académico, por formulario y por carga masiva desde Excel. Para crear un
   Estudiante se registra también su información de materias.

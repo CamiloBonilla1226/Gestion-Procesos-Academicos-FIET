@@ -13,4 +13,9 @@ public class TipoAnexoAcademico {
     private String nombre;
     private String formatosPermitidos;
     private Boolean obligatorio;
+    private Boolean vigente;
+
+    public boolean estaVigente() {
+        return !Boolean.FALSE.equals(vigente);
+    }
 }
