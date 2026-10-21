@@ -11,7 +11,6 @@ import { CatalogoAcademicoService } from '../../../../core/services/catalogo-aca
 import { ErrorHandlerService } from '../../../../core/services/error-handler-service';
 import { ToastService } from '../../../../core/services/toast-service';
 import { SolicitudAcademicaDetalleDTORespuesta } from '../../../../core/models/SolicitudAcademica/DTOResponse/SolicitudAcademicaDetalleDTORespuesta';
-import { AnexoAcademicoDTORespuesta } from '../../../../core/models/SolicitudAcademica/DTOResponse/AnexoAcademicoDTORespuesta';
 import { CancelacionAsignaturaDetalleDTORespuesta } from '../../../../core/models/CancelacionAsignatura/DTOResponse/CancelacionAsignaturaDetalleDTORespuesta';
 import { AsignaturaSolicitadaDTORespuesta } from '../../../../core/models/CancelacionAsignatura/DTOResponse/AsignaturaSolicitadaDTORespuesta';
 import { InputAnexoUploadComponent } from '../../../inputs/input-anexo-upload-component/input-anexo-upload-component';
@@ -65,12 +64,12 @@ function detalle(asignaturas: AsignaturaSolicitadaDTORespuesta[]): CancelacionAs
 const EVALUADAS: AsignaturaSolicitadaDTORespuesta[] = [
   {
     ...soloCodigos('A1', 'Cálculo', 'as-1'), numeroFaltas: '1', nota: '3.8',
-    situacionMatricula: { uuidSituacionAcademica: 'r0', codigo: 'R0', nombre: 'No cursada' },
+    situacionMatricula: { uuidSituacionAcademica: 'r0', codigo: 'R1', nombre: 'Cursada por primera vez' },
     cumpleCondiciones: true, observacionEvaluacion: null
   },
   {
     ...soloCodigos('A2', 'Física', 'as-2'), numeroFaltas: '6', nota: '2.4',
-    situacionMatricula: { uuidSituacionAcademica: 'r2', codigo: 'R2', nombre: 'Perdida' },
+    situacionMatricula: { uuidSituacionAcademica: 'r2', codigo: 'R2', nombre: 'Cursada por segunda vez' },
     cumpleCondiciones: false, observacionEvaluacion: 'Nota menor a 3.0'
   }
 ];
@@ -95,8 +94,8 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
     errores = jasmine.createSpyObj<ErrorHandlerService>('ErrorHandlerService', ['handleError']);
     recargar = jasmine.createSpy('recargar');
     catalogo.getSituaciones.and.returnValue(of([
-      { uuidSituacionAcademica: 'r0', codigo: 'R0', nombre: 'No cursada' },
-      { uuidSituacionAcademica: 'r3', codigo: 'R3', nombre: 'Cancelada' }
+      { uuidSituacionAcademica: 'r0', codigo: 'R1', nombre: 'Cursada por primera vez', ambito: 'MATRICULA' },
+      { uuidSituacionAcademica: 'r3', codigo: 'C1', nombre: 'No vista', ambito: 'CANCELACION' }
     ]));
     TestBed.configureTestingModule({
       imports: [CancelacionAsignaturaProcesoComponent],
@@ -172,13 +171,14 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
 
     it('en la etapa final ve la situacion al cancelar de las aprobadas', () => {
       const asignaturas = [
-        { ...soloCodigos('A1', 'Cálculo', 'as-1'), aprobadaPorDecano: true, situacionCancelar: { uuidSituacionAcademica: 'r1', codigo: 'R1', nombre: 'Cursada por primera vez' } },
+        { ...soloCodigos('A1', 'Cálculo', 'as-1'), aprobadaPorDecano: true, situacionCancelar: { uuidSituacionAcademica: 'r1', codigo: 'C2', nombre: 'Perdida' } },
         { ...soloCodigos('A2', 'Física', 'as-2'), aprobadaPorDecano: false }
       ];
       const fixture = crear(solicitud([], 'APROBADA', false, 'Aprobada'), asignaturas, 'ESTUDIANTE');
       expect(encabezados(fixture)).toEqual(['Código', 'Asignatura', 'Decisión del Decano', 'Situación académica al cancelar']);
       const filas = fixture.nativeElement.querySelectorAll('tbody tr');
-      expect(filas[0].textContent).toContain('R1 - Cursada por primera vez');
+      expect(filas[0].textContent).toContain('Perdida');
+      expect(filas[0].textContent).not.toContain('C2');
       expect(filas[1].textContent).toContain('—');
     });
 
@@ -458,11 +458,11 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
     });
 
     it('el Decano no ve ni llena situacion al cancelar ni observacion por asignatura', () => {
-      const conSituacion = EVALUADAS.map(a => ({ ...a, situacionCancelar: { uuidSituacionAcademica: 'r3', codigo: 'R3', nombre: 'Cancelada' } }));
+      const conSituacion = EVALUADAS.map(a => ({ ...a, situacionCancelar: { uuidSituacionAcademica: 'r3', codigo: 'C1', nombre: 'No vista' } }));
       const fixture = crear(solicitud(['APROBAR_DECANO', 'RECHAZAR_DECANO'], 'EN_REVISION_DECANO'), conSituacion, 'DECANO');
       expect(encabezados(fixture)).not.toContain('Al Cancelar');
       expect(encabezados(fixture)).not.toContain('Observación de la decisión');
-      expect(fixture.nativeElement.textContent).not.toContain('R3 - Cancelada');
+      expect(fixture.nativeElement.textContent).not.toContain('No vista');
       fixture.componentInstance.abrirDecision('aceptar');
       fixture.detectChanges();
       expect(document.querySelectorAll('[data-dialogo] select').length).toBe(0);
@@ -575,29 +575,22 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
     expect(recargar).toHaveBeenCalled();
   });
 
-  it('rechazar en el Funcionario sube el documento adicional antes de rechazar y sin Resolucion', () => {
-    const orden: string[] = [];
-    catalogo.getTiposAnexoPorTipo.and.returnValue(of([
-      { uuidTipoAnexoAcademico: 'u-adicional', uuidTipoSolicitudAcademica: 't', nombre: 'Documento adicional de la respuesta', formatosPermitidos: 'pdf', obligatorio: false }
-    ]));
-    solicitudes.adjuntarResolucion.and.callFake(() => { orden.push('resolucion'); return of({ uuidSolicitudAcademica: 's-1', nombreArchivo: 'r.pdf', fechaSubida: '' }); });
-    solicitudes.adjuntarAnexo.and.callFake(() => { orden.push('adicional'); return of({} as AnexoAcademicoDTORespuesta); });
-    cancelaciones.rechazarPorFuncionario.and.callFake(() => { orden.push('rechazar'); return of(detalle(EVALUADAS)); });
+  it('rechazar y responder ya no ofrecen ni suben el documento adicional', () => {
+    cancelaciones.rechazarPorFuncionario.and.returnValue(of(detalle(EVALUADAS)));
     const fixture = crear(solicitud(['RECHAZAR_FUNCIONARIO']), EVALUADAS);
     const componente = fixture.componentInstance;
     componente.abrir('RECHAZAR_FUNCIONARIO');
     fixture.detectChanges();
-    expect(document.querySelector('[data-campo-documento-adicional]')).toBeTruthy();
+    expect(document.querySelector('[data-campo-documento-adicional]')).toBeNull();
     componente.observacion = 'Ninguna cumple';
-    componente.archivoAdicional = new File(['%PDF-'], 'acta.pdf');
     componente.confirmar();
-    expect(orden).toEqual(['adicional', 'rechazar']);
-    expect(solicitudes.adjuntarResolucion).not.toHaveBeenCalled();
-    expect(solicitudes.adjuntarAnexo).toHaveBeenCalledWith('s-1', jasmine.objectContaining({ tipoAnexo: 'u-adicional' }));
+    expect(cancelaciones.rechazarPorFuncionario).toHaveBeenCalled();
+    expect(catalogo.getTiposAnexoPorTipo).not.toHaveBeenCalled();
+    expect(solicitudes.adjuntarAnexo).not.toHaveBeenCalled();
   });
 
   describe('respuesta final del Funcionario', () => {
-    const SITUACION_R3 = { uuidSituacionAcademica: 'r3', codigo: 'R3', nombre: 'Cancelada' };
+    const SITUACION_R3 = { uuidSituacionAcademica: 'r3', codigo: 'C1', nombre: 'No vista' };
     const DECIDIDAS: AsignaturaSolicitadaDTORespuesta[] = [
       { ...EVALUADAS[0], aprobadaPorDecano: true, decisionCambiadaPorDecano: false, situacionCancelar: SITUACION_R3 },
       { ...EVALUADAS[1], aprobadaPorDecano: true, decisionCambiadaPorDecano: true },
@@ -733,7 +726,7 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
       expect(cancelaciones.enviarRespuesta).toHaveBeenCalledWith('s-1', { ...CUERPO_COMUNICACION, observacion: 'El Decano negó la cancelación' });
     });
 
-    it('sube el escaneo antes de responder', () => {
+    it('pide la Resolucion sin firmar y la sube antes de responder, sin documento adicional', () => {
       const orden: string[] = [];
       solicitudes.adjuntarResolucion.and.callFake(() => { orden.push('resolucion'); return of({ uuidSolicitudAcademica: 's-1', nombreArchivo: 'r.pdf', fechaSubida: '' }); });
       cancelaciones.enviarRespuesta.and.callFake(() => { orden.push('responder'); return of(detalle(EVALUADAS)); });
@@ -742,11 +735,15 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
       const componente = fixture.componentInstance;
       componente.abrir('ENVIAR_RESPUESTA');
       programar(componente);
+      fixture.detectChanges();
+      expect(document.querySelector('[data-nota-resolucion-sin-firmar]')).toBeTruthy();
+      expect(document.querySelector('[data-campo-documento-adicional]')).toBeNull();
       componente.confirmar();
-      expect(componente.errores['resolucion']).toBeTruthy();
+      expect(componente.errores['resolucion']).toBe('Debes subir la Resolución sin firmar por el estudiante (PDF).');
       componente.alSeleccionarResolucion(new File(['%PDF-'], 'resolucion.pdf'), entrada);
       componente.confirmar();
       expect(orden).toEqual(['resolucion', 'responder']);
+      expect(solicitudes.adjuntarAnexo).not.toHaveBeenCalled();
     });
 
     it('al abrir pide la plantilla y carga el mensaje con la firma, la casilla marcada, el anio y la decision propuesta', () => {
@@ -925,14 +922,16 @@ describe('CancelacionAsignaturaProcesoComponent con el catalogo real', () => {
     expect(peticion.request.method).toBe('GET');
     expect(componente.dialogoVisible).toBeFalse();
     peticion.flush([
-      { uuidSituacionAcademica: 's0', codigo: 'R0', nombre: 'No cursada' },
-      { uuidSituacionAcademica: 's3', codigo: 'R3', nombre: 'Cursada por tercera vez' }
+      { uuidSituacionAcademica: 's2', codigo: 'C2', nombre: 'Perdida', ambito: 'CANCELACION' },
+      { uuidSituacionAcademica: 's0', codigo: 'R0', nombre: 'No cursada', ambito: null },
+      { uuidSituacionAcademica: 's3', codigo: 'R3', nombre: 'Cursada por tercera vez', ambito: 'MATRICULA' }
     ]);
     fixture.detectChanges();
     expect(componente.dialogoVisible).toBeTrue();
     const opciones = Array.from(document.querySelectorAll('[data-ajuste="as-1"] option')).map(o => o.textContent?.trim());
-    expect(opciones).toContain('R0 - No cursada');
-    expect(opciones).toContain('R3 - Cursada por tercera vez');
+    expect(opciones).toContain('Perdida');
+    expect(opciones).not.toContain('No cursada');
+    expect(opciones).not.toContain('Cursada por tercera vez');
     expect(errores.handleError).not.toHaveBeenCalled();
   });
 

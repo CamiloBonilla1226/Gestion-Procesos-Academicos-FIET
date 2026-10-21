@@ -111,7 +111,15 @@ try {
         "Recibo de pago"                                                                = @{ Formatos = "pdf"; Obligatorio = $false }
         "Comprobante de pago"                                                           = @{ Formatos = "pdf,jpg,png"; Obligatorio = $false }
     }
-    $Situaciones = [ordered]@{ R0 = "No cursada"; R1 = "Cursada por primera vez"; R2 = "Cursada por segunda vez"; R3 = "Cursada por tercera vez" }
+    $Situaciones = [ordered]@{
+        R0 = @{ Nombre = "No cursada"; Ambito = $null }
+        R1 = @{ Nombre = "Cursada por primera vez"; Ambito = "MATRICULA" }
+        R1R = @{ Nombre = "Recursada por primera vez"; Ambito = "MATRICULA" }
+        R2 = @{ Nombre = "Cursada por segunda vez"; Ambito = "MATRICULA" }
+        R3 = @{ Nombre = "Cursada por tercera vez"; Ambito = "MATRICULA" }
+        C1 = @{ Nombre = "No vista"; Ambito = "CANCELACION" }
+        C2 = @{ Nombre = "Perdida"; Ambito = "CANCELACION" }
+    }
 
     $r = Invoke-Api -Metodo GET -Ruta "catalogos-academicos/tipos-solicitud" -Token $tokenRoot
     $lista = Leer-Json $r
@@ -160,7 +168,7 @@ try {
 
     $r = Invoke-Api -Metodo GET -Ruta "catalogos-academicos/tipos-solicitud/$TipoAsignatura/tipos-anexo" -Token $tokenRoot
     $lista = Leer-Json $r
-    Escribir-Resultado "asignatura solo tiene el documento adicional de la respuesta (obtuvo $(@($lista).Count))" (($r.Status -eq 200) -and (@($lista).Count -eq 1) -and (Es-DocumentoAdicional @($lista)))
+    Escribir-Resultado "asignatura conserva el documento adicional de la respuesta, retirado (no vigente) desde T12.33 (obtuvo $(@($lista).Count))" (($r.Status -eq 200) -and (@($lista).Count -eq 1) -and (Es-DocumentoAdicional @($lista)) -and (@($lista)[0].vigente -eq $false))
 
     $r = Invoke-Api -Metodo GET -Ruta "catalogos-academicos/tipos-solicitud/$TipoSupletorio/tipos-anexo" -Token $tokenRoot
     $lista = Leer-Json $r
@@ -171,8 +179,8 @@ try {
     $r = Invoke-Api -Metodo GET -Ruta "catalogos-academicos/situaciones" -Token $tokenRoot
     $lista = Leer-Json $r
     $situacionesApi = @($lista)
-    $malas = @($Situaciones.Keys | Where-Object { $codigo = $_; $s = @($situacionesApi | Where-Object { $_.codigo -eq $codigo }); ($s.Count -ne 1) -or ($s[0].nombre -cne $Situaciones[$codigo]) })
-    Escribir-Resultado "situaciones R0 a R3 con sus nombres (obtuvo $($situacionesApi.Count), distintas: $($malas -join ','))" (($situacionesApi.Count -eq 4) -and ($malas.Count -eq 0))
+    $malas = @($Situaciones.Keys | Where-Object { $codigo = $_; $s = @($situacionesApi | Where-Object { $_.codigo -eq $codigo }); ($s.Count -ne 1) -or ($s[0].nombre -cne $Situaciones[$codigo].Nombre) -or ($s[0].ambito -ne $Situaciones[$codigo].Ambito) })
+    Escribir-Resultado "situaciones: cuatro de la asignatura, dos al cancelar y R0 retirada sin lista (obtuvo $($situacionesApi.Count), distintas: $($malas -join ','))" (($situacionesApi.Count -eq 7) -and ($malas.Count -eq 0))
 }
 finally {
     $borrados = Limpiar-DatosPrueba -Desde $inicio -Usernames $usernames

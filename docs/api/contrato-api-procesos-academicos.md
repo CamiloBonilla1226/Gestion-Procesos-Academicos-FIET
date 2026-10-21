@@ -115,7 +115,7 @@ Una solicitud que existe pero que el usuario no puede ver responde con
 | Examen Supletorio | Formato firmado por el docente de la asignatura con la que se cruza | pdf, jpg, png | Si la causa es `cruce` |
 | Examen Supletorio | Recibo de pago | pdf | Lo sube el Funcionario para pasar a PENDIENTE_PAGO |
 | Examen Supletorio | Comprobante de pago | pdf, jpg, png | Lo sube el Estudiante para pasar a EN_VERIFICACION_PAGO |
-| Los tres procesos | Documento adicional de la respuesta | pdf | No. Lo sube solo el Funcionario, antes de una acción que cierra la solicitud; uno nuevo reemplaza al anterior, `REMITIR_DECANO` lo retira y va en el correo de la respuesta (P54). No se entrega al radicar ni sale en `GET cancelaciones-matricula/formulario` |
+| Cancelación de Matrícula y Examen Supletorio | Documento adicional de la respuesta | pdf | No. Desde T12.33 (P59) ya no se usa en Cancelación de Asignatura: su tipo queda con `vigente = 0` y `POST solicitudes-academicas/{uuid}/anexos` lo rechaza (código 4, "ya no se recibe en Cancelación de Asignatura"), también para el Funcionario. Lo sube solo el Funcionario, antes de una acción que cierra la solicitud; uno nuevo reemplaza al anterior, `REMITIR_DECANO` lo retira y va en el correo de la respuesta (P54). No se entrega al radicar ni sale en `GET cancelaciones-matricula/formulario` |
 | Cancelaciones | Soporte libre (sin tipo) | pdf, jpg, jpeg, png | No |
 | Cancelaciones | Escaneo de la Resolución | pdf | Solo para enviar la respuesta después del Decano; el rechazo directo del Funcionario no la pide (P56) |
 
@@ -208,7 +208,7 @@ a todas:
 ## 2. Objetos que se repiten
 
 **AsignaturaDTORespuesta**: `uuidAsignatura`, `codigoAsignatura` (generado,
-por ejemplo `ISI-001`), `nombreAsignatura`, `uuidProgramaAcademico` y
+por ejemplo `PIS-001`; las creadas antes de T12.34 conservan `ISI-001`), `nombreAsignatura`, `uuidProgramaAcademico` y
 `programaAcademico` (nombre del programa) (texto).
 
 **ProgramaAcademicoDTORespuesta**: `uuidProgramaAcademico`, `nombre`, `sigla`
@@ -289,9 +289,13 @@ así que la última fila coincide con el `etapaCodigo` del detalle. El Estudiant
 `ENVIAR_RESPUESTA` (en el supletorio aprobado, por `ENVIAR_RECIBO`). El
 Funcionario Académico y el Decano reciben todas las filas.
 
-**SituacionAsignaturaDTORespuesta**: `uuidSituacionAcademica`, `codigo`
-(R0 a R3), `nombre`: R0 No cursada, R1 Cursada por primera vez, R2 Cursada
-por segunda vez, R3 Cursada por tercera vez.
+**SituacionAsignaturaDTORespuesta**: `uuidSituacionAcademica`, `codigo` y
+`nombre`; en `GET catalogos-academicos/situaciones` (SituacionAcademicaAsignaturaDTORespuesta)
+además `ambito`. Desde T12.34 (P60) son dos listas cerradas: `MATRICULA` (situación de la
+asignatura): R1 Cursada por primera vez, R1R Recursada por primera vez, R2 Cursada por
+segunda vez, R3 Cursada por tercera vez; `CANCELACION` (situación al cancelar): C1 No
+vista, C2 Perdida. R0 No cursada se conserva con `ambito` nulo (retirada) y ya no se acepta.
+El frontend muestra solo `nombre`.
 
 ## 3. Endpoints
 
@@ -311,7 +315,7 @@ Cuerpo de `POST asignaturas`: `nombreAsignatura` obligatorio, máximo 150;
 `uuidProgramaAcademico` obligatorio, máximo 100 (400 si no se cumple). El
 cuerpo no lleva código: el backend lo genera con la sigla del programa, un
 guion y el siguiente consecutivo del programa con al menos tres dígitos
-(`ISI-001`, ..., `ISI-999`, `ISI-1000`). El código nunca se edita ni se
+(`PIS-001`, ..., `PIS-999`, `PIS-1000`; desde T12.34 las siglas son PIET, PIS, PIAI, TTM y PIAC, y las asignaturas creadas antes conservan su código con la sigla anterior, P61). El código nunca se edita ni se
 reutiliza. El nombre se guarda sin espacios sobrantes y no se repite dentro
 del mismo programa sin distinguir mayúsculas ni espacios.
 
@@ -474,7 +478,7 @@ aparece en la fila <m> del archivo...`.
 | `GET catalogos-academicos/tipos-solicitud/{uuidTipo}/etapas` | Cualquier usuario autenticado | | | Lista de `{uuidEtapa, codigo, uuidTipoSolicitudAcademica}` (universales y propias del tipo), por código |
 | `GET catalogos-academicos/tipos-solicitud/{uuidTipo}/tipos-anexo` | Cualquier usuario autenticado | | | Lista de `{uuidTipoAnexoAcademico, uuidTipoSolicitudAcademica, nombre, formatosPermitidos, obligatorio, vigente, tamanioMaximoBytes}`, por nombre. Incluye los tipos retirados (`vigente: false`) |
 | `GET catalogos-academicos/etiquetas` | Cualquier usuario autenticado | `rol`: `ESTUDIANTE`, `FUNCIONARIO` o `DECANO` (sin distinguir mayúsculas) | | Lista de `{uuidEtapa, codigoEtapa, rol, etiqueta}`, por código de etapa |
-| `GET catalogos-academicos/situaciones` | Cualquier usuario autenticado | | | Lista de SituacionAsignaturaDTORespuesta, por código |
+| `GET catalogos-academicos/situaciones` | Cualquier usuario autenticado | | | Lista de SituacionAcademicaAsignaturaDTORespuesta (`uuidSituacionAcademica`, `codigo`, `nombre`, `ambito`), por código; incluye la retirada R0 con `ambito` nulo |
 | `GET catalogos-academicos/programas` | Cualquier usuario autenticado | | | Lista de ProgramaAcademicoDTORespuesta de los cinco programas, por nombre |
 | `PUT catalogos-academicos/tipos-solicitud/{uuidTipo}/funcionario` | Secretario General, Decano | | `{funcionarioUuid}` (obligatorio, máximo 100) | TipoSolicitudAcademicaDTORespuesta con el nuevo responsable |
 
@@ -602,7 +606,12 @@ Cuerpos de las acciones:
   ser entero mayor o igual a 0 y `nota` de 0.0 a 5.0 con un decimal, con
   punto o coma (se guarda con punto, `3,5` queda `3.5`); si no son numéricos
   (por ejemplo `Sin registro`) se aceptan tal cual. Las situaciones salen de
-  `GET catalogos-academicos/situaciones` y se validan contra ese catálogo.
+  `GET catalogos-academicos/situaciones` y se validan contra su lista:
+  `situacionMatriculaUuid` solo con `ambito` MATRICULA y `situacionCancelarUuid`
+  (también en los `ajustes` de Cancelación de Asignatura) solo con `ambito`
+  CANCELACION; cualquier otro valor, inexistente, retirado o de la otra lista,
+  responde 500 con `codigoError` 6 y el mensaje "La situación ... no admite el
+  valor ...: las opciones son ..." (P60). Las dos siguen siendo opcionales.
   La situación al cancelar solo la registra el Funcionario (P44, P51).
   La `observacion` de la remisión es la única observación general del cuerpo,
   va para el Decano y el Estudiante no la ve.
@@ -644,7 +653,7 @@ Errores de las evaluaciones y situaciones (además de los de la sección 1.6):
 | `GET cancelaciones-asignatura/{uuidSolicitud}/funcionario/notificacion/plantilla` | Funcionario Académico asignado | | `{mensajeInicial, maximoMensaje, decisionPropuesta, anioResolucion, sufijoResolucion}` |
 | `GET cancelaciones-asignatura/{uuidSolicitud}/funcionario/notificacion` | Funcionario Académico asignado | | NotificacionResolucion, o 204 sin cuerpo si la solicitud no tiene comunicación programada |
 | `PUT cancelaciones-asignatura/{uuidSolicitud}/funcionario/notificacion` | Funcionario Académico asignado | `{fechaProgramada, numeroResolucion, anioResolucion, decision}` | NotificacionResolucion |
-| `POST cancelaciones-asignatura/{uuidSolicitud}/funcionario/notificacion/firma` | Funcionario Académico asignado | Multipart `archivo` (PDF de la Resolución firmada por el estudiante) | NotificacionResolucion |
+| `POST cancelaciones-asignatura/{uuidSolicitud}/funcionario/notificacion/firma` | Funcionario Académico asignado | Multipart `archivo` (PDF de la Resolución firmada por el estudiante). Reemplaza a la Resolución vigente (la sin firmar o una firmada anterior) y deja `firmada` en verdadero; se puede repetir mientras la comunicación siga PROGRAMADA y antes de la fecha (P59) | NotificacionResolucion |
 | `POST cancelaciones-asignatura/{uuidSolicitud}/funcionario/notificacion/reintentar` | Funcionario Académico asignado | Sin cuerpo | NotificacionResolucion |
 | `POST cancelaciones-asignatura/{uuidSolicitud}/decano/aprobar` | Decano | `{aceptarEvaluacion}` o `{decisiones}`, con `observacion` opcional | CancelacionAsignaturaDetalle |
 | `POST cancelaciones-asignatura/{uuidSolicitud}/decano/rechazar` | Decano | `{observacion}` opcional, `{}` o sin cuerpo | CancelacionAsignaturaDetalle |

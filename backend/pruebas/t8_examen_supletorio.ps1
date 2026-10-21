@@ -26,7 +26,7 @@ function Nuevo-Estudiante {
     param([string]$Token, [int]$Materias)
     $s = Nuevo-Sufijo
     $asignaturas = @()
-    if (-not $script:programaIsi) { $script:programaIsi = Programa-PorSigla -Token $Token -Sigla "ISI" }
+    if (-not $script:programaIsi) { $script:programaIsi = Programa-PorSigla -Token $Token -Sigla "PIS" }
     for ($i = 1; $i -le $Materias; $i++) {
         $asignatura = Crear-AsignaturaPrueba -Token $Token -UuidPrograma $script:programaIsi.uuidProgramaAcademico -Nombre "Materia T8 $i $s"
         $script:codigos += $asignatura.codigoAsignatura

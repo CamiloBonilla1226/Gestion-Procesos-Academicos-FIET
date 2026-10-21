@@ -24,7 +24,7 @@ function Nuevo-Estudiante {
     param([string]$Token, [int]$Materias)
     $s = Nuevo-Sufijo
     $asignaturas = @()
-    if (-not $script:programaIsi) { $script:programaIsi = Programa-PorSigla -Token $Token -Sigla "ISI" }
+    if (-not $script:programaIsi) { $script:programaIsi = Programa-PorSigla -Token $Token -Sigla "PIS" }
     for ($i = 1; $i -le $Materias; $i++) {
         $asignatura = Crear-AsignaturaPrueba -Token $Token -UuidPrograma $script:programaIsi.uuidProgramaAcademico -Nombre "Materia T6 $i $s"
         $script:codigos += $asignatura.codigoAsignatura
@@ -211,9 +211,9 @@ function Estados-Matricula {
 $tokenRoot = Iniciar-Sesion -Usuario "rootfiet" -Clave "rootfiet1234"
 $tipoCm = Ejecutar-Sql "select uuidTipoSolicitudAcademica from TIPO_SOLICITUD_ACADEMICA where nombre like 'Cancelaci%n de Matr%cula'"
 $tipoCa = Ejecutar-Sql "select uuidTipoSolicitudAcademica from TIPO_SOLICITUD_ACADEMICA where nombre like 'Cancelaci%n de Asignatura'"
-$situaciones = @(Ejecutar-Sql "select uuidSituacionAcademica from SITUACION_ACADEMICA_ASIGNATURA order by codigo")
+$situaciones = @((Ejecutar-Sql "select uuidSituacionAcademica from SITUACION_ACADEMICA_ASIGNATURA where ambito = 'MATRICULA' order by codigo limit 1"), (Ejecutar-Sql "select uuidSituacionAcademica from SITUACION_ACADEMICA_ASIGNATURA where ambito = 'CANCELACION' order by codigo limit 1"))
 $responsableCm = Ejecutar-Sql "select coalesce(FuncionarioAcademico_uuid, '') from TIPO_SOLICITUD_ACADEMICA where uuidTipoSolicitudAcademica = '$tipoCm'"
-if (-not $tipoCm -or -not $tipoCa -or $situaciones.Count -lt 2) { Write-Host "FAIL faltan los catalogos sembrados de procesos academicos"; exit 1 }
+if (-not $tipoCm -or -not $tipoCa -or -not $situaciones[0] -or -not $situaciones[1]) { Write-Host "FAIL faltan los catalogos sembrados de procesos academicos"; exit 1 }
 $habiaAnexos = Test-Path $Global:CarpetaAnexos
 $anio = (Get-Date).Year
 

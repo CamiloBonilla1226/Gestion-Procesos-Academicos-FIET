@@ -761,7 +761,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
     }
 
     @Test
-    void elRechazoDirectoEnAsignaturaSaleSinResolucionYConElDocumentoAdicional() {
+    void elRechazoDirectoEnAsignaturaSaleSinResolucionNiDocumentoAdicional() {
         when(gateway.getPorUuid(SOLICITUD)).thenReturn(conDatosDeContacto(solicitud(tipo(TIPO_CA, "Cancelación de Asignatura"), RADICADA)));
         when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(documentoAdicional()));
 
@@ -775,7 +775,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         assertFalse(texto.getValue().toLowerCase().contains("resolución"));
         assertFalse(texto.getValue().toLowerCase().contains("rechazada"));
         assertFalse(texto.getValue().contains("No cumple"));
-        assertEquals(List.of("acta.pdf"), adjuntos.getValue().stream().map(AdjuntoCorreo::getNombre).toList());
+        assertTrue(adjuntos.getValue().isEmpty());
         verify(resolucionGateway, never()).getPorSolicitud(any());
         verify(gateway).actualizarEtapa(any(), any());
     }

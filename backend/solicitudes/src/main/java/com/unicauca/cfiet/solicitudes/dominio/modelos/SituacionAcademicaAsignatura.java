@@ -11,4 +11,5 @@ public class SituacionAcademicaAsignatura {
     private String uuidSituacionAcademica;
     private String codigo;
     private String nombre;
+    private AmbitoSituacionAcademica ambito;
 }

@@ -191,6 +191,9 @@ public class AnexoAcademicoCUImplAdaptador implements AnexoAcademicoCUIntPuerto 
         if (!tipoSolicitud.getUuidTipoSolicitudAcademica().equals(tipoDelAnexo))
             formateadorExcepciones.lanzarReglaNegocioViolada(String.format(
                     MensajesError.ANEXO_DE_OTRO_TIPO, tipoAnexo.getNombre(), tipoSolicitud.getNombre()));
+        if (esDocumentoAdicional(tipoAnexo) && !proceso.admiteDocumentoAdicional())
+            formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.DOCUMENTO_ADICIONAL_NO_ADMITIDO,
+                    tipoAnexo.getNombre(), tipoSolicitud.getNombre()));
         if (!tipoAnexo.estaVigente())
             formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.ANEXO_NO_VIGENTE, tipoAnexo.getNombre(),
                     tipoSolicitud.getNombre(), String.join("; ", tipoAnexoGateway.getPorTipo(tipoSolicitud.getUuidTipoSolicitudAcademica()).stream()

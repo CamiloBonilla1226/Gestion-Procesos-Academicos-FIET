@@ -222,9 +222,14 @@ class TramiteCancelacionAsignaturaCUImplAdaptadorTest {
                 .build());
         lenient().when(asignaturaSolicitudGateway.actualizarAsignaturas(any())).thenAnswer(invocacion -> invocacion.getArgument(0));
         lenient().when(situacionGateway.getTodas()).thenReturn(List.of(
-                SituacionAcademicaAsignatura.builder().uuidSituacionAcademica("sit-a").codigo("R0").nombre("Primera vez").build(),
-                SituacionAcademicaAsignatura.builder().uuidSituacionAcademica("sit-b").codigo("R1").nombre("Segunda vez").build(),
-                SituacionAcademicaAsignatura.builder().uuidSituacionAcademica("sit-c").codigo("R2").nombre("Tercera vez").build()));
+                SituacionAcademicaAsignatura.builder().uuidSituacionAcademica("sit-a").codigo("R1").nombre("Cursada por primera vez")
+                        .ambito(AmbitoSituacionAcademica.MATRICULA).build(),
+                SituacionAcademicaAsignatura.builder().uuidSituacionAcademica("sit-b").codigo("R2").nombre("Cursada por segunda vez")
+                        .ambito(AmbitoSituacionAcademica.MATRICULA).build(),
+                SituacionAcademicaAsignatura.builder().uuidSituacionAcademica("sit-c").codigo("C1").nombre("No vista")
+                        .ambito(AmbitoSituacionAcademica.CANCELACION).build(),
+                SituacionAcademicaAsignatura.builder().uuidSituacionAcademica("sit-d").codigo("C2").nombre("Perdida")
+                        .ambito(AmbitoSituacionAcademica.CANCELACION).build()));
         lenient().when(etapaGateway.getPorTipoIncluyendoUniversales(TIPO_CA)).thenReturn(EtapaSolicitudAcademicaConstantes.ETAPAS.stream()
                 .map(codigo -> EtapaSolicitudAcademica.builder().uuidEtapa("et-" + codigo).codigo(codigo).build())
                 .toList());
@@ -337,12 +342,13 @@ class TramiteCancelacionAsignaturaCUImplAdaptadorTest {
     void remitirGuardaLaSituacionAlCancelarSiElFuncionarioLaRegistra() {
         enEtapa(RADICADA);
         List<EvaluacionAsignatura> evaluaciones = evaluacionesValidas();
-        evaluaciones.get(0).setUuidSituacionCancelar("sit-b");
+        evaluaciones.get(0).setUuidSituacionCancelar("sit-d");
 
         casoDeUso.remitirADecano(SOLICITUD, evaluaciones, null, TOKEN_FUNCIONARIO);
 
         List<AsignaturaSolicitudAcademica> guardadas = asignaturasGuardadas();
-        assertEquals("sit-b", guardadas.get(0).getSituacionCancelar().getUuidSituacionAcademica());
+        assertEquals("sit-d", guardadas.get(0).getSituacionCancelar().getUuidSituacionAcademica());
+        assertEquals("Perdida", guardadas.get(0).getSituacionCancelar().getNombre());
         assertNull(guardadas.get(1).getSituacionCancelar());
     }
 
@@ -389,7 +395,9 @@ class TramiteCancelacionAsignaturaCUImplAdaptadorTest {
 
         assertThrows(ErrorMalFormatoExcepcion.class, () -> casoDeUso.remitirADecano(SOLICITUD, List.of(evaluacion("as-1", -1, "4.0", "sit-a", true, null),
                 evaluacion("as-2", 0, "4.0", "sit-a", true, null), evaluacion("as-3", 0, "4.0", "sit-a", true, null)), null, TOKEN_FUNCIONARIO));
-        assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso.remitirADecano(SOLICITUD, List.of(evaluacion("as-1", 0, "4.0", "sit-x", true, null),
+        assertThrows(ErrorMalFormatoExcepcion.class, () -> casoDeUso.remitirADecano(SOLICITUD, List.of(evaluacion("as-1", 0, "4.0", "sit-x", true, null),
+                evaluacion("as-2", 0, "4.0", "sit-a", true, null), evaluacion("as-3", 0, "4.0", "sit-a", true, null)), null, TOKEN_FUNCIONARIO));
+        assertThrows(ErrorMalFormatoExcepcion.class, () -> casoDeUso.remitirADecano(SOLICITUD, List.of(evaluacion("as-1", 0, "4.0", "sit-c", true, null),
                 evaluacion("as-2", 0, "4.0", "sit-a", true, null), evaluacion("as-3", 0, "4.0", "sit-a", true, null)), null, TOKEN_FUNCIONARIO));
         verificarQueNoSeEscribioNada();
     }
@@ -743,8 +751,11 @@ class TramiteCancelacionAsignaturaCUImplAdaptadorTest {
                 "Respuesta", List.of(ajuste("as-2", "sit-c", "No"), ajuste("as-3", "sit-c", null)), COMUNICACION, TOKEN_FUNCIONARIO)).getMessage());
         assertThrows(ErrorMalFormatoExcepcion.class, () -> casoDeUso.enviarRespuesta(SOLICITUD, "Respuesta",
                 List.of(ajuste("as-2", null, "x".repeat(256)), ajuste("as-3", "sit-c", null)), COMUNICACION, TOKEN_FUNCIONARIO));
-        assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso.enviarRespuesta(SOLICITUD, "Respuesta",
+        assertThrows(ErrorMalFormatoExcepcion.class, () -> casoDeUso.enviarRespuesta(SOLICITUD, "Respuesta",
                 List.of(ajuste("as-2", null, "No"), ajuste("as-3", "sit-x", null)), COMUNICACION, TOKEN_FUNCIONARIO));
+        assertEquals(String.format(MensajesError.SITUACION_NO_PERMITIDA, "La situación al cancelar", "sit-a", "No vista, Perdida"),
+                assertThrows(ErrorMalFormatoExcepcion.class, () -> casoDeUso.enviarRespuesta(SOLICITUD, "Respuesta",
+                        List.of(ajuste("as-2", null, "No"), ajuste("as-3", "sit-a", null)), COMUNICACION, TOKEN_FUNCIONARIO)).getMessage());
         verificarQueNoSeEscribioNada();
     }
 

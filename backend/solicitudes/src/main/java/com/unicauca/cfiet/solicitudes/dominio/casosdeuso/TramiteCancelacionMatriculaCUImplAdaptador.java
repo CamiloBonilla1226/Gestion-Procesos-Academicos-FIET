@@ -66,8 +66,8 @@ public class TramiteCancelacionMatriculaCUImplAdaptador implements TramiteCancel
             String nombre = tramite.nombreDe(asignatura);
             asignatura.setNumeroFaltas(tramite.faltasDe(evaluacion.getNumeroFaltas(), nombre));
             asignatura.setNota(tramite.notaDe(evaluacion.getNota(), nombre));
-            asignatura.setSituacionMatricula(tramite.situacionDe(catalogo, evaluacion.getUuidSituacionMatricula()));
-            asignatura.setSituacionCancelar(tramite.situacionDe(catalogo, evaluacion.getUuidSituacionCancelar()));
+            asignatura.setSituacionMatricula(tramite.situacionDe(catalogo, evaluacion.getUuidSituacionMatricula(), AmbitoSituacionAcademica.MATRICULA));
+            asignatura.setSituacionCancelar(tramite.situacionDe(catalogo, evaluacion.getUuidSituacionCancelar(), AmbitoSituacionAcademica.CANCELACION));
         }
 
         SolicitudAcademica actualizada = solicitudCU.cambiarEtapa(uuidSolicitudAcademica, AccionEtapa.REMITIR_DECANO, actor, observacion, token);

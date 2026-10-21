@@ -12,7 +12,6 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 
 public class TramiteCancelacion {
-    private static final String SITUACION_ACADEMICA = "Situación académica de asignatura";
     private static final String NUMERO_FALTAS = "el número de faltas";
     private static final String NOTA = "la nota";
     private static final BigDecimal NOTA_MINIMA = BigDecimal.ZERO;
@@ -115,12 +114,18 @@ public class TramiteCancelacion {
         return texto;
     }
 
-    public SituacionAcademicaAsignatura situacionDe(Map<String, SituacionAcademicaAsignatura> catalogo, String uuidSituacion) {
+    public SituacionAcademicaAsignatura situacionDe(Map<String, SituacionAcademicaAsignatura> catalogo, String uuidSituacion,
+                                                    AmbitoSituacionAcademica ambito) {
         if (!tieneTexto(uuidSituacion))
             return null;
         SituacionAcademicaAsignatura situacion = catalogo.get(uuidSituacion);
-        if (situacion == null)
-            formateadorExcepciones.lanzarEntidadNoExiste(String.format(MensajesError.ENTIDAD_NO_ENCONTRADA, SITUACION_ACADEMICA, uuidSituacion));
+        if (situacion == null || situacion.getAmbito() != ambito)
+            formateadorExcepciones.lanzarMalFormato(String.format(MensajesError.SITUACION_NO_PERMITIDA, ambito.getCampo(), uuidSituacion,
+                    String.join(", ", catalogo.values().stream()
+                            .filter(opcion -> opcion.getAmbito() == ambito)
+                            .sorted(Comparator.comparing(SituacionAcademicaAsignatura::getCodigo))
+                            .map(SituacionAcademicaAsignatura::getNombre)
+                            .toList())));
         return situacion;
     }
 

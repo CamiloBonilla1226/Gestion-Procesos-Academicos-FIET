@@ -13,4 +13,5 @@ public class SituacionAcademicaAsignaturaDTORespuesta {
     private String uuidSituacionAcademica;
     private String codigo;
     private String nombre;
+    private String ambito;
 }

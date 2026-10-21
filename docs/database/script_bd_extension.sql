@@ -23,7 +23,11 @@ SET FOREIGN_KEY_CHECKS = 0;
 
 -- Catálogo fijo de los cinco programas de la FIET, sembrado en
 -- docs/database/seed-procesos-academicos.sql con UUID fijos. La sigla
--- forma el código de las asignaturas del programa (ISI-001, IET-014, ...).
+-- forma el código de las asignaturas del programa (PIS-001, PIET-014, ...).
+-- Siglas desde T12.34 (P61): PIET, PIS, PIAI, TTM y PIAC (antes IET, ISI,
+-- IAI, TTE e IAC). Se cambiaron con UPDATE; el código de una asignatura se
+-- guarda como texto al crearla, así que las que ya existían conservan el
+-- código con la sigla anterior y solo las nuevas usan la sigla nueva.
 -- ultimoConsecutivoAsignatura es el contador de ese código: el backend lo
 -- lee con bloqueo de fila (SELECT ... FOR UPDATE), le suma uno por cada
 -- asignatura nueva y lo guarda en la misma transacción. Nunca baja, así
@@ -234,12 +238,20 @@ CREATE TABLE IF NOT EXISTS SOLICITUD_SUPLETORIO_CRUCE_ASIGNATURA (
 -- 7. Catálogo de situación académica (formato oficial PA-GA-4.2-FOR-9)
 -- ---------------------------------------------------------------------
 
--- Filas sembradas: R0 No cursada, R1 Cursada por primera vez, R2 Cursada
--- por segunda vez, R3 Cursada por tercera vez.
+-- Desde T12.34 (P60) el catálogo tiene dos listas cerradas, separadas por
+-- ambito: MATRICULA (situación de la asignatura) con R1 Cursada por primera
+-- vez, R1R Recursada por primera vez, R2 Cursada por segunda vez y R3
+-- Cursada por tercera vez; CANCELACION (situación al cancelar) con C1 No
+-- vista y C2 Perdida. R0 No cursada se conserva con ambito NULL (retirada):
+-- no se ofrece ni se acepta. Las filas de ASIGNATURA_SOLICITUD_ACADEMICA que
+-- apuntaban a un valor fuera de su lista quedaron en NULL
+-- (docs/database/migracion_situaciones_siglas.sql). Hibernate crea ambito
+-- como ENUM desde el enum AmbitoSituacionAcademica.
 CREATE TABLE IF NOT EXISTS SITUACION_ACADEMICA_ASIGNATURA (
     uuidSituacionAcademica  VARCHAR(100) NOT NULL,
     codigo                  VARCHAR(10)  NOT NULL,
     nombre                  VARCHAR(100) NOT NULL,
+    ambito                  ENUM('CANCELACION', 'MATRICULA') NULL,
     PRIMARY KEY (uuidSituacionAcademica)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -283,6 +295,12 @@ CREATE TABLE IF NOT EXISTS ASIGNATURA_SOLICITUD_ACADEMICA (
 -- 9. Anexos
 -- ---------------------------------------------------------------------
 
+-- vigente = 0 retira un tipo de anexo sin borrarlo: no se ofrece, no se exige
+-- y no se puede subir, pero los anexos ya cargados con ese tipo se conservan.
+-- Retirados: los seis anexos anteriores de Cancelación de Matrícula (T12.31,
+-- P55) y el "Documento adicional de la respuesta" de Cancelación de
+-- Asignatura (T12.33, P59). El seed los deja así con UPDATE, de modo que
+-- restaurar los procesos no los vuelve a activar.
 CREATE TABLE IF NOT EXISTS TIPO_ANEXO_ACADEMICO (
     uuidTipoAnexoAcademico       VARCHAR(100) NOT NULL,
     TipoSolicitudAcademica_uuid  VARCHAR(100) NOT NULL,

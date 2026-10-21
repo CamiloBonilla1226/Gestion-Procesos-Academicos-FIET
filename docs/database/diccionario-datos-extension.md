@@ -24,16 +24,16 @@ catalogos-academicos/programas`.
 | --- | --- | --- | --- | --- |
 | uuidProgramaAcademico | varchar(100) | PK | No | Identificador del programa |
 | nombre | varchar(100) | UK (uk\_programa\_nombre) | No | Nombre oficial. En los Excel se escribe exacto, sin distinguir mayúsculas |
-| sigla | varchar(10) | UK (uk\_programa\_sigla) | No | Prefijo del código de sus asignaturas |
+| sigla | varchar(10) | UK (uk\_programa\_sigla) | No | Prefijo del código de sus asignaturas nuevas. Desde T12.34 (P61) PIET, PIS, PIAI, TTM y PIAC; las asignaturas creadas antes conservan su código con la sigla anterior (IET, ISI, IAI, TTE, IAC) |
 | ultimoConsecutivoAsignatura | int |  | No | Último consecutivo usado en el código de sus asignaturas. Valor por defecto 0. El backend lo lee con bloqueo de fila y lo sube en la misma transacción que crea la asignatura; nunca baja, así que un código no se reutiliza |
 
 | Programa | Sigla | uuid |
 | --- | --- | --- |
-| Ingeniería Electrónica y Telecomunicaciones | IET | `14299e0f-8da8-4c73-ad2b-b61e0c52b7f5` |
-| Ingeniería de Sistemas | ISI | `5d73d656-2504-44cc-ab6e-5cd10b500abf` |
-| Ingeniería en Automática Industrial | IAI | `8606cf01-c111-4aef-92cd-a111cb7b7a38` |
-| Tecnología en Telemática | TTE | `7ebedec6-aeab-403b-8a97-9312061bd4b7` |
-| Ingeniería en Inteligencia Artificial y Ciencia de Datos | IAC | `d21ec0bf-cee1-4a06-8ae7-00477e88cfe6` |
+| Ingeniería Electrónica y Telecomunicaciones | PIET | `14299e0f-8da8-4c73-ad2b-b61e0c52b7f5` |
+| Ingeniería de Sistemas | PIS | `5d73d656-2504-44cc-ab6e-5cd10b500abf` |
+| Ingeniería en Automática Industrial | PIAI | `8606cf01-c111-4aef-92cd-a111cb7b7a38` |
+| Tecnología en Telemática | TTM | `7ebedec6-aeab-403b-8a97-9312061bd4b7` |
+| Ingeniería en Inteligencia Artificial y Ciencia de Datos | PIAC | `d21ec0bf-cee1-4a06-8ae7-00477e88cfe6` |
 
 ## ESTUDIANTE
 
@@ -155,15 +155,18 @@ historial apunta a `usuarios`.
 
 ## SITUACION\_ACADEMICA\_ASIGNATURA
 
-Catálogo fijo con los códigos R0-R3 del formato oficial PA-GA-4.2-FOR-9. Se
-siembra una sola vez y se reutiliza tanto para "situación en la matrícula"
-como "situación al cancelar" en `ASIGNATURA_SOLICITUD_ACADEMICA`.
+Catálogo fijo del formato oficial PA-GA-4.2-FOR-9, sembrado con UUID fijos.
+Desde T12.34 (P60) tiene dos listas cerradas separadas por `ambito`: la de
+"situación de la asignatura" (`SituacionMatricula_uuid`) y la de "situación al
+cancelar" (`SituacionCancelar_uuid`) en `ASIGNATURA_SOLICITUD_ACADEMICA`. El
+backend rechaza con código 6 un valor que no sea de la lista del campo.
 
 | Campo | Tipo | Llave | Nulo | Descripción |
 | --- | --- | --- | --- | --- |
 | uuidSituacionAcademica | varchar(100) | PK | No | Identificador de la situación |
-| codigo | varchar(10) |  | No | R0, R1, R2 o R3 |
-| nombre | varchar(100) |  | No | R0 No cursada, R1 Cursada por primera vez, R2 Cursada por segunda vez, R3 Cursada por tercera vez |
+| codigo | varchar(10) |  | No | R1, R1R, R2, R3, C1, C2 y R0 (retirada). Ordena las opciones dentro de cada lista |
+| nombre | varchar(100) |  | No | MATRICULA: R1 Cursada por primera vez, R1R Recursada por primera vez, R2 Cursada por segunda vez, R3 Cursada por tercera vez. CANCELACION: C1 No vista, C2 Perdida. Retirada: R0 No cursada |
+| ambito | enum('CANCELACION','MATRICULA') |  | Sí | Lista a la que pertenece (enum `AmbitoSituacionAcademica`). NULL = retirada: se conserva pero no se ofrece ni se acepta (R0 desde T12.34) |
 
 ## ASIGNATURA\_SOLICITUD\_ACADEMICA
 
@@ -190,7 +193,7 @@ como "situación al cancelar" en `ASIGNATURA_SOLICITUD_ACADEMICA`.
 | nombre | varchar(150) |  | No | Nombre del anexo requerido. El recibo, el comprobante, el soporte de justificación y el formato del docente cruzado se reconocen por este nombre sembrado |
 | formatosPermitidos | varchar(60) |  | No | Extensiones separadas por coma, en minúscula y sin espacios. Ej. "pdf,jpg,png" |
 | obligatorio | tinyint(1) |  | No | 1 = obligatorio, 0 = opcional. Valor por defecto 1 |
-| vigente | tinyint(1) |  | No | 1 = se pide en la radicación, 0 = retirado: no se ofrece ni se exige ni se puede subir, pero sus anexos ya radicados se conservan y se descargan. Valor por defecto 1. Desde T12.31 los seis anexos anteriores de Cancelación de Matrícula quedan en 0 y los reemplaza "Paz y salvos (un solo PDF con todos los paz y salvos)", el único que admite hasta 10 MB (P55) |
+| vigente | tinyint(1) |  | No | 1 = se pide en la radicación, 0 = retirado: no se ofrece ni se exige ni se puede subir, pero sus anexos ya radicados se conservan y se descargan. Valor por defecto 1. Desde T12.33 (P59) también queda en 0 el "Documento adicional de la respuesta" de Cancelación de Asignatura (`a6305ab3-9e82-40da-ba52-7f9cc6cce16f`); el de Matrícula y el de Supletorio siguen en 1. Desde T12.31 los seis anexos anteriores de Cancelación de Matrícula quedan en 0 y los reemplaza "Paz y salvos (un solo PDF con todos los paz y salvos)", el único que admite hasta 10 MB (P55) |
 
 ## ANEXO\_ACADEMICO
 
@@ -317,6 +320,22 @@ migración después corrige ese estado.
 
 Una base nueva no necesita la migración: Hibernate crea las tablas y los
 programas se siembran con `seed-procesos-academicos.sql`.
+
+## Migración de situaciones y siglas (T12.34)
+
+`docs/database/migracion_situaciones_siglas.sql` pone al día una base anterior a T12.34. Se puede repetir:
+
+1. Agrega `SITUACION_ACADEMICA_ASIGNATURA.ambito` si no existe (el backend nuevo también la crea al arrancar).
+2. Marca R1, R2 y R3 como `MATRICULA`, deja R0 con `ambito` NULL e inserta R1R Recursada por primera vez, C1 No vista y C2 Perdida con UUID fijos.
+3. Muestra cuántas filas de `ASIGNATURA_SOLICITUD_ACADEMICA` tienen una situación fuera de su lista y las deja en NULL (las que coinciden se conservan). No borra solicitudes ni catálogo.
+4. Cambia las siglas con `UPDATE` por uuid: PIET, PIS, PIAI, TTM y PIAC. `ultimoConsecutivoAsignatura` no cambia y los códigos de las asignaturas existentes tampoco.
+
+En la base local (20 de octubre de 2026) dejó en NULL 3 situaciones al cancelar (dos R1 y una R2) y ninguna situación de la asignatura (las 5 filas ya estaban vacías); las 189 asignaturas existentes conservan sus códigos IAI, IET, ISI y TTE. Antes de levantar el jar nuevo, desde `backend/`:
+
+```
+docker compose cp ../docs/database/migracion_situaciones_siglas.sql cfiet_database:/tmp/migracion_t12_34.sql
+docker compose exec -T cfiet_database sh -c "mysql -u root -p --default-character-set=utf8mb4 cfiet < /tmp/migracion_t12_34.sql"
+```
 
 ## Migración de cargo, situaciones, faltas y nota (T12.1)
 

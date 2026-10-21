@@ -4,6 +4,7 @@ import com.unicauca.cfiet.solicitudes.aplicacion.input.LogCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.*;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.formateador.ExcepcionesFormateadorImplAdaptador;
+import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.MensajesError;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.excepcionesPropias.ErrorEntidadNoExisteExcepcion;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.excepcionesPropias.ErrorGenericoExcepcion;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.excepcionesPropias.ErrorMalFormatoExcepcion;
@@ -447,16 +448,19 @@ class AnexoAcademicoCUImplAdaptadorTest {
     }
 
     @Test
-    void elFuncionarioSubeElDocumentoAdicionalEnCancelacionDeAsignatura() {
+    void cancelacionDeAsignaturaYaNoRecibeElDocumentoAdicional() {
         TipoAnexoAcademico adicionalAsignatura = tipoAnexo(asignatura, "Documento adicional de la respuesta", "pdf", false);
 
         for (String etapa : List.of(RADICADA, APROBADA_POR_DECANO, RECHAZADA_POR_DECANO)) {
             solicitud(asignatura, etapa);
-            AnexoAcademico anexo = adjuntar(adicionalAsignatura, archivo("acta.pdf", pdf(200)), funcionario());
-            assertEquals(FUNCIONARIO, anexo.getUsuario().getUuidUsuario());
-            assertSame(adicionalAsignatura, anexo.getTipoAnexoAcademico());
+            for (ActorSolicitud actor : List.of(funcionario(), estudiante())) {
+                ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
+                        () -> adjuntar(adicionalAsignatura, archivo("acta.pdf", pdf(200)), actor));
+                assertEquals(String.format(MensajesError.DOCUMENTO_ADICIONAL_NO_ADMITIDO, "Documento adicional de la respuesta",
+                        asignatura.getNombre()), error.getMessage());
+            }
         }
-        verify(anexoGateway, times(3)).guardar(any());
+        verificarQueNoSeGuardoNada();
     }
 
     @Test
@@ -479,7 +483,7 @@ class AnexoAcademicoCUImplAdaptadorTest {
 
     @Test
     void elEstudianteDuenioNoSubeElDocumentoAdicionalEnNingunProceso() {
-        for (TipoSolicitudAcademica tipo : List.of(matricula, asignatura, supletorio)) {
+        for (TipoSolicitudAcademica tipo : List.of(matricula, supletorio)) {
             TipoAnexoAcademico adicional = tipoAnexo(tipo, "Documento adicional de la respuesta", "pdf", false);
             solicitud(tipo, RADICADA);
             ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,

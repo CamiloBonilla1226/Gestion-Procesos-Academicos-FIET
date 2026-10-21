@@ -76,7 +76,7 @@
                 <select class="celda-campo" data-campo="cancelar" [attr.aria-label]="'Situación al cancelar de ' + asignatura.nombreAsignatura"
                   [disabled]="enviando" (change)="evaluacion.cancelar = valorDe($event) || null">
                   <option value="" [selected]="!evaluacion.cancelar">—</option>
-                  @for (opcion of opcionesSituacion; track opcion.value) {
+                  @for (opcion of opcionesSituacionCancelar; track opcion.value) {
                   <option [value]="opcion.value" [selected]="opcion.value === evaluacion.cancelar">{{ opcion.label }}</option>
                   }
                 </select>

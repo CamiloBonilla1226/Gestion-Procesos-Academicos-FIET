@@ -202,7 +202,7 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
                     .tipoContenido(TIPO_PDF)
                     .urlArchivo(resolucion.getUrlArchivo())
                     .build());
-        for (AnexoAcademico adicional : documentosAdicionales(uuidSolicitud))
+        for (AnexoAcademico adicional : proceso.admiteDocumentoAdicional() ? documentosAdicionales(uuidSolicitud) : List.<AnexoAcademico>of())
             adjuntos.add(AdjuntoCorreo.builder()
                     .nombre(adicional.getNombreArchivo())
                     .tipoContenido(adicional.getTipoArchivo())

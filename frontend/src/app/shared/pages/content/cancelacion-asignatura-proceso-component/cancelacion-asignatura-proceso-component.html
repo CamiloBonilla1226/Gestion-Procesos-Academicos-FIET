@@ -99,7 +99,7 @@
                 <select class="celda-campo" data-campo="cancelar" [attr.aria-label]="'Situación al cancelar de ' + asignatura.nombreAsignatura"
                   [disabled]="enviando" (change)="evaluacion.cancelar = valorDe($event) || null">
                   <option value="" [selected]="!evaluacion.cancelar">—</option>
-                  @for (opcion of opcionesSituacion; track opcion.value) {
+                  @for (opcion of opcionesSituacionCancelar; track opcion.value) {
                   <option [value]="opcion.value" [selected]="opcion.value === evaluacion.cancelar">{{ opcion.label }}</option>
                   }
                 </select>
@@ -199,9 +199,6 @@
     @if (solicitud.tieneResolucion) {
     <div class="nota-aviso">Al remitir se retira el escaneo de la Resolución que estaba cargado.</div>
     }
-    @if (hayDocumentoAdicional) {
-    <div class="nota-aviso" data-aviso-retira-adicional>Al remitir se retira el documento adicional que estaba cargado.</div>
-    }
     }
     @case (acciones.APROBAR_DECANO) {
     <p class="nota-gris" data-nota-aprobar>{{ notaAprobarDecano }}</p>
@@ -226,8 +223,12 @@
     </p>
     }
     @case (acciones.ENVIAR_RESPUESTA) {
+    <p class="nota-gris" data-nota-resolucion-sin-firmar>
+      Sube la Resolución sin firmar por el estudiante: es la que se le envía a él y a DARCA en la fecha programada. Si el
+      estudiante firma antes en la Decanatura, la reemplazas por la firmada desde la Notificación de la Resolución.
+    </p>
     <p class="nota-gris">
-      Sube el escaneo de la Resolución firmada por el Decano. Al enviar la respuesta la solicitud termina
+      Al enviar la respuesta la solicitud termina
       @if (solicitud.etapaCodigo === 'APROBADA_POR_DECANO') {
       y solo se cancelan las asignaturas aprobadas que sigan activas.
       } @else {
@@ -247,7 +248,7 @@
           }
         </div>
         <div>
-          <app-input-select-component label="Situación al cancelar (opcional)" [required]="false" [options]="opcionesSituacion"
+          <app-input-select-component label="Situación al cancelar (opcional)" [required]="false" [options]="opcionesSituacionCancelar"
             [(value)]="ajustes[uuid].situacion">
           </app-input-select-component>
         </div>
@@ -261,19 +262,13 @@
     @if (accionActiva === acciones.ENVIAR_RESPUESTA) {
     <div data-campo-resolucion>
       @if (hayResolucion) {
-      <p class="nota-gris mb-2">Ya hay un escaneo de la Resolución cargado. Puedes reemplazarlo si lo necesitas.</p>
+      <p class="nota-gris mb-2">Ya hay una Resolución sin firmar cargada. Puedes reemplazarla si lo necesitas.</p>
       }
       <app-input-anexo-upload-component #entradaResolucion [tipoAnexo]="tipoResolucion" [uploadedFile]="archivoResolucion"
         (fileSelected)="alSeleccionarResolucion($event, entradaResolucion)" (fileRemoved)="alQuitarResolucion()">
       </app-input-anexo-upload-component>
       <small class="texto-error" data-error="resolucion">{{ errores['resolucion'] || '' }}</small>
     </div>
-    }
-
-    @if (pideDocumentoAdicional) {
-    <app-documento-adicional-component [archivo]="archivoAdicional" [yaCargado]="hayDocumentoAdicional" [errorServidor]="errorAdicional"
-      (archivoChange)="archivoAdicional = $event">
-    </app-documento-adicional-component>
     }
 
     @if (campoObservacion; as campo) {

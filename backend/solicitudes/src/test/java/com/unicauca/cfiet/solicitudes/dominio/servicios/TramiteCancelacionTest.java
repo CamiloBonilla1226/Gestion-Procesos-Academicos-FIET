@@ -4,7 +4,6 @@ import com.unicauca.cfiet.solicitudes.aplicacion.output.*;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.formateador.ExcepcionesFormateadorImplAdaptador;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.MensajesError;
-import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.excepcionesPropias.ErrorEntidadNoExisteExcepcion;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.excepcionesPropias.ErrorMalFormatoExcepcion;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.excepcionesPropias.ErrorReglaNegocioVioladaExcepcion;
 import org.junit.jupiter.api.BeforeEach;
@@ -85,7 +84,8 @@ class TramiteCancelacionTest {
     }
 
     private SituacionAcademicaAsignatura situacion(String uuid) {
-        return SituacionAcademicaAsignatura.builder().uuidSituacionAcademica(uuid).codigo(uuid.toUpperCase()).nombre("Situación " + uuid).build();
+        return SituacionAcademicaAsignatura.builder().uuidSituacionAcademica(uuid).codigo(uuid.toUpperCase()).nombre("Situación " + uuid)
+                .ambito(uuid.startsWith("can") ? AmbitoSituacionAcademica.CANCELACION : AmbitoSituacionAcademica.MATRICULA).build();
     }
 
     @Test
@@ -254,7 +254,7 @@ class TramiteCancelacionTest {
     void situacionDeDevuelveLaSituacionDelCatalogo() {
         when(situacionGateway.getTodas()).thenReturn(List.of(situacion("sit-a"), situacion("sit-b")));
 
-        SituacionAcademicaAsignatura encontrada = tramite.situacionDe(tramite.catalogoSituaciones(), "sit-b");
+        SituacionAcademicaAsignatura encontrada = tramite.situacionDe(tramite.catalogoSituaciones(), "sit-b", AmbitoSituacionAcademica.MATRICULA);
 
         assertEquals("sit-b", encontrada.getUuidSituacionAcademica());
     }
@@ -264,17 +264,37 @@ class TramiteCancelacionTest {
         when(situacionGateway.getTodas()).thenReturn(List.of(situacion("sit-a")));
         Map<String, SituacionAcademicaAsignatura> catalogo = tramite.catalogoSituaciones();
 
-        ErrorEntidadNoExisteExcepcion error = assertThrows(ErrorEntidadNoExisteExcepcion.class,
-                () -> tramite.situacionDe(catalogo, "sit-x"));
+        ErrorMalFormatoExcepcion error = assertThrows(ErrorMalFormatoExcepcion.class,
+                () -> tramite.situacionDe(catalogo, "sit-x", AmbitoSituacionAcademica.MATRICULA));
 
-        assertEquals(String.format(MensajesError.ENTIDAD_NO_ENCONTRADA, "Situación académica de asignatura", "sit-x"), error.getMessage());
+        assertEquals(String.format(MensajesError.SITUACION_NO_PERMITIDA, "La situación de la asignatura", "sit-x", "Situación sit-a"), error.getMessage());
+    }
+
+    @Test
+    void situacionDeRechazaUnaSituacionDeLaOtraListaYNombraLasPermitidas() {
+        when(situacionGateway.getTodas()).thenReturn(List.of(situacion("sit-a"), situacion("can-b"), situacion("can-a"), situacion("sit-retirada")));
+        Map<String, SituacionAcademicaAsignatura> catalogo = tramite.catalogoSituaciones();
+        catalogo.get("sit-retirada").setAmbito(null);
+
+        ErrorMalFormatoExcepcion cancelar = assertThrows(ErrorMalFormatoExcepcion.class,
+                () -> tramite.situacionDe(catalogo, "sit-a", AmbitoSituacionAcademica.CANCELACION));
+        ErrorMalFormatoExcepcion matricula = assertThrows(ErrorMalFormatoExcepcion.class,
+                () -> tramite.situacionDe(catalogo, "can-a", AmbitoSituacionAcademica.MATRICULA));
+        ErrorMalFormatoExcepcion retirada = assertThrows(ErrorMalFormatoExcepcion.class,
+                () -> tramite.situacionDe(catalogo, "sit-retirada", AmbitoSituacionAcademica.MATRICULA));
+
+        assertEquals(String.format(MensajesError.SITUACION_NO_PERMITIDA, "La situación al cancelar", "sit-a", "Situación can-a, Situación can-b"),
+                cancelar.getMessage());
+        assertTrue(matricula.getMessage().endsWith("las opciones son Situación sit-a..."));
+        assertTrue(retirada.getMessage().contains("sit-retirada"));
+        assertEquals("can-b", tramite.situacionDe(catalogo, "can-b", AmbitoSituacionAcademica.CANCELACION).getUuidSituacionAcademica());
     }
 
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {"  "})
     void situacionDeVaciaQuedaNula(String uuid) {
-        assertNull(tramite.situacionDe(Map.of(), uuid));
+        assertNull(tramite.situacionDe(Map.of(), uuid, AmbitoSituacionAcademica.CANCELACION));
     }
 
     @Test

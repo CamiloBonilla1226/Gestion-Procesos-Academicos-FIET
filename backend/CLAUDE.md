@@ -33,7 +33,7 @@ del entorno del host. Sin ellas el backend arranca igual y el envío solo deja
 el error en el log. El correo lo arma `SolicitudAcademicaCUImplAdaptador.cambiarEtapa`
 (asunto y texto por proceso, escaneo de la Resolución en las cancelaciones
 después del Decano y el anexo "Documento adicional de la respuesta" si existe,
-P54) y lo pasa a
+P54, salvo en Cancelación de Asignatura, que desde T12.33 no lo adjunta, P59) y lo pasa a
 `CorreoIntPuerto` con `AdjuntoCorreo` (nombre, tipo y ruta, sin bytes).
 `CorreoImplAdaptador` espera al commit de la transacción y llama a
 `ServicioCorreo` (`@Async`, `@EnableAsync` en `ConfiguracionAsincrona`), que
@@ -72,7 +72,7 @@ estudiante:
   carta corta con la fecha y una frase de resumen (con varias asignaturas,
   cuántas se aprobaron y cuántas se rechazaron) y, como adjuntos, el PDF
   `Radicado-<radicado>.pdf`, la Resolución en las cancelaciones y el documento
-  adicional si existe.
+  adicional si existe (en Cancelación de Asignatura nunca, P59).
 - El profesor, solo en Examen Supletorio y solo al aprobar el comprobante,
   justo después de crearle la notificación en su perfil
   (`TramiteExamenSupletorioCUImplAdaptador.aprobarComprobante`). Va al
@@ -146,17 +146,22 @@ rechazo directo (`RECHAZAR_FUNCIONARIO`) siguen igual.
   salir, así el reintento repite solo el que falló. Sin errores queda ENVIADA;
   con error vuelve a PROGRAMADA y en el tercer intento queda FALLIDA con
   `ultimoError` (máximo 1000).
-- Adjuntos. Al estudiante: `Radicado-<radicado>.pdf` (generado ese día), la
-  Resolución y el documento adicional. A DARCA: ese PDF, la Resolución,
+- Adjuntos. Al estudiante: `Radicado-<radicado>.pdf` (generado ese día) y la
+  Resolución vigente. A DARCA: ese PDF, la Resolución vigente y
   `Comunicacion-Estudiante-<radicado>.pdf` (`GeneradorPdfRespuesta.generarConstancia`:
-  destinatario, asunto, fecha y hora de envío y el texto con negrilla) y el
-  documento adicional; con firma, sin la constancia. Si el correo al
+  destinatario, asunto, fecha y hora de envío y el texto con negrilla); con
+  firma, solo el PDF y la Resolución firmada. Desde T12.33 (P59) ninguno lleva
+  el documento adicional, aunque una solicitud vieja lo tenga cargado. Si el correo al
   estudiante falló, la constancia dice que no se pudo enviar.
 - Firma: `POST .../funcionario/notificacion/firma` marca `firmada` con una
   actualización condicional (PROGRAMADA y antes de la fecha) y reemplaza la
   Resolución con `ResolucionAcademicaCUIntPuerto.reemplazarResolucionFirmada`
   (mismo guardado y borrado tras el commit que `adjuntarResolucion`, sin la
-  regla de etapa). `PUT .../funcionario/notificacion` y `reintentar` también son
+  regla de etapa). La Resolución que sube `ENVIAR_RESPUESTA` es la sin firmar
+  por el estudiante; la firmada la sustituye en la misma fila de
+  `RESOLUCION_ACADEMICA`, y la firma se puede repetir (cada vez reemplaza a la
+  anterior) mientras la comunicación siga PROGRAMADA y antes de la fecha. El
+  panel indica la vigente con `firmada` (P59). `PUT .../funcionario/notificacion` y `reintentar` también son
   condicionales en la base.
 - Visibilidad para el Estudiante: `ConsultaSolicitudAcademicaCUImplAdaptador`
   pregunta a `NotificacionResolucionGatewayIntPuerto` (`estaRetenida`,
@@ -190,7 +195,8 @@ rechazo directo (`RECHAZAR_FUNCIONARIO`) siguen igual.
    `@funcionario_uuid` apuntando a ese funcionario (el archivo trae el
    comando exacto para Docker). Siembra los cinco programas académicos, los
    tres tipos de solicitud, las 8 etapas, las 23 etiquetas por rol, los 15
-   tipos de anexo y las situaciones R0 a R3. Usa `INSERT IGNORE` con UUID
+   tipos de anexo y las siete situaciones (cuatro de la asignatura, dos al
+   cancelar y R0 retirada, T12.34). Usa `INSERT IGNORE` con UUID
    fijos y se puede repetir; sin `@funcionario_uuid` no se insertan los
    tipos ni lo que depende de ellos (los programas sí).
 
@@ -212,7 +218,8 @@ Julián, que ya existe en `data.sql`.
 ninguna limpieza.** `TIPO_SOLICITUD_ACADEMICA` (los tres procesos),
 `ETAPA_SOLICITUD_ACADEMICA` (las 8 etapas, con y sin tipo),
 `ETAPA_ETIQUETA_ROL` (23 etiquetas) y `TIPO_ANEXO_ACADEMICO` (15 tipos de
-anexo, seis de ellos retirados con `vigente = 0`) se conservan siempre, igual que `roles`, `tiposUsuario`,
+anexo, siete de ellos retirados con `vigente = 0`: los seis anteriores de
+Matrícula y, desde T12.33, el documento adicional de Asignatura) se conservan siempre, igual que `roles`, `tiposUsuario`,
 `PROGRAMA_ACADEMICO` y `SITUACION_ACADEMICA_ASIGNATURA`. Ningún script de
 limpieza, de pruebas ni manual les hace `DELETE`; si un proceso necesita otro
 responsable, se reasigna (`PUT catalogos-academicos/tipos-solicitud/{uuid}/funcionario`
@@ -234,7 +241,7 @@ responsable. Esa fila solo sostiene la llave foránea: `rootfiet` no tiene el
 rol `Funcionario Académico` y no puede tramitar solicitudes. Conserva
 `rootfiet` sin tocar su contraseña, `roles` (11), `tiposUsuario` (8),
 `PROGRAMA_ACADEMICO` (5, con `ultimoConsecutivoAsignatura` en 0),
-`SITUACION_ACADEMICA_ASIGNATURA` (R0 a R3) y todo el catálogo de procesos, y
+`SITUACION_ACADEMICA_ASIGNATURA` (7 filas desde T12.34) y todo el catálogo de procesos, y
 al final muestra los conteos de procesos, etapas, etiquetas y tipos de
 anexo (3, 8, 23 y 15). Busca a `rootfiet` por `username` y, si no existe, no
 borra nada. Es una sola transacción, en orden de llaves foráneas, y se puede
@@ -955,7 +962,12 @@ El resto de `solicitudes-academicas/**` es `denyAll()`.
   faltar, repetir ni incluir ajenas. Desde T12.28 (P50) faltas, nota,
   situación en la matrícula y situación al cancelar son opcionales:
   `TramiteCancelacion.faltasDe`, `notaDe` y `situacionDe` devuelven nulo con
-  un valor vacío y solo validan lo que llega. Las situaciones solo se validan
+  un valor vacío y solo validan lo que llega. Desde T12.34 (P60) cada situación
+  se valida contra su lista: `TramiteCancelacion.situacionDe(catalogo, uuid,
+  AmbitoSituacionAcademica)` lanza `lanzarMalFormato` (código 6) con
+  `SITUACION_NO_PERMITIDA` si el uuid no existe, está retirado (`ambito` nulo)
+  o es de la otra lista; la situación de la asignatura usa MATRICULA y la
+  situación al cancelar (remitir y ajustes) CANCELACION. Las situaciones solo se validan
   contra `SITUACION_ACADEMICA_ASIGNATURA`, el sistema no las calcula. Remitir y aprobar validan actor, etapa y datos antes de escribir;
   después cambian la etapa y guardan las filas con
   `SolicitudCancelacionMatriculaGatewayIntPuerto.actualizarAsignaturas`.
@@ -1119,7 +1131,15 @@ El resto de `cancelaciones-asignatura/**` es `denyAll()`.
   Nunca ve `observacionEvaluacion` ni `decisionCambiadaPorDecano`, que sale
   nulo porque su copia no lleva `cumpleCondiciones`. La vista del
   Estudiante es una copia: no modifica las filas leídas.
-- No hay filas de `TIPO_ANEXO_ACADEMICO` para este proceso; el soporte libre
+- Documento adicional retirado (T12.33, P59): `TipoProcesoAcademico.admiteDocumentoAdicional()`
+  es falso en Cancelación de Asignatura. `AnexoAcademicoCUImplAdaptador` rechaza
+  ese tipo para cualquier actor con `DOCUMENTO_ADICIONAL_NO_ADMITIDO` (regla de
+  negocio, código 4) antes de mirar `vigente`, así no depende de correr el seed;
+  el seed y la base lo dejan además con `vigente = 0`. `SolicitudAcademicaCUImplAdaptador`
+  (rechazo directo), `NotificadorRespuestaFinal.avisarDarca` y
+  `correoDarcaResolucion` y `NotificacionResolucionCUImplAdaptador` no lo adjuntan.
+  Los ya cargados se siguen viendo y descargando.
+- Para la radicación no hay filas de `TIPO_ANEXO_ACADEMICO` de este proceso; el soporte libre
   del formulario sale de `AnexoAcademicoConstantes`
   (`FORMATOS_SOPORTE_LIBRE`, `TAMANIO_MAXIMO_BYTES`), las mismas constantes
   con que se valida. Una parte con otro nombre se toma como tipo de anexo y
@@ -1347,8 +1367,12 @@ el username no se edita. El código estudiantil se revisa con
 
 Reglas P28 a P35 de `docs/database/etapas-por-proceso.md`:
 
-- `PROGRAMA_ACADEMICO` es un catálogo fijo de cinco programas (IET, ISI, IAI,
-  TTE, IAC) sembrado con UUID fijos. `ProgramaAcademicoCUImplAdaptador`
+- `PROGRAMA_ACADEMICO` es un catálogo fijo de cinco programas (PIET, PIS,
+  PIAI, TTM, PIAC desde T12.34, P61; antes IET, ISI, IAI, TTE, IAC) sembrado
+  con UUID fijos. La sigla solo se lee al generar el código de una asignatura
+  nueva y el código queda guardado como texto, así que cambiar una sigla con
+  `UPDATE` no cambia los códigos existentes (siguen `ISI-014`) y el consecutivo
+  continúa con el mismo contador (`PIS-294`). `ProgramaAcademicoCUImplAdaptador`
   (bean `crearProgramaAcademicoCU`) solo los lista, en `GET
   catalogos-academicos/programas`.
 - `ASIGNATURA` y `ESTUDIANTE` llevan `ProgramaAcademico_uuid` obligatorio
@@ -1381,7 +1405,7 @@ Reglas P28 a P35 de `docs/database/etapas-por-proceso.md`:
   del programa del estudiante (si no, código 4, `ASIGNATURA_OTRO_PROGRAMA`).
   `actualizarEstudiante` no toca el programa.
 - Las asignaturas se listan por sigla y consecutivo (`LENGTH` y código, para
-  que `ISI-999` quede antes de `ISI-1000`); `GET asignaturas/programa/{uuid}`
+  que `PIS-999` quede antes de `PIS-1000`); `GET asignaturas/programa/{uuid}`
   devuelve las del programa sin paginar y `filtro` acepta
   `uuidProgramaAcademico`.
 
@@ -1584,7 +1608,7 @@ Scripts que hay hoy:
 | `t5_solicitudes.ps1` | Bandejas, detalle, historial, anexos y Resolución de `solicitudes-academicas` |
 | `t6_cancelacion_matricula.ps1`, `t7_cancelacion_asignatura.ps1`, `t8_examen_supletorio.ps1` | Recorrido completo de cada proceso con usuarios reales |
 | `matriz-permisos.ps1` | Matriz de los 76 endpoints por rol |
-| `t9_correo_respuesta.ps1` | Integración de los correos de la respuesta final (P54) con el Funcionario: en cada proceso y cada acción que cierra la solicitud sube la Resolución y el documento adicional, verifica la etapa, el correo al estudiante, el de DARCA (asunto, frase, PDF generado con su contenido y adjuntos) y en el supletorio el del profesor; además los permisos de subida y que un correo rechazado por el servidor (del estudiante o del profesor) no revierte la respuesta ni frena los demás. Desde T12.31 también el PDF único de paz y salvos (más de 5 MB, tipos retirados rechazados), el rechazo directo sin Resolución en las cancelaciones (correos sin Resolución, detalle sin fallar), la Resolución obligatoria tras el Decano, el remitente visible y la versión HTML. Desde T12.32, en Cancelación de Asignatura después del Decano: mensaje inicial (escapado, sin adjuntos), retención y liberación para el Estudiante, firma, reprogramación, envío programado sin firma (DARCA con 3 PDF) y con firma (DARCA con 2 PDF), fallo del correo del estudiante sin frenar a DARCA, FALLIDA tras 3 intentos y reintento manual que repite solo lo que falló |
+| `t9_correo_respuesta.ps1` | Integración de los correos de la respuesta final (P54) con el Funcionario: en cada proceso y cada acción que cierra la solicitud sube la Resolución y el documento adicional, verifica la etapa, el correo al estudiante, el de DARCA (asunto, frase, PDF generado con su contenido y adjuntos) y en el supletorio el del profesor; además los permisos de subida y que un correo rechazado por el servidor (del estudiante o del profesor) no revierte la respuesta ni frena los demás. Desde T12.31 también el PDF único de paz y salvos (más de 5 MB, tipos retirados rechazados), el rechazo directo sin Resolución en las cancelaciones (correos sin Resolución, detalle sin fallar), la Resolución obligatoria tras el Decano, el remitente visible y la versión HTML. Desde T12.32, en Cancelación de Asignatura después del Decano: mensaje inicial (escapado, sin adjuntos), retención y liberación para el Estudiante, firma, reprogramación, envío programado sin firma (DARCA con 3 PDF) y con firma (DARCA con 2 PDF), fallo del correo del estudiante sin frenar a DARCA, FALLIDA tras 3 intentos y reintento manual que repite solo lo que falló. Desde T12.33: en Asignatura nadie sube el documento adicional y ningún correo lo lleva, la Resolución adjunta es la vigente (comparada por tamaño: la sin firmar sin firma, la última firmada con firma) y la firmada se puede volver a subir antes de la fecha; Matrícula y Supletorio lo siguen adjuntando |
 | `todo.ps1` | Corre todos los anteriores y verifica la limpieza; `t9` solo si está definida `PRUEBAS_CORREOS` |
 
 `comun.ps1` tiene las funciones compartidas y `generar_plantilla_*.ps1`
@@ -1700,7 +1724,7 @@ la API:
   no es rootfiet y responsables de los tipos.
 - `Obtener-Programas`, `Programa-PorSigla` y `Crear-AsignaturaPrueba`
   leen el catálogo de programas y crean asignaturas por la API. Todo script
-  que matricula estudiantes crea antes sus asignaturas (en ISI), guarda el
+  que matricula estudiantes crea antes sus asignaturas (en PIS, Ingeniería de Sistemas), guarda el
   código generado para la limpieza y matricula por código.
 - `Limpiar-DatosPrueba -Desde -Usernames -CodigosAsignatura` borra, en una
   sola transacción:

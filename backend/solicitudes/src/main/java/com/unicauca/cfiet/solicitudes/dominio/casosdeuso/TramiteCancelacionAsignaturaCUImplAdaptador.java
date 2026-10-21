@@ -81,8 +81,8 @@ public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCance
             String nombre = tramite.nombreDe(asignatura);
             asignatura.setNumeroFaltas(tramite.faltasDe(evaluacion.getNumeroFaltas(), nombre));
             asignatura.setNota(tramite.notaDe(evaluacion.getNota(), nombre));
-            asignatura.setSituacionMatricula(tramite.situacionDe(catalogo, evaluacion.getUuidSituacionMatricula()));
-            asignatura.setSituacionCancelar(tramite.situacionDe(catalogo, evaluacion.getUuidSituacionCancelar()));
+            asignatura.setSituacionMatricula(tramite.situacionDe(catalogo, evaluacion.getUuidSituacionMatricula(), AmbitoSituacionAcademica.MATRICULA));
+            asignatura.setSituacionCancelar(tramite.situacionDe(catalogo, evaluacion.getUuidSituacionCancelar(), AmbitoSituacionAcademica.CANCELACION));
             asignatura.setCumpleCondiciones(cumpleDe(evaluacion, asignatura.getNota(), nombre));
             asignatura.setObservacionEvaluacion(tramite.textoAcotado(evaluacion.getObservacionEvaluacion(), MAXIMO_OBSERVACION,
                     OBSERVACION_EVALUACION, nombre));
@@ -210,7 +210,7 @@ public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCance
             String observacionDecision = tramite.textoAcotado(ajuste.getObservacionDecision(), MAXIMO_OBSERVACION, OBSERVACION_DECISION, nombre);
             if (Boolean.TRUE.equals(asignatura.getAprobadaPorDecano())) {
                 if (tramite.tieneTexto(ajuste.getUuidSituacionCancelar()))
-                    asignatura.setSituacionCancelar(tramite.situacionDe(catalogo, ajuste.getUuidSituacionCancelar()));
+                    asignatura.setSituacionCancelar(tramite.situacionDe(catalogo, ajuste.getUuidSituacionCancelar(), AmbitoSituacionAcademica.CANCELACION));
             } else if (tramite.tieneTexto(ajuste.getUuidSituacionCancelar())) {
                 formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.SITUACION_CANCELAR_RECHAZADA, nombre));
             }

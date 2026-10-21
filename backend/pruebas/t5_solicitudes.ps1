@@ -23,7 +23,7 @@ function Lista-Sql {
 function Nuevo-Estudiante {
     param([string]$Token)
     $s = Nuevo-Sufijo
-    if (-not $script:programaIsi) { $script:programaIsi = Programa-PorSigla -Token $Token -Sigla "ISI" }
+    if (-not $script:programaIsi) { $script:programaIsi = Programa-PorSigla -Token $Token -Sigla "PIS" }
     $asignatura = Crear-AsignaturaPrueba -Token $Token -UuidPrograma $script:programaIsi.uuidProgramaAcademico -Nombre "Materia T5 $s"
     $script:codigos += $asignatura.codigoAsignatura
     $cuerpo = @{

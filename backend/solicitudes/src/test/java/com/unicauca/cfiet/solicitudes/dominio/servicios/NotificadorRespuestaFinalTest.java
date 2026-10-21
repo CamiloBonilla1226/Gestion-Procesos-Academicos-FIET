@@ -118,7 +118,7 @@ class NotificadorRespuestaFinalTest {
     }
 
     @Test
-    void darcaRecibeLaCancelacionDeUnaAsignaturaAprobadaConPdfResolucionYDocumentoAdicional() {
+    void darcaRecibeLaCancelacionDeUnaAsignaturaAprobadaConPdfYResolucionSinDocumentoAdicional() {
         cancelacionCon(asignatura("ISI-001", "Cálculo I", true, "Bajo rendimiento"));
         conResolucionYAdicional();
 
@@ -131,7 +131,7 @@ class NotificadorRespuestaFinalTest {
         assertEquals("Popayán, Cauca, 15 de octubre de 2026" + SALTO + SALTO
                 + "El estudiante Ana María Muñoz Peña, con código 104618021, cancela la asignatura Cálculo I (aprobada)." + SALTO + SALTO
                 + "La información de la respuesta está en el PDF adjunto.", texto.getValue());
-        assertEquals(List.of("Radicado-2026-CA-0003.pdf", "Resolucion-2026-CA-0003.pdf", "acta.pdf"),
+        assertEquals(List.of("Radicado-2026-CA-0003.pdf", "Resolucion-2026-CA-0003.pdf"),
                 adjuntos.getValue().stream().map(AdjuntoCorreo::getNombre).toList());
         assertArrayEquals(PDF, adjuntos.getValue().get(0).getContenido());
         assertEquals("application/pdf", adjuntos.getValue().get(0).getTipoContenido());
@@ -214,7 +214,7 @@ class NotificadorRespuestaFinalTest {
     }
 
     @Test
-    void elRechazoDirectoEnAsignaturaTampocoAdjuntaResolucion() {
+    void elRechazoDirectoEnAsignaturaNoAdjuntaResolucionNiDocumentoAdicional() {
         cancelacionCon(asignatura("ISI-001", "Cálculo I", null, null));
         conResolucionYAdicional();
 
@@ -222,7 +222,8 @@ class NotificadorRespuestaFinalTest {
 
         ArgumentCaptor<List<AdjuntoCorreo>> adjuntos = capturaAdjuntos();
         verify(correo).enviar(eq(DARCA), any(), any(), adjuntos.capture());
-        assertEquals(List.of("Radicado-2026-CA-0009.pdf", "acta.pdf"), adjuntos.getValue().stream().map(AdjuntoCorreo::getNombre).toList());
+        assertEquals(List.of("Radicado-2026-CA-0009.pdf"), adjuntos.getValue().stream().map(AdjuntoCorreo::getNombre).toList());
+        verify(anexoGateway, never()).getPorSolicitud(any());
     }
 
     @Test
@@ -367,7 +368,7 @@ class NotificadorRespuestaFinalTest {
     }
 
     @Test
-    void sinFirmaDarcaRecibeElPdfLaResolucionLaConstanciaYElDocumentoAdicional() {
+    void sinFirmaDarcaRecibeElPdfLaResolucionYLaConstanciaSinDocumentoAdicional() {
         cancelacionCon(asignatura("ISI-001", "Cálculo I", true, null), asignatura("ISI-002", "Física I", false, null));
         conResolucionYAdicional();
 
@@ -375,7 +376,7 @@ class NotificadorRespuestaFinalTest {
 
         assertEquals(DARCA, correoDarca.getDestinatario());
         assertEquals("DARCA - Notificación de Cancelación de asignatura - Radicado 2026-CA-0003", correoDarca.getAsunto());
-        assertEquals(List.of("Radicado-2026-CA-0003.pdf", "Resolucion-2026-CA-0003.pdf", "Comunicacion-Estudiante-2026-CA-0003.pdf", "acta.pdf"),
+        assertEquals(List.of("Radicado-2026-CA-0003.pdf", "Resolucion-2026-CA-0003.pdf", "Comunicacion-Estudiante-2026-CA-0003.pdf"),
                 correoDarca.getAdjuntos().stream().map(AdjuntoCorreo::getNombre).toList());
         assertTrue(correoDarca.getTexto().startsWith("Popayán, Cauca, 15 de octubre de 2026"));
         assertTrue(correoDarca.getTexto().contains("solicita cancelar 2 asignaturas: 1 aprobada y 1 rechazada."));
@@ -384,16 +385,17 @@ class NotificadorRespuestaFinalTest {
     }
 
     @Test
-    void conFirmaDarcaRecibeSoloElPdfYLaResolucionFirmadaMasElDocumentoAdicional() {
+    void conFirmaDarcaRecibeSoloElPdfYLaResolucionFirmada() {
         cancelacionCon(asignatura("ISI-001", "Cálculo I", true, null));
         conResolucionYAdicional();
 
         CorreoPreparado correoDarca = notificador.correoDarcaResolucion(solicitud("2026-CA-0003", APROBADA), FECHA, true, List.of(constancia()));
 
-        assertEquals(List.of("Radicado-2026-CA-0003.pdf", "Resolucion-2026-CA-0003.pdf", "acta.pdf"),
+        assertEquals(List.of("Radicado-2026-CA-0003.pdf", "Resolucion-2026-CA-0003.pdf"),
                 correoDarca.getAdjuntos().stream().map(AdjuntoCorreo::getNombre).toList());
         assertTrue(correoDarca.getTexto().contains("El estudiante firmó la Resolución"));
         assertFalse(correoDarca.getTexto().contains("Observ"));
+        verify(anexoGateway, never()).getPorSolicitud(any());
     }
 
     @Test

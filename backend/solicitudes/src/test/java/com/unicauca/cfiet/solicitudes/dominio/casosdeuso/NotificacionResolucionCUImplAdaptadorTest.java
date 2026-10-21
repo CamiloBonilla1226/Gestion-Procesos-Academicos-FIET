@@ -386,9 +386,9 @@ class NotificacionResolucionCUImplAdaptadorTest {
     }
 
     @Test
-    void conElDocumentoAdicionalAmbosCorreosLoLlevan() {
+    void unDocumentoAdicionalCargadoAntesNoVaEnNingunoDeLosDosCorreos() {
         pendiente(registro(false));
-        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(AnexoAcademico.builder().nombreArchivo("acta.pdf")
+        lenient().when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(AnexoAcademico.builder().nombreArchivo("acta.pdf")
                 .tipoArchivo("application/pdf").urlArchivo("/api/anexos/sol-1/acta.pdf")
                 .tipoAnexoAcademico(TipoAnexoAcademico.builder().nombre("Documento adicional de la respuesta").build()).build()));
 
@@ -396,8 +396,10 @@ class NotificacionResolucionCUImplAdaptadorTest {
 
         ArgumentCaptor<CorreoPreparado> enviados = ArgumentCaptor.forClass(CorreoPreparado.class);
         verify(correo, times(2)).enviarAhora(enviados.capture());
-        assertTrue(enviados.getAllValues().get(0).getAdjuntos().stream().anyMatch(adjunto -> "acta.pdf".equals(adjunto.getNombre())));
-        assertEquals(4, enviados.getAllValues().get(1).getAdjuntos().size());
+        assertEquals(List.of("Radicado-" + RADICADO + ".pdf", "Resolucion-" + RADICADO + ".pdf"),
+                enviados.getAllValues().get(0).getAdjuntos().stream().map(AdjuntoCorreo::getNombre).toList());
+        assertEquals(List.of("Radicado-" + RADICADO + ".pdf", "Resolucion-" + RADICADO + ".pdf", "Comunicacion-Estudiante-" + RADICADO + ".pdf"),
+                enviados.getAllValues().get(1).getAdjuntos().stream().map(AdjuntoCorreo::getNombre).toList());
     }
 
     @Test

@@ -8,11 +8,11 @@
 --   docker compose exec -T cfiet_database mysql -u root -pmysql --default-character-set=utf8mb4 cfiet -e "SET @funcionario_uuid='<uuid>'; source /tmp/seed.sql"
 
 INSERT IGNORE INTO PROGRAMA_ACADEMICO (uuidProgramaAcademico, nombre, sigla, ultimoConsecutivoAsignatura) VALUES
-('14299e0f-8da8-4c73-ad2b-b61e0c52b7f5', 'Ingeniería Electrónica y Telecomunicaciones', 'IET', 0),
-('5d73d656-2504-44cc-ab6e-5cd10b500abf', 'Ingeniería de Sistemas', 'ISI', 0),
-('8606cf01-c111-4aef-92cd-a111cb7b7a38', 'Ingeniería en Automática Industrial', 'IAI', 0),
-('7ebedec6-aeab-403b-8a97-9312061bd4b7', 'Tecnología en Telemática', 'TTE', 0),
-('d21ec0bf-cee1-4a06-8ae7-00477e88cfe6', 'Ingeniería en Inteligencia Artificial y Ciencia de Datos', 'IAC', 0);
+('14299e0f-8da8-4c73-ad2b-b61e0c52b7f5', 'Ingeniería Electrónica y Telecomunicaciones', 'PIET', 0),
+('5d73d656-2504-44cc-ab6e-5cd10b500abf', 'Ingeniería de Sistemas', 'PIS', 0),
+('8606cf01-c111-4aef-92cd-a111cb7b7a38', 'Ingeniería en Automática Industrial', 'PIAI', 0),
+('7ebedec6-aeab-403b-8a97-9312061bd4b7', 'Tecnología en Telemática', 'TTM', 0),
+('d21ec0bf-cee1-4a06-8ae7-00477e88cfe6', 'Ingeniería en Inteligencia Artificial y Ciencia de Datos', 'PIAC', 0);
 
 INSERT IGNORE INTO TIPO_SOLICITUD_ACADEMICA (uuidTipoSolicitudAcademica, nombre, descripcion, FuncionarioAcademico_uuid) VALUES
 ('3b6dccc9-ff78-48ef-8e66-05fb9932e302', 'Cancelación de Matrícula', 'Cancelación de todas las asignaturas matriculadas en el periodo académico', @funcionario_uuid),
@@ -71,13 +71,24 @@ INSERT IGNORE INTO TIPO_ANEXO_ACADEMICO (uuidTipoAnexoAcademico, TipoSolicitudAc
 ('ea7c3bf9-cb3c-459a-8834-120cfcdda9d2', '459cde47-f3a3-4a74-9b44-1063a516326c', 'Documento adicional de la respuesta', 'pdf', 0),
 ('72a5768d-7762-4f5c-bd0c-cef438c6f8ad', '3b6dccc9-ff78-48ef-8e66-05fb9932e302', 'Paz y salvos (un solo PDF con todos los paz y salvos)', 'pdf', 1);
 
-INSERT IGNORE INTO SITUACION_ACADEMICA_ASIGNATURA (uuidSituacionAcademica, codigo, nombre) VALUES
-('6eec86b1-53da-4c65-baa9-96bf67669c13', 'R0', 'No cursada'),
-('62aa0705-f878-408e-8111-78691c1a871a', 'R1', 'Cursada por primera vez'),
-('fa14cee3-6e4f-4178-955c-ba73312e08cb', 'R2', 'Cursada por segunda vez'),
-('a6077d43-d5fc-4e8d-9424-18c549515c24', 'R3', 'Cursada por tercera vez');
+INSERT IGNORE INTO SITUACION_ACADEMICA_ASIGNATURA (uuidSituacionAcademica, codigo, nombre, ambito) VALUES
+('6eec86b1-53da-4c65-baa9-96bf67669c13', 'R0', 'No cursada', NULL),
+('62aa0705-f878-408e-8111-78691c1a871a', 'R1', 'Cursada por primera vez', 'MATRICULA'),
+('01e928be-eaa1-49f2-9361-c01474105a33', 'R1R', 'Recursada por primera vez', 'MATRICULA'),
+('fa14cee3-6e4f-4178-955c-ba73312e08cb', 'R2', 'Cursada por segunda vez', 'MATRICULA'),
+('a6077d43-d5fc-4e8d-9424-18c549515c24', 'R3', 'Cursada por tercera vez', 'MATRICULA'),
+('73e1a062-b426-4f52-9cd9-e884f9f65df3', 'C1', 'No vista', 'CANCELACION'),
+('a36ac5d2-2c4f-4a23-a212-e1cb2e54fc1b', 'C2', 'Perdida', 'CANCELACION');
 
 UPDATE ETAPA_ETIQUETA_ROL SET etiqueta = 'Pendiente Notificar' WHERE rol = 'FUNCIONARIO' AND Etapa_uuid IN ('1dfc0089-f1b0-486d-bfc5-2025081d800f', 'fa3c502f-dc81-46eb-bace-88deb194564b');
 UPDATE ETAPA_ETIQUETA_ROL SET etiqueta = 'Recibo Pagado' WHERE rol = 'FUNCIONARIO' AND Etapa_uuid = 'ac289652-cf4e-4142-bec4-8809cbcb74fc';
 UPDATE TIPO_ANEXO_ACADEMICO SET nombre = 'Formato firmado por el docente que orienta la asignatura' WHERE uuidTipoAnexoAcademico = 'ee145c67-0f6e-4971-84b7-42679747ed49';
 UPDATE TIPO_ANEXO_ACADEMICO SET obligatorio = 0, vigente = 0 WHERE uuidTipoAnexoAcademico IN ('0870fd29-220d-4226-92b1-590804ac0974', 'fc630c85-6dff-4def-a072-ea26bd942d6e', '7b26091a-d12e-48d2-85b1-10a578ef198e', '6898eb98-f150-4784-8255-0eab0eb61edd', 'c756365a-f0c4-4e9a-9326-2946aeacd638', '22ca9f7d-967d-44ba-87fa-103aa63b297f');
+UPDATE TIPO_ANEXO_ACADEMICO SET obligatorio = 0, vigente = 0 WHERE uuidTipoAnexoAcademico = 'a6305ab3-9e82-40da-ba52-7f9cc6cce16f';
+UPDATE SITUACION_ACADEMICA_ASIGNATURA SET ambito = 'MATRICULA' WHERE uuidSituacionAcademica IN ('62aa0705-f878-408e-8111-78691c1a871a', 'fa14cee3-6e4f-4178-955c-ba73312e08cb', 'a6077d43-d5fc-4e8d-9424-18c549515c24');
+UPDATE SITUACION_ACADEMICA_ASIGNATURA SET ambito = NULL WHERE uuidSituacionAcademica = '6eec86b1-53da-4c65-baa9-96bf67669c13';
+UPDATE PROGRAMA_ACADEMICO SET sigla = 'PIET' WHERE uuidProgramaAcademico = '14299e0f-8da8-4c73-ad2b-b61e0c52b7f5';
+UPDATE PROGRAMA_ACADEMICO SET sigla = 'PIS' WHERE uuidProgramaAcademico = '5d73d656-2504-44cc-ab6e-5cd10b500abf';
+UPDATE PROGRAMA_ACADEMICO SET sigla = 'PIAI' WHERE uuidProgramaAcademico = '8606cf01-c111-4aef-92cd-a111cb7b7a38';
+UPDATE PROGRAMA_ACADEMICO SET sigla = 'TTM' WHERE uuidProgramaAcademico = '7ebedec6-aeab-403b-8a97-9312061bd4b7';
+UPDATE PROGRAMA_ACADEMICO SET sigla = 'PIAC' WHERE uuidProgramaAcademico = 'd21ec0bf-cee1-4a06-8ae7-00477e88cfe6';

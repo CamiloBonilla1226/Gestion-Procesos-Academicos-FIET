@@ -97,6 +97,21 @@ revierten están en la sección siguiente.
   Resolución ni su descarga, el documento adicional ni las filas de decisión y
   respuesta del historial. Después no se vuelve a ocultar. Funcionario y Decano
   ven todo siempre.
+- Resolución sin firmar y firmada en Cancelación de Asignatura (P59, desde
+  T12.33): al enviar la respuesta después del Decano el Funcionario sube la
+  Resolución sin firmar por el estudiante, que es la que va en la comunicación
+  programada. Si el estudiante firma antes de la fecha, el Funcionario la
+  reemplaza por la firmada desde el panel "Notificación de la Resolución" (y
+  puede volver a subirla hasta esa fecha); el panel dice cuál está vigente. El
+  "Documento adicional de la respuesta" ya no existe en este proceso: no se
+  ofrece, no se recibe ni se adjunta a ningún correo, y su tipo queda con
+  `vigente = 0` (no se borra). Matrícula y Supletorio lo conservan.
+- Situaciones en las dos cancelaciones (P60, desde T12.34): "situación de la
+  asignatura" es una lista cerrada (Cursada por primera vez, Recursada por
+  primera vez, Cursada por segunda vez, Cursada por tercera vez) y "situación
+  al cancelar" otra (No vista, Perdida). Siguen siendo opcionales; el backend
+  rechaza cualquier otro valor con código 6 y el frontend solo ofrece esas
+  opciones.
 - Cancelación de Asignatura tiene aprobación parcial: el Decano aprueba o
   rechaza cada asignatura por separado y solo se cancelan las aprobadas
   (decisión P14 de `docs/database/etapas-por-proceso.md`).
@@ -111,10 +126,13 @@ revierten están en la sección siguiente.
 - Secretario General o Decano crean los usuarios Estudiante y Funcionario
   Académico, por formulario y por carga masiva desde Excel. Para crear un
   Estudiante se registra también su información de materias.
-- Hay cinco programas académicos fijos (IET, ISI, IAI, TTE, IAC). Cada
-  asignatura y cada estudiante pertenecen a uno, obligatorio y que no cambia.
-  El código de la asignatura lo genera el backend (`ISI-001`) y no se edita
-  ni se reutiliza. Un estudiante solo matricula asignaturas existentes de su
+- Hay cinco programas académicos fijos; sus siglas desde T12.34 (P61) son
+  PIET, PIS, PIAI, TTM y PIAC (antes IET, ISI, IAI, TTE, IAC; se cambian con
+  `UPDATE`, nunca borrando programas). Cada asignatura y cada estudiante
+  pertenecen a uno, obligatorio y que no cambia. El código de la asignatura
+  lo genera el backend con la sigla (`PIS-294`) y no se edita ni se
+  reutiliza; las asignaturas creadas antes conservan su código con la sigla
+  anterior (`ISI-014`). Un estudiante solo matricula asignaturas existentes de su
   programa; ningún flujo de estudiantes crea asignaturas (P28 a P35).
 
 ## Cambios sobre el código de Julián

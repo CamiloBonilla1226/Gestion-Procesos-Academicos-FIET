@@ -8,6 +8,7 @@ import com.unicauca.cfiet.solicitudes.dominio.servicios.MaquinaEtapas;
 import com.unicauca.cfiet.solicitudes.dominio.servicios.NotificadorRespuestaFinal;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.formateador.ExcepcionesFormateadorImplAdaptador;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.excepcionesPropias.ErrorEntidadNoExisteExcepcion;
+import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.MensajesError;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.excepcionesPropias.ErrorMalFormatoExcepcion;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.excepcionesPropias.ErrorReglaNegocioVioladaExcepcion;
 import org.junit.jupiter.api.BeforeEach;
@@ -116,7 +117,8 @@ class TramiteCancelacionMatriculaCUImplAdaptadorTest {
     }
 
     private SituacionAcademicaAsignatura situacion(String uuid) {
-        return SituacionAcademicaAsignatura.builder().uuidSituacionAcademica(uuid).codigo(uuid.toUpperCase()).nombre(uuid).build();
+        return SituacionAcademicaAsignatura.builder().uuidSituacionAcademica(uuid).codigo(uuid.toUpperCase()).nombre(uuid)
+                .ambito(uuid.startsWith("can") ? AmbitoSituacionAcademica.CANCELACION : AmbitoSituacionAcademica.MATRICULA).build();
     }
 
     private void enEtapa(String codigo) {
@@ -166,7 +168,8 @@ class TramiteCancelacionMatriculaCUImplAdaptadorTest {
                 .asignaturas(new ArrayList<>(List.of(fila("as-1", "am-1", "Cálculo I"), fila("as-2", "am-2", "Física I"))))
                 .build());
         lenient().when(gateway.actualizarAsignaturas(any())).thenAnswer(invocacion -> invocacion.getArgument(0));
-        lenient().when(situacionGateway.getTodas()).thenReturn(List.of(situacion("sit-a"), situacion("sit-b"), situacion("sit-c")));
+        lenient().when(situacionGateway.getTodas()).thenReturn(List.of(situacion("sit-a"), situacion("sit-b"), situacion("sit-c"),
+                situacion("can-a"), situacion("can-b")));
         lenient().when(etapaGateway.getPorTipoIncluyendoUniversales(TIPO_CM)).thenReturn(EtapaSolicitudAcademicaConstantes.ETAPAS.stream()
                 .map(codigo -> EtapaSolicitudAcademica.builder().uuidEtapa("et-" + codigo).codigo(codigo).build())
                 .toList());
@@ -306,12 +309,12 @@ class TramiteCancelacionMatriculaCUImplAdaptadorTest {
     void remitirGuardaLaSituacionAlCancelarSiElFuncionarioLaRegistra() {
         enEtapa(RADICADA);
         EvaluacionAsignatura conCancelar = evaluacion("as-1", 0, "4.5", "sit-a");
-        conCancelar.setUuidSituacionCancelar("sit-c");
+        conCancelar.setUuidSituacionCancelar("can-a");
 
         casoDeUso.remitirADecano(SOLICITUD, List.of(conCancelar, evaluacion("as-2", 3, "2.0", "sit-c")), null, TOKEN_FUNCIONARIO);
 
         List<AsignaturaSolicitudAcademica> guardadas = asignaturasGuardadas();
-        assertEquals("sit-c", guardadas.get(0).getSituacionCancelar().getUuidSituacionAcademica());
+        assertEquals("can-a", guardadas.get(0).getSituacionCancelar().getUuidSituacionAcademica());
         assertNull(guardadas.get(1).getSituacionCancelar());
     }
 
@@ -321,10 +324,25 @@ class TramiteCancelacionMatriculaCUImplAdaptadorTest {
         EvaluacionAsignatura conCancelar = evaluacion("as-2", 1, "3.0", "sit-a");
         conCancelar.setUuidSituacionCancelar("sit-x");
 
-        ErrorEntidadNoExisteExcepcion error = assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso.remitirADecano(SOLICITUD,
+        ErrorMalFormatoExcepcion error = assertThrows(ErrorMalFormatoExcepcion.class, () -> casoDeUso.remitirADecano(SOLICITUD,
                 List.of(evaluacion("as-1", 0, "4.0", "sit-a"), conCancelar), null, TOKEN_FUNCIONARIO));
 
         assertTrue(error.getMessage().contains("sit-x"));
+        verificarQueNoSeEscribioNada();
+    }
+
+    @Test
+    void remitirConUnaSituacionDeLaOtraListaSeRechazaConMalFormatoSinGuardar() {
+        enEtapa(RADICADA);
+        EvaluacionAsignatura cancelarConMatricula = evaluacion("as-2", 1, "3.0", "sit-a");
+        cancelarConMatricula.setUuidSituacionCancelar("sit-b");
+
+        ErrorMalFormatoExcepcion error = assertThrows(ErrorMalFormatoExcepcion.class, () -> casoDeUso.remitirADecano(SOLICITUD,
+                List.of(evaluacion("as-1", 0, "4.0", "sit-a"), cancelarConMatricula), null, TOKEN_FUNCIONARIO));
+        assertEquals(String.format(MensajesError.SITUACION_NO_PERMITIDA, "La situación al cancelar", "sit-b", "can-a, can-b"), error.getMessage());
+        ErrorMalFormatoExcepcion otra = assertThrows(ErrorMalFormatoExcepcion.class, () -> casoDeUso.remitirADecano(SOLICITUD,
+                List.of(evaluacion("as-1", 0, "4.0", "can-a"), evaluacion("as-2", 1, "3.0", "sit-a")), null, TOKEN_FUNCIONARIO));
+        assertTrue(otra.getMessage().startsWith("La situación de la asignatura no admite el valor can-a"));
         verificarQueNoSeEscribioNada();
     }
 
@@ -428,7 +446,7 @@ class TramiteCancelacionMatriculaCUImplAdaptadorTest {
     void remitirConSituacionQueNoExisteNoGuardaNada() {
         enEtapa(RADICADA);
 
-        ErrorEntidadNoExisteExcepcion error = assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso.remitirADecano(SOLICITUD,
+        ErrorMalFormatoExcepcion error = assertThrows(ErrorMalFormatoExcepcion.class, () -> casoDeUso.remitirADecano(SOLICITUD,
                 List.of(evaluacion("as-1", 0, "4.0", "sit-a"), evaluacion("as-2", 1, "3.0", "sit-x")), null, TOKEN_FUNCIONARIO));
 
         assertTrue(error.getMessage().contains("sit-x"));

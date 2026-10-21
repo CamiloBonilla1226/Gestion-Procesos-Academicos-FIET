@@ -180,7 +180,7 @@ function Obtener-Programas {
 }
 
 function Programa-PorSigla {
-    param([string]$Token, [string]$Sigla = "ISI")
+    param([string]$Token, [string]$Sigla = "PIS")
     $programa = @(Obtener-Programas -Token $Token | Where-Object { $_.sigla -eq $Sigla })[0]
     if ($null -eq $programa) { throw "El catalogo no tiene el programa $Sigla; corre docs/database/seed-procesos-academicos.sql" }
     return $programa

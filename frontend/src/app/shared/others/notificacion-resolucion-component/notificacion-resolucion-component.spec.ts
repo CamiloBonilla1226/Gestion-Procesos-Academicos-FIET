@@ -78,6 +78,17 @@ describe('NotificacionResolucionComponent', () => {
     expect(panel.querySelector('[data-fecha-programada]').textContent).toContain('1 de enero de 2099');
     expect(panel.querySelector('[data-mensaje-inicial]').textContent).toContain('Buen día');
     expect(acciones(fixture)).toEqual(['REPROGRAMAR', 'FIRMA']);
+    expect(panel.querySelector('[data-resolucion-vigente]').textContent.trim()).toBe('Sin firmar por el estudiante');
+  });
+
+  it('con la firmada vigente lo indica y deja volver a subirla', () => {
+    const fixture = crear(notificacion({ firmada: true }));
+    const componente = fixture.componentInstance;
+    expect(fixture.nativeElement.querySelector('[data-resolucion-vigente]').textContent.trim()).toBe('Firmada por el estudiante');
+    expect(componente.textoBotonFirma).toBe('Volver a subir la firmada');
+    componente.abrir('firma');
+    expect(componente.dialogo).toBe('firma');
+    expect(componente.tituloDialogo).toBe('Volver a subir la Resolución firmada');
   });
 
   it('enviada es de solo lectura', () => {

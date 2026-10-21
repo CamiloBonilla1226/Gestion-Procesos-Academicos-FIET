@@ -33,8 +33,8 @@
         <dd class="campo-valor m-0" data-decision>{{ n.decision }}</dd>
       </div>
       <div class="campo">
-        <dt class="campo-etiqueta">Firmada por el estudiante</dt>
-        <dd class="campo-valor m-0" data-firmada>{{ n.firmada ? 'Sí' : 'No' }}</dd>
+        <dt class="campo-etiqueta">Resolución vigente</dt>
+        <dd class="campo-valor m-0" data-resolucion-vigente [attr.data-firmada]="n.firmada">{{ resolucionVigente }}</dd>
       </div>
       <div class="campo">
         <dt class="campo-etiqueta">Intentos de envío</dt>
@@ -75,11 +75,12 @@
     @if (n.editable && n.firmada) {
     <p class="nota-aviso mt-3 mb-0" data-nota-firmada>
       El estudiante firmó: no se le enviará la comunicación. En la fecha programada DARCA recibirá el PDF de la respuesta y la
-      Resolución firmada.
+      Resolución firmada. Hasta esa fecha puedes volver a subir la firmada si hace falta corregirla.
     </p>
     } @else if (n.editable) {
     <p class="nota-gris mt-3 mb-0" data-nota-editable>
-      Hasta la fecha y hora programadas puedes reprogramar, corregir los datos o registrar que el estudiante firmó en la Decanatura.
+      La Resolución vigente es la que subiste sin la firma del estudiante. Hasta la fecha y hora programadas puedes reprogramar,
+      corregir los datos o, si el estudiante firma en la Decanatura, reemplazarla por la firmada.
     </p>
     } @else if (n.estado === 'PROGRAMADA' || n.estado === 'EN_PROCESO') {
     <p class="nota-gris mt-3 mb-0" data-nota-en-envio>La fecha programada ya llegó: la comunicación se está enviando y no se puede modificar.</p>
@@ -93,7 +94,7 @@
   <app-simple-button-component data-accion="REPROGRAMAR" label="Reprogramar o editar" width="auto" height="38px" color="#2A3A86"
     [disabled]="enviando" (clicked)="abrir('reprogramar')">
   </app-simple-button-component>
-  <app-simple-button-component data-accion="FIRMA" label="El estudiante firmó" width="auto" height="38px" color="#2A3A86"
+  <app-simple-button-component data-accion="FIRMA" [label]="textoBotonFirma" width="auto" height="38px" color="#2A3A86"
     [disabled]="enviando" (clicked)="abrir('firma')">
   </app-simple-button-component>
   }
@@ -116,9 +117,13 @@
     </app-programacion-resolucion-component>
     }
     @case ('firma') {
-    <p class="nota-gris mb-0">
-      Sube la Resolución firmada por el estudiante; reemplaza la escaneada. Al confirmar no se enviará el correo al estudiante y,
-      en la fecha programada, DARCA recibirá el PDF de la respuesta y esta Resolución.
+    <p class="nota-gris mb-0" data-nota-firma>
+      @if (notificacion?.firmada) {
+      Sube otra vez la Resolución firmada por el estudiante; reemplaza a la firmada que está vigente.
+      } @else {
+      Sube la Resolución firmada por el estudiante; reemplaza a la Resolución sin firmar.
+      }
+      No se enviará el correo al estudiante y, en la fecha programada, DARCA recibirá el PDF de la respuesta y esta Resolución.
     </p>
     <div data-campo-firma>
       <app-input-anexo-upload-component #entradaFirma [tipoAnexo]="tipoFirma" [uploadedFile]="archivoFirma"

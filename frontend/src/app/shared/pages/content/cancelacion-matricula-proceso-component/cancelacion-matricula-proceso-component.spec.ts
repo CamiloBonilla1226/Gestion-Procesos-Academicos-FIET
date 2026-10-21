@@ -34,7 +34,7 @@ const DETALLE: CancelacionMatriculaDetalleDTORespuesta = {
   asignaturas: [
     { uuidAsignaturaSolicitud: 'as-1', codigoAsignatura: 'A1', nombreAsignatura: 'Cálculo', numeroFaltas: null, nota: null, situacionMatricula: null, situacionCancelar: null },
     { uuidAsignaturaSolicitud: 'as-2', codigoAsignatura: 'A2', nombreAsignatura: 'Física', numeroFaltas: '2', nota: '3.5',
-      situacionMatricula: { uuidSituacionAcademica: 'r1', codigo: 'R1', nombre: 'Aprobada' }, situacionCancelar: null }
+      situacionMatricula: { uuidSituacionAcademica: 'r1', codigo: 'R1R', nombre: 'Recursada por primera vez' }, situacionCancelar: null }
   ]
 };
 
@@ -62,8 +62,9 @@ describe('CancelacionMatriculaProcesoComponent', () => {
       { uuidTipoAnexoAcademico: 'u-adicional', uuidTipoSolicitudAcademica: 't', nombre: 'Documento adicional de la respuesta', formatosPermitidos: 'pdf', obligatorio: false }
     ]));
     catalogo.getSituaciones.and.returnValue(of([
-      { uuidSituacionAcademica: 'r0', codigo: 'R0', nombre: 'No cursada' },
-      { uuidSituacionAcademica: 'r1', codigo: 'R1', nombre: 'Aprobada' }
+      { uuidSituacionAcademica: 'r0', codigo: 'R1', nombre: 'Cursada por primera vez', ambito: 'MATRICULA' },
+      { uuidSituacionAcademica: 'r1', codigo: 'C2', nombre: 'Perdida', ambito: 'CANCELACION' },
+      { uuidSituacionAcademica: 'r9', codigo: 'R0', nombre: 'No cursada', ambito: null }
     ]));
     TestBed.configureTestingModule({
       imports: [CancelacionMatriculaProcesoComponent],
@@ -101,7 +102,8 @@ describe('CancelacionMatriculaProcesoComponent', () => {
     const filas = fixture.nativeElement.querySelectorAll('tbody tr');
     expect(filas.length).toBe(2);
     expect(filas[1].textContent).toContain('3.5');
-    expect(filas[1].textContent).toContain('R1 - Aprobada');
+    expect(filas[1].textContent).toContain('Recursada por primera vez');
+    expect(filas[1].textContent).not.toContain('R1R');
     expect(filas[0].textContent).toContain('—');
     expect(fixture.nativeElement.querySelector('[data-acciones]')).toBeNull();
     expect(fixture.nativeElement.querySelector('[data-tabla-asignaturas] input, [data-tabla-asignaturas] select')).toBeNull();
@@ -540,10 +542,9 @@ describe('CancelacionMatriculaProcesoComponent', () => {
     expect(fila.querySelectorAll('select').length).toBe(2);
     const celdas = fila.querySelectorAll('td');
     expect(celdas[0].textContent?.trim()).toBe('A1');
-    for (const campo of ['situacion', 'cancelar']) {
-      const opciones = Array.from(fila.querySelectorAll(`[data-campo="${campo}"] option`)).map(o => o.textContent?.trim());
-      expect(opciones).toEqual(['—', 'R0 - No cursada', 'R1 - Aprobada']);
-    }
+    const opcionesDe = (campo: string) => Array.from(fila.querySelectorAll(`[data-campo="${campo}"] option`)).map(o => o.textContent?.trim());
+    expect(opcionesDe('situacion')).toEqual(['—', 'Cursada por primera vez']);
+    expect(opcionesDe('cancelar')).toEqual(['—', 'Perdida']);
 
     const faltas = fila.querySelector('[data-campo="faltas"]') as HTMLInputElement;
     faltas.value = 'No registra';
@@ -598,7 +599,7 @@ describe('CancelacionMatriculaProcesoComponent', () => {
     expect(tabla.getAttribute('data-editable')).toBeNull();
     expect(tabla.querySelector('input, select')).toBeNull();
     expect(tabla.querySelectorAll('thead tr').length).toBe(3);
-    expect(tabla.querySelector('[data-fila="as-2"]')?.textContent).toContain('R1 - Aprobada');
+    expect(tabla.querySelector('[data-fila="as-2"]')?.textContent).toContain('Recursada por primera vez');
   });
 
   it('el mensaje para el estudiante lleva contador dentro del dialogo de respuesta', () => {

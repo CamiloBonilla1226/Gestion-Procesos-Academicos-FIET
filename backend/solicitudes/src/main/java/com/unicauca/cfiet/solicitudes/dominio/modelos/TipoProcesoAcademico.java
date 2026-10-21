@@ -16,6 +16,10 @@ public enum TipoProcesoAcademico {
         this.codigo = codigo;
     }
 
+    public boolean admiteDocumentoAdicional() {
+        return this != CANCELACION_ASIGNATURA;
+    }
+
     public static TipoProcesoAcademico porNombre(String nombre) {
         if (nombre == null) return null;
         for (TipoProcesoAcademico tipo : values())

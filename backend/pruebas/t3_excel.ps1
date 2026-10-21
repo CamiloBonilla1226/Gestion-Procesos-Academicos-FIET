@@ -42,8 +42,8 @@ $usernames = @()
 $codigos = @()
 
 try {
-    $isi = Programa-PorSigla -Token $tokenRoot -Sigla "ISI"
-    $iet = Programa-PorSigla -Token $tokenRoot -Sigla "IET"
+    $isi = Programa-PorSigla -Token $tokenRoot -Sigla "PIS"
+    $iet = Programa-PorSigla -Token $tokenRoot -Sigla "PIET"
     $estudianteRol = Crear-UsuarioPrueba -Perfil "Estudiante" -TokenAdmin $tokenRoot -Prefijo "est"
     $usernames += $estudianteRol.Username
     $funcAcad = Crear-UsuarioPrueba -Perfil "FuncionarioAcademico" -TokenAdmin $tokenRoot -Prefijo "facad"

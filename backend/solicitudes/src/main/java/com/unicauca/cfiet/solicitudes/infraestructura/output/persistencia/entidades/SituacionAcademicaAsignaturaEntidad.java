@@ -1,7 +1,10 @@
 package com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.entidades;
 
+import com.unicauca.cfiet.solicitudes.dominio.modelos.AmbitoSituacionAcademica;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.*;
@@ -21,4 +24,8 @@ public class SituacionAcademicaAsignaturaEntidad {
     private String codigo;
     @Column(name = "nombre", length = 100, nullable = false)
     private String nombre;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ambito", length = 20)
+    private AmbitoSituacionAcademica ambito;
 }

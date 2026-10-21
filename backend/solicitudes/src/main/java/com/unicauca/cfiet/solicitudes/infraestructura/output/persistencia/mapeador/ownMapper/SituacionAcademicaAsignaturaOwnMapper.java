@@ -13,6 +13,7 @@ public class SituacionAcademicaAsignaturaOwnMapper implements OwnMapper<Situacio
                 .uuidSituacionAcademica(source.getUuidSituacionAcademica())
                 .codigo(source.getCodigo())
                 .nombre(source.getNombre())
+                .ambito(source.getAmbito())
                 .build();
     }
 
@@ -22,6 +23,7 @@ public class SituacionAcademicaAsignaturaOwnMapper implements OwnMapper<Situacio
                 .uuidSituacionAcademica(source.getUuidSituacionAcademica())
                 .codigo(source.getCodigo())
                 .nombre(source.getNombre())
+                .ambito(source.getAmbito())
                 .build();
     }
 }

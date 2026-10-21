@@ -76,6 +76,7 @@ public class MapperCatalogoAcademicoInfraestructuraDominio {
                         .uuidSituacionAcademica(situacion.getUuidSituacionAcademica())
                         .codigo(situacion.getCodigo())
                         .nombre(situacion.getNombre())
+                        .ambito(situacion.getAmbito() == null ? null : situacion.getAmbito().name())
                         .build())
                 .toList();
     }

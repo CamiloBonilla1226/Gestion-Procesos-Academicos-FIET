@@ -46,6 +46,7 @@ import {
   errorDeObservacion,
   erroresDeCampos
 } from '../../../../core/utils/validaciones-academicas';
+import { AMBITOS_SITUACION, OpcionSituacion, opcionesDeSituacion, textoSituacion } from '../../../../core/utils/situaciones-academicas';
 
 interface EvaluacionEnEdicion {
   faltas: string;
@@ -64,10 +65,6 @@ interface ColumnaAsignatura {
 
 function textoLibre(valor: string | null | undefined): string | null {
   return valor !== null && valor !== undefined && String(valor).trim() !== '' ? String(valor) : null;
-}
-
-function textoSituacion(situacion: { codigo: string; nombre: string } | null): string | null {
-  return situacion ? `${situacion.codigo} - ${situacion.nombre}` : null;
 }
 
 const COLUMNAS: ColumnaAsignatura[] = [
@@ -155,7 +152,8 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
   cargando = false;
   errorCarga = false;
 
-  opcionesSituacion: { label: string; value: string }[] = [];
+  opcionesSituacion: OpcionSituacion[] = [];
+  opcionesSituacionCancelar: OpcionSituacion[] = [];
   cargandoSituaciones = false;
 
   accionActiva: AccionAcademica | null = null;
@@ -467,7 +465,7 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
   }
 
   private asegurarSituaciones(alListo: () => void): void {
-    if (this.opcionesSituacion.length > 0) {
+    if (this.opcionesSituacion.length > 0 && this.opcionesSituacionCancelar.length > 0) {
       alListo();
       return;
     }
@@ -477,8 +475,9 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
       .pipe(finalize(() => (this.cargandoSituaciones = false)))
       .subscribe({
         next: situaciones => {
-          this.opcionesSituacion = (situaciones ?? []).map(s => ({ label: `${s.codigo} - ${s.nombre}`, value: s.uuidSituacionAcademica }));
-          if (this.opcionesSituacion.length === 0) {
+          this.opcionesSituacion = opcionesDeSituacion(situaciones, AMBITOS_SITUACION.MATRICULA);
+          this.opcionesSituacionCancelar = opcionesDeSituacion(situaciones, AMBITOS_SITUACION.CANCELACION);
+          if (this.opcionesSituacion.length === 0 || this.opcionesSituacionCancelar.length === 0) {
             this.accionActiva = null;
             this.errorHandlerService.handleError(
               { message: 'El catálogo de situaciones académicas está vacío' },

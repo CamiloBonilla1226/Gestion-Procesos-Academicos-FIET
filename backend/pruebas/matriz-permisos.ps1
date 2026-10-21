@@ -230,7 +230,7 @@ function Conteos-Datos {
 function Nuevo-Estudiante {
     param([string]$Token)
     $s = Nuevo-Sufijo
-    $programa = Programa-PorSigla -Token $Token -Sigla "ISI"
+    $programa = Programa-PorSigla -Token $Token -Sigla "PIS"
     $asignatura = Crear-AsignaturaPrueba -Token $Token -UuidPrograma $programa.uuidProgramaAcademico -Nombre "Materia matriz $s"
     $script:codigos += $asignatura.codigoAsignatura
     $cuerpo = @{

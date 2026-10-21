@@ -1,7 +1,7 @@
 import { Component, Input, OnChanges, SimpleChanges, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
-import { EMPTY, Observable, catchError, finalize, map, of, switchMap, tap, throwError } from 'rxjs';
+import { EMPTY, Observable, finalize, map, of, switchMap, tap } from 'rxjs';
 import { GenericDialogFormComponent } from '../../../generic-dialog-form-component/generic-dialog-form-component';
 import { SimpleButtonComponent } from '../../../buttons/simple-button-component/simple-button-component';
 import { InputTextTareaComponent } from '../../../inputs/input-text-tarea-component/input-text-tarea-component';
@@ -45,7 +45,6 @@ import {
 import { NOTA_SIMCA } from '../../../../core/constantes/textos-cancelacion-matricula';
 import { CeldaEncabezado, agruparEncabezados } from '../../../../core/utils/encabezado-agrupado';
 import { ResumenSolicitudComponent } from '../../../others/resumen-solicitud-component/resumen-solicitud-component';
-import { DocumentoAdicionalComponent } from '../../../others/documento-adicional-component/documento-adicional-component';
 import { ComunicacionRespuestaComponent } from '../../../others/comunicacion-respuesta-component/comunicacion-respuesta-component';
 import { NotificacionResolucionComponent } from '../../../others/notificacion-resolucion-component/notificacion-resolucion-component';
 import {
@@ -57,13 +56,6 @@ import {
   programacionVacia
 } from '../../../../core/utils/notificacion-resolucion';
 import {
-  TITULO_FALLA_DOCUMENTO_ADICIONAL,
-  admiteDocumentoAdicional,
-  mensajeDeFalla,
-  subirDocumentoAdicional,
-  tieneDocumentoAdicional
-} from '../../../../core/utils/documento-adicional';
-import {
   comoTipoAnexo,
   errorDeArchivo,
   errorDeFaltas,
@@ -72,6 +64,7 @@ import {
   erroresDeCampos,
   numeroDeValor
 } from '../../../../core/utils/validaciones-academicas';
+import { AMBITOS_SITUACION, OpcionSituacion, opcionesDeSituacion, textoSituacion } from '../../../../core/utils/situaciones-academicas';
 
 interface EvaluacionEnEdicion {
   faltas: string;
@@ -151,10 +144,6 @@ function textoSiNo(valor: boolean | null, si: string, no: string): string | null
   return valor ? si : no;
 }
 
-function textoSituacion(situacion: { codigo: string; nombre: string } | null): string | null {
-  return situacion ? `${situacion.codigo} - ${situacion.nombre}` : null;
-}
-
 function textoLibre(valor: string | null): string | null {
   return valor && valor.trim() !== '' ? valor : null;
 }
@@ -197,7 +186,6 @@ const COLUMNAS_FIJAS_EVALUACION = new Set([
     InputSelectComponent,
     InputAnexoUploadComponent,
     ResumenSolicitudComponent,
-    DocumentoAdicionalComponent,
     ComunicacionRespuestaComponent,
     NotificacionResolucionComponent
   ],
@@ -212,7 +200,7 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
 
   readonly acciones = ACCIONES_ACADEMICAS;
   readonly maximoObservacion = MAXIMO_CARACTERES_OBSERVACION;
-  readonly tipoResolucion = comoTipoAnexo('resolucion', 'Escaneo de la Resolución firmada', FORMATOS_RESOLUCION, true);
+  readonly tipoResolucion = comoTipoAnexo('resolucion', 'Resolución sin firmar por el estudiante', FORMATOS_RESOLUCION, true);
   readonly notaAprobarDecano = NOTA_APROBAR_DECANO;
   readonly notaSimca = NOTA_SIMCA;
   readonly sinDato = SIN_DATO;
@@ -232,7 +220,8 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   cargando = false;
   errorCarga = false;
 
-  opcionesSituacion: { label: string; value: string }[] = [];
+  opcionesSituacion: OpcionSituacion[] = [];
+  opcionesSituacionCancelar: OpcionSituacion[] = [];
   cargandoSituaciones = false;
 
   accionActiva: AccionAcademica | null = null;
@@ -242,9 +231,6 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   observacion = '';
   archivoResolucion: File | null = null;
   resolucionSubida = false;
-  archivoAdicional: File | null = null;
-  adicionalSubido = false;
-  errorAdicional = '';
   evaluaciones: Record<string, EvaluacionEnEdicion> = {};
   decisiones: Record<string, boolean> = {};
   ajustes: Record<string, AjusteEnEdicion> = {};
@@ -266,7 +252,6 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   ngOnChanges(cambios: SimpleChanges): void {
     if (cambios['uuidSolicitud'] || cambios['solicitud']) {
       this.resolucionSubida = false;
-      this.adicionalSubido = false;
       this.cargarDetalle();
     } else if (cambios['rol'] && this.detalle) {
       this.armarTabla(this.detalle);
@@ -339,14 +324,6 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
 
   get hayResolucion(): boolean {
     return this.solicitud?.tieneResolucion || this.resolucionSubida;
-  }
-
-  get pideDocumentoAdicional(): boolean {
-    return admiteDocumentoAdicional(this.accionActiva);
-  }
-
-  get hayDocumentoAdicional(): boolean {
-    return this.adicionalSubido || tieneDocumentoAdicional(this.solicitud?.anexos);
   }
 
   get campoObservacion() {
@@ -475,8 +452,6 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
     this.modoDecision = modo;
     this.observacion = '';
     this.archivoResolucion = null;
-    this.archivoAdicional = null;
-    this.errorAdicional = '';
     this.errores = {};
     this.erroresServidor = [];
     this.faltanDatosTabla = false;
@@ -570,7 +545,6 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
     if (Object.keys(this.errores).length > 0) return;
     this.enviando = true;
     this.erroresServidor = [];
-    this.errorAdicional = '';
     this.ejecutar(accion)
       .pipe(finalize(() => (this.enviando = false)))
       .subscribe({
@@ -583,11 +557,7 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
         },
         error: err => {
           this.erroresServidor = Object.entries(erroresDeCampos(err)).map(([campo, mensaje]) => `${campo}: ${mensaje}`);
-          this.errorHandlerService.handleError(
-            err,
-            'Error',
-            this.errorAdicional ? TITULO_FALLA_DOCUMENTO_ADICIONAL : 'No se pudo completar la acción'
-          );
+          this.errorHandlerService.handleError(err, 'Error', 'No se pudo completar la acción');
         }
       });
   }
@@ -639,9 +609,7 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
     const opcional = observacion === '' ? null : observacion;
     switch (accion) {
       case ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO:
-        return this.subirAdicional().pipe(
-          switchMap(() => this.cancelacionAsignaturaService.rechazarPorFuncionario(uuid, { observacion }))
-        );
+        return this.cancelacionAsignaturaService.rechazarPorFuncionario(uuid, { observacion });
       case ACCIONES_ACADEMICAS.REMITIR_DECANO:
         return this.cancelacionAsignaturaService.remitirADecano(uuid, {
           observacion: opcional,
@@ -661,31 +629,9 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
           mensaje: comunicacion.enviarMensaje ? comunicacion.mensaje.trim() : null,
           programacion: programacionAPeticion(comunicacion.programacion)
         };
-        return this.subirResolucion().pipe(
-          switchMap(() => this.subirAdicional()),
-          switchMap(() => this.cancelacionAsignaturaService.enviarRespuesta(uuid, cuerpo))
-        );
+        return this.subirResolucion().pipe(switchMap(() => this.cancelacionAsignaturaService.enviarRespuesta(uuid, cuerpo)));
       }
     }
-  }
-
-  private subirAdicional(): Observable<void> {
-    return subirDocumentoAdicional(
-      this.catalogoAcademicoService,
-      this.solicitudAcademicaService,
-      this.solicitud.uuidTipoSolicitudAcademica,
-      this.uuidSolicitud,
-      this.archivoAdicional
-    ).pipe(
-      tap(() => {
-        if (this.archivoAdicional) this.adicionalSubido = true;
-        this.archivoAdicional = null;
-      }),
-      catchError(err => {
-        this.errorAdicional = mensajeDeFalla(err);
-        return throwError(() => err);
-      })
-    );
   }
 
   private subirResolucion(): Observable<void> {
@@ -742,7 +688,7 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
     }
 
     if (accion === ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA && !this.archivoResolucion && !this.hayResolucion) {
-      errores['resolucion'] = 'Debes subir el escaneo de la Resolución firmada (PDF).';
+      errores['resolucion'] = 'Debes subir la Resolución sin firmar por el estudiante (PDF).';
     }
 
     if (accion === ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA) {
@@ -780,7 +726,7 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   }
 
   private asegurarSituaciones(alListo: () => void): void {
-    if (this.opcionesSituacion.length > 0) {
+    if (this.opcionesSituacion.length > 0 && this.opcionesSituacionCancelar.length > 0) {
       alListo();
       return;
     }
@@ -790,8 +736,9 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
       .pipe(finalize(() => (this.cargandoSituaciones = false)))
       .subscribe({
         next: situaciones => {
-          this.opcionesSituacion = (situaciones ?? []).map(s => ({ label: `${s.codigo} - ${s.nombre}`, value: s.uuidSituacionAcademica }));
-          if (this.opcionesSituacion.length === 0) {
+          this.opcionesSituacion = opcionesDeSituacion(situaciones, AMBITOS_SITUACION.MATRICULA);
+          this.opcionesSituacionCancelar = opcionesDeSituacion(situaciones, AMBITOS_SITUACION.CANCELACION);
+          if (this.opcionesSituacion.length === 0 || this.opcionesSituacionCancelar.length === 0) {
             this.accionActiva = null;
             this.errorHandlerService.handleError(
               { message: 'El catálogo de situaciones académicas está vacío' },

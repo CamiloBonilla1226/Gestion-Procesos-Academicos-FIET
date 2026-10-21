@@ -32,7 +32,7 @@ try {
     $r = Invoke-Api -Metodo GET -Ruta "catalogos-academicos/programas" -Token $tokenRoot
     $programas = if ($r.Status -eq 200) { @(Leer-Json $r) } else { @() }
     $siglas = (@($programas | ForEach-Object { $_.sigla }) | Sort-Object) -join ","
-    Escribir-Resultado "el catalogo trae los cinco programas con su sigla (obtuvo $($r.Status) y $siglas)" (($r.Status -eq 200) -and ($siglas -eq "IAC,IAI,IET,ISI,TTE"))
+    Escribir-Resultado "el catalogo trae los cinco programas con su sigla (obtuvo $($r.Status) y $siglas)" (($r.Status -eq 200) -and ($siglas -eq "PIAC,PIAI,PIET,PIS,TTM"))
     Escribir-Resultado "cada programa trae uuid, nombre y sigla" (@($programas | Where-Object { $_.uuidProgramaAcademico -and $_.nombre -and $_.sigla }).Count -eq 5)
     foreach ($actor in @(@{ Nombre = "Estudiante"; Token = $estudiante.Token }, @{ Nombre = "Funcionario Academico"; Token = $funcAcad.Token })) {
         $r = Invoke-Api -Metodo GET -Ruta "catalogos-academicos/programas" -Token $actor.Token
@@ -41,8 +41,8 @@ try {
     $r = Invoke-Api -Metodo GET -Ruta "catalogos-academicos/programas"
     Escribir-Resultado "Sin sesion GET catalogos-academicos/programas (401, obtuvo $($r.Status))" ($r.Status -eq 401)
 
-    $isi = @($programas | Where-Object { $_.sigla -eq "ISI" })[0]
-    $tte = @($programas | Where-Object { $_.sigla -eq "TTE" })[0]
+    $isi = @($programas | Where-Object { $_.sigla -eq "PIS" })[0]
+    $tte = @($programas | Where-Object { $_.sigla -eq "TTM" })[0]
     $sufijo = Nuevo-Sufijo
 
     $r = Invoke-Api -Metodo POST -Ruta "asignaturas" -Token $tokenRoot -Cuerpo @{ nombreAsignatura = "  Asignatura   de prueba $sufijo "; uuidProgramaAcademico = $isi.uuidProgramaAcademico }
@@ -51,7 +51,7 @@ try {
     $primera = Leer-Json $r
     $codigos += $primera.codigoAsignatura
     $uuid = $primera.uuidAsignatura
-    Escribir-Resultado "el codigo se genera con la sigla y tres digitos minimo (obtuvo $($primera.codigoAsignatura))" ($primera.codigoAsignatura -match '^ISI-\d{3,}$')
+    Escribir-Resultado "el codigo se genera con la sigla y tres digitos minimo (obtuvo $($primera.codigoAsignatura))" ($primera.codigoAsignatura -match '^PIS-\d{3,}$')
     Escribir-Resultado "la respuesta trae el programa (uuid y nombre)" (($primera.uuidProgramaAcademico -eq $isi.uuidProgramaAcademico) -and ($primera.programaAcademico -eq $isi.nombre))
     Escribir-Resultado "el nombre se guarda sin espacios sobrantes (obtuvo '$($primera.nombreAsignatura)')" ($primera.nombreAsignatura -eq "Asignatura de prueba $sufijo")
 
@@ -62,7 +62,7 @@ try {
     $r = Invoke-Api -Metodo POST -Ruta "asignaturas" -Token $tokenRoot -Cuerpo @{ nombreAsignatura = "Asignatura de prueba $sufijo"; uuidProgramaAcademico = $tte.uuidProgramaAcademico }
     $otraTte = if ($r.Status -eq 200) { Leer-Json $r } else { $null }
     if ($otraTte) { $codigos += $otraTte.codigoAsignatura }
-    Escribir-Resultado "el mismo nombre en otro programa se permite y usa su sigla (obtuvo $($r.Status) $($otraTte.codigoAsignatura))" (($r.Status -eq 200) -and ($otraTte.codigoAsignatura -match '^TTE-\d{3,}$'))
+    Escribir-Resultado "el mismo nombre en otro programa se permite y usa su sigla (obtuvo $($r.Status) $($otraTte.codigoAsignatura))" (($r.Status -eq 200) -and ($otraTte.codigoAsignatura -match '^TTM-\d{3,}$'))
 
     $r = Invoke-Api -Metodo POST -Ruta "asignaturas" -Token $tokenRoot -Cuerpo @{ nombreAsignatura = " ASIGNATURA DE   PRUEBA $sufijo"; uuidProgramaAcademico = $isi.uuidProgramaAcademico }
     $cod = Obtener-CodigoError $r
@@ -95,7 +95,7 @@ try {
 
     $r = Invoke-Api -Metodo GET -Ruta "asignaturas/filtro?texto=$sufijo&uuidProgramaAcademico=$($tte.uuidProgramaAcademico)&pagina=0&tamanio=10" -Token $tokenRoot
     $pagina = if ($r.Status -eq 200) { Leer-Json $r } else { $null }
-    Escribir-Resultado "root filtra por texto y programa (200 y solo la de TTE, obtuvo $($r.Status) y $($pagina.totalElements))" (($r.Status -eq 200) -and ($pagina.totalElements -eq 1) -and (@($pagina.content)[0].codigoAsignatura -eq $otraTte.codigoAsignatura))
+    Escribir-Resultado "root filtra por texto y programa (200 y solo la de TTM, obtuvo $($r.Status) y $($pagina.totalElements))" (($r.Status -eq 200) -and ($pagina.totalElements -eq 1) -and (@($pagina.content)[0].codigoAsignatura -eq $otraTte.codigoAsignatura))
 
     $r = Invoke-Api -Metodo GET -Ruta "asignaturas/filtro?uuidProgramaAcademico=$inexistente&pagina=0&tamanio=5" -Token $tokenRoot
     $cod = Obtener-CodigoError $r
@@ -150,7 +150,7 @@ try {
     $creadas = Codigos-DeRespuesta $r
     $codigos += $creadas
     Escribir-Resultado "root carga asignaturas por Excel (200 y 3 creadas, obtuvo $($r.Status) y $($creadas.Count))" (($r.Status -eq 200) -and ($creadas.Count -eq 3))
-    Escribir-Resultado "el Excel genera los codigos en el orden del archivo ($($creadas -join ' '))" (($creadas.Count -eq 3) -and ($creadas[0] -match '^ISI-') -and ($creadas[1] -match '^TTE-') -and ((Consecutivo $creadas[2]) -eq ((Consecutivo $creadas[0]) + 1)))
+    Escribir-Resultado "el Excel genera los codigos en el orden del archivo ($($creadas -join ' '))" (($creadas.Count -eq 3) -and ($creadas[0] -match '^PIS-') -and ($creadas[1] -match '^TTM-') -and ((Consecutivo $creadas[2]) -eq ((Consecutivo $creadas[0]) + 1)))
 
     $antes = Total-Asignaturas
     $casos = @(

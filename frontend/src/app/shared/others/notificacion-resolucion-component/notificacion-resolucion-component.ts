@@ -23,6 +23,10 @@ import {
 
 type DialogoNotificacion = 'reprogramar' | 'firma' | 'reintentar';
 
+const RESOLUCION_SIN_FIRMAR = 'Sin firmar por el estudiante';
+const RESOLUCION_FIRMADA = 'Firmada por el estudiante';
+const TITULO_REEMPLAZO_FIRMA = 'Volver a subir la Resolución firmada';
+
 const TITULOS: Record<DialogoNotificacion, string> = {
   reprogramar: 'Reprogramar la comunicación de la Resolución',
   firma: 'Registrar que el estudiante firmó',
@@ -37,7 +41,7 @@ const BOTONES: Record<DialogoNotificacion, string> = {
 
 const EXITOS: Record<DialogoNotificacion, string> = {
   reprogramar: 'La comunicación quedó reprogramada.',
-  firma: 'Quedó registrada la firma del estudiante: no se le enviará la comunicación.',
+  firma: 'La Resolución firmada por el estudiante quedó vigente: no se le enviará la comunicación.',
   reintentar: 'El envío quedó programado de nuevo.'
 };
 
@@ -82,6 +86,14 @@ export class NotificacionResolucionComponent implements OnChanges {
     return n ? `No. ${n.numeroResolucion}${n.sufijoResolucion ?? ''} de ${n.anioResolucion}` : '';
   }
 
+  get resolucionVigente(): string {
+    return this.notificacion?.firmada ? RESOLUCION_FIRMADA : RESOLUCION_SIN_FIRMAR;
+  }
+
+  get textoBotonFirma(): string {
+    return this.notificacion?.firmada ? 'Volver a subir la firmada' : 'El estudiante firmó';
+  }
+
   get puedeReintentar(): boolean {
     return this.notificacion?.estado === 'FALLIDA';
   }
@@ -91,6 +103,7 @@ export class NotificacionResolucionComponent implements OnChanges {
   }
 
   get tituloDialogo(): string {
+    if (this.dialogo === 'firma' && this.notificacion?.firmada) return TITULO_REEMPLAZO_FIRMA;
     return this.dialogo ? TITULOS[this.dialogo] : '';
   }
 

@@ -79,7 +79,8 @@ public class NotificadorRespuestaFinal {
             boolean sinResolucion = proceso == TipoProcesoAcademico.EXAMEN_SUPLETORIO || accion == AccionEtapa.RECHAZAR_FUNCIONARIO;
             if (!sinResolucion)
                 adjuntos.addAll(resolucionDe(solicitud));
-            adjuntos.addAll(adicionalesDe(solicitud));
+            if (proceso.admiteDocumentoAdicional())
+                adjuntos.addAll(adicionalesDe(solicitud));
             String texto = String.format(ENCABEZADO, fecha.format(FECHA_CARTA)) + frase(resumen, proceso) + String.format(PIE_DARCA);
             correo.enviar(destinatarioDarca, String.format(ASUNTOS_DARCA.get(proceso), solicitud.getRadicado()), texto, adjuntos);
         });
@@ -93,7 +94,6 @@ public class NotificadorRespuestaFinal {
         adjuntos.addAll(resolucionDe(solicitud));
         if (!firmada && constancia != null)
             adjuntos.addAll(constancia);
-        adjuntos.addAll(adicionalesDe(solicitud));
         String texto = String.format(ENCABEZADO, fecha.format(FECHA_CARTA)) + frase(resumen, proceso)
                 + (firmada ? NOTA_FIRMADA : NOTA_COMUNICADA) + String.format(PIE_DARCA);
         return CorreoPreparado.builder()

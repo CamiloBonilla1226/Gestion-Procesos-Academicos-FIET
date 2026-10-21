@@ -92,6 +92,7 @@ public class MensajesError {
     public static final String NINGUNA_ASIGNATURA_CUMPLE = "Ninguna asignatura cumple las condiciones: en lugar de remitir la solicitud al Decano debe rechazarla...";
     public static final String NINGUNA_ASIGNATURA_APROBADA = "No se aprobó ninguna asignatura: para negar la solicitud completa use el rechazo del Decano...";
     public static final String FORMA_APROBACION_DECANO = "Debe aceptar la evaluación del funcionario (aceptarEvaluacion) o enviar la decisión de cada asignatura (decisiones), una de las dos...";
+    public static final String SITUACION_NO_PERMITIDA = "%s no admite el valor %s: las opciones son %s...";
     public static final String SITUACION_CANCELAR_RECHAZADA = "La asignatura %s fue rechazada por el Decano y no lleva situación al cancelar...";
     public static final String AJUSTES_SOLICITUD_RECHAZADA = "La solicitud %s fue rechazada por el Decano y no admite ajustes por asignatura...";
     public static final String OBSERVACION_RESPUESTA_REQUERIDA = "El Decano rechazó la solicitud o alguna de sus asignaturas: la respuesta al estudiante requiere una observación...";
@@ -110,6 +111,7 @@ public class MensajesError {
     public static final String HORA_CRUCE_MAL_FORMADA = "La hora del examen cruzado %s no tiene el formato HH:mm...";
     public static final String DATOS_CRUCE_NO_PERMITIDOS = "Con causa otra no se aceptan la asignatura, la fecha ni la hora de un examen cruzado...";
     public static final String ANEXO_NO_PERMITIDO_AL_RADICAR = "El anexo %s no se entrega al radicar el examen supletorio...";
+    public static final String DOCUMENTO_ADICIONAL_NO_ADMITIDO = "El %s ya no se recibe en %s: la respuesta se comunica con la Resolución...";
     public static final String ANEXO_SOLO_DEL_FUNCIONARIO = "El anexo %s lo sube el Funcionario Académico con la respuesta final, no se entrega al radicar...";
     public static final String ANEXO_NO_CORRESPONDE_CAUSA = "El anexo %s no corresponde a la causa %s...";
     public static final String ANEXO_REPETIDO = "El anexo %s viene más de una vez...";

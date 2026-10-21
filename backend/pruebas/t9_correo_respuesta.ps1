@@ -57,7 +57,7 @@ function Nuevo-Estudiante {
     $s = Nuevo-Sufijo
     $asignaturas = @()
     $creadas = @()
-    if (-not $script:programaIsi) { $script:programaIsi = Programa-PorSigla -Token $Token -Sigla "ISI" }
+    if (-not $script:programaIsi) { $script:programaIsi = Programa-PorSigla -Token $Token -Sigla "PIS" }
     for ($i = 1; $i -le $Materias; $i++) {
         $asignatura = Crear-AsignaturaPrueba -Token $Token -UuidPrograma $script:programaIsi.uuidProgramaAcademico -Nombre "Materia T9 $i $s"
         $script:codigos += $asignatura.codigoAsignatura
@@ -415,6 +415,16 @@ function Verificar-Comunicacion {
     Verificar-Adjuntos-Pdf "$Caso (comunicacion)" $correo "Radicado-$($Solicitud.Radicado).pdf" $Adjuntos @($Solicitud.Radicado, $Estudiante.Nombre)
 }
 
+function Verificar-Tamanio-Resolucion {
+    param([string]$Caso, [string]$Destino, $Solicitud, [string]$Pdf)
+    $adjunto = @(Correos-Para $Destino | ForEach-Object { $_.adjuntos } | Where-Object { $_.nombre -eq "Resolucion-$($Solicitud.Radicado).pdf" })
+    $bytes = [System.IO.File]::ReadAllBytes($Pdf)
+    $saltos = @($bytes | Where-Object { $_ -eq 10 }).Count
+    $esperados = @($bytes.Length, ($bytes.Length + $saltos))
+    $obtenidos = @($adjunto | ForEach-Object { [int]$_.tamanio })
+    Escribir-Resultado "$Caso`: la Resolucion adjunta es la vigente ($($bytes.Length) bytes, obtuvo $($obtenidos -join ','))" (($obtenidos.Count -ge 1) -and (@($obtenidos | Where-Object { $esperados -notcontains $_ }).Count -eq 0))
+}
+
 function Verificar-Darca-Programada {
     param([string]$Caso, $Estudiante, $Solicitud, [string[]]$Adjuntos, [string]$Frase, [string]$Numero, [bool]$ConConstancia)
     $asunto = "$($Global:DarcaCa) - Radicado $($Solicitud.Radicado)"
@@ -456,8 +466,8 @@ $for23 = Tipo-Anexo $tipoEs "Formato firmado por el docente que orienta la asign
 $justificacion = Tipo-Anexo $tipoEs "Soporte de la justificaci%"
 $recibo = Tipo-Anexo $tipoEs "Recibo de pago"
 $comprobante = Tipo-Anexo $tipoEs "Comprobante de pago"
-$situacion = Ejecutar-Sql "select uuidSituacionAcademica from SITUACION_ACADEMICA_ASIGNATURA where codigo = 'R1'"
-$nombreSituacion = Ejecutar-Sql "select nombre from SITUACION_ACADEMICA_ASIGNATURA where codigo = 'R1'"
+$situacion = Ejecutar-Sql "select uuidSituacionAcademica from SITUACION_ACADEMICA_ASIGNATURA where codigo = 'C2' and ambito = 'CANCELACION'"
+$nombreSituacion = Ejecutar-Sql "select nombre from SITUACION_ACADEMICA_ASIGNATURA where codigo = 'C2' and ambito = 'CANCELACION'"
 if (-not $tipoCm -or -not $tipoCa -or -not $tipoEs -or $obligatoriosCm.Count -ne 1 -or $retiradosCm.Count -ne 6 -or -not $adicionalCm -or -not $adicionalCa -or -not $adicionalEs -or -not $for23 -or -not $justificacion -or -not $recibo -or -not $comprobante -or -not $situacion) {
     Write-Host "FAIL faltan catalogos sembrados (procesos, anexos, el Documento adicional de la respuesta o el PDF unico de paz y salvos); corre docs/database/seed-procesos-academicos.sql"
     exit 1
@@ -499,6 +509,8 @@ try {
     $nombreAdicional = Split-Path $pdfAdicional -Leaf
     $pdfFirmada = Nuevo-Pdf "firmada"
     $nombreFirmada = Split-Path $pdfFirmada -Leaf
+    $pdfFirmadaOtra = Nuevo-Pdf "firmada_corregida_por_el_estudiante"
+    $nombreFirmadaOtra = Split-Path $pdfFirmadaOtra -Leaf
     $observacion = @{ observacion = $Global:Privada }
 
     function Radicar-Matricula {
@@ -616,16 +628,20 @@ try {
 
     $estCa1 = Nuevo-Estudiante -Token $tokenRoot -Materias 2
     $sol = Radicar-Asignatura $estCa1
-    $r = Subir-Anexo -Solicitud $sol.Uuid -Tipo $adicionalCa -Pdf $pdfAdicional -Token $estCa1.Token
-    Escribir-Resultado "asignatura: el estudiante no puede subir el documento adicional (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "*FUNCIONARIO*"))
+    foreach ($quien in @(@{ Nombre = "estudiante"; Token = $estCa1.Token }, @{ Nombre = "funcionario"; Token = $fa.Token })) {
+        $r = Subir-Anexo -Solicitud $sol.Uuid -Tipo $adicionalCa -Pdf $pdfAdicional -Token $quien.Token
+        Escribir-Resultado "asignatura: el $($quien.Nombre) ya no puede subir el documento adicional, retirado del proceso (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "*ya no se recibe en Cancelaci*"))
+    }
+    $vigenteCa = Ejecutar-Sql "select vigente + 0 from TIPO_ANEXO_ACADEMICO where uuidTipoAnexoAcademico = '$adicionalCa'"
+    Escribir-Resultado "asignatura: el documento adicional sigue en el catalogo pero no vigente (obtuvo $vigenteCa)" ($vigenteCa -eq "0")
     $r = Subir-Anexo -Solicitud $sol.Uuid -Tipo "" -Pdf $pdfAnexo -Token $fa.Token
     Escribir-Resultado "asignatura: el funcionario no puede subir un soporte libre (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "*ESTUDIANTE*"))
-    Cargar-Archivos "asignatura rechazo directo con una Resolucion cargada antes" $sol.Uuid $adicionalCa $true $true
+    Cargar-Archivos "asignatura rechazo directo con una Resolucion cargada antes" $sol.Uuid $adicionalCa $true $false
     Paso "asignatura: el funcionario rechaza directo" (Invoke-Api -Metodo POST -Ruta "cancelaciones-asignatura/$($sol.Uuid)/funcionario/rechazar" -Token $fa.Token -Cuerpo $observacion) $sol.Uuid "RECHAZADA"
     $filas = Ejecutar-Sql "select count(*) from RESOLUCION_ACADEMICA where SolicitudAcademica_uuid = '$($sol.Uuid)'"
     Escribir-Resultado "asignatura rechazo directo: la Resolucion que ya estaba cargada se conserva como hoy (obtuvo $filas filas)" ($filas -eq "1")
-    Verificar-Correo "asignatura rechazo directo con una Resolucion cargada antes" $estCa1 $Global:AsuntoCa @($nombreAdicional) (Textos-Carta $estCa1 "Su solicitud con radicado $($sol.Radicado) $($Global:TextoRechazoDirecto)")
-    Verificar-Darca "asignatura rechazo directo con una Resolucion cargada antes" $estCa1 $sol $Global:DarcaCa "Cancelaci$($o)n de Asignatura" "Rechazada" @($nombreAdicional) "solicita cancelar 2 asignaturas: 0 aprobadas y 2 rechazadas." @($estCa1.Materias[0].Codigo, $estCa1.Materias[0].Nombre, $estCa1.Materias[1].Codigo, $estCa1.Materias[1].Nombre, "Situaci$($o)n acad$([char]0x00E9)mica al cancelar", "No aplica")
+    Verificar-Correo "asignatura rechazo directo con una Resolucion cargada antes" $estCa1 $Global:AsuntoCa @() (Textos-Carta $estCa1 "Su solicitud con radicado $($sol.Radicado) $($Global:TextoRechazoDirecto)")
+    Verificar-Darca "asignatura rechazo directo con una Resolucion cargada antes" $estCa1 $sol $Global:DarcaCa "Cancelaci$($o)n de Asignatura" "Rechazada" @() "solicita cancelar 2 asignaturas: 0 aprobadas y 2 rechazadas." @($estCa1.Materias[0].Codigo, $estCa1.Materias[0].Nombre, $estCa1.Materias[1].Codigo, $estCa1.Materias[1].Nombre, "Situaci$($o)n acad$([char]0x00E9)mica al cancelar", "No aplica")
     $r = Invoke-Api -Metodo GET -Ruta "cancelaciones-asignatura/$($sol.Uuid)/funcionario/notificacion" -Token $fa.Token
     Escribir-Resultado "asignatura rechazo directo: no hay comunicacion programada (204, obtuvo $($r.Status))" ($r.Status -eq 204)
     $v = Vista-Estudiante $estCa1 $sol
@@ -639,7 +655,9 @@ try {
     Paso "asignatura: remite al Decano" (Invoke-Api -Metodo POST -Ruta "cancelaciones-asignatura/$($sol.Uuid)/funcionario/remitir" -Token $fa.Token -Cuerpo @{ evaluaciones = $evaluaciones }) $sol.Uuid "EN_REVISION_DECANO"
     $decisiones = @(@{ asignaturaSolicitudUuid = $filas[0]; aprobada = $true }, @{ asignaturaSolicitudUuid = $filas[1]; aprobada = $false })
     Paso "asignatura: el Decano aprueba una asignatura y rechaza la otra" (Invoke-Api -Metodo POST -Ruta "cancelaciones-asignatura/$($sol.Uuid)/decano/aprobar" -Token $decano.Token -Cuerpo @{ decisiones = $decisiones }) $sol.Uuid "APROBADA_POR_DECANO"
-    Cargar-Archivos "asignatura respuesta aprobada parcial" $sol.Uuid $adicionalCa $true $true
+    Cargar-Archivos "asignatura respuesta aprobada parcial (Resolucion sin firmar)" $sol.Uuid $adicionalCa $true $false
+    $r = Subir-Anexo -Solicitud $sol.Uuid -Tipo $adicionalCa -Pdf $pdfAdicional -Token $fa.Token
+    Escribir-Resultado "asignatura parcial: el funcionario tampoco sube el documento adicional al responder (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "*ya no se recibe en Cancelaci*"))
     $r = Invoke-Api -Metodo GET -Ruta "cancelaciones-asignatura/$($sol.Uuid)/funcionario/notificacion/plantilla" -Token $fa.Token
     $plantilla = Leer-Json $r
     Escribir-Resultado "asignatura: la plantilla trae el mensaje con la firma de cuatro lineas, la decision propuesta, el anio y el sufijo (obtuvo $($r.Status), '$($plantilla.decisionPropuesta)', $($plantilla.anioResolucion), '$($plantilla.sufijoResolucion)')" (($r.Status -eq 200) -and ([string]$plantilla.mensajeInicial).Contains($Global:Firma) -and (-not ([string]$plantilla.mensajeInicial).Contains("[FIRMA]")) -and ($plantilla.decisionPropuesta -eq "aprueba parcialmente la") -and ($plantilla.anioResolucion -eq (Ahora-Bogota).Year) -and ($plantilla.sufijoResolucion -eq "/178"))
@@ -686,7 +704,13 @@ try {
     $r = Ejecutar-Curl -Argumentos @("-F", "archivo=@$pdfFirmada;type=application/pdf") -Ruta "cancelaciones-asignatura/$($sol.Uuid)/funcionario/notificacion/firma" -Token $fa.Token
     $resolucion = Ejecutar-Sql "select nombreArchivo from RESOLUCION_ACADEMICA where SolicitudAcademica_uuid = '$($sol.Uuid)'"
     $firmada = Ejecutar-Sql "select firmada + 0 from NOTIFICACION_RESOLUCION where SolicitudAcademica_uuid = '$($sol.Uuid)'"
-    Escribir-Resultado "asignatura con firma: el funcionario sube la Resolucion firmada, reemplaza la escaneada y queda marcada (obtuvo $($r.Status), archivo $resolucion, firmada $firmada)" (($r.Status -eq 200) -and ($resolucion -eq $nombreFirmada) -and ($firmada -eq "1"))
+    Escribir-Resultado "asignatura con firma: el funcionario sube la Resolucion firmada, reemplaza la sin firmar y queda marcada (obtuvo $($r.Status), archivo $resolucion, firmada $firmada)" (($r.Status -eq 200) -and ($resolucion -eq $nombreFirmada) -and ($firmada -eq "1"))
+    $panel = Leer-Json (Invoke-Api -Metodo GET -Ruta "cancelaciones-asignatura/$($sol.Uuid)/funcionario/notificacion" -Token $fa.Token)
+    Escribir-Resultado "asignatura con firma: el panel indica la firmada vigente y sigue editable (firmada $($panel.firmada), editable $($panel.editable))" ($panel.firmada -and $panel.editable)
+    $r = Ejecutar-Curl -Argumentos @("-F", "archivo=@$pdfFirmadaOtra;type=application/pdf") -Ruta "cancelaciones-asignatura/$($sol.Uuid)/funcionario/notificacion/firma" -Token $fa.Token
+    $resolucion = Ejecutar-Sql "select nombreArchivo from RESOLUCION_ACADEMICA where SolicitudAcademica_uuid = '$($sol.Uuid)'"
+    $filas = Ejecutar-Sql "select count(*) from RESOLUCION_ACADEMICA where SolicitudAcademica_uuid = '$($sol.Uuid)'"
+    Escribir-Resultado "asignatura con firma: antes de la fecha el funcionario vuelve a subir la firmada y reemplaza la anterior (obtuvo $($r.Status), archivo $resolucion, filas $filas)" (($r.Status -eq 200) -and ($resolucion -eq $nombreFirmadaOtra) -and ($filas -eq "1"))
     Verificar-Retenida "asignatura con firma" $estCa4 $sol
 
     $estCa3 = Nuevo-Estudiante -Token $tokenRoot -Materias 1
@@ -715,9 +739,11 @@ try {
         Escribir-Resultado "asignatura $($caso.Sol.Radicado): la tarea programada procesa la comunicacion vencida y queda $($caso.Fin) (obtuvo $estado)" ($estado -eq $caso.Fin)
     }
 
-    Verificar-Comunicacion "asignatura parcial" $estCa2 $solParcial "102-T9" "aprueba parcialmente la" @("Resolucion-$($solParcial.Radicado).pdf", $nombreAdicional)
-    Verificar-Darca-Programada "asignatura parcial" $estCa2 $solParcial @("Resolucion-$($solParcial.Radicado).pdf", "Comunicacion-Estudiante-$($solParcial.Radicado).pdf", $nombreAdicional) "solicita cancelar 2 asignaturas: 1 aprobada y 1 rechazada." "102-T9" $true
-    Verificar-Liberada "asignatura parcial" $estCa2 $solParcial "Aprobada" $true
+    Verificar-Comunicacion "asignatura parcial" $estCa2 $solParcial "102-T9" "aprueba parcialmente la" @("Resolucion-$($solParcial.Radicado).pdf")
+    Verificar-Darca-Programada "asignatura parcial" $estCa2 $solParcial @("Resolucion-$($solParcial.Radicado).pdf", "Comunicacion-Estudiante-$($solParcial.Radicado).pdf") "solicita cancelar 2 asignaturas: 1 aprobada y 1 rechazada." "102-T9" $true
+    Verificar-Tamanio-Resolucion "asignatura parcial (sin firma, DARCA)" $Global:CorreoDarca $solParcial $pdfResolucion
+    Verificar-Tamanio-Resolucion "asignatura parcial (sin firma, estudiante)" $estCa2.Correo $solParcial $pdfResolucion
+    Verificar-Liberada "asignatura parcial" $estCa2 $solParcial "Aprobada" $false
     $r = Ejecutar-Curl -Argumentos @("-F", "archivo=@$pdfFirmada;type=application/pdf") -Ruta "cancelaciones-asignatura/$($solParcial.Uuid)/funcionario/notificacion/firma" -Token $fa.Token
     Escribir-Resultado "asignatura parcial: pasada la fecha no se registra la firma (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "*ya no se puede modificar*"))
     $r = Invoke-Api -Metodo PUT -Ruta "cancelaciones-asignatura/$($solParcial.Uuid)/funcionario/notificacion" -Token $fa.Token -Cuerpo (Programacion -Segundos 600 -Numero "103-T9" -Decision "aprueba la")
@@ -726,6 +752,7 @@ try {
     $correosFirma = @(Correos-Para $estCa4.Correo)
     Escribir-Resultado "asignatura con firma: el estudiante no recibe ningun correo, ni mensaje inicial ni comunicacion (obtuvo $($correosFirma.Count))" ($correosFirma.Count -eq 0)
     Verificar-Darca-Programada "asignatura con firma" $estCa4 $solFirma @("Resolucion-$($solFirma.Radicado).pdf") "cancela la asignatura $($estCa4.Materias[0].Nombre) (aprobada)." "" $false
+    Verificar-Tamanio-Resolucion "asignatura con firma (DARCA)" $Global:CorreoDarca $solFirma $pdfFirmadaOtra
     Verificar-Liberada "asignatura con firma" $estCa4 $solFirma "Aprobada" $false
 
     Verificar-Comunicacion "asignatura rechazada" $estCa3 $solRechazada "301-T9" "rechaza la" @("Resolucion-$($solRechazada.Radicado).pdf")
