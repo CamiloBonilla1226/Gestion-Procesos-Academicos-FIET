@@ -30,6 +30,8 @@ public class NotificadorRespuestaFinal {
     private static final String ENCABEZADO = "Popayán, Cauca, %s%n%n";
     private static final String ESTUDIANTE = "El estudiante %s, con código %s, ";
     private static final String PIE_DARCA = "%n%nLa información de la respuesta está en el PDF adjunto.";
+    private static final String NOTA_FIRMADA = " El estudiante firmó la Resolución en la Decanatura; se adjunta la Resolución firmada.";
+    private static final String NOTA_COMUNICADA = " La Resolución se comunicó al estudiante por correo electrónico; se adjunta la constancia de la comunicación.";
     private static final String CUERPO_PROFESOR = "Sr(a) %s%n%nTiene una solicitud de examen supletorio %s del estudiante %s, con código %s, "
             + "de la asignatura %s, radicado %s.%n%nIngrese a la aplicación para consultarla. La información de la respuesta está en el PDF adjunto.";
     private static final DateTimeFormatter FECHA_CARTA = DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", Locale.forLanguageTag("es-CO"));
@@ -74,10 +76,32 @@ public class NotificadorRespuestaFinal {
             ResumenRespuesta resumen = resumen(solicitud, proceso, accion, fecha);
             List<AdjuntoCorreo> adjuntos = new ArrayList<>();
             adjuntos.add(pdf(resumen));
-            adjuntos.addAll(adjuntosDeLaRespuesta(solicitud, proceso, accion));
+            boolean sinResolucion = proceso == TipoProcesoAcademico.EXAMEN_SUPLETORIO || accion == AccionEtapa.RECHAZAR_FUNCIONARIO;
+            if (!sinResolucion)
+                adjuntos.addAll(resolucionDe(solicitud));
+            adjuntos.addAll(adicionalesDe(solicitud));
             String texto = String.format(ENCABEZADO, fecha.format(FECHA_CARTA)) + frase(resumen, proceso) + String.format(PIE_DARCA);
             correo.enviar(destinatarioDarca, String.format(ASUNTOS_DARCA.get(proceso), solicitud.getRadicado()), texto, adjuntos);
         });
+    }
+
+    public CorreoPreparado correoDarcaResolucion(SolicitudAcademica solicitud, LocalDate fecha, boolean firmada, List<AdjuntoCorreo> constancia) {
+        TipoProcesoAcademico proceso = TipoProcesoAcademico.CANCELACION_ASIGNATURA;
+        ResumenRespuesta resumen = resumen(solicitud, proceso, AccionEtapa.ENVIAR_RESPUESTA, fecha);
+        List<AdjuntoCorreo> adjuntos = new ArrayList<>();
+        adjuntos.add(pdf(resumen));
+        adjuntos.addAll(resolucionDe(solicitud));
+        if (!firmada && constancia != null)
+            adjuntos.addAll(constancia);
+        adjuntos.addAll(adicionalesDe(solicitud));
+        String texto = String.format(ENCABEZADO, fecha.format(FECHA_CARTA)) + frase(resumen, proceso)
+                + (firmada ? NOTA_FIRMADA : NOTA_COMUNICADA) + String.format(PIE_DARCA);
+        return CorreoPreparado.builder()
+                .destinatario(destinatarioDarca)
+                .asunto(String.format(ASUNTOS_DARCA.get(proceso), solicitud.getRadicado()))
+                .texto(texto)
+                .adjuntos(adjuntos)
+                .build();
     }
 
     public void avisarProfesor(SolicitudAcademica solicitud, AccionEtapa accion, Docente docente, LocalDate fecha) {
@@ -182,25 +206,30 @@ public class NotificadorRespuestaFinal {
                 .orElse(null));
     }
 
-    private List<AdjuntoCorreo> adjuntosDeLaRespuesta(SolicitudAcademica solicitud, TipoProcesoAcademico proceso, AccionEtapa accion) {
-        List<AdjuntoCorreo> adjuntos = new ArrayList<>();
-        String uuidSolicitud = solicitud.getUuidSolicitudAcademica();
-        boolean sinResolucion = proceso == TipoProcesoAcademico.EXAMEN_SUPLETORIO || accion == AccionEtapa.RECHAZAR_FUNCIONARIO;
-        ResolucionAcademica resolucion = sinResolucion ? null : resolucionGateway.getPorSolicitud(uuidSolicitud);
-        if (resolucion != null)
-            adjuntos.add(AdjuntoCorreo.builder()
-                    .nombre("Resolucion-" + solicitud.getRadicado() + ".pdf")
-                    .tipoContenido(TIPO_PDF)
-                    .urlArchivo(resolucion.getUrlArchivo())
-                    .build());
-        anexoGateway.getPorSolicitud(uuidSolicitud).stream()
+    public List<AdjuntoCorreo> resolucionDe(SolicitudAcademica solicitud) {
+        ResolucionAcademica resolucion = resolucionGateway.getPorSolicitud(solicitud.getUuidSolicitudAcademica());
+        if (resolucion == null)
+            return List.of();
+        return List.of(AdjuntoCorreo.builder()
+                .nombre("Resolucion-" + solicitud.getRadicado() + ".pdf")
+                .tipoContenido(TIPO_PDF)
+                .urlArchivo(resolucion.getUrlArchivo())
+                .build());
+    }
+
+    public AdjuntoCorreo pdfRespuesta(SolicitudAcademica solicitud, LocalDate fecha) {
+        return pdf(resumen(solicitud, TipoProcesoAcademico.CANCELACION_ASIGNATURA, AccionEtapa.ENVIAR_RESPUESTA, fecha));
+    }
+
+    public List<AdjuntoCorreo> adicionalesDe(SolicitudAcademica solicitud) {
+        return anexoGateway.getPorSolicitud(solicitud.getUuidSolicitudAcademica()).stream()
                 .filter(anexo -> anexo.getTipoAnexoAcademico() != null && DOCUMENTO_ADICIONAL.equals(anexo.getTipoAnexoAcademico().getNombre()))
-                .forEach(adicional -> adjuntos.add(AdjuntoCorreo.builder()
+                .map(adicional -> AdjuntoCorreo.builder()
                         .nombre(adicional.getNombreArchivo())
                         .tipoContenido(adicional.getTipoArchivo())
                         .urlArchivo(adicional.getUrlArchivo())
-                        .build()));
-        return adjuntos;
+                        .build())
+                .toList();
     }
 
     private AdjuntoCorreo pdf(ResumenRespuesta resumen) {

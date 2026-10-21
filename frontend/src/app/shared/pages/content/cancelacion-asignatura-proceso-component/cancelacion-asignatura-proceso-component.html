@@ -148,6 +148,18 @@
   </section>
   }
 
+  @if (muestraPanelNotificacion) {
+  @defer (on immediate) {
+  <app-notificacion-resolucion-component [uuidSolicitud]="uuidSolicitud" [solicitud]="solicitud" (cambio)="recargar()">
+  </app-notificacion-resolucion-component>
+  } @placeholder {
+  <div class="cargando" data-estado="cargando-panel-notificacion">
+    <div class="spinner-border spinner-border-sm" role="status"></div>
+    <span>Cargando la notificación de la Resolución...</span>
+  </div>
+  }
+  }
+
   @if (accionesVisibles.length > 0) {
   <section class="tarjeta tarjeta-acciones" data-acciones>
     @for (accion of accionesVisibles; track accion) {
@@ -161,7 +173,7 @@
     } @else {
     <app-simple-button-component [attr.data-accion]="accion" [label]="etiquetaBoton(accion)" width="auto" height="38px"
       [color]="esRechazo(accion) ? '#D0463B' : '#2A3A86'" [contorno]="esRechazo(accion)"
-      [disabled]="!detalle || cargandoSituaciones" (clicked)="abrir(accion)">
+      [disabled]="!detalle || cargandoSituaciones || cargandoPlantilla" (clicked)="abrir(accion)">
     </app-simple-button-component>
     }
     }
@@ -276,6 +288,12 @@
         <small class="contador" [class.excedido]="observacion.length > maximoObservacion" data-contador>{{ observacion.length }}/{{ maximoObservacion }}</small>
       </div>
     </div>
+    }
+
+    @if (accionActiva === acciones.ENVIAR_RESPUESTA && comunicacion) {
+    <app-comunicacion-respuesta-component [comunicacion]="comunicacion" [sufijo]="sufijoResolucion" [maximoMensaje]="maximoMensaje"
+      [errores]="errores">
+    </app-comunicacion-respuesta-component>
     }
 
     @if (erroresServidor.length > 0) {

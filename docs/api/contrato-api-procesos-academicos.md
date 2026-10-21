@@ -1,6 +1,6 @@
 # Contrato de la API de los procesos académicos
 
-Este documento describe los 71 endpoints que la extensión agrega al backend:
+Este documento describe los 76 endpoints que la extensión agrega al backend:
 programas académicos y catálogo de asignaturas, estudiantes, funcionarios académicos, catálogos
 académicos, solicitudes académicas, los tres procesos (Cancelación de
 Matrícula, Cancelación de Asignatura y Examen Supletorio) y las notificaciones
@@ -631,7 +631,7 @@ Errores de las evaluaciones y situaciones (además de los de la sección 1.6):
 | 6 | `La nota de la asignatura <nombre> debe estar entre 0.0 y 5.0 con un decimal...` |
 | 3 | `Situación académica de asignatura con id <uuid> no fue encontrado en el sistema...` |
 
-### 3.7 Cancelaciones de asignatura (8)
+### 3.7 Cancelaciones de asignatura (13)
 
 | Método y ruta | Roles | Cuerpo | Respuesta |
 | --- | --- | --- | --- |
@@ -640,7 +640,12 @@ Errores de las evaluaciones y situaciones (además de los de la sección 1.6):
 | `GET cancelaciones-asignatura/{uuidSolicitud}` | Estudiante, Funcionario Académico, Decano | | CancelacionAsignaturaDetalle |
 | `POST cancelaciones-asignatura/{uuidSolicitud}/funcionario/rechazar` | Funcionario Académico | `{observacion}` | CancelacionAsignaturaDetalle |
 | `POST cancelaciones-asignatura/{uuidSolicitud}/funcionario/remitir` | Funcionario Académico | `{observacion, evaluaciones}` | CancelacionAsignaturaDetalle |
-| `POST cancelaciones-asignatura/{uuidSolicitud}/funcionario/responder` | Funcionario Académico | `{observacion, ajustes}` (ver abajo), `{}` o sin cuerpo | CancelacionAsignaturaDetalle |
+| `POST cancelaciones-asignatura/{uuidSolicitud}/funcionario/responder` | Funcionario Académico | `{observacion, ajustes, enviarMensaje, mensaje, programacion}` (ver abajo); desde T12.32 `programacion` es obligatoria | CancelacionAsignaturaDetalle |
+| `GET cancelaciones-asignatura/{uuidSolicitud}/funcionario/notificacion/plantilla` | Funcionario Académico asignado | | `{mensajeInicial, maximoMensaje, decisionPropuesta, anioResolucion, sufijoResolucion}` |
+| `GET cancelaciones-asignatura/{uuidSolicitud}/funcionario/notificacion` | Funcionario Académico asignado | | NotificacionResolucion, o 204 sin cuerpo si la solicitud no tiene comunicación programada |
+| `PUT cancelaciones-asignatura/{uuidSolicitud}/funcionario/notificacion` | Funcionario Académico asignado | `{fechaProgramada, numeroResolucion, anioResolucion, decision}` | NotificacionResolucion |
+| `POST cancelaciones-asignatura/{uuidSolicitud}/funcionario/notificacion/firma` | Funcionario Académico asignado | Multipart `archivo` (PDF de la Resolución firmada por el estudiante) | NotificacionResolucion |
+| `POST cancelaciones-asignatura/{uuidSolicitud}/funcionario/notificacion/reintentar` | Funcionario Académico asignado | Sin cuerpo | NotificacionResolucion |
 | `POST cancelaciones-asignatura/{uuidSolicitud}/decano/aprobar` | Decano | `{aceptarEvaluacion}` o `{decisiones}`, con `observacion` opcional | CancelacionAsignaturaDetalle |
 | `POST cancelaciones-asignatura/{uuidSolicitud}/decano/rechazar` | Decano | `{observacion}` opcional, `{}` o sin cuerpo | CancelacionAsignaturaDetalle |
 
@@ -720,6 +725,36 @@ Cuerpos de las acciones:
 
   Desde APROBADA_POR_DECANO cancela solo las asignaturas aprobadas que sigan
   activas.
+- `responder`, comunicación de la Resolución (P58, desde T12.32): además
+  - `enviarMensaje` (booleano) y `mensaje`: mensaje inmediato al estudiante.
+    Con `enviarMensaje` verdadero, `mensaje` es obligatorio (máximo 2000); sale
+    tras el commit, sin adjuntos, con el asunto `Respuesta a su solicitud de
+    cancelación de asignatura - Radicado <radicado>`. No va al historial.
+  - `programacion`, obligatoria: `{fechaProgramada, numeroResolucion,
+    anioResolucion, decision}`. `fechaProgramada` es `AAAA-MM-DDTHH:mm` (o con
+    segundos), en hora de Colombia, posterior a la hora actual. Número hasta
+    20 caracteres, año de 2000 a 2100, decisión hasta 60.
+
+  En este caso la respuesta ya no envía los correos inmediatos al estudiante
+  con la Resolución ni a DARCA (P54): los envía la tarea programada en la fecha
+  elegida. Mientras tanto la respuesta queda retenida para el Estudiante
+  (sección 5).
+
+**NotificacionResolucion**: `{estado, fechaProgramada, firmada, numeroResolucion,
+anioResolucion, sufijoResolucion, decision, mensajeInicial, fechaEnvioEstudiante,
+fechaEnvioDarca, intentos, ultimoError, fechaEnvio, fechaLiberacion, editable}`.
+`estado` es `PROGRAMADA`, `EN_PROCESO`, `ENVIADA` o `FALLIDA`. `editable` es
+verdadero solo en `PROGRAMADA` antes de `fechaProgramada`.
+
+Reglas de los endpoints de la notificación: solo el Funcionario Académico
+asignado al tipo; cualquier otro usuario con ese rol, o una solicitud que no
+es de Cancelación de Asignatura, recibe el error de inexistente (código 3), y
+Estudiante, Decano y Docente reciben 403 por la regla de URL. `PUT` y `firma`
+solo se aceptan en `PROGRAMADA` antes de la fecha (actualización condicional en
+la base); `firma` reemplaza la Resolución escaneada aunque la solicitud esté en
+etapa final y deja `firmada` en verdadero. `reintentar` solo en `FALLIDA`:
+vuelve a `PROGRAMADA` con `intentos` en 0 y la tarea repite solo el correo
+que no salió.
 
 Errores propios de esta evaluación y decisión (además de los de la tabla de
 la sección 3.6 y de la 1.6):
@@ -736,6 +771,16 @@ la sección 3.6 y de la 1.6):
 | 4 | `La asignatura <nombre> fue rechazada por el Decano y no lleva situación al cancelar...` |
 | 4 | `La solicitud <radicado> fue rechazada por el Decano y no admite ajustes por asignatura...` |
 | 4 | `El Decano rechazó la solicitud o alguna de sus asignaturas: la respuesta al estudiante requiere una observación...` |
+| 4 | `Para enviar la respuesta debe programar la comunicación de la Resolución: fecha y hora, número, año y decisión...` |
+| 4 | `Debe indicar la fecha y la hora de la comunicación de la Resolución...` |
+| 4 | `La fecha y hora programadas (<fecha>) deben ser posteriores a la fecha y hora actuales (<ahora>, hora de Colombia)...` |
+| 6 | `El valor <valor> de la fecha y hora programadas no es una fecha y hora con el formato AAAA-MM-DDTHH:mm...` |
+| 4 | `Debe indicar el número de la Resolución...`, `El año de la Resolución debe estar entre 2000 y 2100...`, `Debe indicar la decisión de la Resolución...` |
+| 6 | `El número de la Resolución supera los 20 caracteres permitidos...` (o `La decisión`, 60) |
+| 4 | `Marcó enviar mensaje al estudiante: el mensaje no puede estar vacío...` |
+| 6 | `El mensaje al estudiante supera los 2000 caracteres permitidos...` |
+| 4 | `La comunicación de la Resolución de la solicitud <radicado> ya no se puede modificar: solo se edita o se registra la firma mientras está programada y antes de la fecha y hora programadas...` |
+| 4 | `La comunicación de la Resolución de la solicitud <radicado> no está fallida y no se puede reintentar...` |
 | 4 | `La asignatura <uuid> no pertenece a la solicitud <radicado>...` y `La asignatura <nombre> viene más de una vez...` (decisiones y ajustes) |
 | 6 | `La observación de la evaluación de la asignatura <nombre> supera los 255 caracteres permitidos...` (o `La observación de la decisión`) |
 | 6 | `El número de faltas de la asignatura <nombre> es numérico y debe ser un entero mayor o igual a 0; si no es un número se guarda como texto...` |
@@ -916,8 +961,9 @@ detalle (las acciones ya lo devuelven) y mostrar los botones según
 | 4a | Funcionario Académico | Rechazo completo: escaneo con `POST solicitudes-academicas/{uuid}/resolucion` y `POST .../funcionario/rechazar` |
 | 4b | Funcionario Académico | Remisión: `POST .../funcionario/remitir` con `cumpleCondiciones` de cada asignatura y, si se tienen, faltas, nota y situaciones |
 | 5 | Decano | `POST .../decano/aprobar` con `aceptarEvaluacion: true` o con la decisión de cada asignatura (aprobación parcial), o `POST .../decano/rechazar` para negar la solicitud completa |
-| 6 | Funcionario Académico | Escaneo y `POST .../funcionario/responder` con `observacion` y, si quiere, ajustes con la situación al cancelar de las aprobadas. En APROBADA solo se cancelan las asignaturas aprobadas |
-| 7 | Estudiante | `GET cancelaciones-asignatura/{uuid}` y, en etapa final, la Resolución |
+| 6 | Funcionario Académico | `GET .../funcionario/notificacion/plantilla`, escaneo y `POST .../funcionario/responder` con `observacion`, ajustes opcionales, el mensaje inmediato opcional y la `programacion` de la comunicación. En APROBADA solo se cancelan las asignaturas aprobadas |
+| 6b | Funcionario Académico | Hasta la fecha programada: `GET`/`PUT .../funcionario/notificacion` para revisar o reprogramar, y `POST .../funcionario/notificacion/firma` si el estudiante firmó en la Decanatura. Si queda `FALLIDA`, `POST .../funcionario/notificacion/reintentar` |
+| 7 | Estudiante | `GET cancelaciones-asignatura/{uuid}`; la respuesta y la Resolución solo desde que la tarea programada libera la comunicación |
 
 ### 4.3 Examen Supletorio
 
@@ -942,6 +988,19 @@ detalle (las acciones ya lo devuelven) y mostrar los botones según
 | Cancelación de Matrícula | Todo, salvo `situacionCancelar`, que llega nula hasta que la solicitud está en APROBADA o RECHAZADA | Todo | Todo |
 | Cancelación de Asignatura | Antes de la etapa final, de cada asignatura solo `uuidAsignaturaSolicitud`, `codigoAsignatura` y `nombreAsignatura`. En APROBADA o RECHAZADA, además `aprobadaPorDecano`, `observacionDecision` (la que escribe el Funcionario en el ajuste) y, solo en las aprobadas, `situacionCancelar` (P46). Nunca faltas, nota, situación en la matrícula, `cumpleCondiciones`, `observacionEvaluacion` ni `decisionCambiadaPorDecano` (llega nulo) | Todo | Todo |
 | Examen Supletorio | Todo | Todo | Todo |
+
+Respuesta retenida (P58): en Cancelación de Asignatura respondida después
+del Decano, desde `funcionario/responder` hasta que la tarea programada reclama
+la comunicación por primera vez (`fechaLiberacion`), el Estudiante recibe en
+su bandeja y en los dos detalles la etiqueta que tenía con el Decano ("En
+trámite") y `etapaCodigo` EN_REVISION_DECANO; `tieneResolucion` y
+`puedeDescargarResolucion` en falso; las asignaturas sin `aprobadaPorDecano`,
+`observacionDecision` ni `situacionCancelar`; los anexos sin el documento
+adicional (su descarga responde inexistente); el historial sin `ENVIAR_RESPUESTA`
+(y sin las filas del Decano, como siempre), y `GET .../resolucion` responde
+`La Resolución de la solicitud <radicado> estará disponible cuando la solicitud
+termine...` (código 4). Liberada, ve todo como en cualquier etapa final y no se
+vuelve a ocultar. Funcionario y Decano no cambian.
 
 El historial y las descargas de anexos siguen la misma visibilidad que el
 detalle común: un rol que no ve la solicitud recibe el error de inexistente.

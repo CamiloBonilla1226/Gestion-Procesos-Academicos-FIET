@@ -77,6 +77,11 @@ GET    cancelaciones-asignatura/{uuidSolicitud}                                 
 POST   cancelaciones-asignatura/{uuidSolicitud}/funcionario/rechazar            json      denegado  denegado   denegado  permitido      denegado
 POST   cancelaciones-asignatura/{uuidSolicitud}/funcionario/remitir             json      denegado  denegado   denegado  permitido      denegado
 POST   cancelaciones-asignatura/{uuidSolicitud}/funcionario/responder           ninguno   denegado  denegado   denegado  permitido      denegado
+GET    cancelaciones-asignatura/{uuidSolicitud}/funcionario/notificacion        ninguno   denegado  denegado   denegado  permitido      denegado
+GET    cancelaciones-asignatura/{uuidSolicitud}/funcionario/notificacion/plantilla ninguno denegado denegado  denegado  permitido      denegado
+PUT    cancelaciones-asignatura/{uuidSolicitud}/funcionario/notificacion        json      denegado  denegado   denegado  permitido      denegado
+POST   cancelaciones-asignatura/{uuidSolicitud}/funcionario/notificacion/firma  multipart denegado  denegado   denegado  permitido      denegado
+POST   cancelaciones-asignatura/{uuidSolicitud}/funcionario/notificacion/reintentar ninguno denegado denegado  denegado  permitido      denegado
 POST   cancelaciones-asignatura/{uuidSolicitud}/decano/aprobar                  json      denegado  denegado   permitido denegado       denegado
 POST   cancelaciones-asignatura/{uuidSolicitud}/decano/rechazar                 json      denegado  denegado   permitido denegado       denegado
 GET    examenes-supletorios/formulario                                          ninguno   denegado  denegado   denegado  denegado       permitido
@@ -369,6 +374,7 @@ finally {
     $sentencias = @()
     if ($sol) {
         $sentencias += "delete from ANEXO_ACADEMICO where SolicitudAcademica_uuid in ($sol)"
+        $sentencias += "delete from NOTIFICACION_RESOLUCION where SolicitudAcademica_uuid in ($sol)"
         $sentencias += "delete from RESOLUCION_ACADEMICA where SolicitudAcademica_uuid in ($sol)"
         $sentencias += "delete from HISTORIAL_SOLICITUD_ACADEMICA where SolicitudAcademica_uuid in ($sol)"
         $sentencias += "delete from SOLICITUD_ACADEMICA where uuidSolicitudAcademica in ($sol)"

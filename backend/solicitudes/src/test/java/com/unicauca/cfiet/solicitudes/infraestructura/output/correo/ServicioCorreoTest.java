@@ -2,6 +2,7 @@ package com.unicauca.cfiet.solicitudes.infraestructura.output.correo;
 
 import com.unicauca.cfiet.solicitudes.aplicacion.output.AlmacenamientoAnexosIntPuerto;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.AdjuntoCorreo;
+import com.unicauca.cfiet.solicitudes.dominio.modelos.CorreoPreparado;
 import jakarta.mail.BodyPart;
 import jakarta.mail.Multipart;
 import jakarta.mail.Session;
@@ -299,5 +300,46 @@ class ServicioCorreoTest {
         }));
 
         assertEquals(List.of("uno"), pasos);
+    }
+
+    @Test
+    void enviarAhoraUsaElHtmlConNegrillaDentroDelMarcoYElTextoPlano() throws Exception {
+        when(almacenamiento.leer(RUTA_RESOLUCION)).thenReturn(new byte[]{1, 2, 3});
+
+        servicio.enviarAhora(CorreoPreparado.builder()
+                .destinatario("est@unicauca.edu.co")
+                .asunto("Notificación de Cancelación de asignatura")
+                .texto("No. 123/178")
+                .html("<p style=\"margin:0 0 12px 0\">No. <strong>123</strong>/178</p>")
+                .adjuntos(List.of(adjunto("Resolucion.pdf", RUTA_RESOLUCION)))
+                .build());
+
+        MimeMessage mensaje = enviado();
+        mensaje.saveChanges();
+        Multipart partes = (Multipart) mensaje.getContent();
+        assertEquals("No. 123/178", parteDeTipo(partes, "text/plain"));
+        String html = parteDeTipo(partes, "text/html");
+        assertTrue(html.startsWith("<!DOCTYPE html>"));
+        assertTrue(html.contains("No. <strong>123</strong>/178"));
+        assertEquals("Notificación de Cancelación de asignatura", mensaje.getSubject());
+    }
+
+    @Test
+    void enviarAhoraSinHtmlLoArmaDelTextoEscapado() throws Exception {
+        servicio.enviarAhora(CorreoPreparado.builder().destinatario("darca@unicauca.edu.co").asunto("DARCA").texto("A <b> & C").build());
+
+        MimeMessage mensaje = enviado();
+        mensaje.saveChanges();
+        assertTrue(parteDeTipo((Multipart) mensaje.getContent(), "text/html").contains("A &lt;b&gt; &amp; C"));
+    }
+
+    @Test
+    void enviarAhoraPropagaLasFallasParaQueSeReintente() {
+        assertThrows(IllegalStateException.class, () -> servicio.enviarAhora(CorreoPreparado.builder().asunto("A").texto("B").build()));
+        doThrow(new MailSendException("smtp caído")).when(enviador).send(any(MimeMessage.class));
+        assertThrows(MailSendException.class, () -> servicio.enviarAhora(CorreoPreparado.builder().destinatario("a@b.co").asunto("A").texto("B").build()));
+        when(almacenamiento.leer(RUTA_ADICIONAL)).thenReturn(null);
+        assertThrows(IllegalStateException.class, () -> servicio.enviarAhora(CorreoPreparado.builder().destinatario("a@b.co").asunto("A").texto("B")
+                .adjuntos(List.of(adjunto("adicional.pdf", RUTA_ADICIONAL))).build()));
     }
 }

@@ -46,6 +46,16 @@ import { NOTA_SIMCA } from '../../../../core/constantes/textos-cancelacion-matri
 import { CeldaEncabezado, agruparEncabezados } from '../../../../core/utils/encabezado-agrupado';
 import { ResumenSolicitudComponent } from '../../../others/resumen-solicitud-component/resumen-solicitud-component';
 import { DocumentoAdicionalComponent } from '../../../others/documento-adicional-component/documento-adicional-component';
+import { ComunicacionRespuestaComponent } from '../../../others/comunicacion-respuesta-component/comunicacion-respuesta-component';
+import { NotificacionResolucionComponent } from '../../../others/notificacion-resolucion-component/notificacion-resolucion-component';
+import {
+  ComunicacionEnEdicion,
+  MAXIMO_MENSAJE_INICIAL,
+  errorDeMensajeInicial,
+  erroresDeProgramacion,
+  programacionAPeticion,
+  programacionVacia
+} from '../../../../core/utils/notificacion-resolucion';
 import {
   TITULO_FALLA_DOCUMENTO_ADICIONAL,
   admiteDocumentoAdicional,
@@ -129,7 +139,7 @@ const MENSAJES_EXITO: Partial<Record<AccionAcademica, string>> = {
   [ACCIONES_ACADEMICAS.REMITIR_DECANO]: 'La solicitud fue remitida al Decano.',
   [ACCIONES_ACADEMICAS.APROBAR_DECANO]: 'La decisión por asignatura quedó registrada.',
   [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: 'La solicitud quedó rechazada.',
-  [ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA]: 'La respuesta fue enviada al estudiante.'
+  [ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA]: 'La respuesta quedó registrada y la comunicación de la Resolución quedó programada.'
 };
 
 const SIN_DATO = '—';
@@ -187,7 +197,9 @@ const COLUMNAS_FIJAS_EVALUACION = new Set([
     InputSelectComponent,
     InputAnexoUploadComponent,
     ResumenSolicitudComponent,
-    DocumentoAdicionalComponent
+    DocumentoAdicionalComponent,
+    ComunicacionRespuestaComponent,
+    NotificacionResolucionComponent
   ],
   templateUrl: './cancelacion-asignatura-proceso-component.html',
   styleUrls: ['../estilos-academicos.css', '../tabla-asignaturas.css']
@@ -238,6 +250,10 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   ajustes: Record<string, AjusteEnEdicion> = {};
   errores: Record<string, string> = {};
   erroresServidor: string[] = [];
+  comunicacion: ComunicacionEnEdicion | null = null;
+  sufijoResolucion = '';
+  maximoMensaje = MAXIMO_MENSAJE_INICIAL;
+  cargandoPlantilla = false;
 
   constructor(
     private cancelacionAsignaturaService: CancelacionAsignaturaService,
@@ -261,6 +277,10 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
     if (this.rol === ROLES_ETIQUETA.ESTUDIANTE) return [];
     const disponibles = this.solicitud?.accionesDisponibles ?? [];
     return ACCIONES_DEL_PROCESO.filter(accion => disponibles.includes(accion));
+  }
+
+  get muestraPanelNotificacion(): boolean {
+    return this.rol === ROLES_ETIQUETA.FUNCIONARIO && this.esFinal;
   }
 
   get muestraNotaSimca(): boolean {
@@ -450,7 +470,7 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   }
 
   abrir(accion: AccionAcademica, modo: ModoDecision | null = null): void {
-    if (!this.accionesVisibles.includes(accion) || this.cargandoSituaciones) return;
+    if (!this.accionesVisibles.includes(accion) || this.cargandoSituaciones || this.cargandoPlantilla) return;
     this.accionActiva = accion;
     this.modoDecision = modo;
     this.observacion = '';
@@ -461,6 +481,7 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
     this.erroresServidor = [];
     this.faltanDatosTabla = false;
     this.ajustes = {};
+    this.comunicacion = null;
     if (accion === ACCIONES_ACADEMICAS.REMITIR_DECANO) {
       this.asegurarSituaciones(() => this.abrirRemision());
       return;
@@ -485,6 +506,29 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   }
 
   private abrirRespuesta(): void {
+    this.cargandoPlantilla = true;
+    this.cancelacionAsignaturaService
+      .getPlantillaNotificacion(this.uuidSolicitud)
+      .pipe(finalize(() => (this.cargandoPlantilla = false)))
+      .subscribe({
+        next: plantilla => {
+          this.sufijoResolucion = plantilla.sufijoResolucion ?? '';
+          this.maximoMensaje = plantilla.maximoMensaje || MAXIMO_MENSAJE_INICIAL;
+          this.comunicacion = {
+            enviarMensaje: true,
+            mensaje: plantilla.mensajeInicial ?? '',
+            programacion: programacionVacia(plantilla.anioResolucion, plantilla.decisionPropuesta ?? '')
+          };
+          this.abrirRespuestaConPlantilla();
+        },
+        error: err => {
+          this.accionActiva = null;
+          this.errorHandlerService.handleError(err, 'Error', 'No se pudo cargar la plantilla de la comunicación');
+        }
+      });
+  }
+
+  private abrirRespuestaConPlantilla(): void {
     const conAjuste = this.asignaturasConAjuste;
     this.ajustes = Object.fromEntries(
       conAjuste.map(a => [a.uuidAsignaturaSolicitud, { situacion: a.situacionCancelar?.uuidSituacionAcademica ?? null }])
@@ -609,7 +653,14 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
         return this.cancelacionAsignaturaService.rechazarPorDecano(uuid, { observacion: opcional });
       default: {
         const ajustes = this.armarAjustes();
-        const cuerpo = ajustes.length > 0 ? { observacion: opcional, ajustes } : { observacion: opcional };
+        const comunicacion = this.comunicacion!;
+        const cuerpo = {
+          observacion: opcional,
+          ...(ajustes.length > 0 ? { ajustes } : {}),
+          enviarMensaje: comunicacion.enviarMensaje,
+          mensaje: comunicacion.enviarMensaje ? comunicacion.mensaje.trim() : null,
+          programacion: programacionAPeticion(comunicacion.programacion)
+        };
         return this.subirResolucion().pipe(
           switchMap(() => this.subirAdicional()),
           switchMap(() => this.cancelacionAsignaturaService.enviarRespuesta(uuid, cuerpo))
@@ -692,6 +743,16 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
 
     if (accion === ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA && !this.archivoResolucion && !this.hayResolucion) {
       errores['resolucion'] = 'Debes subir el escaneo de la Resolución firmada (PDF).';
+    }
+
+    if (accion === ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA) {
+      if (!this.comunicacion) {
+        errores['programacion'] = 'Falta programar la comunicación de la Resolución.';
+      } else {
+        Object.assign(errores, erroresDeProgramacion(this.comunicacion.programacion));
+        const errorMensaje = errorDeMensajeInicial(this.comunicacion, this.maximoMensaje);
+        if (errorMensaje) errores['mensaje'] = errorMensaje;
+      }
     }
 
     if (accion === ACCIONES_ACADEMICAS.REMITIR_DECANO) this.validarEvaluaciones(errores);

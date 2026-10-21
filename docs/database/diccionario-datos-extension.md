@@ -1,6 +1,6 @@
 # Diccionario de Datos
 
-Detalle campo por campo de las 20 tablas nuevas de la extensión. `usuarios`,
+Detalle campo por campo de las 21 tablas nuevas de la extensión. `usuarios`,
 `usuariosLivianos` y `tiposUsuario` son de Julián Camacho (nombres reales,
 verificados contra el código de `back-fiet-sc`, no un supuesto) y no se
 listan aquí porque no se modifican.
@@ -242,6 +242,33 @@ profesor elegido (P53). Solo la ve el docente destinatario.
 | titulo | varchar(255) |  | No | Texto armado con el estado final de la solicitud y su radicado, por ejemplo `Examen supletorio aprobado, radicado 2026-ES-0001` |
 | fechaCreacion | datetime |  | No | Fecha y hora en que se aprobó el pago, en hora de Colombia |
 | fechaLectura | datetime |  | Sí | Primera vez que el docente abrió la notificación; nula mientras no la lea |
+
+## NOTIFICACION\_RESOLUCION
+
+Desde T12.32 (P58). Comunicación programada de la Resolución en Cancelación de
+Asignatura cuando la solicitud pasó por el Decano: una fila por solicitud (1 a
+0..1 con SOLICITUD\_ACADEMICA), creada al enviar la respuesta final. La procesa
+una tarea programada (cada minuto, `correo.resolucion.intervalo-ms`). Solo la ve
+el Funcionario Académico asignado; el Estudiante y el Decano no tienen acceso.
+
+| Campo | Tipo | Llave | Nulo | Descripción |
+| --- | --- | --- | --- | --- |
+| SolicitudAcademica\_uuid | varchar(100) | PK, FK -> SOLICITUD\_ACADEMICA (fk\_notifres\_solacad) | No | Solicitud de Cancelación de Asignatura respondida después del Decano |
+| fechaProgramada | datetime |  | No | Fecha y hora de la comunicación, en hora de Colombia. Debe ser futura al programar y al reprogramar |
+| estado | enum('ENVIADA','EN\_PROCESO','FALLIDA','PROGRAMADA') |  | No | PROGRAMADA espera la fecha o el siguiente reintento; EN\_PROCESO la reclamó la tarea (actualización condicional, se vuelve a reclamar si queda así más de 15 minutos); ENVIADA salieron los correos; FALLIDA tres intentos sin éxito |
+| firmada | bit(1) |  | No | 1 si el estudiante firmó la Resolución en la Decanatura antes de la fecha: no sale el correo al estudiante y DARCA recibe dos PDF. Valor por defecto 0 |
+| numeroResolucion | varchar(20) |  | No | Número de la Resolución, por ejemplo `123-25`; el sufijo `/178` sale de `correo.resolucion.sufijo` y no se guarda |
+| anioResolucion | int |  | No | Año de la Resolución, de 2000 a 2100 |
+| decision | varchar(60) |  | No | Texto de la decisión en la comunicación: `aprueba la`, `rechaza la`, `aprueba parcialmente la` o el que escriba el Funcionario |
+| mensajeInicial | varchar(2000) |  | Sí | Texto del mensaje inmediato que se envió al estudiante; nulo si no se envió. No sale en el historial |
+| fechaEnvioEstudiante | datetime |  | Sí | Marca del correo al estudiante: fecha y hora en que salió; nula si no salió o si el estudiante firmó |
+| fechaEnvioDarca | datetime |  | Sí | Marca del correo a DARCA: fecha y hora en que salió |
+| intentos | int |  | No | Intentos de envío; en 3 sin éxito queda FALLIDA. Reintentar lo vuelve a 0. Valor por defecto 0 |
+| ultimoError | varchar(1000) |  | Sí | Último error de envío, visible para el Funcionario |
+| fechaReclamo | datetime |  | Sí | Momento en que la tarea la reclamó por última vez |
+| fechaEnvio | datetime |  | Sí | Fecha y hora en que quedó ENVIADA |
+| fechaLiberacion | datetime |  | Sí | Primera vez que la tarea la reclamó. Mientras sea nula el Estudiante ve la solicitud en trámite, sin respuesta ni Resolución; después no se vuelve a ocultar |
+| fechaCreacion | datetime |  | No | Fecha y hora en que el Funcionario envió la respuesta |
 
 ## Migración de una base con datos anteriores a PROGRAMA\_ACADEMICO
 

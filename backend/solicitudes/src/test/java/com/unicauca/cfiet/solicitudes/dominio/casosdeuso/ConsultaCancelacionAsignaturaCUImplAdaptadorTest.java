@@ -84,6 +84,10 @@ class ConsultaCancelacionAsignaturaCUImplAdaptadorTest {
     }
 
     private void cancelacionEn(String etapa, RolEtiquetaEtapa rol) {
+        cancelacionEn(etapa, etapa, rol);
+    }
+
+    private void cancelacionEn(String etapa, String etapaVisible, RolEtiquetaEtapa rol) {
         when(gateway.getPorSolicitud(SOLICITUD)).thenReturn(SolicitudCancelacionAsignatura.builder()
                 .solicitudAcademica(SolicitudAcademica.builder().uuidSolicitudAcademica(SOLICITUD).build())
                 .motivoCancelacion("Cruce laboral")
@@ -95,6 +99,7 @@ class ConsultaCancelacionAsignaturaCUImplAdaptadorTest {
                         .etapa(EtapaSolicitudAcademica.builder().uuidEtapa("et-" + etapa).codigo(etapa).build())
                         .build())
                 .etiqueta("Etiqueta")
+                .etapaCodigo(etapaVisible)
                 .build());
         when(consultaCU.resolverActor(SOLICITUD, TOKEN)).thenReturn(ActorSolicitud.builder().uuidUsuario("u-1").rol(rol).build());
     }
@@ -270,5 +275,18 @@ class ConsultaCancelacionAsignaturaCUImplAdaptadorTest {
 
         assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso.getDetalle(SOLICITUD, TOKEN));
         verify(consultaCU, never()).resolverActor(any(), any());
+    }
+
+    @Test
+    void mientrasLaRespuestaEstaRetenidaElEstudianteNoVeElResultadoPorAsignatura() {
+        cancelacionEn("APROBADA", "EN_REVISION_DECANO", RolEtiquetaEtapa.ESTUDIANTE);
+
+        List<AsignaturaSolicitudAcademica> asignaturas = casoDeUso.getDetalle(SOLICITUD, TOKEN).getAsignaturas();
+
+        for (AsignaturaSolicitudAcademica asignatura : asignaturas) {
+            assertNull(asignatura.getAprobadaPorDecano());
+            assertNull(asignatura.getObservacionDecision());
+            assertNull(asignatura.getSituacionCancelar());
+        }
     }
 }

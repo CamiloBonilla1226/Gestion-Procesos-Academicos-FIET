@@ -297,6 +297,33 @@ class ConfiguracionSeguridadRolesTest {
         mockMvc.perform(llamar("POST", "examenes-supletorios/{uuid}/funcionario/comprobante/aprobar", DOCENTE)).andExpect(status().isForbidden());
     }
 
+    static Stream<Arguments> rutasDeLaNotificacionDeLaResolucion() {
+        return Stream.of(
+                Arguments.of("GET", "cancelaciones-asignatura/{uuid}/funcionario/notificacion"),
+                Arguments.of("GET", "cancelaciones-asignatura/{uuid}/funcionario/notificacion/plantilla"),
+                Arguments.of("PUT", "cancelaciones-asignatura/{uuid}/funcionario/notificacion"),
+                Arguments.of("POST", "cancelaciones-asignatura/{uuid}/funcionario/notificacion/firma"),
+                Arguments.of("POST", "cancelaciones-asignatura/{uuid}/funcionario/notificacion/reintentar")
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("rutasDeLaNotificacionDeLaResolucion")
+    void laNotificacionDeLaResolucionEsSoloDelFuncionarioAcademico(String metodo, String ruta) throws Exception {
+        mockMvc.perform(llamar(metodo, ruta, FUNCIONARIO_ACADEMICO)).andExpect(status().isOk());
+        for (String rol : List.of(ESTUDIANTE, DECANO, DOCENTE, SG, FUNCIONARIO, SECRETARIA))
+            mockMvc.perform(llamar(metodo, ruta, rol)).andExpect(status().isForbidden());
+        mockMvc.perform(llamar(metodo, ruta, null)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void lasRutasNoDeclaradasDeLaNotificacionSeNiegan() throws Exception {
+        mockMvc.perform(llamar("DELETE", "cancelaciones-asignatura/{uuid}/funcionario/notificacion", FUNCIONARIO_ACADEMICO)).andExpect(status().isForbidden());
+        mockMvc.perform(llamar("PATCH", "cancelaciones-asignatura/{uuid}/funcionario/notificacion", FUNCIONARIO_ACADEMICO)).andExpect(status().isForbidden());
+        mockMvc.perform(llamar("GET", "cancelaciones-asignatura/{uuid}/funcionario/notificacion/otra", FUNCIONARIO_ACADEMICO)).andExpect(status().isForbidden());
+        mockMvc.perform(llamar("PUT", "cancelaciones-asignatura/{uuid}/funcionario/notificacion/firma", FUNCIONARIO_ACADEMICO)).andExpect(status().isForbidden());
+    }
+
     @Test
     void unUsuarioDeshabilitadoNoPuedeUsarUnTokenYaEmitido() throws Exception {
         mockMvc.perform(llamar("GET", "usuarios/{uuid}", DESHABILITADO)).andExpect(status().isUnauthorized());

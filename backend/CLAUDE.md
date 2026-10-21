@@ -100,11 +100,81 @@ Matrícula la decisión; en el supletorio la asignatura, la decisión sobre el
 comprobante y el profesor. No lleva observaciones ni historial. El PDF viaja en
 memoria (`AdjuntoCorreo.contenido`), sin escribirse en disco.
 
+### Comunicación programada de la Resolución (Cancelación de Asignatura, T12.32, P58)
+
+Solo cuando una Cancelación de Asignatura pasó por el Decano y el Funcionario
+envía la respuesta final (`ENVIAR_RESPUESTA`). En ese caso
+`SolicitudAcademicaCUImplAdaptador.cambiarEtapa` ya no llama a
+`avisarRespuesta` (`comunicacionProgramada`): no salen el correo inmediato al
+estudiante con la Resolución ni el de DARCA. Matrícula, Supletorio y el
+rechazo directo (`RECHAZAR_FUNCIONARIO`) siguen igual.
+
+- `TramiteCancelacionAsignaturaCUImplAdaptador.enviarRespuesta` recibe además
+  `ComunicacionRespuesta` (`enviarMensaje`, `mensaje`, `programacion`). La valida
+  con `NotificacionResolucionCUIntPuerto.validarComunicacion` antes de escribir y,
+  después de `cambiarEtapa`, llama a `programar`, que crea la fila de
+  `NOTIFICACION_RESOLUCION` en la misma transacción y, si el mensaje va marcado,
+  lo envía con `CorreoIntPuerto.enviar` (tras el commit, sin adjuntos; el HTML
+  lo arma `ServicioCorreo.html`, que escapa y conserva los saltos de línea).
+- `NotificacionResolucionCUImplAdaptador` (bean `crearNotificacionResolucionCU`)
+  tiene la plantilla, el panel, la reprogramación, la firma, el reintento y
+  `procesarPendientes`. Los textos los arma el servicio de dominio
+  `ComunicacionResolucion` (`dominio/servicios`), que concentra la plantilla del
+  mensaje inicial y el texto formal del correo al estudiante en dos constantes
+  (`MENSAJE_INICIAL`, `COMUNICACION_ESTUDIANTE`), marca en negrilla número, año,
+  nombre y decisión (`FragmentoTexto`) y propone la decisión. La firma y el
+  sufijo salen de `correo.firma.nombre`, `correo.firma.cargo`,
+  `correo.firma.dependencia`, `correo.firma.facultad` y `correo.resolucion.sufijo`
+  (valores en `application.properties`; la facultad va con escapes `\u00ed`
+  porque Spring lee el archivo en ISO-8859-1).
+- La tarea es `TareaNotificacionResolucion` (`infraestructura/input/programadorNotificaciones`,
+  `@Scheduled` con `fixedDelayString = correo.resolucion.intervalo-ms`, 60000 por
+  defecto, e `initialDelayString = correo.resolucion.retraso-inicial-ms`, 15000;
+  variables `CORREO_RESOLUCION_INTERVALO_MS` y `CORREO_RESOLUCION_RETRASO_INICIAL_MS`).
+  `@EnableScheduling` está en `ConfiguracionProgramada`. No usa token ni el
+  contexto de seguridad y no escribe en el log de Julián (solo slf4j).
+- Cada programación vencida se reclama con una actualización condicional
+  (`NotificacionResolucionRepositorio.reclamar`: PROGRAMADA con fecha vencida, o
+  EN_PROCESO con `fechaReclamo` de hace más de 15 minutos) que en el mismo
+  `UPDATE` pone EN_PROCESO y `fechaLiberacion = coalesce(fechaLiberacion, ahora)`.
+  Si no actualiza una fila, otra ejecución ya la tiene y no se envía nada. Al
+  arrancar, la primera ejecución procesa todo lo vencido.
+- Dos correos independientes, síncronos (`CorreoIntPuerto.enviarAhora`, que sí
+  lanza la falla): al estudiante (si no firmó y si `fechaEnvioEstudiante` es
+  nula) y a DARCA (si `fechaEnvioDarca` es nula, con
+  `NotificadorRespuestaFinal.correoDarcaResolucion`). Cada uno marca su fecha al
+  salir, así el reintento repite solo el que falló. Sin errores queda ENVIADA;
+  con error vuelve a PROGRAMADA y en el tercer intento queda FALLIDA con
+  `ultimoError` (máximo 1000).
+- Adjuntos. Al estudiante: `Radicado-<radicado>.pdf` (generado ese día), la
+  Resolución y el documento adicional. A DARCA: ese PDF, la Resolución,
+  `Comunicacion-Estudiante-<radicado>.pdf` (`GeneradorPdfRespuesta.generarConstancia`:
+  destinatario, asunto, fecha y hora de envío y el texto con negrilla) y el
+  documento adicional; con firma, sin la constancia. Si el correo al
+  estudiante falló, la constancia dice que no se pudo enviar.
+- Firma: `POST .../funcionario/notificacion/firma` marca `firmada` con una
+  actualización condicional (PROGRAMADA y antes de la fecha) y reemplaza la
+  Resolución con `ResolucionAcademicaCUIntPuerto.reemplazarResolucionFirmada`
+  (mismo guardado y borrado tras el commit que `adjuntarResolucion`, sin la
+  regla de etapa). `PUT .../funcionario/notificacion` y `reintentar` también son
+  condicionales en la base.
+- Visibilidad para el Estudiante: `ConsultaSolicitudAcademicaCUImplAdaptador`
+  pregunta a `NotificacionResolucionGatewayIntPuerto` (`estaRetenida`,
+  `getRetenidas` por lote en la bandeja) solo cuando el rol es Estudiante.
+  Retenida: etiqueta de EN_REVISION_DECANO del Estudiante y `etapaCodigo`
+  EN_REVISION_DECANO, sin Resolución, sin el documento adicional (tampoco su
+  descarga) y sin la fila `ENVIAR_RESPUESTA` del historial.
+  `ConsultaCancelacionAsignaturaCUImplAdaptador` decide si es final con el
+  `etapaCodigo` visible del detalle, así no muestra el resultado por asignatura.
+  `ResolucionAcademicaCUImplAdaptador.obtenerResolucion` rechaza la descarga
+  con `RESOLUCION_NO_DISPONIBLE`. No hay aviso dentro de la aplicación para el
+  Estudiante distinto de la bandeja y el detalle, que quedan enmascarados.
+
 ### Orden de arranque con una base nueva
 
 `spring.sql.init.mode=never`: nada se siembra solo. Con una base vacía:
 
-1. `docker compose up --build`. Hibernate crea las tablas de Julián y las 20
+1. `docker compose up --build`. Hibernate crea las tablas de Julián y las 21
    de la extensión al arrancar.
 2. Correr `solicitudes/src/main/resources/data.sql` una sola vez (usa
    `INSERT` sin `IGNORE`), con `docker compose exec cfiet_database mysql -u
@@ -441,7 +511,7 @@ Las reglas de los nueve prefijos de la extensión, en ese orden dentro de
 | `funcionarios-academicos` | GET `paginado`, `filtro`, `{uuidFuncionario}`: Secretario General, Decano, Funcionario Académico. POST, PUT y `cargar/archivo`: Secretario General, Decano |
 | `catalogos-academicos` | PUT `tipos-solicitud/{uuidTipo}/funcionario`: Secretario General, Decano. GET `programas` y GET `catalogos-academicos/**`: cualquier autenticado |
 | `solicitudes-academicas` | GET `estudiante`: Estudiante. GET `funcionario`: Funcionario Académico. GET `decano`: Decano. GET detalle, historial, descarga de anexo y de Resolución: Estudiante, Funcionario Académico, Decano. POST anexos: Estudiante, Funcionario Académico. POST Resolución: Funcionario Académico |
-| `cancelaciones-matricula`, `cancelaciones-asignatura`, `examenes-supletorios` | GET `formulario` y POST de radicación: Estudiante. POST `{uuid}/funcionario/**`: Funcionario Académico. POST `{uuid}/decano/**`: Decano. POST `{uuid}/estudiante/**` (solo supletorio): Estudiante. GET `{uuid}`: Estudiante, Funcionario Académico, Decano. GET `examenes-supletorios/docentes`: Funcionario Académico, antes de la regla de `{uuidSolicitud}` (T12.28) |
+| `cancelaciones-matricula`, `cancelaciones-asignatura`, `examenes-supletorios` | Desde T12.32, en `cancelaciones-asignatura`, GET `{uuid}/funcionario/notificacion`, GET `.../plantilla` y PUT `{uuid}/funcionario/notificacion`: Funcionario Académico (los POST de firma y reintento caen en POST `{uuid}/funcionario/**`), y el dueño lo controla el caso de uso (otro usuario recibe inexistente). GET `formulario` y POST de radicación: Estudiante. POST `{uuid}/funcionario/**`: Funcionario Académico. POST `{uuid}/decano/**`: Decano. POST `{uuid}/estudiante/**` (solo supletorio): Estudiante. GET `{uuid}`: Estudiante, Funcionario Académico, Decano. GET `examenes-supletorios/docentes`: Funcionario Académico, antes de la regla de `{uuidSolicitud}` (T12.28) |
 | `notificaciones-docente` | GET la lista, GET `{uuidNotificacion}`, PATCH `{uuidNotificacion}/leida` y GET `{uuidNotificacion}/anexos/{uuidAnexo}`: Docente. Ningún otro rol (T12.28) |
 
 El Secretario General no tiene acceso a ninguna ruta de solicitudes
@@ -538,7 +608,7 @@ Las tablas nuevas de este trabajo de grado (`ESTUDIANTE`,
 `FUNCIONARIO_ACADEMICO`, `ASIGNATURA`, `SOLICITUD_ACADEMICA`,
 `RESOLUCION_ACADEMICA`, etc.) están documentadas en
 `docs/database/diccionario-datos-extension.md` y su DDL en
-`docs/database/script_bd_extension.sql` (20 tablas; referencia, no se ejecuta). Las únicas FK hacia
+`docs/database/script_bd_extension.sql` (21 tablas; referencia, no se ejecuta). Las únicas FK hacia
 las tablas de Julián apuntan a `usuarios (uuidUsuario)`, desde `ESTUDIANTE`,
 `FUNCIONARIO_ACADEMICO`, `HISTORIAL_SOLICITUD_ACADEMICA`, `ANEXO_ACADEMICO`,
 `SOLICITUD_EXAMEN_SUPLETORIO` (`Docente_uuid`) y `NOTIFICACION_DOCENTE`; `usuariosLivianos`
@@ -569,7 +639,7 @@ el contrato HTTP, en `docs/api/contrato-api-procesos-academicos.md`.
 | Catálogo y actores | `AsignaturaCUImplAdaptador`, `EstudianteCUImplAdaptador`, `FuncionarioAcademicoCUImplAdaptador`, `AsignacionFuncionarioAcademicoCUImplAdaptador`, `DocenteCUImplAdaptador` (búsqueda de docentes, T12.28) |
 | Docente | `NotificacionDocenteCUImplAdaptador`: lista, detalle, marcar leída y descarga de anexos, con control de dueño (T12.28) |
 | Catálogos académicos (solo lectura) | `TipoSolicitudAcademicaCUImplAdaptador`, `EtapaSolicitudAcademicaCUImplAdaptador`, `TipoAnexoAcademicoCUImplAdaptador`, `SituacionAcademicaAsignaturaCUImplAdaptador`, `ProgramaAcademicoCUImplAdaptador` |
-| Motor común | `SolicitudAcademicaCUImplAdaptador` (crear y cambiar etapa), `AnexoAcademicoCUImplAdaptador`, `ResolucionAcademicaCUImplAdaptador`, `ConsultaSolicitudAcademicaCUImplAdaptador` (bandejas, detalle, historial, descargas y rol del actor) |
+| Motor común | `SolicitudAcademicaCUImplAdaptador` (crear y cambiar etapa), `AnexoAcademicoCUImplAdaptador`, `ResolucionAcademicaCUImplAdaptador`, `ConsultaSolicitudAcademicaCUImplAdaptador` (bandejas, detalle, historial, descargas y rol del actor), `NotificacionResolucionCUImplAdaptador` (comunicación programada de la Resolución, T12.32) |
 | Cada proceso | Radicación (`CancelacionMatricula`, `CancelacionAsignatura`, `ExamenSupletorio`), trámite (`TramiteCancelacionMatricula`, `TramiteCancelacionAsignatura`, `TramiteExamenSupletorio`) y consulta (`ConsultaCancelacionMatricula`, `ConsultaCancelacionAsignatura`, `ConsultaExamenSupletorio`), todos con sufijo `CUImplAdaptador` |
 
 Las radicaciones validan todo y después llaman a
@@ -1022,7 +1092,12 @@ usuario.
 | `GET /{uuid}` | los tres | Detalle de `solicitudes-academicas` más motivo y asignaturas, según rol y etapa |
 | `POST /{uuid}/funcionario/rechazar` | Funcionario Académico | Cuerpo `observacion` |
 | `POST /{uuid}/funcionario/remitir` | Funcionario Académico | Cuerpo `observacion` opcional y `evaluaciones` (`asignaturaSolicitudUuid`, `numeroFaltas`, `nota`, `situacionMatriculaUuid`, `cumpleCondiciones`, `observacionEvaluacion`) |
-| `POST /{uuid}/funcionario/responder` | Funcionario Académico | Cuerpo opcional `observacion` y `ajustes` (`asignaturaSolicitudUuid`, `situacionCancelarUuid`, `observacionDecision`) |
+| `POST /{uuid}/funcionario/responder` | Funcionario Académico | Cuerpo `observacion` y `ajustes` (`asignaturaSolicitudUuid`, `situacionCancelarUuid`, `observacionDecision`) opcionales, `enviarMensaje` y `mensaje`, y `programacion` (`fechaProgramada`, `numeroResolucion`, `anioResolucion`, `decision`) obligatoria desde T12.32 |
+| `GET /{uuid}/funcionario/notificacion/plantilla` | Funcionario Académico | Mensaje inicial con la firma, decisión propuesta, año y sufijo |
+| `GET /{uuid}/funcionario/notificacion` | Funcionario Académico | Panel de la comunicación; 204 si no hay |
+| `PUT /{uuid}/funcionario/notificacion` | Funcionario Académico | Reprograma y corrige número, año y decisión (PROGRAMADA y antes de la fecha) |
+| `POST /{uuid}/funcionario/notificacion/firma` | Funcionario Académico | Multipart `archivo`: Resolución firmada por el estudiante (PROGRAMADA y antes de la fecha) |
+| `POST /{uuid}/funcionario/notificacion/reintentar` | Funcionario Académico | FALLIDA a PROGRAMADA |
 | `POST /{uuid}/decano/aprobar` | Decano | Cuerpo `aceptarEvaluacion` o `decisiones` (`asignaturaSolicitudUuid`, `aprobada`), y `observacion` opcional |
 | `POST /{uuid}/decano/rechazar` | Decano | Cuerpo opcional `observacion` |
 
@@ -1464,7 +1539,7 @@ propia clase de prueba. Usan el `ExcepcionesFormateadorImplAdaptador` y la
 - `infraestructura/configuracion/lectorArchivos/AgrupadorEstudiantesExcelTest`
   y `DuplicadosFuncionariosAcademicosExcelTest`.
 
-Hoy `.\mvnw.cmd test` corre 1233 pruebas. `AsignaturaCUImplAdaptadorTest`
+Hoy `.\mvnw.cmd test` corre 1580 pruebas (T12.32). `AsignaturaCUImplAdaptadorTest`
 cubre el consecutivo, el paso de 999 a 1000, la no reutilización, el orden
 bloqueo y luego nombre, y 40 creaciones simultáneas sobre un gateway falso con
 bloqueo que no repiten código.
@@ -1508,8 +1583,8 @@ Scripts que hay hoy:
 | `t5_catalogos.ps1`, `t5_asignacion.ps1` | Catálogos sembrados y asignación de tipos a funcionarios |
 | `t5_solicitudes.ps1` | Bandejas, detalle, historial, anexos y Resolución de `solicitudes-academicas` |
 | `t6_cancelacion_matricula.ps1`, `t7_cancelacion_asignatura.ps1`, `t8_examen_supletorio.ps1` | Recorrido completo de cada proceso con usuarios reales |
-| `matriz-permisos.ps1` | Matriz de los 71 endpoints por rol |
-| `t9_correo_respuesta.ps1` | Integración de los correos de la respuesta final (P54) con el Funcionario: en cada proceso y cada acción que cierra la solicitud sube la Resolución y el documento adicional, verifica la etapa, el correo al estudiante, el de DARCA (asunto, frase, PDF generado con su contenido y adjuntos) y en el supletorio el del profesor; además los permisos de subida y que un correo rechazado por el servidor (del estudiante o del profesor) no revierte la respuesta ni frena los demás. Desde T12.31 también el PDF único de paz y salvos (más de 5 MB, tipos retirados rechazados), el rechazo directo sin Resolución en las cancelaciones (correos sin Resolución, detalle sin fallar), la Resolución obligatoria tras el Decano, el remitente visible y la versión HTML |
+| `matriz-permisos.ps1` | Matriz de los 76 endpoints por rol |
+| `t9_correo_respuesta.ps1` | Integración de los correos de la respuesta final (P54) con el Funcionario: en cada proceso y cada acción que cierra la solicitud sube la Resolución y el documento adicional, verifica la etapa, el correo al estudiante, el de DARCA (asunto, frase, PDF generado con su contenido y adjuntos) y en el supletorio el del profesor; además los permisos de subida y que un correo rechazado por el servidor (del estudiante o del profesor) no revierte la respuesta ni frena los demás. Desde T12.31 también el PDF único de paz y salvos (más de 5 MB, tipos retirados rechazados), el rechazo directo sin Resolución en las cancelaciones (correos sin Resolución, detalle sin fallar), la Resolución obligatoria tras el Decano, el remitente visible y la versión HTML. Desde T12.32, en Cancelación de Asignatura después del Decano: mensaje inicial (escapado, sin adjuntos), retención y liberación para el Estudiante, firma, reprogramación, envío programado sin firma (DARCA con 3 PDF) y con firma (DARCA con 2 PDF), fallo del correo del estudiante sin frenar a DARCA, FALLIDA tras 3 intentos y reintento manual que repite solo lo que falló |
 | `todo.ps1` | Corre todos los anteriores y verifica la limpieza; `t9` solo si está definida `PRUEBAS_CORREOS` |
 
 `comun.ps1` tiene las funciones compartidas y `generar_plantilla_*.ps1`
@@ -1537,6 +1612,13 @@ $env:PRUEBAS_CORREO_DARCA="darca-t9@unicauca.edu.co"
 powershell -File .\pruebas\t9_correo_respuesta.ps1
 ```
 
+Para la comunicación programada (T12.32) el backend se levanta además con
+`$env:CORREO_RESOLUCION_INTERVALO_MS="2000"` y
+`$env:CORREO_RESOLUCION_RETRASO_INICIAL_MS="1000"`; el script programa cada
+comunicación a 45 segundos (`PRUEBAS_ESPERA_SEGUNDOS` lo cambia) y espera a que
+la tarea la procese. Con el intervalo por defecto también pasa, pero tarda
+varios minutos.
+
 Cada comando largo va en su propia consola (el SMTP y el backend se quedan
 corriendo). `PRUEBAS_CORREO_DARCA` es obligatoria y debe ser igual al
 `CORREO_DARCA` del backend (no se usa la dirección real de DARCA en la
@@ -1557,7 +1639,7 @@ fila por endpoint de los controladores de la extensión (`asignaturas`,
 `solicitudes-academicas`, `cancelaciones-matricula`,
 `cancelaciones-asignatura` y `examenes-supletorios`) y una columna por
 actor: sin token, Secretario General, Decano, Funcionario Académico y
-Estudiante. Hoy son 71 filas; las cuatro de `notificaciones-docente` quedan
+Estudiante. Hoy son 76 filas; las cuatro de `notificaciones-docente` quedan
 denegadas para todas las columnas porque la matriz no tiene columna Docente
 (eso lo cubren `ConfiguracionSeguridadRolesTest` y `t8_examen_supletorio.ps1`).
 El script:

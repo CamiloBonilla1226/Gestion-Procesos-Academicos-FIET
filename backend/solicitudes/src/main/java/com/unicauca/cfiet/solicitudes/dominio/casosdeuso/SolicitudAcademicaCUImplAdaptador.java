@@ -178,9 +178,13 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
                         resultado.getEtapaSiguiente(), escaneo == null ? "" : ", se retiró el escaneo de la Resolución",
                         adicionales.isEmpty() ? "" : ", se retiró el documento adicional"),
                 token);
-        if (ETAPAS_FINALES.contains(resultado.getEtapaSiguiente()))
+        if (ETAPAS_FINALES.contains(resultado.getEtapaSiguiente()) && !comunicacionProgramada(proceso, accion))
             avisarRespuesta(solicitud, proceso, accion, ahora.toLocalDate());
         return actualizada;
+    }
+
+    private boolean comunicacionProgramada(TipoProcesoAcademico proceso, AccionEtapa accion) {
+        return proceso == TipoProcesoAcademico.CANCELACION_ASIGNATURA && accion == AccionEtapa.ENVIAR_RESPUESTA;
     }
 
     private void avisarRespuesta(SolicitudAcademica solicitud, TipoProcesoAcademico proceso, AccionEtapa accion, LocalDate fecha) {

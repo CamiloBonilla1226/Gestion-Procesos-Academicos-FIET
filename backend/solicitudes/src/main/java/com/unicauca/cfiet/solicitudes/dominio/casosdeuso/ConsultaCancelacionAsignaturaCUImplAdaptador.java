@@ -86,7 +86,7 @@ public class ConsultaCancelacionAsignaturaCUImplAdaptador implements ConsultaCan
         RolEtiquetaEtapa rol = consultaCU.resolverActor(uuidSolicitudAcademica, token).getRol();
         List<AsignaturaSolicitudAcademica> asignaturas = cancelacion.getAsignaturas();
         if (rol == RolEtiquetaEtapa.ESTUDIANTE) {
-            boolean esFinal = maquinaEtapas.esFinal(detalle.getSolicitudAcademica().getEtapa().getCodigo());
+            boolean esFinal = maquinaEtapas.esFinal(detalle.getEtapaCodigo());
             asignaturas = asignaturas.stream().map(asignatura -> vistaEstudiante(asignatura, esFinal)).toList();
         }
         return DetalleCancelacionAsignatura.builder()

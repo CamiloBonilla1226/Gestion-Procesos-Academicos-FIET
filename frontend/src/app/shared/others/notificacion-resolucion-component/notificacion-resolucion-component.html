@@ -1,0 +1,141 @@
+@if (cargando && !notificacion) {
+<div class="cargando" data-estado="cargando-notificacion">
+  <div class="spinner-border spinner-border-sm" role="status"></div>
+  <span>Cargando la notificación de la Resolución...</span>
+</div>
+} @else if (errorCarga) {
+<div class="nota-error d-flex flex-wrap justify-content-between align-items-center gap-2" data-estado="error-notificacion">
+  <span>No se pudo cargar la notificación de la Resolución.</span>
+  <app-simple-button-component label="Reintentar" width="100px" height="30px" (clicked)="cargar()"></app-simple-button-component>
+</div>
+} @else if (notificacion; as n) {
+<section class="tarjeta" data-panel-notificacion [attr.data-estado-notificacion]="n.estado">
+  <header class="tarjeta-head">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/></svg>
+    <h3>Notificación de la Resolución</h3>
+  </header>
+  <div class="tarjeta-body">
+    <dl class="campos-grid m-0">
+      <div class="campo">
+        <dt class="campo-etiqueta">Estado</dt>
+        <dd class="campo-valor m-0" data-estado>{{ estado }}</dd>
+      </div>
+      <div class="campo">
+        <dt class="campo-etiqueta">Fecha programada</dt>
+        <dd class="campo-valor m-0" data-fecha-programada>{{ fecha(n.fechaProgramada) }}</dd>
+      </div>
+      <div class="campo">
+        <dt class="campo-etiqueta">Resolución</dt>
+        <dd class="campo-valor m-0" data-resolucion>{{ resolucion }}</dd>
+      </div>
+      <div class="campo">
+        <dt class="campo-etiqueta">Decisión</dt>
+        <dd class="campo-valor m-0" data-decision>{{ n.decision }}</dd>
+      </div>
+      <div class="campo">
+        <dt class="campo-etiqueta">Firmada por el estudiante</dt>
+        <dd class="campo-valor m-0" data-firmada>{{ n.firmada ? 'Sí' : 'No' }}</dd>
+      </div>
+      <div class="campo">
+        <dt class="campo-etiqueta">Intentos de envío</dt>
+        <dd class="campo-valor m-0" data-intentos>{{ n.intentos }}</dd>
+      </div>
+      @if (n.fechaEnvioEstudiante) {
+      <div class="campo">
+        <dt class="campo-etiqueta">Correo al estudiante</dt>
+        <dd class="campo-valor m-0" data-envio-estudiante>{{ fecha(n.fechaEnvioEstudiante) }}</dd>
+      </div>
+      }
+      @if (n.fechaEnvioDarca) {
+      <div class="campo">
+        <dt class="campo-etiqueta">Correo a DARCA</dt>
+        <dd class="campo-valor m-0" data-envio-darca>{{ fecha(n.fechaEnvioDarca) }}</dd>
+      </div>
+      }
+      @if (n.fechaLiberacion) {
+      <div class="campo">
+        <dt class="campo-etiqueta">Visible para el estudiante desde</dt>
+        <dd class="campo-valor m-0" data-liberacion>{{ fecha(n.fechaLiberacion) }}</dd>
+      </div>
+      }
+      <div class="campo campo-ancho">
+        <dt class="campo-etiqueta">Mensaje inicial enviado</dt>
+        <dd class="m-0">
+          @if (n.mensajeInicial) {
+          <p class="bloque-texto" data-mensaje-inicial>{{ n.mensajeInicial }}</p>
+          } @else {
+          <span class="nota-gris d-block" data-sin-mensaje>No se envió mensaje inicial.</span>
+          }
+        </dd>
+      </div>
+    </dl>
+    @if (n.ultimoError) {
+    <div class="nota-error mt-3" data-ultimo-error>Último error: {{ n.ultimoError }}</div>
+    }
+    @if (n.editable && n.firmada) {
+    <p class="nota-aviso mt-3 mb-0" data-nota-firmada>
+      El estudiante firmó: no se le enviará la comunicación. En la fecha programada DARCA recibirá el PDF de la respuesta y la
+      Resolución firmada.
+    </p>
+    } @else if (n.editable) {
+    <p class="nota-gris mt-3 mb-0" data-nota-editable>
+      Hasta la fecha y hora programadas puedes reprogramar, corregir los datos o registrar que el estudiante firmó en la Decanatura.
+    </p>
+    } @else if (n.estado === 'PROGRAMADA' || n.estado === 'EN_PROCESO') {
+    <p class="nota-gris mt-3 mb-0" data-nota-en-envio>La fecha programada ya llegó: la comunicación se está enviando y no se puede modificar.</p>
+    }
+  </div>
+</section>
+
+@if (hayAcciones) {
+<section class="tarjeta tarjeta-acciones" data-acciones-notificacion>
+  @if (n.editable) {
+  <app-simple-button-component data-accion="REPROGRAMAR" label="Reprogramar o editar" width="auto" height="38px" color="#2A3A86"
+    [disabled]="enviando" (clicked)="abrir('reprogramar')">
+  </app-simple-button-component>
+  <app-simple-button-component data-accion="FIRMA" label="El estudiante firmó" width="auto" height="38px" color="#2A3A86"
+    [disabled]="enviando" (clicked)="abrir('firma')">
+  </app-simple-button-component>
+  }
+  @if (puedeReintentar) {
+  <app-simple-button-component data-accion="REINTENTAR" label="Reintentar" width="auto" height="38px" color="#2A3A86"
+    [disabled]="enviando" (clicked)="abrir('reintentar')">
+  </app-simple-button-component>
+  }
+</section>
+}
+}
+
+<app-generic-dialog-form-component [visible]="dialogo !== null" [title]="tituloDialogo" [textoBoton]="textoBoton" textoCancelar="Cancelar"
+  [cerrarConEscape]="true" (visibleChange)="cerrar($event)" (save)="confirmar()">
+  <div class="d-flex flex-column gap-3" data-dialogo-notificacion>
+    <app-resumen-solicitud-component [solicitud]="solicitud"></app-resumen-solicitud-component>
+    @switch (dialogo) {
+    @case ('reprogramar') {
+    <app-programacion-resolucion-component [programacion]="programacion" [sufijo]="notificacion?.sufijoResolucion ?? ''" [errores]="errores">
+    </app-programacion-resolucion-component>
+    }
+    @case ('firma') {
+    <p class="nota-gris mb-0">
+      Sube la Resolución firmada por el estudiante; reemplaza la escaneada. Al confirmar no se enviará el correo al estudiante y,
+      en la fecha programada, DARCA recibirá el PDF de la respuesta y esta Resolución.
+    </p>
+    <div data-campo-firma>
+      <app-input-anexo-upload-component #entradaFirma [tipoAnexo]="tipoFirma" [uploadedFile]="archivoFirma"
+        (fileSelected)="alSeleccionarFirma($event, entradaFirma)" (fileRemoved)="alQuitarFirma()">
+      </app-input-anexo-upload-component>
+      <small class="texto-error" data-error="firma">{{ errores['firma'] || '' }}</small>
+    </div>
+    }
+    @case ('reintentar') {
+    <p class="nota-gris mb-0">Se volverán a enviar solo los correos que fallaron, en el próximo ciclo de envío (cerca de un minuto).</p>
+    }
+    }
+    @if (enviando) {
+    <div class="cargando" data-estado="enviando-notificacion">
+      <div class="spinner-border spinner-border-sm" role="status"></div>
+      <span>Enviando...</span>
+    </div>
+    }
+  </div>
+</app-generic-dialog-form-component>

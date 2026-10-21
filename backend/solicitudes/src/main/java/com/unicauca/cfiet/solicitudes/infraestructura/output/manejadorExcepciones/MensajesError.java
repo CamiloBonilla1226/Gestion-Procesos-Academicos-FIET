@@ -125,4 +125,16 @@ public class MensajesError {
     public static final String EXCEL_FILA_ASIGNATURA_EXISTE = "Fila %d, columna %s (%s): la asignatura %s ya existe en el programa %s con el código %s...";
     public static final String EXCEL_FILA_ASIGNATURA_NO_EXISTE = "Fila %d, columna %s (%s): la asignatura con código %s no existe en el catálogo...";
     public static final String EXCEL_FILA_ASIGNATURA_OTRO_PROGRAMA = "Fila %d, columna %s (%s): la asignatura %s es del programa %s y el estudiante es del programa %s...";
+    public static final String PROGRAMACION_RESOLUCION_REQUERIDA = "Para enviar la respuesta debe programar la comunicación de la Resolución: fecha y hora, número, año y decisión...";
+    public static final String FECHA_PROGRAMADA_REQUERIDA = "Debe indicar la fecha y la hora de la comunicación de la Resolución...";
+    public static final String FECHA_PROGRAMADA_PASADA = "La fecha y hora programadas (%s) deben ser posteriores a la fecha y hora actuales (%s, hora de Colombia)...";
+    public static final String FECHA_HORA_MAL_FORMADA = "El valor %s de %s no es una fecha y hora con el formato AAAA-MM-DDTHH:mm...";
+    public static final String NUMERO_RESOLUCION_REQUERIDO = "Debe indicar el número de la Resolución...";
+    public static final String DATO_RESOLUCION_MUY_LARGO = "%s de la Resolución supera los %d caracteres permitidos...";
+    public static final String ANIO_RESOLUCION_INVALIDO = "El año de la Resolución debe estar entre %d y %d...";
+    public static final String DECISION_RESOLUCION_REQUERIDA = "Debe indicar la decisión de la Resolución...";
+    public static final String MENSAJE_INICIAL_REQUERIDO = "Marcó enviar mensaje al estudiante: el mensaje no puede estar vacío...";
+    public static final String MENSAJE_INICIAL_MUY_LARGO = "El mensaje al estudiante supera los %d caracteres permitidos...";
+    public static final String NOTIFICACION_NO_EDITABLE = "La comunicación de la Resolución de la solicitud %s ya no se puede modificar: solo se edita o se registra la firma mientras está programada y antes de la fecha y hora programadas...";
+    public static final String NOTIFICACION_NO_REINTENTABLE = "La comunicación de la Resolución de la solicitud %s no está fallida y no se puede reintentar...";
 }

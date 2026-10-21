@@ -403,14 +403,57 @@ DEALLOCATE PREPARE cambio_docente;
 
 ALTER TABLE SOLICITUD_EXAMEN_SUPLETORIO MODIFY fechaAcordadaExamen DATETIME NULL;
 
+-- ---------------------------------------------------------------------
+-- 14. Comunicación programada de la Resolución (T12.32)
+-- ---------------------------------------------------------------------
+
+-- Solo Cancelación de Asignatura que pasó por el Decano: una fila por
+-- solicitud (1 a 0..1, PK = FK, como RESOLUCION_ACADEMICA), creada en la
+-- misma transacción de funcionario/responder. fechaProgramada se interpreta
+-- en hora de Colombia y debe ser futura. estado: PROGRAMADA (esperando la
+-- fecha o el siguiente reintento), EN_PROCESO (la reclamó la tarea
+-- programada con una actualización condicional por estado; si queda así
+-- más de 15 minutos se vuelve a reclamar), ENVIADA o FALLIDA (tres intentos
+-- sin éxito). firmada = 1 cuando el estudiante firmó la Resolución en la
+-- Decanatura: no se le envía la comunicación y DARCA recibe solo el PDF de
+-- la respuesta y la Resolución firmada. fechaEnvioEstudiante y
+-- fechaEnvioDarca son la marca de cada correo: el reintento repite solo el
+-- que sigue nulo. fechaLiberacion es el momento en que la tarea reclamó la
+-- fila por primera vez: hasta ese momento el Estudiante ve la solicitud en
+-- trámite, sin respuesta ni Resolución; después no se vuelve a ocultar.
+-- mensajeInicial guarda el texto del mensaje inmediato al estudiante (nulo
+-- si no se envió); solo lo ve el Funcionario. Hibernate crea estado como
+-- ENUM y firmada como BIT(1).
+CREATE TABLE IF NOT EXISTS NOTIFICACION_RESOLUCION (
+    SolicitudAcademica_uuid   VARCHAR(100)  NOT NULL,
+    fechaProgramada           DATETIME      NOT NULL,
+    estado                    ENUM('ENVIADA','EN_PROCESO','FALLIDA','PROGRAMADA') NOT NULL,
+    firmada                   BIT(1)        NOT NULL DEFAULT b'0',
+    numeroResolucion          VARCHAR(20)   NOT NULL,
+    anioResolucion            INT           NOT NULL,
+    decision                  VARCHAR(60)   NOT NULL,
+    mensajeInicial            VARCHAR(2000) NULL,
+    fechaEnvioEstudiante      DATETIME      NULL,
+    fechaEnvioDarca           DATETIME      NULL,
+    intentos                  INT           NOT NULL DEFAULT 0,
+    ultimoError               VARCHAR(1000) NULL,
+    fechaReclamo              DATETIME      NULL,
+    fechaEnvio                DATETIME      NULL,
+    fechaLiberacion           DATETIME      NULL,
+    fechaCreacion             DATETIME      NOT NULL,
+    PRIMARY KEY (SolicitudAcademica_uuid),
+    CONSTRAINT fk_notifres_solacad
+        FOREIGN KEY (SolicitudAcademica_uuid) REFERENCES SOLICITUD_ACADEMICA (uuidSolicitudAcademica)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- =====================================================================
--- Fin del script. Son 20 tablas nuevas en total. Orden de creación ya
+-- Fin del script. Son 21 tablas nuevas en total. Orden de creación ya
 -- resuelto para respetar FKs: ProgramaAcademico ->
 -- Estudiante/FuncionarioAcademico ->
 -- Asignatura/AsignaturaMatriculada -> TipoSolicitud -> Etapa/EtapaEtiqueta
 -- -> SolicitudAcademica -> especializaciones -> SituacionAcademica ->
 -- AsignaturaSolicitud -> Anexos -> Resolución -> Historial ->
--- NotificacionDocente.
+-- NotificacionDocente -> NotificacionResolucion.
 -- =====================================================================

@@ -60,6 +60,9 @@ class ResolucionAcademicaCUImplAdaptadorTest {
     @Mock
     private LogCUIntPuerto log;
 
+    @Mock
+    private NotificacionResolucionGatewayIntPuerto notificacionGateway;
+
     private ResolucionAcademicaCUImplAdaptador casoDeUso;
 
     private TipoSolicitudAcademica tipo(String uuid, String nombre) {
@@ -123,7 +126,8 @@ class ResolucionAcademicaCUImplAdaptadorTest {
     @BeforeEach
     void setUp() {
         casoDeUso = new ResolucionAcademicaCUImplAdaptador(gateway, solicitudGateway, usuarioGateway, almacenamiento,
-                new ExcepcionesFormateadorImplAdaptador(), log, Clock.fixed(Instant.parse("2026-03-10T15:00:00Z"), ZoneId.of("America/Bogota")));
+                new ExcepcionesFormateadorImplAdaptador(), log, Clock.fixed(Instant.parse("2026-03-10T15:00:00Z"), ZoneId.of("America/Bogota")),
+                notificacionGateway);
         lenient().when(usuarioGateway.getUsuario(ESTUDIANTE)).thenReturn(usuario(ESTUDIANTE, "Estudiante"));
         lenient().when(usuarioGateway.getUsuario(OTRO_ESTUDIANTE)).thenReturn(usuario(OTRO_ESTUDIANTE, "Estudiante"));
         lenient().when(usuarioGateway.getUsuario(FUNCIONARIO)).thenReturn(usuario(FUNCIONARIO, "Funcionario Académico"));
@@ -399,5 +403,54 @@ class ResolucionAcademicaCUImplAdaptadorTest {
         when(almacenamiento.leer(RUTA_ANTERIOR)).thenReturn(null);
 
         assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso.obtenerResolucion(SOLICITUD, funcionario()));
+    }
+
+    @Test
+    void elEstudianteNoLaDescargaMientrasLaRespuestaEstaRetenida() {
+        solicitud(asignatura, APROBADA);
+        when(notificacionGateway.estaRetenida(SOLICITUD)).thenReturn(true);
+
+        ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
+                () -> casoDeUso.obtenerResolucion(SOLICITUD, actor(ESTUDIANTE, RolEtiquetaEtapa.ESTUDIANTE)));
+
+        assertTrue(error.getMessage().contains("disponible cuando la solicitud termine"));
+        verify(almacenamiento, never()).leer(any());
+    }
+
+    @Test
+    void liberadaLaRespuestaElEstudianteLaDescargaYFuncionarioYDecanoNuncaDependenDeLaRetencion() {
+        solicitud(asignatura, APROBADA);
+        when(gateway.getPorSolicitud(SOLICITUD)).thenReturn(anterior());
+        when(almacenamiento.leer(RUTA_ANTERIOR)).thenReturn(pdf(50));
+        when(notificacionGateway.estaRetenida(SOLICITUD)).thenReturn(false);
+
+        assertNotNull(casoDeUso.obtenerResolucion(SOLICITUD, actor(ESTUDIANTE, RolEtiquetaEtapa.ESTUDIANTE)));
+        assertNotNull(casoDeUso.obtenerResolucion(SOLICITUD, funcionario()));
+        assertNotNull(casoDeUso.obtenerResolucion(SOLICITUD, actor(DECANO, RolEtiquetaEtapa.DECANO)));
+        verify(notificacionGateway, times(1)).estaRetenida(SOLICITUD);
+    }
+
+    @Test
+    void laResolucionFirmadaReemplazaLaEscaneadaEnEtapaFinalYBorraLaAnteriorTrasConfirmar() {
+        solicitud(asignatura, APROBADA);
+        when(gateway.getPorSolicitud(SOLICITUD)).thenReturn(anterior());
+        when(almacenamiento.guardar(eq(SOLICITUD), anyString(), any())).thenReturn(RUTA);
+        when(gateway.guardar(any())).thenAnswer(invocacion -> invocacion.getArgument(0));
+
+        ResolucionAcademica guardada = casoDeUso.reemplazarResolucionFirmada(SOLICITUD, archivo("firmada.pdf", pdf(100)), funcionario(), TOKEN);
+
+        assertEquals(RUTA, guardada.getUrlArchivo());
+        verify(almacenamiento).eliminarTrasConfirmar(RUTA_ANTERIOR);
+        verify(log).crearLog(eq("Adjuntar Resolución académica"), contains("REEMPLAZAR_RESOLUCION_FIRMADA"), eq(TOKEN));
+    }
+
+    @Test
+    void laResolucionFirmadaSoloLaSubeElFuncionarioAsignadoYSoloEnPdf() {
+        solicitud(asignatura, APROBADA);
+        assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> casoDeUso.reemplazarResolucionFirmada(SOLICITUD,
+                archivo("firmada.pdf", pdf(100)), actor(OTRO_FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), TOKEN));
+        assertThrows(ErrorMalFormatoExcepcion.class, () -> casoDeUso.reemplazarResolucionFirmada(SOLICITUD,
+                archivo("firmada.png", pdf(100)), funcionario(), TOKEN));
+        verificarQueNoSeGuardoNada();
     }
 }

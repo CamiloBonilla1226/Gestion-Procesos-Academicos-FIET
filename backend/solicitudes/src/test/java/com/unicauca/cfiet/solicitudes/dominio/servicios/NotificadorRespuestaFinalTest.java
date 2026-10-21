@@ -39,9 +39,17 @@ class NotificadorRespuestaFinalTest {
     private final UsuarioGatewayIntPuerto usuarioGateway = mock(UsuarioGatewayIntPuerto.class);
     private final CorreoIntPuerto correo = mock(CorreoIntPuerto.class);
     private final List<ResumenRespuesta> generados = new ArrayList<>();
-    private final GeneradorPdfRespuestaIntPuerto generador = resumen -> {
-        generados.add(resumen);
-        return PDF;
+    private final GeneradorPdfRespuestaIntPuerto generador = new GeneradorPdfRespuestaIntPuerto() {
+        @Override
+        public byte[] generar(ResumenRespuesta resumen) {
+            generados.add(resumen);
+            return PDF;
+        }
+
+        @Override
+        public byte[] generarConstancia(ConstanciaComunicacion constancia) {
+            return PDF;
+        }
     };
 
     private NotificadorRespuestaFinal notificador;
@@ -352,5 +360,48 @@ class NotificadorRespuestaFinalTest {
         ResumenRespuesta resumen = notificador.resumen(solicitud, TipoProcesoAcademico.CANCELACION_ASIGNATURA, AccionEtapa.ENVIAR_RESPUESTA, FECHA);
 
         assertTrue(resumen.getDetalles().stream().noneMatch(dato -> dato.getEtiqueta().toLowerCase().contains("observaci")));
+    }
+
+    private AdjuntoCorreo constancia() {
+        return AdjuntoCorreo.builder().nombre("Comunicacion-Estudiante-2026-CA-0003.pdf").tipoContenido("application/pdf").contenido(PDF).build();
+    }
+
+    @Test
+    void sinFirmaDarcaRecibeElPdfLaResolucionLaConstanciaYElDocumentoAdicional() {
+        cancelacionCon(asignatura("ISI-001", "Cálculo I", true, null), asignatura("ISI-002", "Física I", false, null));
+        conResolucionYAdicional();
+
+        CorreoPreparado correoDarca = notificador.correoDarcaResolucion(solicitud("2026-CA-0003", APROBADA), FECHA, false, List.of(constancia()));
+
+        assertEquals(DARCA, correoDarca.getDestinatario());
+        assertEquals("DARCA - Notificación de Cancelación de asignatura - Radicado 2026-CA-0003", correoDarca.getAsunto());
+        assertEquals(List.of("Radicado-2026-CA-0003.pdf", "Resolucion-2026-CA-0003.pdf", "Comunicacion-Estudiante-2026-CA-0003.pdf", "acta.pdf"),
+                correoDarca.getAdjuntos().stream().map(AdjuntoCorreo::getNombre).toList());
+        assertTrue(correoDarca.getTexto().startsWith("Popayán, Cauca, 15 de octubre de 2026"));
+        assertTrue(correoDarca.getTexto().contains("solicita cancelar 2 asignaturas: 1 aprobada y 1 rechazada."));
+        assertTrue(correoDarca.getTexto().contains("se adjunta la constancia de la comunicación"));
+        verify(correo, never()).enviar(any(), any(), any(), any());
+    }
+
+    @Test
+    void conFirmaDarcaRecibeSoloElPdfYLaResolucionFirmadaMasElDocumentoAdicional() {
+        cancelacionCon(asignatura("ISI-001", "Cálculo I", true, null));
+        conResolucionYAdicional();
+
+        CorreoPreparado correoDarca = notificador.correoDarcaResolucion(solicitud("2026-CA-0003", APROBADA), FECHA, true, List.of(constancia()));
+
+        assertEquals(List.of("Radicado-2026-CA-0003.pdf", "Resolucion-2026-CA-0003.pdf", "acta.pdf"),
+                correoDarca.getAdjuntos().stream().map(AdjuntoCorreo::getNombre).toList());
+        assertTrue(correoDarca.getTexto().contains("El estudiante firmó la Resolución"));
+        assertFalse(correoDarca.getTexto().contains("Observ"));
+    }
+
+    @Test
+    void sinDocumentoAdicionalDarcaRecibeTresPdfSinFirmaYDosConFirma() {
+        cancelacionCon(asignatura("ISI-001", "Cálculo I", true, null));
+        when(resolucionGateway.getPorSolicitud(SOLICITUD)).thenReturn(ResolucionAcademica.builder().urlArchivo("/api/anexos/sol-1/res.pdf").build());
+
+        assertEquals(3, notificador.correoDarcaResolucion(solicitud("2026-CA-0003", APROBADA), FECHA, false, List.of(constancia())).getAdjuntos().size());
+        assertEquals(2, notificador.correoDarcaResolucion(solicitud("2026-CA-0003", APROBADA), FECHA, true, List.of(constancia())).getAdjuntos().size());
     }
 }

@@ -2,6 +2,7 @@ package com.unicauca.cfiet.solicitudes.infraestructura.output.correo;
 
 import com.unicauca.cfiet.solicitudes.aplicacion.output.CorreoIntPuerto;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.AdjuntoCorreo;
+import com.unicauca.cfiet.solicitudes.dominio.modelos.CorreoPreparado;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,11 @@ public class CorreoImplAdaptador implements CorreoIntPuerto {
                 enviarSinFallar(destinatario, asunto, texto, adjuntos);
             }
         });
+    }
+
+    @Override
+    public void enviarAhora(CorreoPreparado correo) {
+        servicioCorreo.enviarAhora(correo);
     }
 
     private void enviarSinFallar(String destinatario, String asunto, String texto, List<AdjuntoCorreo> adjuntos) {

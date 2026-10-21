@@ -14,7 +14,7 @@ misma base de datos:
 - `docs/database/` — script de extensión del esquema, diccionario de datos
   de las tablas nuevas (no tocan las tablas de Julián), reglas por proceso
   (`etapas-por-proceso.md`) y scripts de siembra.
-- `docs/api/contrato-api-procesos-academicos.md` — contrato de los 71
+- `docs/api/contrato-api-procesos-academicos.md` — contrato de los 76
   endpoints académicos para quien construya el frontend.
 
 ## Regla de estilo, válida para todo el repositorio
@@ -41,12 +41,12 @@ Ver `README.md` en la raíz (Opción A con Docker, Opción B sin Docker).
 
 ## Dónde está la info de los tres procesos
 
-`docs/database/diccionario-datos-extension.md` tiene las 20 tablas nuevas
+`docs/database/diccionario-datos-extension.md` tiene las 21 tablas nuevas
 campo por campo (programas académicos, etapas de la solicitud, anexos
 obligatorios por tipo, situación académica, Resolución física escaneada), y
 `docs/database/script_bd_extension.sql` su DDL de referencia: no se ejecuta,
 las tablas las crea Hibernate desde las entidades (`ddl-auto=update`), igual
-que en Julián. Las 20 tablas coinciden con la base real (`SHOW TABLES` y
+que en Julián. Las 21 tablas coinciden con la base real (`SHOW TABLES` y
 `DESCRIBE`). Esa documentación es la fuente de verdad del modelo de datos — antes de modelar una entidad o
 endpoint nuevo, revisa ahí primero. El diccionario anota en cada columna la
 regla que la afecta (rangos, valores permitidos, cuándo es obligatoria), pero
@@ -79,6 +79,24 @@ revierten están en la sección siguiente.
   del Funcionario (sin remitir al Decano) no lleva Resolución: el backend no la
   pide y el correo no la adjunta. La respuesta final después del Decano sí la
   exige, como antes (P56, desde T12.31).
+- Cancelación de Asignatura que pasó por el Decano (P58, desde T12.32): al
+  enviar la respuesta final no salen los correos inmediatos al estudiante con
+  la Resolución ni a DARCA. Sale, si el Funcionario lo deja marcado, un mensaje
+  inmediato sin adjuntos ni resultado, y la comunicación de la Resolución es
+  obligatoria y programada (fecha y hora futuras en hora de Colombia, número,
+  año y decisión; sufijo `/178` y firma desde propiedades). Una tarea
+  programada la envía en la fecha: al estudiante con la Resolución y a DARCA
+  con tres PDF (respuesta, Resolución y constancia de la comunicación); si el
+  estudiante firmó en la Decanatura antes de la fecha, no se le envía nada y
+  DARCA recibe dos PDF con la Resolución firmada. Correos independientes, hasta
+  3 intentos y luego FALLIDA con reintento manual. Matrícula, Supletorio y el
+  rechazo directo siguen como antes.
+- Visibilidad diferida (P58): en ese caso, hasta que la tarea toma la
+  comunicación por primera vez, el Estudiante ve la solicitud "En trámite" y el
+  backend no le devuelve la respuesta, el resultado por asignatura, la
+  Resolución ni su descarga, el documento adicional ni las filas de decisión y
+  respuesta del historial. Después no se vuelve a ocultar. Funcionario y Decano
+  ven todo siempre.
 - Cancelación de Asignatura tiene aprobación parcial: el Decano aprueba o
   rechaza cada asignatura por separado y solo se cancelan las aprobadas
   (decisión P14 de `docs/database/etapas-por-proceso.md`).

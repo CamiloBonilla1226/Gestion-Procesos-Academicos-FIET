@@ -1,17 +1,24 @@
 package com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.mapeador;
 
+import com.unicauca.cfiet.solicitudes.aplicacion.output.ExcepcionesFormateadorIntPuerto;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
+import com.unicauca.cfiet.solicitudes.dominio.servicios.ComunicacionResolucion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTOPeticion.AjusteAsignaturaDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTOPeticion.DecisionAsignaturaDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTOPeticion.EvaluacionCancelacionAsignaturaDTOPeticion;
+import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTOPeticion.ProgramacionResolucionDTOPeticion;
+import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTOPeticion.RespuestaCancelacionAsignaturaDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTORespuesta.*;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesMatricula.DTORespuesta.SituacionAsignaturaDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudesAcademicas.mapeador.MapperSolicitudAcademicaInfraestructuraDominio;
+import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.MensajesError;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -20,8 +27,10 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class MapperCancelacionAsignaturaInfraestructuraDominio {
     private static final String SOPORTE = "soporte";
+    private static final String FECHA_PROGRAMADA = "la fecha y hora programadas";
 
     private final MapperSolicitudAcademicaInfraestructuraDominio mapperSolicitud;
+    private final ExcepcionesFormateadorIntPuerto formateadorExcepciones;
 
     public List<AnexoRadicacion> mapearAnexos(MultiValueMap<String, MultipartFile> partes) {
         List<AnexoRadicacion> anexos = new ArrayList<>();
@@ -68,6 +77,69 @@ public class MapperCancelacionAsignaturaInfraestructuraDominio {
                         .observacionDecision(ajuste.getObservacionDecision())
                         .build())
                 .toList();
+    }
+
+    public ComunicacionRespuesta mapearComunicacion(RespuestaCancelacionAsignaturaDTOPeticion peticion) {
+        if (peticion == null) return null;
+        return ComunicacionRespuesta.builder()
+                .enviarMensaje(peticion.getEnviarMensaje())
+                .mensaje(peticion.getMensaje())
+                .programacion(mapearProgramacion(peticion.getProgramacion()))
+                .build();
+    }
+
+    public ProgramacionResolucion mapearProgramacion(ProgramacionResolucionDTOPeticion programacion) {
+        if (programacion == null) return null;
+        return ProgramacionResolucion.builder()
+                .fechaProgramada(mapearFechaHora(programacion.getFechaProgramada()))
+                .numeroResolucion(programacion.getNumeroResolucion())
+                .anioResolucion(programacion.getAnioResolucion())
+                .decision(programacion.getDecision())
+                .build();
+    }
+
+    public ArchivoAdjunto mapearArchivo(MultipartFile archivo) {
+        return mapperSolicitud.mapearArchivo(archivo);
+    }
+
+    public NotificacionResolucionDTORespuesta mapearNotificacionARespuesta(NotificacionResolucion notificacion) {
+        return NotificacionResolucionDTORespuesta.builder()
+                .estado(notificacion.getEstado() == null ? null : notificacion.getEstado().name())
+                .fechaProgramada(notificacion.getFechaProgramada())
+                .firmada(notificacion.isFirmada())
+                .numeroResolucion(notificacion.getNumeroResolucion())
+                .anioResolucion(notificacion.getAnioResolucion())
+                .sufijoResolucion(notificacion.getSufijoResolucion())
+                .decision(notificacion.getDecision())
+                .mensajeInicial(notificacion.getMensajeInicial())
+                .fechaEnvioEstudiante(notificacion.getFechaEnvioEstudiante())
+                .fechaEnvioDarca(notificacion.getFechaEnvioDarca())
+                .intentos(notificacion.getIntentos())
+                .ultimoError(notificacion.getUltimoError())
+                .fechaEnvio(notificacion.getFechaEnvio())
+                .fechaLiberacion(notificacion.getFechaLiberacion())
+                .editable(notificacion.isEditable())
+                .build();
+    }
+
+    public PlantillaNotificacionResolucionDTORespuesta mapearPlantillaARespuesta(PlantillaNotificacionResolucion plantilla) {
+        return PlantillaNotificacionResolucionDTORespuesta.builder()
+                .mensajeInicial(plantilla.getMensajeInicial())
+                .maximoMensaje(ComunicacionResolucion.MAXIMO_MENSAJE)
+                .decisionPropuesta(plantilla.getDecisionPropuesta())
+                .anioResolucion(plantilla.getAnioResolucion())
+                .sufijoResolucion(plantilla.getSufijoResolucion())
+                .build();
+    }
+
+    private LocalDateTime mapearFechaHora(String valor) {
+        if (valor == null || valor.isBlank()) return null;
+        try {
+            return LocalDateTime.parse(valor.trim());
+        } catch (DateTimeParseException error) {
+            formateadorExcepciones.lanzarMalFormato(String.format(MensajesError.FECHA_HORA_MAL_FORMADA, valor, FECHA_PROGRAMADA));
+            return null;
+        }
     }
 
     public FormularioCancelacionAsignaturaDTORespuesta mapearFormularioARespuesta(FormularioCancelacionAsignatura formulario) {

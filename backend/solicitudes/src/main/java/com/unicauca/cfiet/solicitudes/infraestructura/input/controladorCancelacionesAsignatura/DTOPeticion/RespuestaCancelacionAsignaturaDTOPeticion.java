@@ -14,4 +14,7 @@ import java.util.List;
 public class RespuestaCancelacionAsignaturaDTOPeticion {
     private String observacion;
     private List<AjusteAsignaturaDTOPeticion> ajustes;
+    private Boolean enviarMensaje;
+    private String mensaje;
+    private ProgramacionResolucionDTOPeticion programacion;
 }

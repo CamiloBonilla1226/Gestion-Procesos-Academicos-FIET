@@ -9,6 +9,10 @@ import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelaci
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTORespuesta.FormularioCancelacionAsignaturaDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.mapeador.MapperCancelacionAsignaturaInfraestructuraDominio;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudesAcademicas.mapeador.MapperSolicitudAcademicaInfraestructuraDominio;
+import com.unicauca.cfiet.solicitudes.infraestructura.output.formateador.ExcepcionesFormateadorImplAdaptador;
+import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.excepcionesPropias.ErrorMalFormatoExcepcion;
+import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTOPeticion.ProgramacionResolucionDTOPeticion;
+import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTOPeticion.RespuestaCancelacionAsignaturaDTOPeticion;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.util.LinkedMultiValueMap;
@@ -24,7 +28,8 @@ import static org.junit.jupiter.api.Assertions.*;
 class MapperCancelacionAsignaturaInfraestructuraDominioTest {
 
     private final MapperCancelacionAsignaturaInfraestructuraDominio mapper =
-            new MapperCancelacionAsignaturaInfraestructuraDominio(new MapperSolicitudAcademicaInfraestructuraDominio());
+            new MapperCancelacionAsignaturaInfraestructuraDominio(new MapperSolicitudAcademicaInfraestructuraDominio(),
+                    new ExcepcionesFormateadorImplAdaptador());
 
     private MockMultipartFile archivo(String parte, String nombre) {
         return new MockMultipartFile(parte, nombre, "application/pdf", "%PDF-1.7".getBytes(StandardCharsets.US_ASCII));
@@ -173,5 +178,28 @@ class MapperCancelacionAsignaturaInfraestructuraDominioTest {
 
         assertEquals("APROBADA_POR_DECANO", respuesta.getSolicitud().getEtapaCodigo());
         assertEquals("Aprobada por el Decano", respuesta.getSolicitud().getEtiqueta());
+    }
+
+    @Test
+    void laComunicacionDeLaRespuestaLeeLaFechaYHoraLocalYElMensaje() {
+        ComunicacionRespuesta comunicacion = mapper.mapearComunicacion(RespuestaCancelacionAsignaturaDTOPeticion.builder()
+                .enviarMensaje(true)
+                .mensaje("Hola")
+                .programacion(ProgramacionResolucionDTOPeticion.builder()
+                        .fechaProgramada("2026-10-21T08:30").numeroResolucion("123-26").anioResolucion(2026).decision("aprueba la").build())
+                .build());
+
+        assertTrue(comunicacion.getEnviarMensaje());
+        assertEquals("Hola", comunicacion.getMensaje());
+        assertEquals(java.time.LocalDateTime.of(2026, 10, 21, 8, 30), comunicacion.getProgramacion().getFechaProgramada());
+        assertEquals("123-26", comunicacion.getProgramacion().getNumeroResolucion());
+        assertNull(mapper.mapearComunicacion(null));
+        assertNull(mapper.mapearComunicacion(RespuestaCancelacionAsignaturaDTOPeticion.builder().build()).getProgramacion());
+    }
+
+    @Test
+    void unaFechaProgramadaMalFormadaEsErrorDeFormato() {
+        assertThrows(ErrorMalFormatoExcepcion.class, () -> mapper.mapearProgramacion(ProgramacionResolucionDTOPeticion.builder()
+                .fechaProgramada("21/10/2026 08:30").build()));
     }
 }

@@ -1,6 +1,7 @@
 package com.unicauca.cfiet.solicitudes.dominio.casosdeuso;
 
 import com.unicauca.cfiet.solicitudes.aplicacion.input.LogCUIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.input.NotificacionResolucionCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.SolicitudAcademicaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.TramiteCancelacionAsignaturaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.*;
@@ -32,6 +33,7 @@ public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCance
     private final TramiteCancelacion tramite;
     private final ExcepcionesFormateadorIntPuerto formateadorExcepciones;
     private final LogCUIntPuerto log;
+    private final NotificacionResolucionCUIntPuerto notificacionCU;
 
     public TramiteCancelacionAsignaturaCUImplAdaptador(SolicitudCancelacionAsignaturaGatewayIntPuerto gateway,
                                                        SolicitudCancelacionMatriculaGatewayIntPuerto asignaturaSolicitudGateway,
@@ -43,13 +45,15 @@ public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCance
                                                        SolicitudAcademicaCUIntPuerto solicitudCU,
                                                        MaquinaEtapas maquinaEtapas,
                                                        ExcepcionesFormateadorIntPuerto formateadorExcepciones,
-                                                       LogCUIntPuerto log) {
+                                                       LogCUIntPuerto log,
+                                                       NotificacionResolucionCUIntPuerto notificacionCU) {
         this.gateway = gateway;
         this.solicitudCU = solicitudCU;
         this.tramite = new TramiteCancelacion(asignaturaSolicitudGateway, solicitudGateway, situacionGateway, usuarioGateway, sesionGateway,
                 jwtServicio, maquinaEtapas, formateadorExcepciones);
         this.formateadorExcepciones = formateadorExcepciones;
         this.log = log;
+        this.notificacionCU = notificacionCU;
     }
 
     @Override
@@ -147,7 +151,7 @@ public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCance
 
     @Override
     public SolicitudCancelacionAsignatura enviarRespuesta(String uuidSolicitudAcademica, String observacion, List<AjusteAsignatura> ajustes,
-                                                          String token) {
+                                                          ComunicacionRespuesta comunicacion, String token) {
         ActorSolicitud actor = tramite.actorDe(token, RolEtiquetaEtapa.FUNCIONARIO);
         SolicitudCancelacionAsignatura cancelacion = cancelacionDe(uuidSolicitudAcademica);
         SolicitudAcademica solicitud = tramite.solicitudValidada(TipoProcesoAcademico.CANCELACION_ASIGNATURA, uuidSolicitudAcademica,
@@ -163,6 +167,7 @@ public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCance
                 .anyMatch(asignatura -> Boolean.FALSE.equals(asignatura.getAprobadaPorDecano()));
         if (hayRechazos && !tramite.tieneTexto(observacion))
             formateadorExcepciones.lanzarReglaNegocioViolada(MensajesError.OBSERVACION_RESPUESTA_REQUERIDA);
+        notificacionCU.validarComunicacion(comunicacion);
 
         SolicitudAcademica actualizada = solicitudCU.cambiarEtapa(uuidSolicitudAcademica, AccionEtapa.ENVIAR_RESPUESTA, actor, observacion, token);
         if (!recibidos.isEmpty()) {
@@ -181,6 +186,7 @@ public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCance
                             canceladas, EstadoAsignaturaMatriculadaConstantes.CANCELADA),
                     token);
         }
+        notificacionCU.programar(actualizada, comunicacion, token);
         return conSolicitud(cancelacion, actualizada);
     }
 

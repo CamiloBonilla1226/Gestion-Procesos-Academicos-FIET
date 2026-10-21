@@ -3,10 +3,14 @@ package com.unicauca.cfiet.solicitudes.infraestructura.configuracion;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.AnexoAcademicoCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.ConsultaSolicitudAcademicaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.LogCUIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.input.NotificacionResolucionCUIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.input.ResolucionAcademicaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.SolicitudAcademicaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.UsuarioCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.*;
 import com.unicauca.cfiet.solicitudes.dominio.casosdeuso.*;
+import com.unicauca.cfiet.solicitudes.dominio.modelos.FirmaCorreo;
+import com.unicauca.cfiet.solicitudes.dominio.servicios.ComunicacionResolucion;
 import com.unicauca.cfiet.solicitudes.dominio.servicios.MaquinaEtapas;
 import com.unicauca.cfiet.solicitudes.dominio.servicios.NotificadorRespuestaFinal;
 import com.unicauca.cfiet.solicitudes.infraestructura.configuracion.lectorArchivos.almacenador.AlmacenadorArchivos;
@@ -215,9 +219,33 @@ public class BeanConfiguracion {
                                                                        UsuarioGatewayIntPuerto usuarioGateway,
                                                                        AlmacenamientoAnexosIntPuerto almacenamiento,
                                                                        ExcepcionesFormateadorIntPuerto formateadorExcepciones,
-                                                                       LogCUIntPuerto log){
+                                                                       LogCUIntPuerto log,
+                                                                       NotificacionResolucionGatewayIntPuerto notificacionGateway){
         return new ResolucionAcademicaCUImplAdaptador(gateway, solicitudGateway, usuarioGateway, almacenamiento,
-                formateadorExcepciones, log, Clock.system(ZoneId.of("America/Bogota")));
+                formateadorExcepciones, log, Clock.system(ZoneId.of("America/Bogota")), notificacionGateway);
+    }
+
+    @Bean
+    public NotificacionResolucionCUImplAdaptador crearNotificacionResolucionCU(NotificacionResolucionGatewayIntPuerto gateway,
+                                                                             SolicitudAcademicaGatewayIntPuerto solicitudGateway,
+                                                                             SolicitudCancelacionAsignaturaGatewayIntPuerto cancelacionGateway,
+                                                                             SesionGatewayIntPuerto sesionGateway,
+                                                                             IJwtServicio jwtServicio,
+                                                                             ResolucionAcademicaCUIntPuerto resolucionCU,
+                                                                             NotificadorRespuestaFinal notificador,
+                                                                             GeneradorPdfRespuestaIntPuerto generadorPdf,
+                                                                             CorreoIntPuerto correo,
+                                                                             ExcepcionesFormateadorIntPuerto formateadorExcepciones,
+                                                                             LogCUIntPuerto log,
+                                                                             @Value("${correo.firma.nombre:}") String firmaNombre,
+                                                                             @Value("${correo.firma.cargo:}") String firmaCargo,
+                                                                             @Value("${correo.firma.dependencia:}") String firmaDependencia,
+                                                                             @Value("${correo.firma.facultad:}") String firmaFacultad,
+                                                                             @Value("${correo.resolucion.sufijo:}") String sufijo){
+        FirmaCorreo firma = FirmaCorreo.builder().nombre(firmaNombre).cargo(firmaCargo).dependencia(firmaDependencia).facultad(firmaFacultad).build();
+        return new NotificacionResolucionCUImplAdaptador(gateway, solicitudGateway, cancelacionGateway, sesionGateway, jwtServicio, resolucionCU,
+                notificador, generadorPdf, correo, new ComunicacionResolucion(firma, sufijo), formateadorExcepciones, log,
+                Clock.system(ZoneId.of("America/Bogota")));
     }
 
     @Bean
@@ -230,9 +258,10 @@ public class BeanConfiguracion {
                                                                                      IJwtServicio jwtServicio,
                                                                                      AnexoAcademicoCUIntPuerto anexoCU,
                                                                                      MaquinaEtapas maquinaEtapas,
-                                                                                     ExcepcionesFormateadorIntPuerto formateadorExcepciones){
+                                                                                     ExcepcionesFormateadorIntPuerto formateadorExcepciones,
+                                                                                     NotificacionResolucionGatewayIntPuerto notificacionGateway){
         return new ConsultaSolicitudAcademicaCUImplAdaptador(gateway, etiquetaGateway, anexoGateway, historialGateway,
-                resolucionGateway, sesionGateway, jwtServicio, anexoCU, maquinaEtapas, formateadorExcepciones);
+                resolucionGateway, sesionGateway, jwtServicio, anexoCU, maquinaEtapas, formateadorExcepciones, notificacionGateway);
     }
 
     @Bean
@@ -303,9 +332,10 @@ public class BeanConfiguracion {
                                                                                          SolicitudAcademicaCUIntPuerto solicitudCU,
                                                                                          MaquinaEtapas maquinaEtapas,
                                                                                          ExcepcionesFormateadorIntPuerto formateadorExcepciones,
-                                                                                         LogCUIntPuerto log){
+                                                                                         LogCUIntPuerto log,
+                                                                                         NotificacionResolucionCUIntPuerto notificacionCU){
         return new TramiteCancelacionAsignaturaCUImplAdaptador(gateway, asignaturaSolicitudGateway, solicitudGateway, situacionGateway,
-                usuarioGateway, sesionGateway, jwtServicio, solicitudCU, maquinaEtapas, formateadorExcepciones, log);
+                usuarioGateway, sesionGateway, jwtServicio, solicitudCU, maquinaEtapas, formateadorExcepciones, log, notificacionCU);
     }
 
     @Bean

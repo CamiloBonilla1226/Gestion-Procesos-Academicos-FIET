@@ -3,11 +3,14 @@ package com.unicauca.cfiet.solicitudes.infraestructura.output.pdf;
 import com.lowagie.text.pdf.PdfReader;
 import com.lowagie.text.pdf.parser.PdfTextExtractor;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.AsignaturaResumenRespuesta;
+import com.unicauca.cfiet.solicitudes.dominio.modelos.ConstanciaComunicacion;
+import com.unicauca.cfiet.solicitudes.dominio.modelos.FragmentoTexto;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.DatoResumenRespuesta;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.ResumenRespuesta;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -95,5 +98,40 @@ class GeneradorPdfRespuestaTest {
         contiene(texto, "Decisión de la solicitud");
         assertFalse(texto.toLowerCase().contains("observaci"));
         assertFalse(texto.toLowerCase().contains("historial"));
+    }
+
+    @Test
+    void laConstanciaDeLaComunicacionLlevaElTextoCompletoLaFechaYHoraYElDestinatario() throws Exception {
+        ConstanciaComunicacion constancia = ConstanciaComunicacion.builder()
+                .radicado("2026-CA-0007")
+                .destinatario("ana@unicauca.edu.co")
+                .asunto("Notificación de Cancelación de asignatura")
+                .fechaEnvio(LocalDateTime.of(2026, 10, 21, 8, 5))
+                .parrafos(List.of(
+                        List.of(FragmentoTexto.builder().texto("COMUNICACIÓN ELECTRÓNICA - RESOLUCIÓN No. ").build(),
+                                FragmentoTexto.builder().texto("123-26").resaltado(true).build(),
+                                FragmentoTexto.builder().texto("/178 de ").build(),
+                                FragmentoTexto.builder().texto("2026").resaltado(true).build()),
+                        List.of(FragmentoTexto.builder().texto("Se comunica al estudiante, ").build(),
+                                FragmentoTexto.builder().texto("Ana María Muñoz Peña").resaltado(true).build()),
+                        List.of(FragmentoTexto.builder().texto("Cordialmente,").build())))
+                .build();
+
+        byte[] pdf = generador.generarConstancia(constancia);
+
+        assertEquals("%PDF", new String(pdf, 0, 4));
+        contiene(texto(pdf), "Constancia de comunicación electrónica al estudiante", "2026-CA-0007", "Destinatario", "ana@unicauca.edu.co",
+                "Notificación de Cancelación de asignatura", "Fecha y hora de envío", "21 de octubre de 2026, 08:05 hora de Colombia",
+                "COMUNICACIÓN ELECTRÓNICA - RESOLUCIÓN No. 123-26/178 de 2026", "Se comunica al estudiante, Ana María Muñoz Peña",
+                "Cordialmente,");
+        assertTrue(new String(pdf, java.nio.charset.StandardCharsets.ISO_8859_1).contains("Helvetica-Bold"));
+    }
+
+    @Test
+    void laConstanciaDeUnCorreoNoEnviadoLoDice() throws Exception {
+        byte[] pdf = generador.generarConstancia(ConstanciaComunicacion.builder().radicado("2026-CA-0007").destinatario("ana@unicauca.edu.co")
+                .asunto("Asunto").build());
+
+        contiene(texto(pdf), "No se pudo enviar; el envío se reintentará");
     }
 }

@@ -36,6 +36,10 @@ export class InputDateComponent {
    */
   @Output() valueChange = new EventEmitter<string>();
 
+  @Input() tipo: 'date' | 'datetime-local' = 'date';
+
+  @Input() minimo = '';
+
   /**
    * Indica si el campo ha sido tocado por el usuario.
    */

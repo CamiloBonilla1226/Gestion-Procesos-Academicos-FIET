@@ -9,4 +9,6 @@ public interface ResolucionAcademicaCUIntPuerto {
     ResolucionAcademica adjuntarResolucion(String uuidSolicitudAcademica, ArchivoAdjunto archivo, ActorSolicitud actor, String token);
 
     ArchivoAdjunto obtenerResolucion(String uuidSolicitudAcademica, ActorSolicitud actor);
+
+    ResolucionAcademica reemplazarResolucionFirmada(String uuidSolicitudAcademica, ArchivoAdjunto archivo, ActorSolicitud actor, String token);
 }

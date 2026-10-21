@@ -17,6 +17,26 @@ import { AsignaturaSolicitadaDTORespuesta } from '../../../../core/models/Cancel
 import { InputAnexoUploadComponent } from '../../../inputs/input-anexo-upload-component/input-anexo-upload-component';
 import { environment } from '../../../../../enviroments/environment';
 import { NOTA_SIMCA } from '../../../../core/constantes/textos-cancelacion-matricula';
+import { PlantillaNotificacionResolucionDTORespuesta } from '../../../../core/models/CancelacionAsignatura/DTOResponse/PlantillaNotificacionResolucionDTORespuesta';
+
+const PLANTILLA: PlantillaNotificacionResolucionDTORespuesta = {
+  mensajeInicial: 'Buen día, estudiante,\n\nAcérquese a la Decanatura.\n\nCordialmente,\n\nCRISTIAN ESTIBEN ILLERA OSPITIA',
+  maximoMensaje: 2000,
+  decisionPropuesta: 'aprueba parcialmente la',
+  anioResolucion: 2026,
+  sufijoResolucion: '/178'
+};
+
+const CUERPO_COMUNICACION = {
+  enviarMensaje: true,
+  mensaje: PLANTILLA.mensajeInicial,
+  programacion: { fechaProgramada: '2099-01-01T08:00', numeroResolucion: '123-26', anioResolucion: 2026, decision: 'aprueba parcialmente la' }
+};
+
+function programar(componente: CancelacionAsignaturaProcesoComponent): void {
+  componente.comunicacion!.programacion.fecha = '2099-01-01T08:00';
+  componente.comunicacion!.programacion.numero = '123-26';
+}
 
 function solicitud(acciones: string[], etapaCodigo = 'RADICADA', tieneResolucion = false, etiqueta = 'Pendiente'): SolicitudAcademicaDetalleDTORespuesta {
   return {
@@ -65,8 +85,11 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
 
   beforeEach(() => {
     cancelaciones = jasmine.createSpyObj<CancelacionAsignaturaService>('CancelacionAsignaturaService', [
-      'getDetalle', 'rechazarPorFuncionario', 'remitirADecano', 'enviarRespuesta', 'aprobarPorDecano', 'rechazarPorDecano'
+      'getDetalle', 'rechazarPorFuncionario', 'remitirADecano', 'enviarRespuesta', 'aprobarPorDecano', 'rechazarPorDecano',
+      'getPlantillaNotificacion', 'getNotificacion'
     ]);
+    cancelaciones.getPlantillaNotificacion.and.returnValue(of(PLANTILLA));
+    cancelaciones.getNotificacion.and.returnValue(of(null));
     solicitudes = jasmine.createSpyObj<SolicitudAcademicaService>('SolicitudAcademicaService', ['adjuntarResolucion', 'adjuntarAnexo']);
     catalogo = jasmine.createSpyObj<CatalogoAcademicoService>('CatalogoAcademicoService', ['getSituaciones', 'getTiposAnexoPorTipo']);
     errores = jasmine.createSpyObj<ErrorHandlerService>('ErrorHandlerService', ['handleError']);
@@ -586,6 +609,7 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
     function responder(asignaturas = DECIDIDAS, etapa = 'APROBADA_POR_DECANO') {
       const fixture = crear(solicitud(['ENVIAR_RESPUESTA'], etapa, true), asignaturas);
       fixture.componentInstance.abrir('ENVIAR_RESPUESTA');
+      programar(fixture.componentInstance);
       fixture.detectChanges();
       return fixture;
     }
@@ -657,6 +681,7 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
       componente.observacion = ' Se cancelan tres asignaturas ';
       componente.confirmar();
       expect(cancelaciones.enviarRespuesta).toHaveBeenCalledWith('s-1', {
+        ...CUERPO_COMUNICACION,
         observacion: 'Se cancelan tres asignaturas',
         ajustes: [
           { asignaturaSolicitudUuid: 'as-2', situacionCancelarUuid: 'r3', observacionDecision: null },
@@ -673,6 +698,7 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
       componente.confirmar();
       expect(componente.errores).toEqual({});
       expect(cancelaciones.enviarRespuesta).toHaveBeenCalledWith('s-1', {
+        ...CUERPO_COMUNICACION,
         observacion: 'Se cancelan las aprobadas',
         ajustes: [
           { asignaturaSolicitudUuid: 'as-2', situacionCancelarUuid: null, observacionDecision: null },
@@ -693,7 +719,7 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
       expect(componente.errores['observacion']).toContain('500');
       componente.observacion = '';
       componente.confirmar();
-      expect(cancelaciones.enviarRespuesta).toHaveBeenCalledWith('s-1', { observacion: null });
+      expect(cancelaciones.enviarRespuesta).toHaveBeenCalledWith('s-1', { ...CUERPO_COMUNICACION, observacion: null });
     });
 
     it('si el Decano rechazo la solicitud exige la observacion y no envia ajustes', () => {
@@ -704,7 +730,7 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
       expect(componente.errores['observacion']).toContain('obligatoria');
       componente.observacion = 'El Decano negó la cancelación';
       componente.confirmar();
-      expect(cancelaciones.enviarRespuesta).toHaveBeenCalledWith('s-1', { observacion: 'El Decano negó la cancelación' });
+      expect(cancelaciones.enviarRespuesta).toHaveBeenCalledWith('s-1', { ...CUERPO_COMUNICACION, observacion: 'El Decano negó la cancelación' });
     });
 
     it('sube el escaneo antes de responder', () => {
@@ -715,11 +741,111 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
       const fixture = crear(solicitud(['ENVIAR_RESPUESTA'], 'APROBADA_POR_DECANO'), aprobadas);
       const componente = fixture.componentInstance;
       componente.abrir('ENVIAR_RESPUESTA');
+      programar(componente);
       componente.confirmar();
       expect(componente.errores['resolucion']).toBeTruthy();
       componente.alSeleccionarResolucion(new File(['%PDF-'], 'resolucion.pdf'), entrada);
       componente.confirmar();
       expect(orden).toEqual(['resolucion', 'responder']);
+    });
+
+    it('al abrir pide la plantilla y carga el mensaje con la firma, la casilla marcada, el anio y la decision propuesta', () => {
+      const fixture = crear(solicitud(['ENVIAR_RESPUESTA'], 'APROBADA_POR_DECANO', true), [DECIDIDAS[0]]);
+      const componente = fixture.componentInstance;
+      componente.abrir('ENVIAR_RESPUESTA');
+      fixture.detectChanges();
+      expect(cancelaciones.getPlantillaNotificacion).toHaveBeenCalledWith('s-1');
+      expect(componente.dialogoVisible).toBeTrue();
+      expect(componente.comunicacion).toEqual({
+        enviarMensaje: true,
+        mensaje: PLANTILLA.mensajeInicial,
+        programacion: { fecha: '', numero: '', anio: '2026', decision: 'aprueba parcialmente la' }
+      });
+      expect((document.querySelector('[data-campo="enviar-mensaje"]') as HTMLInputElement).checked).toBeTrue();
+      expect(document.querySelector('[data-campo-mensaje] textarea')).toBeTruthy();
+      expect(document.querySelector('[data-programacion] input[type="datetime-local"]')).toBeTruthy();
+      expect(document.querySelector('[data-vista-previa]')?.textContent).toContain('/178 de 2026');
+      expect(document.querySelector('[data-nota-retencion]')?.textContent).toContain('en trámite');
+    });
+
+    it('si la plantilla no carga muestra el error y no abre el dialogo', () => {
+      cancelaciones.getPlantillaNotificacion.and.returnValue(throwError(() => new HttpErrorResponse({ status: 500 })));
+      const componente = crear(solicitud(['ENVIAR_RESPUESTA'], 'APROBADA_POR_DECANO', true), [DECIDIDAS[0]]).componentInstance;
+      componente.abrir('ENVIAR_RESPUESTA');
+      expect(componente.dialogoVisible).toBeFalse();
+      expect(componente.accionActiva).toBeNull();
+      expect(errores.handleError).toHaveBeenCalledWith(jasmine.anything(), 'Error', 'No se pudo cargar la plantilla de la comunicación');
+    });
+
+    it('sin programar la fecha y el numero no envia la respuesta', () => {
+      const componente = crear(solicitud(['ENVIAR_RESPUESTA'], 'APROBADA_POR_DECANO', true), [DECIDIDAS[0]]).componentInstance;
+      componente.abrir('ENVIAR_RESPUESTA');
+      componente.confirmar();
+      expect(componente.errores['fecha']).toContain('fecha');
+      expect(componente.errores['numero']).toContain('obligatorio');
+      componente.comunicacion!.programacion.fecha = '2000-01-01T08:00';
+      componente.comunicacion!.programacion.numero = '1';
+      componente.confirmar();
+      expect(componente.errores['fecha']).toContain('posteriores');
+      expect(cancelaciones.enviarRespuesta).not.toHaveBeenCalled();
+    });
+
+    it('el mensaje es obligatorio con la casilla marcada, con maximo, y sin la casilla no se envia', () => {
+      cancelaciones.enviarRespuesta.and.returnValue(of(detalle(EVALUADAS)));
+      const aprobada = [{ ...EVALUADAS[0], aprobadaPorDecano: true, decisionCambiadaPorDecano: false, situacionCancelar: SITUACION_R3 }];
+      const componente = responder(aprobada).componentInstance;
+      componente.comunicacion!.mensaje = '   ';
+      componente.confirmar();
+      expect(componente.errores['mensaje']).toContain('Escribe el mensaje');
+      componente.comunicacion!.mensaje = 'x'.repeat(2001);
+      componente.confirmar();
+      expect(componente.errores['mensaje']).toContain('2000');
+      componente.comunicacion!.enviarMensaje = false;
+      componente.confirmar();
+      expect(cancelaciones.enviarRespuesta).toHaveBeenCalledWith('s-1', {
+        ...CUERPO_COMUNICACION, enviarMensaje: false, mensaje: null, observacion: null
+      });
+    });
+
+    it('envia el texto editado por el funcionario tal como queda', () => {
+      cancelaciones.enviarRespuesta.and.returnValue(of(detalle(EVALUADAS)));
+      const aprobada = [{ ...EVALUADAS[0], aprobadaPorDecano: true, decisionCambiadaPorDecano: false, situacionCancelar: SITUACION_R3 }];
+      const componente = responder(aprobada).componentInstance;
+      componente.comunicacion!.mensaje = ' Buen día,\nvenga <pronto> ';
+      componente.comunicacion!.programacion.decision = 'aprueba la';
+      componente.confirmar();
+      expect(cancelaciones.enviarRespuesta).toHaveBeenCalledWith('s-1', {
+        ...CUERPO_COMUNICACION,
+        mensaje: 'Buen día,\nvenga <pronto>',
+        programacion: { ...CUERPO_COMUNICACION.programacion, decision: 'aprueba la' },
+        observacion: null
+      });
+    });
+  });
+
+  describe('panel de la notificacion de la Resolucion', () => {
+    it('el Funcionario lo ve en la etapa final y pide la notificacion', async () => {
+      const fixture = crear(solicitud([], 'APROBADA', true, 'Respondida'), EVALUADAS);
+      await fixture.whenStable();
+      fixture.detectChanges();
+      expect(fixture.componentInstance.muestraPanelNotificacion).toBeTrue();
+      expect(cancelaciones.getNotificacion).toHaveBeenCalledWith('s-1');
+    });
+
+    it('ni el Estudiante ni el Decano lo ven, y el Funcionario no lo ve antes de responder', async () => {
+      for (const [rol, etapa, etiqueta] of [['ESTUDIANTE', 'APROBADA', 'Aprobada'], ['DECANO', 'APROBADA', 'Respondida'], ['FUNCIONARIO', 'APROBADA_POR_DECANO', 'Pendiente Notificar']]) {
+        const fixture = crear(solicitud([], etapa, true, etiqueta), EVALUADAS, rol);
+        await fixture.whenStable();
+        expect(fixture.componentInstance.muestraPanelNotificacion).withContext(rol + etapa).toBeFalse();
+      }
+      expect(cancelaciones.getNotificacion).not.toHaveBeenCalled();
+    });
+
+    it('mientras la respuesta esta retenida el Estudiante ve la solicitud en tramite sin resultados y sin errores', () => {
+      const fixture = crear(solicitud([], 'EN_REVISION_DECANO', false, 'En trámite'), [soloCodigos('A1', 'Cálculo', 'as-1')], 'ESTUDIANTE');
+      expect(encabezados(fixture)).toEqual(['Código', 'Asignatura']);
+      expect(fixture.nativeElement.querySelector('[data-panel-notificacion]')).toBeNull();
+      expect(errores.handleError).not.toHaveBeenCalled();
     });
   });
 
@@ -759,8 +885,10 @@ describe('CancelacionAsignaturaProcesoComponent con el catalogo real', () => {
   let errores: ErrorHandlerService;
 
   beforeEach(() => {
-    const cancelaciones = jasmine.createSpyObj<CancelacionAsignaturaService>('CancelacionAsignaturaService', ['getDetalle']);
+    const cancelaciones = jasmine.createSpyObj<CancelacionAsignaturaService>('CancelacionAsignaturaService', ['getDetalle', 'getPlantillaNotificacion', 'getNotificacion']);
     cancelaciones.getDetalle.and.returnValue(of(detalle(PENDIENTE)));
+    cancelaciones.getPlantillaNotificacion.and.returnValue(of(PLANTILLA));
+    cancelaciones.getNotificacion.and.returnValue(of(null));
     toast = jasmine.createSpyObj<ToastService>('ToastService', ['showSuccess', 'showError']);
     TestBed.configureTestingModule({
       imports: [CancelacionAsignaturaProcesoComponent],
@@ -840,8 +968,9 @@ describe('CancelacionAsignaturaProcesoComponent resaltado por resultado desde Re
   function crearCon(resultado: string | null, etapa = 'APROBADA', rol = 'FUNCIONARIO', etiqueta = 'Respondida'): ComponentFixture<CancelacionAsignaturaProcesoComponent> {
     const mapa = convertToParamMap(resultado ? { resultado } : {});
     parametros = new BehaviorSubject<ParamMap>(mapa);
-    const cancelaciones = jasmine.createSpyObj<CancelacionAsignaturaService>('CancelacionAsignaturaService', ['getDetalle']);
+    const cancelaciones = jasmine.createSpyObj<CancelacionAsignaturaService>('CancelacionAsignaturaService', ['getDetalle', 'getNotificacion']);
     cancelaciones.getDetalle.and.returnValue(of(detalle(RESPONDIDAS)));
+    cancelaciones.getNotificacion.and.returnValue(of(null));
     TestBed.configureTestingModule({
       imports: [CancelacionAsignaturaProcesoComponent],
       providers: [

@@ -1,6 +1,7 @@
 package com.unicauca.cfiet.solicitudes.aplicacion.input;
 
 import com.unicauca.cfiet.solicitudes.dominio.modelos.AjusteAsignatura;
+import com.unicauca.cfiet.solicitudes.dominio.modelos.ComunicacionRespuesta;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.DecisionAsignatura;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.EvaluacionAsignatura;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.SolicitudCancelacionAsignatura;
@@ -19,5 +20,6 @@ public interface TramiteCancelacionAsignaturaCUIntPuerto {
 
     SolicitudCancelacionAsignatura rechazarPorDecano(String uuidSolicitudAcademica, String observacion, String token);
 
-    SolicitudCancelacionAsignatura enviarRespuesta(String uuidSolicitudAcademica, String observacion, List<AjusteAsignatura> ajustes, String token);
+    SolicitudCancelacionAsignatura enviarRespuesta(String uuidSolicitudAcademica, String observacion, List<AjusteAsignatura> ajustes,
+                                                   ComunicacionRespuesta comunicacion, String token);
 }

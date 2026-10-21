@@ -1,0 +1,30 @@
+<div class="d-flex flex-column gap-1" data-programacion>
+  <div data-campo-programacion="fecha">
+    <app-input-date-component label="Fecha y hora de la comunicación" tipo="datetime-local" [minimo]="minimo" [required]="true"
+      [(value)]="programacion.fecha">
+    </app-input-date-component>
+    @if (textoFecha) {
+    <small class="nota-gris d-block" data-fecha-texto>{{ textoFecha }} (hora de Colombia)</small>
+    }
+    <small class="texto-error" data-error="fecha">{{ errores['fecha'] || '' }}</small>
+  </div>
+  <div class="row g-2">
+    <div class="col-md-6" data-campo-programacion="numero">
+      <app-input-text-component label="Número de la Resolución" [required]="true" [(value)]="programacion.numero">
+      </app-input-text-component>
+      <small class="texto-error" data-error="numero">{{ errores['numero'] || '' }}</small>
+    </div>
+    <div class="col-md-6" data-campo-programacion="anio">
+      <app-input-text-component label="Año de la Resolución" [required]="true" [(value)]="programacion.anio">
+      </app-input-text-component>
+      <small class="texto-error" data-error="anio">{{ errores['anio'] || '' }}</small>
+    </div>
+  </div>
+  <div data-campo-programacion="decision">
+    <app-input-text-component label="Decisión" [required]="true" [(value)]="programacion.decision">
+    </app-input-text-component>
+    <small class="nota-gris d-block">Se propone según lo que decidió el Decano por asignatura; puedes editarla.</small>
+    <small class="texto-error" data-error="decision">{{ errores['decision'] || '' }}</small>
+  </div>
+  <p class="nota-gris mb-0" data-vista-previa>{{ vistaPrevia }}</p>
+</div>

@@ -4,6 +4,7 @@ import com.unicauca.cfiet.solicitudes.aplicacion.input.LogCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.ResolucionAcademicaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.AlmacenamientoAnexosIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.ExcepcionesFormateadorIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.output.NotificacionResolucionGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.ResolucionAcademicaGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.SolicitudAcademicaGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.UsuarioGatewayIntPuerto;
@@ -37,6 +38,7 @@ public class ResolucionAcademicaCUImplAdaptador implements ResolucionAcademicaCU
     private final ExcepcionesFormateadorIntPuerto formateadorExcepciones;
     private final LogCUIntPuerto log;
     private final Clock reloj;
+    private final NotificacionResolucionGatewayIntPuerto notificacionGateway;
 
     public ResolucionAcademicaCUImplAdaptador(ResolucionAcademicaGatewayIntPuerto gateway,
                                               SolicitudAcademicaGatewayIntPuerto solicitudGateway,
@@ -44,7 +46,8 @@ public class ResolucionAcademicaCUImplAdaptador implements ResolucionAcademicaCU
                                               AlmacenamientoAnexosIntPuerto almacenamiento,
                                               ExcepcionesFormateadorIntPuerto formateadorExcepciones,
                                               LogCUIntPuerto log,
-                                              Clock reloj) {
+                                              Clock reloj,
+                                              NotificacionResolucionGatewayIntPuerto notificacionGateway) {
         this.gateway = gateway;
         this.solicitudGateway = solicitudGateway;
         this.almacenamiento = almacenamiento;
@@ -53,6 +56,7 @@ public class ResolucionAcademicaCUImplAdaptador implements ResolucionAcademicaCU
         this.formateadorExcepciones = formateadorExcepciones;
         this.log = log;
         this.reloj = reloj;
+        this.notificacionGateway = notificacionGateway;
     }
 
     @Override
@@ -63,6 +67,21 @@ public class ResolucionAcademicaCUImplAdaptador implements ResolucionAcademicaCU
         if (actor.getRol() != RolEtiquetaEtapa.FUNCIONARIO)
             formateadorExcepciones.lanzarReglaNegocioViolada(MensajesError.RESOLUCION_SOLO_FUNCIONARIO);
         validarEtapa(solicitud);
+        return guardar(solicitud, archivo, actor, token, false);
+    }
+
+    @Override
+    public ResolucionAcademica reemplazarResolucionFirmada(String uuidSolicitudAcademica, ArchivoAdjunto archivo, ActorSolicitud actor,
+                                                           String token) {
+        SolicitudAcademica solicitud = obtenerSolicitud(uuidSolicitudAcademica);
+        validadorActor.validar(solicitud, actor);
+        validarProceso(solicitud.getTipoSolicitudAcademica());
+        if (actor.getRol() != RolEtiquetaEtapa.FUNCIONARIO)
+            formateadorExcepciones.lanzarReglaNegocioViolada(MensajesError.RESOLUCION_SOLO_FUNCIONARIO);
+        return guardar(solicitud, archivo, actor, token, true);
+    }
+
+    private ResolucionAcademica guardar(SolicitudAcademica solicitud, ArchivoAdjunto archivo, ActorSolicitud actor, String token, boolean firmada) {
         String extension = validadorArchivo.validar(archivo, DOCUMENTO, FORMATO);
 
         String uuidSolicitud = solicitud.getUuidSolicitudAcademica();
@@ -96,7 +115,8 @@ public class ResolucionAcademicaCUImplAdaptador implements ResolucionAcademicaCU
             almacenamiento.eliminarTrasConfirmar(anterior.getUrlArchivo());
         log.crearLog("Adjuntar Resolución académica",
                 String.format("Solicitud académica %s, acción %s: escaneo de la Resolución en la etapa %s",
-                        solicitud.getRadicado(), anterior == null ? "ADJUNTAR_RESOLUCION" : "REEMPLAZAR_RESOLUCION", codigoEtapa(solicitud)),
+                        solicitud.getRadicado(), firmada ? "REEMPLAZAR_RESOLUCION_FIRMADA"
+                                : anterior == null ? "ADJUNTAR_RESOLUCION" : "REEMPLAZAR_RESOLUCION", codigoEtapa(solicitud)),
                 token);
         return guardada;
     }
@@ -105,7 +125,8 @@ public class ResolucionAcademicaCUImplAdaptador implements ResolucionAcademicaCU
     public ArchivoAdjunto obtenerResolucion(String uuidSolicitudAcademica, ActorSolicitud actor) {
         SolicitudAcademica solicitud = obtenerSolicitud(uuidSolicitudAcademica);
         validadorActor.validar(solicitud, actor);
-        if (actor.getRol() == RolEtiquetaEtapa.ESTUDIANTE && !esFinal(solicitud))
+        boolean retenida = actor.getRol() == RolEtiquetaEtapa.ESTUDIANTE && notificacionGateway.estaRetenida(solicitud.getUuidSolicitudAcademica());
+        if (actor.getRol() == RolEtiquetaEtapa.ESTUDIANTE && (!esFinal(solicitud) || retenida))
             formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.RESOLUCION_NO_DISPONIBLE, solicitud.getRadicado()));
 
         ResolucionAcademica resolucion = gateway.getPorSolicitud(solicitud.getUuidSolicitudAcademica());

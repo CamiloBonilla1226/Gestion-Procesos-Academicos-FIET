@@ -7,6 +7,9 @@ import { AprobacionCancelacionAsignaturaDTOPeticion } from '../models/Cancelacio
 import { RadicacionCancelacionAsignaturaDTOPeticion } from '../models/CancelacionAsignatura/DTORequest/RadicacionCancelacionAsignaturaDTOPeticion';
 import { RemisionCancelacionAsignaturaDTOPeticion } from '../models/CancelacionAsignatura/DTORequest/RemisionCancelacionAsignaturaDTOPeticion';
 import { RespuestaCancelacionAsignaturaDTOPeticion } from '../models/CancelacionAsignatura/DTORequest/RespuestaCancelacionAsignaturaDTOPeticion';
+import { ProgramacionResolucionDTOPeticion } from '../models/CancelacionAsignatura/DTORequest/ProgramacionResolucionDTOPeticion';
+import { NotificacionResolucionDTORespuesta } from '../models/CancelacionAsignatura/DTOResponse/NotificacionResolucionDTORespuesta';
+import { PlantillaNotificacionResolucionDTORespuesta } from '../models/CancelacionAsignatura/DTOResponse/PlantillaNotificacionResolucionDTORespuesta';
 import { CancelacionAsignaturaDetalleDTORespuesta } from '../models/CancelacionAsignatura/DTOResponse/CancelacionAsignaturaDetalleDTORespuesta';
 import { FormularioCancelacionAsignaturaDTORespuesta } from '../models/CancelacionAsignatura/DTOResponse/FormularioCancelacionAsignaturaDTORespuesta';
 import { RadicacionCancelacionAsignaturaDTORespuesta } from '../models/CancelacionAsignatura/DTOResponse/RadicacionCancelacionAsignaturaDTORespuesta';
@@ -64,6 +67,31 @@ export class CancelacionAsignaturaService {
     peticion: ObservacionDTOPeticion
   ): Observable<CancelacionAsignaturaDetalleDTORespuesta> {
     return this.http.post<CancelacionAsignaturaDetalleDTORespuesta>(`${this.url}/${uuidSolicitud}/decano/rechazar`, peticion);
+  }
+
+  getPlantillaNotificacion(uuidSolicitud: string): Observable<PlantillaNotificacionResolucionDTORespuesta> {
+    return this.http.get<PlantillaNotificacionResolucionDTORespuesta>(`${this.url}/${uuidSolicitud}/funcionario/notificacion/plantilla`);
+  }
+
+  getNotificacion(uuidSolicitud: string): Observable<NotificacionResolucionDTORespuesta | null> {
+    return this.http.get<NotificacionResolucionDTORespuesta | null>(`${this.url}/${uuidSolicitud}/funcionario/notificacion`);
+  }
+
+  reprogramarNotificacion(
+    uuidSolicitud: string,
+    peticion: ProgramacionResolucionDTOPeticion
+  ): Observable<NotificacionResolucionDTORespuesta> {
+    return this.http.put<NotificacionResolucionDTORespuesta>(`${this.url}/${uuidSolicitud}/funcionario/notificacion`, peticion);
+  }
+
+  registrarFirma(uuidSolicitud: string, archivo: File): Observable<NotificacionResolucionDTORespuesta> {
+    const formData = new FormData();
+    formData.append('archivo', archivo, archivo.name);
+    return this.http.post<NotificacionResolucionDTORespuesta>(`${this.url}/${uuidSolicitud}/funcionario/notificacion/firma`, formData);
+  }
+
+  reintentarNotificacion(uuidSolicitud: string): Observable<NotificacionResolucionDTORespuesta> {
+    return this.http.post<NotificacionResolucionDTORespuesta>(`${this.url}/${uuidSolicitud}/funcionario/notificacion/reintentar`, null);
   }
 
   private armarFormDataRadicacion(peticion: RadicacionCancelacionAsignaturaDTOPeticion): FormData {

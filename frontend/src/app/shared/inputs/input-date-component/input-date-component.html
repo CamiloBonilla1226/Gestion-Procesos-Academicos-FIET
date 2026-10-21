@@ -3,10 +3,10 @@
     {{ label }} <span *ngIf="required" class="required">*</span>
   </label>
 
-  <input type="date" class="date-input" [class.invalid]="isInvalid()" [value]="value" (change)="onChange($event)"
+  <input [type]="tipo" lang="es-CO" [attr.min]="minimo || null" class="date-input" [class.invalid]="isInvalid()" [value]="value" (change)="onChange($event)"
     (blur)="touched = true" />
 
   <div class="error-text" *ngIf="isInvalid()">
     {{ label }} es obligatorio
   </div>
-</div>
+</div>

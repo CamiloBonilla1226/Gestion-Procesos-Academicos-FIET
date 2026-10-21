@@ -834,8 +834,21 @@ class SolicitudAcademicaCUImplAdaptadorTest {
     }
 
     @Test
-    void cadaRespuestaFinalAvisaADarcaUnaSolaVezConElProcesoLaAccionYLaFecha() {
+    void laRespuestaFinalDeCancelacionDeAsignaturaNoEnviaCorreosInmediatosPorqueLaComunicacionSeProgramaAparte() {
         SolicitudAcademica solicitud = solicitud(tipo(TIPO_CA, "Cancelación de Asignatura"), APROBADA_POR_DECANO);
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud);
+        when(resolucionGateway.existePorSolicitud(SOLICITUD)).thenReturn(true);
+
+        casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.ENVIAR_RESPUESTA, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null, TOKEN);
+
+        assertEquals(APROBADA, solicitud.getEtapa().getCodigo());
+        verify(correo, never()).enviar(any(), any(), any(), any());
+        verify(notificador, never()).avisarDarca(any(), any(), any(), any());
+    }
+
+    @Test
+    void cadaRespuestaFinalAvisaADarcaUnaSolaVezConElProcesoLaAccionYLaFecha() {
+        SolicitudAcademica solicitud = solicitud(tipoMatricula(), APROBADA_POR_DECANO);
         when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud);
         when(resolucionGateway.existePorSolicitud(SOLICITUD)).thenReturn(true);
 
@@ -843,8 +856,8 @@ class SolicitudAcademicaCUImplAdaptadorTest {
 
         InOrder orden = inOrder(gateway, correo, notificador);
         orden.verify(gateway).actualizarEtapa(any(), any());
-        orden.verify(correo).enviar(any(), eq("Notificación de Cancelación de asignatura"), any(), any());
-        orden.verify(notificador).avisarDarca(solicitud, TipoProcesoAcademico.CANCELACION_ASIGNATURA, AccionEtapa.ENVIAR_RESPUESTA,
+        orden.verify(correo).enviar(any(), eq("Notificación de Cancelación de matrícula"), any(), any());
+        orden.verify(notificador).avisarDarca(solicitud, TipoProcesoAcademico.CANCELACION_MATRICULA, AccionEtapa.ENVIAR_RESPUESTA,
                 LocalDate.of(2026, 3, 10));
         verify(notificador, times(1)).avisarDarca(any(), any(), any(), any());
         verify(correo, times(1)).enviar(any(), any(), any(), any());
@@ -853,9 +866,8 @@ class SolicitudAcademicaCUImplAdaptadorTest {
 
     @Test
     void siFallaElArmadoDelCorreoADarcaElEstudianteRecibeElSuyoYLaEtapaQuedaGuardada() {
-        GeneradorPdfRespuestaIntPuerto generadorRoto = resumen -> {
-            throw new IllegalStateException("fuente dañada");
-        };
+        GeneradorPdfRespuestaIntPuerto generadorRoto = mock(GeneradorPdfRespuestaIntPuerto.class);
+        when(generadorRoto.generar(any())).thenThrow(new IllegalStateException("fuente dañada"));
         NotificadorRespuestaFinal real = new NotificadorRespuestaFinal(mock(SolicitudCancelacionAsignaturaGatewayIntPuerto.class),
                 mock(SolicitudExamenSupletorioGatewayIntPuerto.class), resolucionGateway, anexoGateway, usuarioGateway, generadorRoto,
                 new PreparacionCorreoImplAdaptador(), correo, "darca@unicauca.edu.co");

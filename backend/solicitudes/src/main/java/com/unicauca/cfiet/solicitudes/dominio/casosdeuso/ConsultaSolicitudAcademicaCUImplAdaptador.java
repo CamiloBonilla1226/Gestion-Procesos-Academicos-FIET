@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.DOCUMENTO_ADICIONAL;
+
 public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolicitudAcademicaCUIntPuerto {
     private static final String SOLICITUD_ACADEMICA = "Solicitud académica";
     private static final String ANEXO_ACADEMICO = "Anexo académico";
@@ -33,6 +35,8 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
     private static final Set<String> ETAPAS_RESPONDIDAS =
             Set.of(EtapaSolicitudAcademicaConstantes.APROBADA, EtapaSolicitudAcademicaConstantes.RECHAZADA);
     private static final List<String> ACCIONES_DECANO =List.of(AccionEtapa.APROBAR_DECANO.name(), AccionEtapa.RECHAZAR_DECANO.name());
+    private static final Set<AccionEtapa> FILAS_RETENIDAS_ESTUDIANTE = EnumSet.of(AccionEtapa.ENVIAR_RESPUESTA);
+    private static final String ETIQUETA_EN_TRAMITE = "En trámite";
 
     private final SolicitudAcademicaGatewayIntPuerto gateway;
     private final EtapaEtiquetaRolGatewayIntPuerto etiquetaGateway;
@@ -44,6 +48,7 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
     private final AnexoAcademicoCUIntPuerto anexoCU;
     private final MaquinaEtapas maquinaEtapas;
     private final ExcepcionesFormateadorIntPuerto formateadorExcepciones;
+    private final NotificacionResolucionGatewayIntPuerto notificacionGateway;
 
     public ConsultaSolicitudAcademicaCUImplAdaptador(SolicitudAcademicaGatewayIntPuerto gateway,
                                                      EtapaEtiquetaRolGatewayIntPuerto etiquetaGateway,
@@ -54,7 +59,8 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
                                                      IJwtServicio jwtServicio,
                                                      AnexoAcademicoCUIntPuerto anexoCU,
                                                      MaquinaEtapas maquinaEtapas,
-                                                     ExcepcionesFormateadorIntPuerto formateadorExcepciones) {
+                                                     ExcepcionesFormateadorIntPuerto formateadorExcepciones,
+                                                     NotificacionResolucionGatewayIntPuerto notificacionGateway) {
         this.gateway = gateway;
         this.etiquetaGateway = etiquetaGateway;
         this.anexoGateway = anexoGateway;
@@ -65,6 +71,7 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
         this.anexoCU = anexoCU;
         this.maquinaEtapas = maquinaEtapas;
         this.formateadorExcepciones = formateadorExcepciones;
+        this.notificacionGateway = notificacionGateway;
     }
 
     @Override
@@ -91,15 +98,16 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
         SolicitudAcademica solicitud = acceso.solicitud();
         String uuid = solicitud.getUuidSolicitudAcademica();
         String etapa = solicitud.getEtapa().getCodigo();
-        boolean tieneResolucion = resolucionGateway.existePorSolicitud(uuid);
+        boolean tieneResolucion = !acceso.retenida() && resolucionGateway.existePorSolicitud(uuid);
         boolean puedeDescargar = tieneResolucion && (acceso.rol() != RolEtiquetaEtapa.ESTUDIANTE || maquinaEtapas.esFinal(etapa));
         TipoProcesoAcademico proceso = TipoProcesoAcademico.porNombre(solicitud.getTipoSolicitudAcademica().getNombre());
+        List<AnexoAcademico> anexos = anexoGateway.getPorSolicitud(uuid);
         return DetalleSolicitudAcademica.builder()
                 .solicitudAcademica(solicitud)
                 .etiqueta(acceso.etiqueta())
-                .etapaCodigo(etapaVisible(etapa, acceso.rol()))
+                .etapaCodigo(acceso.retenida() ? EtapaSolicitudAcademicaConstantes.EN_REVISION_DECANO : etapaVisible(etapa, acceso.rol()))
                 .numeroDocumento(acceso.rol() == RolEtiquetaEtapa.ESTUDIANTE ? null : numeroDocumento(solicitud))
-                .anexos(anexoGateway.getPorSolicitud(uuid))
+                .anexos(acceso.retenida() ? anexos.stream().filter(anexo -> !esDocumentoAdicional(anexo)).toList() : anexos)
                 .tieneResolucion(tieneResolucion)
                 .puedeDescargarResolucion(puedeDescargar)
                 .accionesDisponibles(proceso == null ? List.of() : maquinaEtapas.accionesDisponibles(proceso, etapa, acceso.rol()))
@@ -121,6 +129,7 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
                 .forEach(fila -> fila.setObservaciones(null));
         List<HistorialSolicitudAcademica> visibles = historial.stream()
                 .filter(fila -> !FILAS_OCULTAS_ESTUDIANTE.contains(accionDe(fila.getAccion())))
+                .filter(fila -> !acceso.retenida() || !FILAS_RETENIDAS_ESTUDIANTE.contains(accionDe(fila.getAccion())))
                 .toList();
         visibles.forEach(fila -> fila.setEtapaCodigo(etapaVisible(fila.getEtapaCodigo(), RolEtiquetaEtapa.ESTUDIANTE)));
         return visibles;
@@ -169,7 +178,7 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
         AnexoAcademico anexo = tieneTexto(uuidAnexoAcademico) ? anexoGateway.getPorUuid(uuidAnexoAcademico) : null;
         String deLaSolicitud = anexo == null || anexo.getSolicitudAcademica() == null ? null
                 : anexo.getSolicitudAcademica().getUuidSolicitudAcademica();
-        if (!acceso.solicitud().getUuidSolicitudAcademica().equals(deLaSolicitud))
+        if (!acceso.solicitud().getUuidSolicitudAcademica().equals(deLaSolicitud) || (acceso.retenida() && esDocumentoAdicional(anexo)))
             formateadorExcepciones.lanzarEntidadNoExiste(String.format(MensajesError.ENTIDAD_NO_ENCONTRADA, ANEXO_ACADEMICO, uuidAnexoAcademico));
         return anexoCU.obtenerAnexo(uuidAnexoAcademico, acceso.actor());
     }
@@ -182,8 +191,21 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
         if (etiqueta == null)
             formateadorExcepciones.lanzarEntidadNoExiste(String.format(
                     MensajesError.ENTIDAD_NO_ENCONTRADA, SOLICITUD_ACADEMICA, uuidSolicitudAcademica));
+        boolean retenida = rol == RolEtiquetaEtapa.ESTUDIANTE && notificacionGateway.estaRetenida(solicitud.getUuidSolicitudAcademica());
         ActorSolicitud actor = ActorSolicitud.builder().uuidUsuario(usuario.getUuidUsuario()).rol(rol).build();
-        return new Acceso(solicitud, actor, rol, etiqueta);
+        return new Acceso(solicitud, actor, rol, retenida ? etiquetaEnTramite() : etiqueta, retenida);
+    }
+
+    private String etiquetaEnTramite() {
+        return etiquetaGateway.getPorRol(RolEtiquetaEtapa.ESTUDIANTE).stream()
+                .filter(fila -> fila.getEtapa() != null && EtapaSolicitudAcademicaConstantes.EN_REVISION_DECANO.equals(fila.getEtapa().getCodigo()))
+                .map(EtapaEtiquetaRol::getEtiqueta)
+                .findFirst()
+                .orElse(ETIQUETA_EN_TRAMITE);
+    }
+
+    private boolean esDocumentoAdicional(AnexoAcademico anexo) {
+        return anexo != null && anexo.getTipoAnexoAcademico() != null && DOCUMENTO_ADICIONAL.equals(anexo.getTipoAnexoAcademico().getNombre());
     }
 
     private RolEtiquetaEtapa rolEn(SolicitudAcademica solicitud, Usuario usuario) {
@@ -207,11 +229,15 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
                 .toList();
         Map<String, String> decisiones = rol == RolEtiquetaEtapa.ESTUDIANTE ? Map.of() : decisionesDecano(visibles);
         Map<String, List<ResultadoAsignaturaSolicitud>> resultados = rol == RolEtiquetaEtapa.FUNCIONARIO ? resultadosAsignaturas(visibles) : Map.of();
+        Set<String> retenidas = rol == RolEtiquetaEtapa.ESTUDIANTE
+                ? notificacionGateway.getRetenidas(visibles.stream().map(SolicitudAcademica::getUuidSolicitudAcademica).toList()) : Set.of();
+        String enTramite = retenidas.isEmpty() ? null : etiquetaEnTramite();
         return visibles.stream()
                 .map(solicitud -> ResumenSolicitudAcademica.builder()
                         .solicitudAcademica(solicitud)
-                        .etiqueta(etiquetaDe(solicitud, rol, etiquetas))
-                        .etapaCodigo(etapaVisible(solicitud.getEtapa().getCodigo(), rol))
+                        .etiqueta(retenidas.contains(solicitud.getUuidSolicitudAcademica()) ? enTramite : etiquetaDe(solicitud, rol, etiquetas))
+                        .etapaCodigo(retenidas.contains(solicitud.getUuidSolicitudAcademica()) ? EtapaSolicitudAcademicaConstantes.EN_REVISION_DECANO
+                                : etapaVisible(solicitud.getEtapa().getCodigo(), rol))
                         .numeroDocumento(rol == RolEtiquetaEtapa.ESTUDIANTE ? null : numeroDocumento(solicitud))
                         .decisionDecano(decisiones.get(solicitud.getUuidSolicitudAcademica()))
                         .resultadosAsignaturas(resultados.get(solicitud.getUuidSolicitudAcademica()))
@@ -307,6 +333,6 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
         return valor != null && !valor.isBlank();
     }
 
-    private record Acceso(SolicitudAcademica solicitud, ActorSolicitud actor, RolEtiquetaEtapa rol, String etiqueta) {
+    private record Acceso(SolicitudAcademica solicitud, ActorSolicitud actor, RolEtiquetaEtapa rol, String etiqueta, boolean retenida) {
     }
 }

@@ -62,6 +62,9 @@ class ConsultaSolicitudAcademicaCUImplAdaptadorTest {
     @Mock
     private AnexoAcademicoCUIntPuerto anexoCU;
 
+    @Mock
+    private NotificacionResolucionGatewayIntPuerto notificacionGateway;
+
     private ConsultaSolicitudAcademicaCUImplAdaptador casoDeUso;
 
     private final TipoSolicitudAcademica matricula = TipoSolicitudAcademica.builder()
@@ -113,7 +116,7 @@ class ConsultaSolicitudAcademicaCUImplAdaptadorTest {
     void setUp() {
         ExcepcionesFormateadorImplAdaptador formateador = new ExcepcionesFormateadorImplAdaptador();
         casoDeUso = new ConsultaSolicitudAcademicaCUImplAdaptador(gateway, etiquetaGateway, anexoGateway, historialGateway,
-                resolucionGateway, sesionGateway, jwtServicio, anexoCU, new MaquinaEtapas(formateador), formateador);
+                resolucionGateway, sesionGateway, jwtServicio, anexoCU, new MaquinaEtapas(formateador), formateador, notificacionGateway);
         lenient().when(etiquetaGateway.getPorRol(RolEtiquetaEtapa.ESTUDIANTE)).thenReturn(etiquetas(RolEtiquetaEtapa.ESTUDIANTE));
         lenient().when(etiquetaGateway.getPorRol(RolEtiquetaEtapa.FUNCIONARIO)).thenReturn(etiquetas(RolEtiquetaEtapa.FUNCIONARIO));
         lenient().when(etiquetaGateway.getPorRol(RolEtiquetaEtapa.DECANO)).thenReturn(etiquetas(RolEtiquetaEtapa.DECANO, RADICADA));
@@ -695,5 +698,115 @@ class ConsultaSolicitudAcademicaCUImplAdaptadorTest {
 
         assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso.descargarAnexo(SOLICITUD, "a1", token(OTRO_ESTUDIANTE)));
         verifyNoInteractions(anexoGateway, anexoCU);
+    }
+
+    private AnexoAcademico anexoDeTipo(String uuid, String tipo) {
+        return AnexoAcademico.builder()
+                .uuidAnexoAcademico(uuid)
+                .solicitudAcademica(SolicitudAcademica.builder().uuidSolicitudAcademica(SOLICITUD).build())
+                .tipoAnexoAcademico(tipo == null ? null : TipoAnexoAcademico.builder().nombre(tipo).build())
+                .build();
+    }
+
+    @Test
+    void enLaBandejaLaRespuestaRetenidaFiguraEnTramiteParaElEstudianteYLasDemasNoCambian() {
+        SolicitudAcademica retenida = deTipo("s1", APROBADA, "Cancelación de Asignatura");
+        SolicitudAcademica liberada = deTipo("s2", RECHAZADA, "Cancelación de Asignatura");
+        SolicitudAcademica matricula = deTipo("s3", APROBADA, "Cancelación de Matrícula");
+        when(gateway.getPorEstudiante(ESTUDIANTE)).thenReturn(List.of(retenida, liberada, matricula));
+        when(notificacionGateway.getRetenidas(List.of("s1", "s2", "s3"))).thenReturn(Set.of("s1"));
+
+        List<ResumenSolicitudAcademica> bandeja = casoDeUso.getBandejaEstudiante(token(ESTUDIANTE));
+
+        assertEquals(List.of("ESTUDIANTE:EN_REVISION_DECANO", "ESTUDIANTE:RECHAZADA", "ESTUDIANTE:APROBADA"),
+                bandeja.stream().map(ResumenSolicitudAcademica::getEtiqueta).toList());
+        assertEquals(List.of(EN_REVISION_DECANO, RECHAZADA, APROBADA), bandeja.stream().map(ResumenSolicitudAcademica::getEtapaCodigo).toList());
+    }
+
+    @Test
+    void lasBandejasDelFuncionarioYDelDecanoNoConsultanLaRetencion() {
+        SolicitudAcademica respondida = deTipo("s1", APROBADA, "Cancelación de Asignatura");
+        when(gateway.getPorFuncionarioAcademico(FUNCIONARIO)).thenReturn(List.of(respondida));
+        when(gateway.getTodas()).thenReturn(List.of(respondida));
+
+        assertEquals("FUNCIONARIO:APROBADA", casoDeUso.getBandejaFuncionario(token(FUNCIONARIO)).get(0).getEtiqueta());
+        assertEquals("DECANO:APROBADA", casoDeUso.getBandejaDecano(token(DECANO)).get(0).getEtiqueta());
+        verifyNoInteractions(notificacionGateway);
+    }
+
+    @Test
+    void elDetalleRetenidoNoMuestraResolucionNiDocumentoAdicionalYFiguraEnTramite() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(deTipo(SOLICITUD, APROBADA, "Cancelación de Asignatura"));
+        when(notificacionGateway.estaRetenida(SOLICITUD)).thenReturn(true);
+        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(anexoDeTipo("a1", null),
+                anexoDeTipo("a2", "Documento adicional de la respuesta")));
+
+        DetalleSolicitudAcademica detalle = casoDeUso.getDetalle(SOLICITUD, token(ESTUDIANTE));
+
+        assertEquals("ESTUDIANTE:EN_REVISION_DECANO", detalle.getEtiqueta());
+        assertEquals(EN_REVISION_DECANO, detalle.getEtapaCodigo());
+        assertFalse(detalle.isTieneResolucion());
+        assertFalse(detalle.isPuedeDescargarResolucion());
+        assertTrue(detalle.getAccionesDisponibles().isEmpty());
+        assertEquals(List.of("a1"), detalle.getAnexos().stream().map(AnexoAcademico::getUuidAnexoAcademico).toList());
+        verify(resolucionGateway, never()).existePorSolicitud(any());
+    }
+
+    @Test
+    void liberadaLaRespuestaElEstudianteVeElDetalleFinalComoAntes() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(deTipo(SOLICITUD, APROBADA, "Cancelación de Asignatura"));
+        when(notificacionGateway.estaRetenida(SOLICITUD)).thenReturn(false);
+        when(resolucionGateway.existePorSolicitud(SOLICITUD)).thenReturn(true);
+        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(anexoDeTipo("a2", "Documento adicional de la respuesta")));
+
+        DetalleSolicitudAcademica detalle = casoDeUso.getDetalle(SOLICITUD, token(ESTUDIANTE));
+
+        assertEquals("ESTUDIANTE:APROBADA", detalle.getEtiqueta());
+        assertEquals(APROBADA, detalle.getEtapaCodigo());
+        assertTrue(detalle.isPuedeDescargarResolucion());
+        assertEquals(1, detalle.getAnexos().size());
+    }
+
+    @Test
+    void elFuncionarioYElDecanoVenElDetalleCompletoAunqueLaRespuestaEsteRetenida() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(deTipo(SOLICITUD, APROBADA, "Cancelación de Asignatura"));
+        when(resolucionGateway.existePorSolicitud(SOLICITUD)).thenReturn(true);
+
+        DetalleSolicitudAcademica funcionario = casoDeUso.getDetalle(SOLICITUD, token(FUNCIONARIO));
+        DetalleSolicitudAcademica decano = casoDeUso.getDetalle(SOLICITUD, token(DECANO));
+
+        assertEquals(APROBADA, funcionario.getEtapaCodigo());
+        assertTrue(funcionario.isPuedeDescargarResolucion());
+        assertEquals(APROBADA, decano.getEtapaCodigo());
+        assertTrue(decano.isPuedeDescargarResolucion());
+        verifyNoInteractions(notificacionGateway);
+    }
+
+    @Test
+    void elHistorialRetenidoNoTraeLaRespuestaNiLaDecisionYLiberadoSi() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(deTipo(SOLICITUD, APROBADA, "Cancelación de Asignatura"));
+        when(historialGateway.getPorSolicitud(SOLICITUD)).thenAnswer(invocacion -> List.of(fila("RADICAR"), fila("REMITIR_DECANO"),
+                fila("APROBAR_DECANO"), HistorialSolicitudAcademica.builder().accion("ENVIAR_RESPUESTA").observaciones("Respuesta").build()));
+        when(notificacionGateway.estaRetenida(SOLICITUD)).thenReturn(true, false);
+
+        List<HistorialSolicitudAcademica> retenido = casoDeUso.getHistorial(SOLICITUD, token(ESTUDIANTE));
+        List<HistorialSolicitudAcademica> liberado = casoDeUso.getHistorial(SOLICITUD, token(ESTUDIANTE));
+
+        assertEquals(List.of("RADICAR", "REMITIR_DECANO"), retenido.stream().map(HistorialSolicitudAcademica::getAccion).toList());
+        assertEquals(List.of("RADICAR", "REMITIR_DECANO", "ENVIAR_RESPUESTA"), liberado.stream().map(HistorialSolicitudAcademica::getAccion).toList());
+        assertEquals("Respuesta", liberado.get(2).getObservaciones());
+    }
+
+    @Test
+    void elDocumentoAdicionalRetenidoNoSeDescargaYLosDemasAnexosSi() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(deTipo(SOLICITUD, APROBADA, "Cancelación de Asignatura"));
+        when(notificacionGateway.estaRetenida(SOLICITUD)).thenReturn(true);
+        when(anexoGateway.getPorUuid("a1")).thenReturn(anexoDeTipo("a1", null));
+        when(anexoGateway.getPorUuid("a2")).thenReturn(anexoDeTipo("a2", "Documento adicional de la respuesta"));
+        when(anexoCU.obtenerAnexo(eq("a1"), any())).thenReturn(ArchivoAdjunto.builder().nombreOriginal("soporte.pdf").build());
+
+        assertEquals("soporte.pdf", casoDeUso.descargarAnexo(SOLICITUD, "a1", token(ESTUDIANTE)).getNombreOriginal());
+        assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso.descargarAnexo(SOLICITUD, "a2", token(ESTUDIANTE)));
+        verify(anexoCU, never()).obtenerAnexo(eq("a2"), any());
     }
 }

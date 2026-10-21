@@ -2,6 +2,7 @@ package com.unicauca.cfiet.solicitudes.infraestructura.output.correo;
 
 import com.unicauca.cfiet.solicitudes.aplicacion.output.AlmacenamientoAnexosIntPuerto;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.AdjuntoCorreo;
+import com.unicauca.cfiet.solicitudes.dominio.modelos.CorreoPreparado;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
@@ -42,19 +43,35 @@ public class ServicioCorreo {
             return;
         }
         try {
-            List<AdjuntoCorreo> archivos = adjuntos == null ? List.of() : adjuntos;
-            MimeMessage mensaje = enviador.createMimeMessage();
-            MimeMessageHelper ayudante = new MimeMessageHelper(mensaje, true, "UTF-8");
-            ayudante.setFrom(remitente, NOMBRE_REMITENTE);
-            ayudante.setTo(destinatario);
-            ayudante.setSubject(asunto);
-            ayudante.setText(texto, html(texto));
-            for (AdjuntoCorreo adjunto : archivos)
-                ayudante.addAttachment(adjunto.getNombre(), new ByteArrayResource(contenidoDe(adjunto)), adjunto.getTipoContenido());
-            enviador.send(mensaje);
+            enviador.send(mensaje(destinatario, asunto, texto, html(texto), adjuntos));
         } catch (MessagingException | UnsupportedEncodingException | RuntimeException error) {
             log.error("No se pudo enviar el correo \"{}\" a {}: {}", asunto, destinatario, error.getMessage());
         }
+    }
+
+    public void enviarAhora(CorreoPreparado correo) {
+        if (correo.getDestinatario() == null || correo.getDestinatario().isBlank())
+            throw new IllegalStateException("el destinatario no tiene correo registrado");
+        String html = correo.getHtml() == null ? html(correo.getTexto()) : INICIO_HTML + correo.getHtml() + FIN_HTML;
+        try {
+            enviador.send(mensaje(correo.getDestinatario(), correo.getAsunto(), correo.getTexto(), html, correo.getAdjuntos()));
+        } catch (MessagingException | UnsupportedEncodingException error) {
+            throw new IllegalStateException(error.getMessage(), error);
+        }
+    }
+
+    private MimeMessage mensaje(String destinatario, String asunto, String texto, String html, List<AdjuntoCorreo> adjuntos)
+            throws MessagingException, UnsupportedEncodingException {
+        List<AdjuntoCorreo> archivos = adjuntos == null ? List.of() : adjuntos;
+        MimeMessage mensaje = enviador.createMimeMessage();
+        MimeMessageHelper ayudante = new MimeMessageHelper(mensaje, true, "UTF-8");
+        ayudante.setFrom(remitente, NOMBRE_REMITENTE);
+        ayudante.setTo(destinatario);
+        ayudante.setSubject(asunto);
+        ayudante.setText(texto, html);
+        for (AdjuntoCorreo adjunto : archivos)
+            ayudante.addAttachment(adjunto.getNombre(), new ByteArrayResource(contenidoDe(adjunto)), adjunto.getTipoContenido());
+        return mensaje;
     }
 
     static String html(String texto) {
