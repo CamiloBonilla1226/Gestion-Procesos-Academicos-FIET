@@ -7,6 +7,9 @@ export interface NotificacionResolucionDTORespuesta {
   sufijoResolucion: string;
   decision: string;
   mensajeInicial: string | null;
+  textoComunicacion: string | null;
+  textoDarca: string | null;
+  textoDarcaFirma: string | null;
   fechaEnvioEstudiante: string | null;
   fechaEnvioDarca: string | null;
   intentos: number;

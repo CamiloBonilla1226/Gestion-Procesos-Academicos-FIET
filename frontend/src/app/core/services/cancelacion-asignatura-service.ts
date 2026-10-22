@@ -84,9 +84,10 @@ export class CancelacionAsignaturaService {
     return this.http.put<NotificacionResolucionDTORespuesta>(`${this.url}/${uuidSolicitud}/funcionario/notificacion`, peticion);
   }
 
-  registrarFirma(uuidSolicitud: string, archivo: File): Observable<NotificacionResolucionDTORespuesta> {
+  registrarFirma(uuidSolicitud: string, archivo: File, textoDarca: string | null = null): Observable<NotificacionResolucionDTORespuesta> {
     const formData = new FormData();
     formData.append('archivo', archivo, archivo.name);
+    if (textoDarca !== null) formData.append('textoDarca', textoDarca);
     return this.http.post<NotificacionResolucionDTORespuesta>(`${this.url}/${uuidSolicitud}/funcionario/notificacion/firma`, formData);
   }
 

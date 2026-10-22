@@ -6,5 +6,7 @@ export interface RespuestaCancelacionAsignaturaDTOPeticion {
   ajustes?: AjusteAsignaturaDTOPeticion[] | null;
   enviarMensaje?: boolean;
   mensaje?: string | null;
+  textoComunicacion?: string | null;
+  textoDarca?: string | null;
   programacion?: ProgramacionResolucionDTOPeticion;
 }

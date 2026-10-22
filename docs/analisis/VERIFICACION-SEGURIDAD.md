@@ -1,6 +1,6 @@
 # Verificación de seguridad por rol (T12.20)
 
-Análisis estático de solo lectura. No se compiló, no se ejecutó nada y no se modificó ningún archivo fuera de `docs/analisis/`. Todo lo marcado NO VERIFICADO requeriría ejecutar el backend.
+Análisis estático de solo lectura. No se compiló, no se ejecutó nada y no se modificó ningún archivo fuera de `docs/analisis/`. Las secciones 1 a 7 describen el estado del 2026-10-14 (128 endpoints, 78 reglas); las secciones 8.1 a 8.6, los cambios de T12.21 a T12.23; la 8.7, lo agregado después (revisión del 2026-10-21, T12.37). Todo lo marcado NO VERIFICADO requeriría ejecutar el backend.
 
 Rutas relativas a `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes` (B). Base de la API: `/api/unicauca/fiet/consejo` (`application.properties:4`). Las tablas muestran las rutas sin esa base.
 
@@ -486,3 +486,16 @@ Pantallas: `funcionario/solicitudes` (botón lápiz) solo edita solicitudes de s
 Fuera del alcance, no corregido: `SolicitudCUImplAdaptador.actualizarSolicitud` sigue haciendo `solicitudOriginal.getObjFuncionario().getUuidUsuario()` sin comprobar nulo. Si una solicitud no tiene funcionario y el Secretario General o el Decano envían `uuidFuncionario`, la respuesta es un 500. El Funcionario no llega ahí porque antes recibe "no existe".
 
 Pruebas: `ConfiguracionSeguridadRolesTest` 112, `AccesoRecursoConsejoCUImplAdaptadorTest` 36 y `SolicitudCUImplAdaptadorTest` 3 (nueva). Total 151, 0 fallos.
+
+### 8.7 Rutas agregadas después de T12.23 (revisión del 2026-10-21, sin ejecutar)
+
+Se leyeron `ConfiguracionSeguridad.securityFilterChain` y los controladores; no se corrieron pruebas.
+
+| Endpoint | Regla por URL | `@PreAuthorize` | Control de dueño |
+|---|---|---|---|
+| GET `notificaciones-docente`, GET `notificaciones-docente/{uuid}`, PATCH `notificaciones-docente/{uuid}/leida`, GET `notificaciones-docente/{uuid}/anexos/{uuidAnexo}` (T12.28) | Docente; el resto del prefijo cierra con `denyAll` | Docente | `NotificacionDocenteCUImplAdaptador`: una notificación ajena responde como inexistente (código 3) |
+| GET `examenes-supletorios/docentes` (T12.28) | Funcionario Académico | Funcionario Académico | no aplica (buscador de usuarios activos con rol Docente) |
+| GET y PUT `cancelaciones-asignatura/{uuid}/funcionario/notificacion`, GET `.../notificacion/plantilla` (T12.32) | Funcionario Académico (reglas propias antes del `denyAll` del prefijo) | Funcionario Académico | `NotificacionResolucionCUImplAdaptador.solicitudDe`: solo el Funcionario asignado al tipo y solo en Cancelación de Asignatura; si no, código 3 |
+| POST `.../notificacion/firma` y `.../notificacion/reintentar` (T12.32) | Funcionario Académico (regla `cancelaciones-asignatura/{uuid}/funcionario/**`) | Funcionario Académico | igual que la fila anterior |
+
+Según `change.md`, `ConfiguracionSeguridadRolesTest` se actualizó en T12.28 y T12.32 para estas rutas y `matriz-permisos.ps1` tiene 76 filas sin columna Docente (las cuatro rutas del Docente quedan denegadas para los demás roles). Las credenciales del correo no están en el repositorio: se leen de `MAIL_USER` y `MAIL_PASSWORD` desde el entorno o `backend/.env` ([correo-electronico.md](correo-electronico.md)).

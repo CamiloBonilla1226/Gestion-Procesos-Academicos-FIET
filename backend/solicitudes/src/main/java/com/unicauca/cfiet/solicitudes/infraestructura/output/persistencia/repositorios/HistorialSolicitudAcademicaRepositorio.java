@@ -2,6 +2,7 @@ package com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.repos
 
 import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.entidades.HistorialSolicitudAcademicaEntidad;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -17,4 +18,8 @@ public interface HistorialSolicitudAcademicaRepositorio extends JpaRepository<Hi
     @Query("select h.solicitudAcademica.uuidSolicitudAcademica, h.accion from HistorialSolicitudAcademicaEntidad h " +
             "where h.solicitudAcademica.uuidSolicitudAcademica in :uuids and h.accion in :acciones order by h.fecha")
     List<Object[]> findAccionesPorSolicitudes(@Param("uuids") Collection<String> uuids, @Param("acciones") Collection<String> acciones);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from HistorialSolicitudAcademicaEntidad x where x.solicitudAcademica.uuidSolicitudAcademica in :uuids")
+    int eliminarPorSolicitudes(@Param("uuids") Collection<String> uuids);
 }

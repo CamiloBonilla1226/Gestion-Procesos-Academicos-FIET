@@ -4,22 +4,22 @@ Análisis estático de solo lectura. Etiquetas: [BASE] = código ya presente en 
 
 ## 1. Resumen y verificación del total
 
-**Total: 128 endpoints** en 15 controladores: **62 [BASE]** (7 controladores) y **66 [EXTENSIÓN]** (8 controladores). Los 66 coinciden con el total declarado en `docs/api/contrato-api-procesos-academicos.md` (línea 3: "describe los 66 endpoints").
+**Total: 140 endpoints** en 16 controladores: **62 [BASE]** (7 controladores) y **78 [EXTENSIÓN]** (9 controladores). Los 78 coinciden con el total declarado en `docs/api/contrato-api-procesos-academicos.md` y con las 78 filas de `backend/pruebas/matriz-permisos.ps1`. Cifras actualizadas el 2026-10-21 (T12.40): T12.38 agregó `GET solicitudes-academicas/funcionario/respuestas/conteo` y `DELETE solicitudes-academicas/funcionario/respuestas` (borrado de respuestas por rango, P63), filas 100a y 100b de la sección 3.12. Corte anterior (T12.37): 138; el análisis original del 2026-10-14 tenía 128 (62 y 66). Los 10 endpoints nuevos son los cuatro de `notificaciones-docente` y `GET examenes-supletorios/docentes` (T12.28), y los cinco de `cancelaciones-asignatura/{uuid}/funcionario/notificacion` (T12.32). Están al final de las secciones 3.14 y 3.15 y en la sección 3.16.
 
 Verificación con grep sobre `backend/solicitudes/src/main/java` (ninguna anotación de mapeo está comentada: 0 coincidencias en líneas de comentario):
 
 | Anotación | Ocurrencias | Dónde |
 |---|---|---|
-| `@GetMapping` | 75 | solo en los 15 `*RestController` |
-| `@PostMapping` | 41 | idem |
-| `@PutMapping` | 9 | idem |
-| `@PatchMapping` | 3 | idem |
+| `@GetMapping` | 81 | solo en los 16 `*RestController` |
+| `@PostMapping` | 43 | idem |
+| `@PutMapping` | 10 | idem |
+| `@PatchMapping` | 4 | idem |
 | `@DeleteMapping` | 0 | no existe ningún DELETE en la API |
-| **Suma de métodos HTTP** | **128** | 75 + 41 + 9 + 0 + 3 |
-| `@RequestMapping` | 15 | una por controlador, a nivel de clase (`${url.application}<recurso>`); ninguna a nivel de método, por eso no suman endpoints |
-| `@PreAuthorize` | 124 | 128 endpoints menos 4 sin anotación: `POST sesiones`, `GET tipos/solicitudes/perfil`, `GET usuarios/{uuidUsuario}`, `PATCH usuarios/{uuidUsuario}` |
+| **Suma de métodos HTTP** | **138** | 81 + 43 + 10 + 0 + 4 |
+| `@RequestMapping` | 16 | una por controlador, a nivel de clase (`${url.application}<recurso>`); ninguna a nivel de método, por eso no suman endpoints |
+| `@PreAuthorize` | 136 | ocurrencias de la anotación por grep al 2026-10-21 (124 en el corte original, cuando 4 endpoints no la tenían: `POST sesiones`, `GET tipos/solicitudes/perfil`, `GET usuarios/{uuidUsuario}`, `PATCH usuarios/{uuidUsuario}`). No se volvió a cruzar endpoint por endpoint cuáles quedan sin anotación |
 
-Comandos usados: `grep -rEn "@(Get|Post|Put|Delete|Patch)Mapping" . | wc -l` (128), el mismo conteo agrupado por archivo (coincide con la tabla de abajo) y `grep -rn "@RequestMapping" . | wc -l` (15). Además se extrajeron las 128 firmas con un parser propio (script temporal fuera del repositorio) y se cruzó cada una con las reglas de `ConfiguracionSeguridad`; el parser también arrojó 128.
+Comandos usados: `grep -rEn "@(Get|Post|Put|Delete|Patch)Mapping" . | wc -l` (138 hoy; 128 en el corte original), el mismo conteo agrupado por archivo (coincide con la tabla de abajo) y `grep -rn "@RequestMapping" . | wc -l` (15). Además se extrajeron las 128 firmas con un parser propio (script temporal fuera del repositorio) y se cruzó cada una con las reglas de `ConfiguracionSeguridad`; el parser también arrojó 128 en el corte original (no se volvió a correr).
 
 | Controlador | Origen | GET | POST | PUT | PATCH | Total |
 |---|---|---|---|---|---|---|
@@ -34,18 +34,19 @@ Comandos usados: `grep -rEn "@(Get|Post|Put|Delete|Patch)Mapping" . | wc -l` (12
 | `EstudianteRestController` (Estudiantes) | [EXTENSIÓN] | 4 | 3 | 1 | 1 | 9 |
 | `FuncionarioAcademicoRestController` (Funcionarios académicos) | [EXTENSIÓN] | 3 | 2 | 1 | 0 | 6 |
 | `CatalogoAcademicoRestController` (Catálogos académicos) | [EXTENSIÓN] | 6 | 0 | 1 | 0 | 7 |
-| `SolicitudAcademicaRestController` (Solicitudes académicas (motor común)) | [EXTENSIÓN] | 7 | 2 | 0 | 0 | 9 |
+| `SolicitudAcademicaRestController` (Solicitudes académicas (motor común)) | [EXTENSIÓN] | 8 | 2 | 0 | 0 | 11 (incluye 1 DELETE) |
 | `CancelacionMatriculaRestController` (Cancelación de Matrícula) | [EXTENSIÓN] | 2 | 6 | 0 | 0 | 8 |
-| `CancelacionAsignaturaRestController` (Cancelación de Asignatura) | [EXTENSIÓN] | 2 | 6 | 0 | 0 | 8 |
-| `ExamenSupletorioRestController` (Examen Supletorio) | [EXTENSIÓN] | 2 | 10 | 0 | 0 | 12 |
-| **Total** | | **75** | **41** | **9** | **3** | **128** |
+| `CancelacionAsignaturaRestController` (Cancelación de Asignatura) | [EXTENSIÓN] | 4 | 8 | 1 | 0 | 13 |
+| `ExamenSupletorioRestController` (Examen Supletorio) | [EXTENSIÓN] | 3 | 10 | 0 | 0 | 13 |
+| `NotificacionDocenteRestController` (Notificaciones del docente) | [EXTENSIÓN] | 3 | 0 | 0 | 1 | 4 |
+| **Total** | | **82** | **43** | **10** | **4** | **140** (incluye 1 DELETE) |
 
-BASE: 62 endpoints; EXTENSIÓN: 66 endpoints.
+BASE: 62 endpoints; EXTENSIÓN: 78 endpoints.
 
 ## 2. Convenciones y cómo leer las tablas
 
 - **Ruta completa**: `/api/unicauca/fiet/consejo/` es el valor de `url.application` en `backend/solicitudes/src/main/resources/application.properties` (línea 4); no hay `server.servlet.context-path`. Cada controlador lo antepone con `@RequestMapping("${url.application}<recurso>")`. Las rutas con uuid de la extensión llevan la expresión regular `[0-9a-fA-F\-]{36}` en el código; aquí se muestran sin ella.
-- **Rol efectivo**: resultado de evaluar la ruta contra los 78 `requestMatchers` de `ConfiguracionSeguridad.securityFilterChain` (infraestructura/configuracion/seguridad/configuracion), en orden y gana el primero que coincide; si ninguno coincide cae en `anyRequest().authenticated()`. Siglas: SG = Secretario General, DEC = Decano, FUN = Funcionario (rol de comité de Julián), FA = Funcionario Académico, EST = Estudiante, AUTH = cualquier usuario autenticado, PÚBLICO = sin token, DENEGADO = `denyAll()`. La evaluación la hizo un script que replica el orden y los patrones (`{var}`, `**`); no se comprobó con peticiones reales (NO VERIFICADO en ejecución).
+- **Rol efectivo**: resultado de evaluar la ruta contra los 78 `requestMatchers` del corte original (hoy `grep -c requestMatchers` da 103 líneas, por las reglas que agregaron T12.21 a T12.32) de `ConfiguracionSeguridad.securityFilterChain` (infraestructura/configuracion/seguridad/configuracion), en orden y gana el primero que coincide; si ninguno coincide cae en `anyRequest().authenticated()`. Siglas: SG = Secretario General, DEC = Decano, FUN = Funcionario (rol de comité de Julián), FA = Funcionario Académico, EST = Estudiante, AUTH = cualquier usuario autenticado, PÚBLICO = sin token, DENEGADO = `denyAll()`. La evaluación la hizo un script que replica el orden y los patrones (`{var}`, `**`); no se comprobó con peticiones reales (NO VERIFICADO en ejecución).
 - **@PreAuthorize**: roles de la anotación del método, según las constantes de `ApplicationConstantes`. No protege nada: no existe `@EnableMethodSecurity` ni `@EnableGlobalMethodSecurity` en el código (grep sin resultados), lo que coincide con `backend/CLAUDE.md` (sección Seguridad). Se muestra para detectar divergencias con la regla efectiva (sección 5). "—" = el método no tiene anotación.
 - **DTO petición**: tipo del `@RequestBody`/`@RequestPart` o parámetros `@RequestParam` (nombre entre comillas invertidas; "(opc.)" = `required = false`). Los path variables no se listan. `multipart con partes de archivo dinámicas` = `MultipartHttpServletRequest` (cada parte de archivo lleva como nombre el uuid del tipo de anexo; ver el mapper del módulo).
 - **DTO respuesta**: tipo devuelto; `X[]` = lista; `PaginacionRespuestaDTO<X>` = `{contenido, total}` (`dominio/helper/PaginacionRespuestaDTO`). Se dedujo del tipo del `ResponseEntity` y, cuando el controlador usa `ResponseEntity<?>`, del tipo de retorno del método `mapearXARespuesta` del `Mapper*InfraestructuraDominio`.
@@ -58,6 +59,8 @@ BASE: 62 endpoints; EXTENSIÓN: 66 endpoints.
 Conteo de `@Transactional` por endpoint: BASE sin transacción: 46; BASE transacción de escritura: 16; EXTENSIÓN sin transacción: 17; EXTENSIÓN readOnly: 13; EXTENSIÓN transacción de escritura: 36.
 
 ## 3. Catálogo por módulo
+
+En las secciones 3.1 a 3.7 [BASE], la columna "Rol efectivo" es la del corte del 2026-10-14; desde T12.21 los endpoints de Julián tienen reglas por URL propias y control de dueño (sección 5 y `VERIFICACION-SEGURIDAD.md`).
 
 ### 3.1 Sesión [BASE]
 
@@ -253,7 +256,7 @@ Conteo de `@Transactional` por endpoint: BASE sin transacción: 46; BASE transac
 
 - Controlador: `SolicitudAcademicaRestController` (`backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorSolicitudesAcademicas/controlador/SolicitudAcademicaRestController.java`), base `${url.application}solicitudes-academicas`, 9 endpoints.
 - Inyecta: `ConsultaSolicitudAcademicaCUIntPuerto`, `AnexoAcademicoCUIntPuerto`, `ResolucionAcademicaCUIntPuerto`, `MapperSolicitudAcademicaInfraestructuraDominio`.
-- Nota: Motor común: bandejas por rol, detalle, historial, anexos y escaneo de la Resolución. El rol del actor nunca llega del cliente: `ConsultaSolicitudAcademicaCUIntPuerto.resolverActor` lo deduce del token.
+- Nota: Motor común: bandejas por rol, detalle, historial, anexos y escaneo de la Resolución. El rol del actor nunca llega del cliente: `ConsultaSolicitudAcademicaCUIntPuerto.resolverActor` lo deduce del token. Desde T12.38 también el borrado de respuestas por rango (filas 100a y 100b, `EliminacionRespuestasCUImplAdaptador`, P63): solo las solicitudes APROBADA o RECHAZADA de los procesos del Funcionario cuya última fila del historial cae en el rango (días completos, hora de Colombia), nunca con la comunicación PROGRAMADA, EN_PROCESO o FALLIDA; fechas obligatorias, inicial <= final y ninguna futura (código 4; formato, código 6). El `DELETE` recalcula la lista, borra la solicitud con todo lo que depende de ella y sus archivos tras el commit, y escribe en `logs`; no toca catálogo, estudiantes ni matriculadas.
 
 | # | Mét. | Ruta completa | Rol efectivo | @PreAuthorize | Método del controlador | DTO petición | DTO respuesta | Caso de uso | Tablas | Códigos de error |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -265,13 +268,15 @@ Conteo de `@Transactional` por endpoint: BASE sin transacción: 46; BASE transac
 | 97 | POST | `/api/unicauca/fiet/consejo/solicitudes-academicas/{uuidSolicitud}/anexos` | EST, FA | EST, FA | `adjuntarAnexo` | archivo `archivo`; `tipoAnexo` (opc.) | AnexoAcademicoDTORespuesta | ConsultaSolicitudAcademicaCU.resolverActor<br>AnexoAcademicoCU.adjuntarAnexo | E: ANEXO_ACADEMICO, logs · L×4 | 1, 3, 4, 6 · 500-BD/401/403 |
 | 98 | GET | `/api/unicauca/fiet/consejo/solicitudes-academicas/{uuidSolicitud}/anexos/{uuidAnexo}` | EST, FA, DEC | EST, FA, DEC | `descargarAnexo` | — | archivo (descarga binaria) | ConsultaSolicitudAcademicaCU.descargarAnexo | ninguna (lee `uploads/` en el controlador) | 1, 3, 4 · 401/403 |
 | 99 | POST | `/api/unicauca/fiet/consejo/solicitudes-academicas/{uuidSolicitud}/resolucion` | FA | FA | `adjuntarResolucion` | archivo `archivo` | ResolucionAcademicaDTORespuesta | ConsultaSolicitudAcademicaCU.resolverActor<br>ResolucionAcademicaCU.adjuntarResolucion | E: RESOLUCION_ACADEMICA, logs · L×4 | 1, 3, 4, 6 · 500-BD/401/403 |
+| 100a | GET | `/api/unicauca/fiet/consejo/solicitudes-academicas/funcionario/respuestas/conteo` | FA | FA | `contarRespuestas` | `desde`, `hasta` (`AAAA-MM-DD`) | EliminacionRespuestasDTORespuesta | EliminacionRespuestasCU.contarRespuestas | solo lectura | 4, 6 · 401/403 |
+| 100b | DELETE | `/api/unicauca/fiet/consejo/solicitudes-academicas/funcionario/respuestas` | FA | FA | `eliminarRespuestas` | `desde`, `hasta` (`AAAA-MM-DD`) | cantidad borrada | EliminacionRespuestasCU.eliminarRespuestas | todas las de la solicitud, `logs` | 4, 6 · 401/403 |
 | 100 | GET | `/api/unicauca/fiet/consejo/solicitudes-academicas/{uuidSolicitud}/resolucion` | EST, FA, DEC | EST, FA, DEC | `descargarResolucion` | — | archivo (descarga binaria) | ConsultaSolicitudAcademicaCU.resolverActor<br>ResolucionAcademicaCU.obtenerResolucion | solo lectura · L×4 | 1, 3, 4 · 401/403 |
 
 ### 3.13 Cancelación de Matrícula [EXTENSIÓN]
 
 - Controlador: `CancelacionMatriculaRestController` (`backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorCancelacionesMatricula/controlador/CancelacionMatriculaRestController.java`), base `${url.application}cancelaciones-matricula`, 8 endpoints.
 - Inyecta: `CancelacionMatriculaCUIntPuerto`, `ConsultaCancelacionMatriculaCUIntPuerto`, `TramiteCancelacionMatriculaCUIntPuerto`, `MapperCancelacionMatriculaInfraestructuraDominio`.
-- Nota: Radicación y trámite de Cancelación de Matrícula. `{uuidSolicitud}/funcionario/**` solo FA y `{uuidSolicitud}/decano/**` solo DEC. `ObservacionDTOPeticion` vive en el paquete de este módulo y lo reutilizan los controladores de Cancelación de Asignatura y de Examen Supletorio.
+- Nota: Radicación y trámite de Cancelación de Matrícula. `{uuidSolicitud}/funcionario/**` solo FA y `{uuidSolicitud}/decano/**` solo DEC. Cambios posteriores al corte (las columnas Tablas y Códigos de error no se recalcularon): desde T12.28 `decano/aprobar` solo recibe `observacion` y el Decano ya no registra situaciones (P51), y en `remitir` y `responder` faltas, nota y situaciones son opcionales (P50); desde T12.31 `rechazar` no pide la Resolución (P56) y la radicación pide un solo PDF de paz y salvos (P55); desde T12.34 las situaciones se validan contra listas cerradas, con código 6 (P60). `rechazar` y `responder` disparan el correo de la respuesta final ([correo-electronico.md](correo-electronico.md)). `ObservacionDTOPeticion` vive en el paquete de este módulo y lo reutilizan los controladores de Cancelación de Asignatura y de Examen Supletorio.
 
 | # | Mét. | Ruta completa | Rol efectivo | @PreAuthorize | Método del controlador | DTO petición | DTO respuesta | Caso de uso | Tablas | Códigos de error |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -281,14 +286,14 @@ Conteo de `@Transactional` por endpoint: BASE sin transacción: 46; BASE transac
 | 104 | POST | `/api/unicauca/fiet/consejo/cancelaciones-matricula/{uuidSolicitud}/funcionario/rechazar` | FA | FA | `rechazarPorFuncionario` | ObservacionDTOPeticion | CancelacionMatriculaDetalleDTORespuesta | TramiteCancelacionMatriculaCU.rechazarPorFuncionario<br>ConsultaCancelacionMatriculaCU.getDetalle | E: HISTORIAL_SOLICITUD_ACADEMICA, SOLICITUD_ACADEMICA, logs · L×7 | 1, 3, 4, 6 · 500-BD/401/403 |
 | 105 | POST | `/api/unicauca/fiet/consejo/cancelaciones-matricula/{uuidSolicitud}/funcionario/remitir` | FA | FA | `remitirADecano` | RemisionDecanoDTOPeticion | CancelacionMatriculaDetalleDTORespuesta | TramiteCancelacionMatriculaCU.remitirADecano<br>ConsultaCancelacionMatriculaCU.getDetalle | E: ASIGNATURA_SOLICITUD_ACADEMICA, HISTORIAL_SOLICITUD_ACADEMICA, RESOLUCION_ACADEMICA, SOLICITUD_ACADEMICA, logs · L×6 | 1, 3, 4, 6 · 400/500-BD/401/403 |
 | 106 | POST | `/api/unicauca/fiet/consejo/cancelaciones-matricula/{uuidSolicitud}/funcionario/responder` | FA | FA | `enviarRespuesta` | ObservacionDTOPeticion (cuerpo opcional) | CancelacionMatriculaDetalleDTORespuesta | TramiteCancelacionMatriculaCU.enviarRespuesta<br>ConsultaCancelacionMatriculaCU.getDetalle | E: ASIGNATURA_MATRICULADA, HISTORIAL_SOLICITUD_ACADEMICA, SOLICITUD_ACADEMICA, logs · L×7 | 1, 3, 4, 6 · 500-BD/401/403 |
-| 107 | POST | `/api/unicauca/fiet/consejo/cancelaciones-matricula/{uuidSolicitud}/decano/aprobar` | DEC | DEC | `aprobarPorDecano` | AprobacionDecanoDTOPeticion | CancelacionMatriculaDetalleDTORespuesta | TramiteCancelacionMatriculaCU.aprobarPorDecano<br>ConsultaCancelacionMatriculaCU.getDetalle | E: ASIGNATURA_SOLICITUD_ACADEMICA, HISTORIAL_SOLICITUD_ACADEMICA, SOLICITUD_ACADEMICA, logs · L×7 | 1, 3, 4, 6 · 400/500-BD/401/403 |
+| 107 | POST | `/api/unicauca/fiet/consejo/cancelaciones-matricula/{uuidSolicitud}/decano/aprobar` | DEC | DEC | `aprobarPorDecano` | ObservacionDTOPeticion (cuerpo opcional; desde T12.28, antes AprobacionDecanoDTOPeticion) | CancelacionMatriculaDetalleDTORespuesta | TramiteCancelacionMatriculaCU.aprobarPorDecano<br>ConsultaCancelacionMatriculaCU.getDetalle | E: ASIGNATURA_SOLICITUD_ACADEMICA, HISTORIAL_SOLICITUD_ACADEMICA, SOLICITUD_ACADEMICA, logs · L×7 | 1, 3, 4, 6 · 400/500-BD/401/403 |
 | 108 | POST | `/api/unicauca/fiet/consejo/cancelaciones-matricula/{uuidSolicitud}/decano/rechazar` | DEC | DEC | `rechazarPorDecano` | ObservacionDTOPeticion (cuerpo opcional) | CancelacionMatriculaDetalleDTORespuesta | TramiteCancelacionMatriculaCU.rechazarPorDecano<br>ConsultaCancelacionMatriculaCU.getDetalle | E: HISTORIAL_SOLICITUD_ACADEMICA, SOLICITUD_ACADEMICA, logs · L×7 | 1, 3, 4, 6 · 500-BD/401/403 |
 
 ### 3.14 Cancelación de Asignatura [EXTENSIÓN]
 
-- Controlador: `CancelacionAsignaturaRestController` (`backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorCancelacionesAsignatura/controlador/CancelacionAsignaturaRestController.java`), base `${url.application}cancelaciones-asignatura`, 8 endpoints.
-- Inyecta: `CancelacionAsignaturaCUIntPuerto`, `ConsultaCancelacionAsignaturaCUIntPuerto`, `TramiteCancelacionAsignaturaCUIntPuerto`, `MapperCancelacionAsignaturaInfraestructuraDominio`.
-- Nota: Radicación y trámite de Cancelación de Asignatura (aprobación parcial por asignatura, decisión P14).
+- Controlador: `CancelacionAsignaturaRestController` (`backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorCancelacionesAsignatura/controlador/CancelacionAsignaturaRestController.java`), base `${url.application}cancelaciones-asignatura`, 13 endpoints (8 en el corte original).
+- Inyecta: `CancelacionAsignaturaCUIntPuerto`, `ConsultaCancelacionAsignaturaCUIntPuerto`, `TramiteCancelacionAsignaturaCUIntPuerto`, `NotificacionResolucionCUIntPuerto`, `MapperCancelacionAsignaturaInfraestructuraDominio`.
+- Nota: Radicación y trámite de Cancelación de Asignatura (aprobación parcial por asignatura, decisión P14). Cambios posteriores al corte en las filas 109 a 116 (Tablas y Códigos de error sin recalcular): `remitir` ya no exige que al menos una asignatura cumpla (P62) y faltas, nota y situaciones son opcionales y de listas cerradas (P50, P60); `rechazar` no pide Resolución (P56); `responder` después del Decano exige la Resolución sin firmar y la comunicación programada (`mensaje`, obligatorio desde T12.38 aunque `enviarMensaje` llegue en falso; `textoComunicacion` y `textoDarca` opcionales; y `programacion` con `fechaProgramada`, `numeroResolucion`, `anioResolucion` y `decision`), crea la fila de `NOTIFICACION_RESOLUCION` y no envía los correos inmediatos con la Resolución (P58, P59, P63). Desde T12.38 la firma (`POST .../notificacion/firma`, con `textoDarca` opcional) cierra la comunicación, avisa a DARCA de inmediato y ya no se puede repetir ni reprogramar (P63). El documento adicional ya no se admite en este proceso (P59). La pantalla del Decano usa `decano/aprobar` con la decisión por asignatura o `decano/rechazar` si las rechaza todas; `aceptarEvaluacion` sigue en el contrato pero el frontend ya no lo envía (P62). Las filas 129 a 133 son el panel "Notificación de la Resolución" ([correo-electronico.md](correo-electronico.md)).
 
 | # | Mét. | Ruta completa | Rol efectivo | @PreAuthorize | Método del controlador | DTO petición | DTO respuesta | Caso de uso | Tablas | Códigos de error |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -300,11 +305,17 @@ Conteo de `@Transactional` por endpoint: BASE sin transacción: 46; BASE transac
 | 114 | POST | `/api/unicauca/fiet/consejo/cancelaciones-asignatura/{uuidSolicitud}/funcionario/responder` | FA | FA | `enviarRespuesta` | RespuestaCancelacionAsignaturaDTOPeticion (cuerpo opcional) | CancelacionAsignaturaDetalleDTORespuesta | TramiteCancelacionAsignaturaCU.enviarRespuesta<br>ConsultaCancelacionAsignaturaCU.getDetalle | E: ASIGNATURA_MATRICULADA, ASIGNATURA_SOLICITUD_ACADEMICA, HISTORIAL_SOLICITUD_ACADEMICA, SOLICITUD_ACADEMICA, logs · L×7 | 1, 3, 4, 6 · 500-BD/401/403 |
 | 115 | POST | `/api/unicauca/fiet/consejo/cancelaciones-asignatura/{uuidSolicitud}/decano/aprobar` | DEC | DEC | `aprobarPorDecano` | AprobacionCancelacionAsignaturaDTOPeticion | CancelacionAsignaturaDetalleDTORespuesta | TramiteCancelacionAsignaturaCU.aprobarPorDecano<br>ConsultaCancelacionAsignaturaCU.getDetalle | E: ASIGNATURA_SOLICITUD_ACADEMICA, HISTORIAL_SOLICITUD_ACADEMICA, SOLICITUD_ACADEMICA, logs · L×7 | 1, 3, 4, 6 · 400/500-BD/401/403 |
 | 116 | POST | `/api/unicauca/fiet/consejo/cancelaciones-asignatura/{uuidSolicitud}/decano/rechazar` | DEC | DEC | `rechazarPorDecano` | ObservacionDTOPeticion (cuerpo opcional) | CancelacionAsignaturaDetalleDTORespuesta | TramiteCancelacionAsignaturaCU.rechazarPorDecano<br>ConsultaCancelacionAsignaturaCU.getDetalle | E: HISTORIAL_SOLICITUD_ACADEMICA, SOLICITUD_ACADEMICA, logs · L×7 | 1, 3, 4, 6 · 500-BD/401/403 |
+| 129 | GET | `/api/unicauca/fiet/consejo/cancelaciones-asignatura/{uuidSolicitud}/funcionario/notificacion/plantilla` | FA | FA | `getPlantillaNotificacion` | — | PlantillaNotificacionResolucionDTORespuesta | NotificacionResolucionCU.getPlantilla | solo lectura · no calculado | no calculado · 401/403 |
+| 130 | GET | `/api/unicauca/fiet/consejo/cancelaciones-asignatura/{uuidSolicitud}/funcionario/notificacion` | FA | FA | `getNotificacion` | — | NotificacionResolucionDTORespuesta (204 si no hay programación) | NotificacionResolucionCU.getNotificacion | solo lectura · no calculado | no calculado · 401/403 |
+| 131 | PUT | `/api/unicauca/fiet/consejo/cancelaciones-asignatura/{uuidSolicitud}/funcionario/notificacion` | FA | FA | `reprogramarNotificacion` | ProgramacionResolucionDTOPeticion | NotificacionResolucionDTORespuesta | NotificacionResolucionCU.reprogramar | E: NOTIFICACION_RESOLUCION, logs · no calculado | 1, 3, 4, 6 (leídos del caso de uso, sin el script) · 401/403 |
+| 132 | POST | `/api/unicauca/fiet/consejo/cancelaciones-asignatura/{uuidSolicitud}/funcionario/notificacion/firma` | FA | FA | `registrarFirma` | `archivo` (multipart, PDF) | NotificacionResolucionDTORespuesta | NotificacionResolucionCU.registrarFirma (llama a ResolucionAcademicaCU.reemplazarResolucionFirmada) | E: NOTIFICACION_RESOLUCION, RESOLUCION_ACADEMICA, logs · no calculado | no calculado · 401/403 |
+| 133 | POST | `/api/unicauca/fiet/consejo/cancelaciones-asignatura/{uuidSolicitud}/funcionario/notificacion/reintentar` | FA | FA | `reintentarNotificacion` | — | NotificacionResolucionDTORespuesta | NotificacionResolucionCU.reintentar | E: NOTIFICACION_RESOLUCION, logs · no calculado | 1, 3, 4 (leídos del caso de uso, sin el script) · 401/403 |
 
 ### 3.15 Examen Supletorio [EXTENSIÓN]
 
-- Controlador: `ExamenSupletorioRestController` (`backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorExamenesSupletorios/controlador/ExamenSupletorioRestController.java`), base `${url.application}examenes-supletorios`, 12 endpoints.
-- Inyecta: `ExamenSupletorioCUIntPuerto`, `ConsultaExamenSupletorioCUIntPuerto`, `TramiteExamenSupletorioCUIntPuerto`, `MapperExamenSupletorioInfraestructuraDominio`.
+- Controlador: `ExamenSupletorioRestController` (`backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorExamenesSupletorios/controlador/ExamenSupletorioRestController.java`), base `${url.application}examenes-supletorios`, 13 endpoints (12 en el corte original).
+- Inyecta: `ExamenSupletorioCUIntPuerto`, `ConsultaExamenSupletorioCUIntPuerto`, `TramiteExamenSupletorioCUIntPuerto`, `DocenteCUIntPuerto`, `MapperExamenSupletorioInfraestructuraDominio`.
+- Cambios posteriores al corte (Tablas y Códigos de error sin recalcular): desde T12.28 `comprobante/aprobar` recibe `AprobacionComprobanteDTOPeticion` con `observacion` (opcional, para el estudiante) y `docenteUuid` (obligatorio), ya no la fecha acordada; guarda el profesor en `SOLICITUD_EXAMEN_SUPLETORIO.Docente_uuid` y crea la fila de `NOTIFICACION_DOCENTE` (P52, P53). Las acciones que cierran la solicitud disparan el correo al estudiante, a DARCA y, al aprobar el comprobante, al profesor ([correo-electronico.md](correo-electronico.md)).
 - Nota: Radicación y trámite de Examen Supletorio. Único con rutas `estudiante/**` y con las acciones de recibo y comprobante de pago; el recibo y el comprobante se suben antes con `POST solicitudes-academicas/{uuid}/anexos`.
 
 | # | Mét. | Ruta completa | Rol efectivo | @PreAuthorize | Método del controlador | DTO petición | DTO respuesta | Caso de uso | Tablas | Códigos de error |
@@ -321,12 +332,30 @@ Conteo de `@Transactional` por endpoint: BASE sin transacción: 46; BASE transac
 | 126 | POST | `/api/unicauca/fiet/consejo/examenes-supletorios/{uuidSolicitud}/decano/aprobar` | DEC | DEC | `aprobarPorDecano` | ObservacionDTOPeticion (cuerpo opcional) | ExamenSupletorioDetalleDTORespuesta | TramiteExamenSupletorioCU.aprobarPorDecano<br>ConsultaExamenSupletorioCU.getDetalle | E: HISTORIAL_SOLICITUD_ACADEMICA, SOLICITUD_ACADEMICA, logs · L×7 | 1, 3, 4, 6 · 500-BD/401/403 |
 | 127 | POST | `/api/unicauca/fiet/consejo/examenes-supletorios/{uuidSolicitud}/decano/rechazar` | DEC | DEC | `rechazarPorDecano` | ObservacionDTOPeticion (cuerpo opcional) | ExamenSupletorioDetalleDTORespuesta | TramiteExamenSupletorioCU.rechazarPorDecano<br>ConsultaExamenSupletorioCU.getDetalle | E: HISTORIAL_SOLICITUD_ACADEMICA, SOLICITUD_ACADEMICA, logs · L×7 | 1, 3, 4, 6 · 500-BD/401/403 |
 | 128 | POST | `/api/unicauca/fiet/consejo/examenes-supletorios/{uuidSolicitud}/estudiante/comprobante` | EST | EST | `subirComprobante` | — | ExamenSupletorioDetalleDTORespuesta | TramiteExamenSupletorioCU.subirComprobante<br>ConsultaExamenSupletorioCU.getDetalle | E: HISTORIAL_SOLICITUD_ACADEMICA, SOLICITUD_ACADEMICA, logs · L×7 | 1, 3, 4, 6 · 500-BD/401/403 |
+| 134 | GET | `/api/unicauca/fiet/consejo/examenes-supletorios/docentes` | FA | FA | `buscarDocentes` | `nombre` (opc.); `numeroDocumento` (opc.); `username` (opc.); `pagina`; `tamanio` | PaginacionRespuestaDTO<DocenteDTORespuesta> | DocenteCU.buscarDocentes | solo lectura (usuarios con rol Docente) · no calculado | no calculado · 401/403 |
+
+### 3.16 Notificaciones del docente [EXTENSIÓN]
+
+- Controlador: `NotificacionDocenteRestController` (`backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes/infraestructura/input/controladorNotificacionesDocente/controlador/NotificacionDocenteRestController.java`), base `${url.application}notificaciones-docente`, 4 endpoints. Agregado en T12.28.
+- Inyecta: `NotificacionDocenteCUIntPuerto`, `MapperNotificacionDocenteInfraestructuraDominio`.
+- Nota: el Docente (rol `Docente` de Julián) ve, de solo lectura, las notificaciones de los exámenes supletorios que le asignaron al aprobar el pago. Una notificación ajena responde como inexistente (código 3). Estos endpoints no envían correo: el correo al profesor sale desde el trámite del supletorio. La matriz `matriz-permisos.ps1` no tiene columna Docente; estas rutas quedan denegadas para los demás roles.
+
+| # | Mét. | Ruta completa | Rol efectivo | @PreAuthorize | Método del controlador | DTO petición | DTO respuesta | Caso de uso | Tablas | Códigos de error |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 135 | GET | `/api/unicauca/fiet/consejo/notificaciones-docente` | DOC | DOC | `getMisNotificaciones` | — | NotificacionDocenteResumenDTORespuesta[] | NotificacionDocenteCU.getMisNotificaciones | solo lectura · no calculado | no calculado · 401/403 |
+| 136 | GET | `/api/unicauca/fiet/consejo/notificaciones-docente/{uuidNotificacion}` | DOC | DOC | `getNotificacion` | — | NotificacionDocenteDetalleDTORespuesta | NotificacionDocenteCU.getNotificacion | solo lectura · no calculado | 3 y otros no calculados · 401/403 |
+| 137 | PATCH | `/api/unicauca/fiet/consejo/notificaciones-docente/{uuidNotificacion}/leida` | DOC | DOC | `marcarLeida` | — | NotificacionDocenteDetalleDTORespuesta | NotificacionDocenteCU.marcarLeida | E: NOTIFICACION_DOCENTE · no calculado | 3 y otros no calculados · 401/403 |
+| 138 | GET | `/api/unicauca/fiet/consejo/notificaciones-docente/{uuidNotificacion}/anexos/{uuidAnexo}` | DOC | DOC | `descargarAnexo` | — | ByteArrayResource (archivo) | NotificacionDocenteCU.descargarAnexo | solo lectura · no calculado | 3 y otros no calculados · 401/403 |
+
+DOC = rol `Docente`. Las filas 129 a 138 se agregaron el 2026-10-21 leyendo los controladores y `ConfiguracionSeguridad`; sus columnas Tablas y Códigos de error no salieron del script del análisis original.
 
 ## 4. Alcance de las reglas de seguridad
 
-Las reglas de la extensión terminan cada prefijo en `denyAll()` (asignaturas, estudiantes, funcionarios-academicos, catalogos-academicos, solicitudes-academicas, cancelaciones-matricula, cancelaciones-asignatura, examenes-supletorios): una ruta no declarada de esos recursos responde 403 aunque el usuario esté autenticado. Las reglas de Julián no usan `denyAll`: `solicitudes/**` y `respuestas/**` terminan en `authenticated()`, y `tipos/solicitudes/**`, `logs/**`, `roles/**` en SG/DEC.
+Las reglas de la extensión terminan cada prefijo en `denyAll()` (asignaturas, estudiantes, funcionarios-academicos, catalogos-academicos, solicitudes-academicas, cancelaciones-matricula, cancelaciones-asignatura, examenes-supletorios y, desde T12.28, notificaciones-docente): una ruta no declarada de esos recursos responde 403 aunque el usuario esté autenticado. Las reglas de Julián no usan `denyAll`: `solicitudes/**` y `respuestas/**` terminan en `authenticated()`, y `tipos/solicitudes/**`, `logs/**`, `roles/**` en SG/DEC. Esto describe el corte original: T12.21, T12.22 y T12.23 agregaron reglas por URL para los endpoints de Julián que solo protegía `@PreAuthorize` y control de dueño; el estado actual está en `VERIFICACION-SEGURIDAD.md`.
 
 ## 5. Hallazgos de seguridad por endpoint (regla efectiva frente a @PreAuthorize)
+
+**Estado al 2026-10-21.** La tabla y las observaciones de esta sección son del corte del 2026-10-14. La tarea T12.21 cerró estas divergencias con reglas por URL que siguen el uso real del frontend (sin activar `@EnableMethodSecurity` ni cambiar las anotaciones) y agregó control de dueño en usuarios y en las descargas de anexos y respuestas; T12.22 y T12.23 ajustaron el acceso de la Secretaria Decanatura FIET y el `PUT solicitudes/{uuid}`. El detalle por endpoint y lo que quedó pendiente están en `VERIFICACION-SEGURIDAD.md` y en `change.md`; esta sección se conserva como evidencia del estado anterior.
 
 De los 124 endpoints con `@PreAuthorize`, **22** tienen una regla efectiva distinta de la anotación; **22 (todos) son [BASE]** y los 66 de la extensión no tienen ninguna divergencia (verificado por el script con los mismos 78 matchers). Como `@PreAuthorize` no se evalúa, manda la regla efectiva:
 
@@ -370,6 +399,8 @@ Observaciones derivadas del orden de los matchers (inferidas, NO VERIFICADO en e
 - Descargas de la extensión (`GET solicitudes-academicas/{uuid}/anexos/{uuidAnexo}` y `.../resolucion`): pasan por casos de uso y devuelven `ByteArrayResource` con `Content-Disposition: attachment`; la ruta de disco nunca sale en la respuesta.
 
 ## Anexo A. Reglas de `ConfiguracionSeguridad` (78 `requestMatchers` + `anyRequest`)
+
+Corte del 2026-10-14. No incluye las reglas que agregaron T12.21 a T12.32 (endpoints de Julián, `notificaciones-docente`, `examenes-supletorios/docentes` y el panel de la notificación de la Resolución); para el estado actual se lee `ConfiguracionSeguridad.securityFilterChain`.
 
 Origen: [B] = presente en el primer commit `d3a48cc` (17 reglas); [E] = agregada después. Se evalúan en este orden.
 
@@ -459,7 +490,7 @@ Conteo verificado por programa: 17 reglas [B] y 61 reglas [E] (suman 78). Las [E
 
 ## Anexo B. Constantes de `MensajesError` alcanzables por método de caso de uso
 
-Unión estática por método (incluye helpers privados, servicios de dominio y otros casos de uso llamados). El tipo es el método `lanzar*` del formateador. Los métodos sobrecargados se unen por nombre.
+Corte del 2026-10-14: no incluye los casos de uso nuevos (Docente, NotificacionDocente, NotificacionResolucion, AccesoRecursoConsejo) ni las constantes agregadas o quitadas después: `NINGUNA_ASIGNATURA_CUMPLE`, que aparece abajo en `TramiteCancelacionAsignaturaCU.remitirADecano`, se eliminó en T12.35 (P62), y se agregaron, entre otras, `SITUACION_NO_PERMITIDA`, `ANEXO_NO_VIGENTE`, `ARCHIVO_MUY_GRANDE_ANEXO`, `DOCUMENTO_ADICIONAL_NO_ADMITIDO` y las de la comunicación programada. Unión estática por método (incluye helpers privados, servicios de dominio y otros casos de uso llamados). El tipo es el método `lanzar*` del formateador. Los métodos sobrecargados se unen por nombre.
 
 | Caso de uso.método | Constantes por tipo (código) |
 |---|---|
@@ -587,6 +618,8 @@ Unión estática por método (incluye helpers privados, servicios de dominio y o
 | UsuarioCU.getUsuariosByNombreCompleto | **MalFormato(6)**: `PAGINACION_ERROR`; **SinInformacion(7)**: `SIN_REGISTROS` |
 
 ## Anexo C. Tablas leídas por endpoint
+
+Corte del 2026-10-14: cubre los endpoints 1 a 128; los 129 a 138 no se calcularon.
 
 | # | Endpoint | Tablas leídas (L) |
 |---|---|---|

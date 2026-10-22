@@ -78,14 +78,6 @@ select.celda-campo {
   line-height: 1.55;
 }
 
-.interruptor-decision {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 110px;
-  font-size: 12.5px;
-}
-
 .etiqueta-cambiada {
   display: inline-block;
   margin-top: 4px;

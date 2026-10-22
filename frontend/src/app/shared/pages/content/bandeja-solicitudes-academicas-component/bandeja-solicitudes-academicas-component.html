@@ -5,6 +5,11 @@
   </header>
 
   <div class="tarjeta-body">
+    @if (esRespuestas) {
+    @defer (on immediate) {
+    <app-eliminacion-respuestas-component (eliminadas)="cargarSolicitudes()"></app-eliminacion-respuestas-component>
+    }
+    }
     <div class="filtros">
       <div class="campo">
         <label for="filtro-tipo">Tipo de proceso académico</label>

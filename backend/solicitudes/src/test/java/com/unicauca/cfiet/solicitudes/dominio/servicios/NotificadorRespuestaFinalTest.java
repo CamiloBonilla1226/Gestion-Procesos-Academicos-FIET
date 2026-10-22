@@ -18,7 +18,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.APROBADA;
+import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.APROBADA_POR_DECANO;
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.RECHAZADA;
+import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.RECHAZADA_POR_DECANO;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -396,6 +398,33 @@ class NotificadorRespuestaFinalTest {
         assertTrue(correoDarca.getTexto().contains("El estudiante firmó la Resolución"));
         assertFalse(correoDarca.getTexto().contains("Observ"));
         verify(anexoGateway, never()).getPorSolicitud(any());
+    }
+
+    @Test
+    void laPlantillaDeDarcaUsaLaDecisionFinalYDejaLaMarcaDeLaFecha() {
+        cancelacionCon(asignatura("ISI-001", "Cálculo I", true, null), asignatura("ISI-002", "Física I", false, null));
+
+        String aprobada = notificador.plantillaDarcaResolucion(solicitud("2026-CA-0003", APROBADA_POR_DECANO), true, false);
+        String rechazada = notificador.plantillaDarcaResolucion(solicitud("2026-CA-0003", RECHAZADA_POR_DECANO), false, true);
+
+        assertEquals("Popayán, Cauca, {fecha}\n\nEl estudiante Ana María Muñoz Peña, con código 104618021, solicita cancelar 2 asignaturas: "
+                + "1 aprobada y 1 rechazada. La Resolución se comunicó al estudiante por correo electrónico; se adjunta la constancia de la "
+                + "comunicación.\n\nLa información de la respuesta está en el PDF adjunto.", aprobada);
+        assertTrue(rechazada.contains("0 aprobadas y 2 rechazadas. El estudiante firmó la Resolución en la Decanatura"));
+        assertEquals(rechazada.replace("2 rechazadas", "x"), notificador.plantillaDarcaFirmada(rechazada.replace("2 rechazadas", "x")));
+        assertTrue(notificador.plantillaDarcaFirmada(aprobada).contains("El estudiante firmó la Resolución en la Decanatura; se adjunta la Resolución firmada."));
+        assertNull(notificador.plantillaDarcaFirmada(" "));
+    }
+
+    @Test
+    void conTextoGuardadoDarcaRecibeEseTextoConLaFechaDeEnvio() {
+        cancelacionCon(asignatura("ISI-001", "Cálculo I", true, null));
+
+        CorreoPreparado correoDarca = notificador.correoDarcaResolucion(solicitud("2026-CA-0003", APROBADA), FECHA, true, List.of(),
+                "Popayán, {fecha}\n\nTexto del funcionario. {fecha}");
+
+        assertEquals("Popayán, 15 de octubre de 2026\n\nTexto del funcionario. 15 de octubre de 2026", correoDarca.getTexto());
+        assertEquals(List.of("Radicado-2026-CA-0003.pdf"), correoDarca.getAdjuntos().stream().map(AdjuntoCorreo::getNombre).toList());
     }
 
     @Test

@@ -237,6 +237,7 @@ public class BeanConfiguracion {
                                                                              CorreoIntPuerto correo,
                                                                              ExcepcionesFormateadorIntPuerto formateadorExcepciones,
                                                                              LogCUIntPuerto log,
+                                                                             EjecucionDiferidaIntPuerto ejecucionDiferida,
                                                                              @Value("${correo.firma.nombre:}") String firmaNombre,
                                                                              @Value("${correo.firma.cargo:}") String firmaCargo,
                                                                              @Value("${correo.firma.dependencia:}") String firmaDependencia,
@@ -245,7 +246,7 @@ public class BeanConfiguracion {
         FirmaCorreo firma = FirmaCorreo.builder().nombre(firmaNombre).cargo(firmaCargo).dependencia(firmaDependencia).facultad(firmaFacultad).build();
         return new NotificacionResolucionCUImplAdaptador(gateway, solicitudGateway, cancelacionGateway, sesionGateway, jwtServicio, resolucionCU,
                 notificador, generadorPdf, correo, new ComunicacionResolucion(firma, sufijo), formateadorExcepciones, log,
-                Clock.system(ZoneId.of("America/Bogota")));
+                Clock.system(ZoneId.of("America/Bogota")), ejecucionDiferida);
     }
 
     @Bean
@@ -262,6 +263,17 @@ public class BeanConfiguracion {
                                                                                      NotificacionResolucionGatewayIntPuerto notificacionGateway){
         return new ConsultaSolicitudAcademicaCUImplAdaptador(gateway, etiquetaGateway, anexoGateway, historialGateway,
                 resolucionGateway, sesionGateway, jwtServicio, anexoCU, maquinaEtapas, formateadorExcepciones, notificacionGateway);
+    }
+
+    @Bean
+    public EliminacionRespuestasCUImplAdaptador crearEliminacionRespuestasCU(EliminacionRespuestasGatewayIntPuerto gateway,
+                                                                           SesionGatewayIntPuerto sesionGateway,
+                                                                           IJwtServicio jwtServicio,
+                                                                           AlmacenamientoAnexosIntPuerto almacenamiento,
+                                                                           ExcepcionesFormateadorIntPuerto formateadorExcepciones,
+                                                                           LogCUIntPuerto log){
+        return new EliminacionRespuestasCUImplAdaptador(gateway, sesionGateway, jwtServicio, almacenamiento, formateadorExcepciones, log,
+                Clock.system(ZoneId.of("America/Bogota")));
     }
 
     @Bean

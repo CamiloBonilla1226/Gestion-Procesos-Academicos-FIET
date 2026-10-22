@@ -1,8 +1,3 @@
-:host ::ng-deep .campo-mensaje textarea {
-  min-height: 260px;
-  font-family: var(--fuente);
-}
-
 h4.subtitulo {
   margin-bottom: 0;
 }

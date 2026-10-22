@@ -56,6 +56,8 @@ GET    catalogos-academicos/programas                                           
 PUT    catalogos-academicos/tipos-solicitud/{uuidTipo}/funcionario              json      denegado  permitido  permitido denegado       denegado
 GET    solicitudes-academicas/estudiante                                        ninguno   denegado  denegado   denegado  denegado       permitido
 GET    solicitudes-academicas/funcionario                                       ninguno   denegado  denegado   denegado  permitido      denegado
+GET    solicitudes-academicas/funcionario/respuestas/conteo                     ninguno   denegado  denegado   denegado  permitido      denegado
+DELETE solicitudes-academicas/funcionario/respuestas                            ninguno   denegado  denegado   denegado  permitido      denegado
 GET    solicitudes-academicas/decano                                            ninguno   denegado  denegado   permitido denegado       denegado
 GET    solicitudes-academicas/{uuidSolicitud}                                   ninguno   denegado  denegado   permitido permitido      permitido
 GET    solicitudes-academicas/{uuidSolicitud}/historial                         ninguno   denegado  denegado   permitido permitido      permitido

@@ -180,7 +180,7 @@ backend rechaza con código 6 un valor que no sea de la lista del campo.
 | SituacionMatricula\_uuid | varchar(100) | FK -> SITUACION\_ACADEMICA\_ASIGNATURA (fk\_asigsol\_situmatricula) | Sí | Opcional desde T12.28 (P50); la registra el Funcionario al remitir |
 | SituacionCancelar\_uuid | varchar(100) | FK -> SITUACION\_ACADEMICA\_ASIGNATURA (fk\_asigsol\_situcancelar) | Sí | Opcional desde T12.28 (P50, P51). Solo la registra el Funcionario, al remitir o en el ajuste de la respuesta de Cancelación de Asignatura; el Decano no la registra. En Cancelación de Asignatura solo en las aprobadas |
 | cumpleCondiciones | tinyint(1) |  | Sí | Solo Cancelación de Asignatura: el Funcionario confirma que verificó las condiciones de la sección 4.2 de `etapas-por-proceso.md`. Nulo hasta evaluación |
-| observacionEvaluacion | varchar(255) |  | Sí | Solo Cancelación de Asignatura: obligatoria si la asignatura no cumple las condiciones. La ven el Funcionario y el Decano, nunca el Estudiante |
+| observacionEvaluacion | varchar(255) |  | Sí | Solo Cancelación de Asignatura. Opcional siempre, aunque la asignatura no cumpla las condiciones (P46); desde P46 el frontend no la envía y queda nula. La ven el Funcionario y el Decano, nunca el Estudiante |
 | aprobadaPorDecano | tinyint(1) |  | Sí | Solo Cancelación de Asignatura: decisión del Decano sobre esa asignatura (P14). Nulo hasta su decisión |
 | observacionDecision | varchar(255) |  | Sí | Solo Cancelación de Asignatura: la escribe el Funcionario en el ajuste de una asignatura rechazada al responder, opcional (P45, P47). La ven el Funcionario y el Decano, y el Estudiante en APROBADA o RECHAZADA |
 
@@ -259,19 +259,30 @@ el Funcionario Académico asignado; el Estudiante y el Decano no tienen acceso.
 | SolicitudAcademica\_uuid | varchar(100) | PK, FK -> SOLICITUD\_ACADEMICA (fk\_notifres\_solacad) | No | Solicitud de Cancelación de Asignatura respondida después del Decano |
 | fechaProgramada | datetime |  | No | Fecha y hora de la comunicación, en hora de Colombia. Debe ser futura al programar y al reprogramar |
 | estado | enum('ENVIADA','EN\_PROCESO','FALLIDA','PROGRAMADA') |  | No | PROGRAMADA espera la fecha o el siguiente reintento; EN\_PROCESO la reclamó la tarea (actualización condicional, se vuelve a reclamar si queda así más de 15 minutos); ENVIADA salieron los correos; FALLIDA tres intentos sin éxito |
-| firmada | bit(1) |  | No | 1 si el estudiante firmó la Resolución en la Decanatura antes de la fecha: no sale el correo al estudiante y DARCA recibe dos PDF. Valor por defecto 0 |
+| firmada | bit(1) |  | No | 1 si el estudiante firmó la Resolución en la Decanatura antes de la fecha: no sale el correo al estudiante y DARCA recibe dos PDF. Desde T12.38 (P63) la firma cierra la comunicación: DARCA recibe su correo de inmediato, el Estudiante ve la respuesta en ese momento y ya no se edita ni se vuelve a firmar. Valor por defecto 0 |
 | numeroResolucion | varchar(20) |  | No | Número de la Resolución, por ejemplo `123-25`; el sufijo `/178` sale de `correo.resolucion.sufijo` y no se guarda |
 | anioResolucion | int |  | No | Año de la Resolución, de 2000 a 2100 |
 | decision | varchar(60) |  | No | Texto de la decisión en la comunicación: `aprueba la`, `rechaza la`, `aprueba parcialmente la` o el que escriba el Funcionario |
-| mensajeInicial | varchar(2000) |  | Sí | Texto del mensaje inmediato que se envió al estudiante; nulo si no se envió. No sale en el historial |
+| mensajeInicial | varchar(2000) |  | Sí | Texto del mensaje inmediato que se envió al estudiante. Desde T12.38 (P63) siempre se envía y es obligatorio; las filas anteriores pueden tenerlo nulo. No sale en el historial |
+| textoComunicacion | varchar(4000) |  | Sí | Desde T12.38 (P63). Texto editable del correo de la comunicación al estudiante, con las marcas `{numero}`, `{anio}`, `{nombre}` y `{decision}`, que se reemplazan al enviar (en negrilla en el HTML); una marca desconocida queda tal cual. Sin texto, hasta 4000 caracteres. Nulo en las filas anteriores, que usan la plantilla fija |
+| textoDarca | varchar(4000) |  | Sí | Desde T12.38 (P63). Texto editable del correo a DARCA; `{fecha}` se reemplaza por la fecha de envío. Al registrar la firma se guarda el texto que manda el Funcionario (o el guardado con la nota de la firma). Nulo en las filas anteriores, que usan el texto fijo |
 | fechaEnvioEstudiante | datetime |  | Sí | Marca del correo al estudiante: fecha y hora en que salió; nula si no salió o si el estudiante firmó |
 | fechaEnvioDarca | datetime |  | Sí | Marca del correo a DARCA: fecha y hora en que salió |
 | intentos | int |  | No | Intentos de envío; en 3 sin éxito queda FALLIDA. Reintentar lo vuelve a 0. Valor por defecto 0 |
 | ultimoError | varchar(1000) |  | Sí | Último error de envío, visible para el Funcionario |
 | fechaReclamo | datetime |  | Sí | Momento en que la tarea la reclamó por última vez |
 | fechaEnvio | datetime |  | Sí | Fecha y hora en que quedó ENVIADA |
-| fechaLiberacion | datetime |  | Sí | Primera vez que la tarea la reclamó. Mientras sea nula el Estudiante ve la solicitud en trámite, sin respuesta ni Resolución; después no se vuelve a ocultar |
+| fechaLiberacion | datetime |  | Sí | Primera vez que la tarea la reclamó o momento en que se registró la firma (T12.38). El Estudiante ve la solicitud en trámite, sin respuesta ni Resolución, solo mientras sea nula y `fechaProgramada` siga en el futuro; después no se vuelve a ocultar |
 | fechaCreacion | datetime |  | No | Fecha y hora en que el Funcionario envió la respuesta |
+
+## Textos editables de la comunicación (T12.38)
+
+`docs/database/migracion_textos_notificacion.sql` agrega `textoComunicacion` y
+`textoDarca` a `NOTIFICACION_RESOLUCION` si no existen. Hibernate también las
+crea al arrancar (`ddl-auto=update`), así que el script solo hace falta para
+poner al día una base sin levantar el backend nuevo. Se puede repetir y no
+cambia ni borra datos: las filas anteriores quedan con los dos textos nulos y
+siguen saliendo con la plantilla fija.
 
 ## Migración de una base con datos anteriores a PROGRAMA\_ACADEMICO
 

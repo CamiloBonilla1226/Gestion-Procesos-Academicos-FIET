@@ -19,9 +19,14 @@
 | 12-insumos-diagramas / 13-diagramas-fuente | Insumos y código Mermaid de los diagramas |
 | 14-hallazgos-deuda-tecnica / 15-glosario | Hallazgos y glosario |
 | 16-archivos-para-subir-a-claude | Paquete para la asistente de redacción |
-| SUPUESTOS.md, PROGRESO.md, VERIFICACION.md | Control del análisis |
+| correo-electronico.md | Correo electrónico: destinatarios por proceso, implementación, envío programado de la Resolución, configuración, pruebas y puntos abiertos (agregado el 2026-10-21) |
+| SUPUESTOS.md, PROGRESO.md, VERIFICACION.md, VERIFICACION-SEGURIDAD.md | Control del análisis y revisión de seguridad |
 
 ## Método
+
+Actualización del 2026-10-21 (T12.37): revisión sencilla de los documentos contra el código, `change.md`, el contrato de la API, el diccionario de datos, `etapas-por-proceso.md` y los `CLAUDE.md`, sin cambiar su estructura. Las cifras se recontaron con grep y scripts de conteo; los inventarios muy detallados (tablas por módulo, anexos de endpoints) conservan el corte del 2026-10-14 y lo dicen. Tampoco se ejecutó nada en esta actualización.
+
+Método original (2026-10-14):
 
 - Lectura estática del repositorio con Glob, Grep y lectura de archivos. No se ejecutó ningún build, test ni instalación, ni se usó internet.
 - Git solo en modo lectura (log, blame, show, status).

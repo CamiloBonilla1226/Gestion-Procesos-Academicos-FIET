@@ -29,7 +29,9 @@ public class NotificadorRespuestaFinal {
     private static final String ASUNTO_PROFESOR = "Notificación de examen supletorio - Radicado %s";
     private static final String ENCABEZADO = "Popayán, Cauca, %s%n%n";
     private static final String ESTUDIANTE = "El estudiante %s, con código %s, ";
-    private static final String PIE_DARCA = "%n%nLa información de la respuesta está en el PDF adjunto.";
+    public static final String MARCA_FECHA = "{fecha}";
+    private static final String PIE_DARCA_TEXTO = "La información de la respuesta está en el PDF adjunto.";
+    private static final String PIE_DARCA = "%n%n" + PIE_DARCA_TEXTO;
     private static final String NOTA_FIRMADA = " El estudiante firmó la Resolución en la Decanatura; se adjunta la Resolución firmada.";
     private static final String NOTA_COMUNICADA = " La Resolución se comunicó al estudiante por correo electrónico; se adjunta la constancia de la comunicación.";
     private static final String CUERPO_PROFESOR = "Sr(a) %s%n%nTiene una solicitud de examen supletorio %s del estudiante %s, con código %s, "
@@ -87,6 +89,11 @@ public class NotificadorRespuestaFinal {
     }
 
     public CorreoPreparado correoDarcaResolucion(SolicitudAcademica solicitud, LocalDate fecha, boolean firmada, List<AdjuntoCorreo> constancia) {
+        return correoDarcaResolucion(solicitud, fecha, firmada, constancia, null);
+    }
+
+    public CorreoPreparado correoDarcaResolucion(SolicitudAcademica solicitud, LocalDate fecha, boolean firmada, List<AdjuntoCorreo> constancia,
+                                                 String plantillaTexto) {
         TipoProcesoAcademico proceso = TipoProcesoAcademico.CANCELACION_ASIGNATURA;
         ResumenRespuesta resumen = resumen(solicitud, proceso, AccionEtapa.ENVIAR_RESPUESTA, fecha);
         List<AdjuntoCorreo> adjuntos = new ArrayList<>();
@@ -94,7 +101,9 @@ public class NotificadorRespuestaFinal {
         adjuntos.addAll(resolucionDe(solicitud));
         if (!firmada && constancia != null)
             adjuntos.addAll(constancia);
-        String texto = String.format(ENCABEZADO, fecha.format(FECHA_CARTA)) + frase(resumen, proceso)
+        String texto = plantillaTexto != null && !plantillaTexto.isBlank()
+                ? plantillaTexto.replace(MARCA_FECHA, fecha.format(FECHA_CARTA))
+                : String.format(ENCABEZADO, fecha.format(FECHA_CARTA)) + frase(resumen, proceso)
                 + (firmada ? NOTA_FIRMADA : NOTA_COMUNICADA) + String.format(PIE_DARCA);
         return CorreoPreparado.builder()
                 .destinatario(destinatarioDarca)
@@ -102,6 +111,18 @@ public class NotificadorRespuestaFinal {
                 .texto(texto)
                 .adjuntos(adjuntos)
                 .build();
+    }
+
+    public String plantillaDarcaResolucion(SolicitudAcademica solicitud, boolean aprobada, boolean firmada) {
+        ResumenRespuesta resumen = resumen(solicitud, TipoProcesoAcademico.CANCELACION_ASIGNATURA, AccionEtapa.ENVIAR_RESPUESTA, null, aprobada);
+        return "Popayán, Cauca, " + MARCA_FECHA + "\n\n" + frase(resumen, TipoProcesoAcademico.CANCELACION_ASIGNATURA)
+                + (firmada ? NOTA_FIRMADA : NOTA_COMUNICADA) + "\n\n" + PIE_DARCA_TEXTO;
+    }
+
+    public String plantillaDarcaFirmada(String plantillaComunicada) {
+        if (plantillaComunicada == null || plantillaComunicada.isBlank())
+            return null;
+        return plantillaComunicada.replace(NOTA_COMUNICADA, NOTA_FIRMADA);
     }
 
     public void avisarProfesor(SolicitudAcademica solicitud, AccionEtapa accion, Docente docente, LocalDate fecha) {
@@ -118,9 +139,13 @@ public class NotificadorRespuestaFinal {
     }
 
     public ResumenRespuesta resumen(SolicitudAcademica solicitud, TipoProcesoAcademico proceso, AccionEtapa accion, LocalDate fecha) {
+        return resumen(solicitud, proceso, accion, fecha, solicitud.getEtapa() != null && APROBADA.equals(solicitud.getEtapa().getCodigo()));
+    }
+
+    private ResumenRespuesta resumen(SolicitudAcademica solicitud, TipoProcesoAcademico proceso, AccionEtapa accion, LocalDate fecha,
+                                     boolean aprobada) {
         Estudiante estudiante = solicitud.getEstudiante();
         Usuario usuario = estudiante == null ? null : estudiante.getUsuario();
-        boolean aprobada = solicitud.getEtapa() != null && APROBADA.equals(solicitud.getEtapa().getCodigo());
         ResumenRespuesta resumen = ResumenRespuesta.builder()
                 .radicado(solicitud.getRadicado())
                 .tipoSolicitud(proceso.getNombre())

@@ -41,7 +41,7 @@ Julián (ver `docs/database/`).
 ├── frontend/   Angular 20 + PrimeNG — SPA
 └── docs/
     ├── api/
-    │   └── contrato-api-procesos-academicos.md   Contrato de los 76 endpoints académicos
+    │   └── contrato-api-procesos-academicos.md   Contrato de los 78 endpoints académicos
     ├── database/
     │   ├── script_bd_extension.sql          DDL de referencia de las 21 tablas nuevas (no se ejecuta)
     │   ├── diccionario-datos-extension.md   Diccionario de datos de la extensión
@@ -67,6 +67,25 @@ Julián (ver `docs/database/`).
 - **Docker Desktop** (incluye Docker Compose)
 - **JDK 17** (solo para compilar el backend antes de construir la imagen; el
   backend incluye Maven Wrapper, así que no hace falta instalar Maven aparte)
+
+Antes del primer arranque se crea `backend/.env` a partir de
+`backend/.env.example` (el `.env` no se sube al repositorio). Variables:
+
+| Variable | Obligatoria | Para qué |
+| --- | --- | --- |
+| `JWT_SECRET` | Sí | Clave de firma de los tokens (Base64 o hexadecimal de al menos 64 caracteres; se puede generar con `python -c "import secrets;print(secrets.token_hex(32))"`) |
+| `CORREO_DARCA` | Sí | Buzón de DARCA que recibe las respuestas finales |
+| `MAIL_USER`, `MAIL_PASSWORD` | No | Cuenta de Gmail que envía los correos y su contraseña de aplicación; sin ellas el envío solo deja el error en el log |
+
+Ninguna tiene valor por defecto en los archivos versionados. Si falta
+`JWT_SECRET` o `CORREO_DARCA`, `docker compose` se detiene con el mensaje
+`Falta <VARIABLE> en backend/.env`, y el backend, si se arranca sin Docker,
+no inicia y dice `Faltan variables de entorno obligatorias: <lista>`.
+
+El backend y MySQL corren en hora de Colombia: el compose fija
+`TZ: America/Bogota` en los dos contenedores, MySQL arranca con
+`--default-time-zone=-05:00` y la conexión usa
+`serverTimezone=America/Bogota`.
 
 ```bash
 # 1) Backend: generar el jar y levantar backend + MySQL con Docker
@@ -131,7 +150,10 @@ contenerizarlo en vez de correrlo con `npm start`.
 valores fijos de conexión: lee las variables de entorno `SERVER_PORT`,
 `DB_URL`, `DB_USER_NAME`, `DB_PASSWORD` y `UPLOADS_PATH` (esta última por
 defecto `/app/uploads`). Hay que definirlas para apuntar al MySQL local en
-vez del contenedor `cfiet_database`.
+vez del contenedor `cfiet_database`, con `serverTimezone=America/Bogota` en
+`DB_URL`. Sin Docker el archivo `.env` no se lee solo: `JWT_SECRET` y
+`CORREO_DARCA` (obligatorias) y `MAIL_USER` y `MAIL_PASSWORD` se definen en
+la consola antes de `java -jar`.
 
 ## Pruebas
 
@@ -162,5 +184,7 @@ procesos académicos: catálogo de asignaturas, estudiantes y funcionarios
 académicos (por formulario y por carga masiva desde Excel), catálogos
 académicos, radicación, trámite por etapas, anexos, Resolución escaneada y
 consultas por rol. El contrato de la API está en
-`docs/api/contrato-api-procesos-academicos.md`. El frontend todavía no
-consume los endpoints de los procesos académicos.
+`docs/api/contrato-api-procesos-academicos.md`. El frontend ya consume los
+endpoints de los tres procesos y de la administración académica (pantallas
+del Estudiante, del Funcionario Académico, del Decano, del Secretario General
+y del Docente; ver `frontend/CLAUDE.md`).

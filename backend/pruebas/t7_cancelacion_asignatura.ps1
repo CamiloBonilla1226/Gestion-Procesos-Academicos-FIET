@@ -499,15 +499,15 @@ Escribir-Resultado "la bandeja del funcionario y la del Decano traen decisionDec
     Escribir-Resultado "las asignaturas siguen activas tras la decision (obtuvo $(Estados @($a1, $a2, $a3, $a4)))" ((Estados @($a1, $a2, $a3, $a4)) -eq "activa,activa,activa,activa")
 
     $mensajeAprobada = "Se cancelan Materia 1 y Materia 3 para T7"
-    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol1/funcionario/responder" -Token $fa1.Token -Cuerpo @{ programacion = (Programacion-T7); enviarMensaje = $false; observacion = $mensajeAprobada; ajustes = @((Ajuste $f1 $situacionesCancelar[0] ""), (Ajuste $f2 "" $motivoRechazo), (Ajuste $f3 $situacionesCancelar[1] "")) }
+    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol1/funcionario/responder" -Token $fa1.Token -Cuerpo @{ programacion = (Programacion-T7); enviarMensaje = $true; mensaje = "Acerquese a la Decanatura T7"; observacion = $mensajeAprobada; ajustes = @((Ajuste $f1 $situacionesCancelar[0] ""), (Ajuste $f2 "" $motivoRechazo), (Ajuste $f3 $situacionesCancelar[1] "")) }
     Escribir-Resultado "enviar la respuesta sin escaneo falla (obtuvo $($r.Status), etapa $(Etapa-De $sol1))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "*escaneo*") -and ((Etapa-De $sol1) -eq "APROBADA_POR_DECANO") -and ((Estados @($a1, $a2, $a3, $a4)) -eq "activa,activa,activa,activa"))
     $r = Subir-Escaneo -Solicitud $sol1 -Pdf $pdfResolucion -Token $fa1.Token
     Escribir-Resultado "el funcionario sube el escaneo de la Resolucion (200, obtuvo $($r.Status))" ($r.Status -eq 200)
     $filasAntes = Estado-Filas $sol1
-    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol1/funcionario/responder" -Token $fa1.Token -Cuerpo @{ programacion = (Programacion-T7); enviarMensaje = $false; ajustes = @((Ajuste $f1 $situacionesCancelar[0] ""), (Ajuste $f2 "" $motivoRechazo), (Ajuste $f3 $situacionesCancelar[1] "")) }
+    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol1/funcionario/responder" -Token $fa1.Token -Cuerpo @{ programacion = (Programacion-T7); enviarMensaje = $true; mensaje = "Acerquese a la Decanatura T7"; ajustes = @((Ajuste $f1 $situacionesCancelar[0] ""), (Ajuste $f2 "" $motivoRechazo), (Ajuste $f3 $situacionesCancelar[1] "")) }
     Escribir-Resultado "con una asignatura rechazada la observacion general es obligatoria (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Leer-Json $r).codigoError -eq "4") -and ((Mensaje-De $r) -like "*requiere una observaci*") -and ((Etapa-De $sol1) -eq "APROBADA_POR_DECANO") -and ((Estado-Filas $sol1) -eq $filasAntes))
     Escribir-Resultado "los intentos fallidos no cancelaron asignaturas (obtuvo $(Estados @($a1, $a2, $a3, $a4)))" ((Estados @($a1, $a2, $a3, $a4)) -eq "activa,activa,activa,activa")
-    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol1/funcionario/responder" -Token $fa1.Token -Cuerpo @{ programacion = (Programacion-T7); enviarMensaje = $false; observacion = $mensajeAprobada; ajustes = @((Ajuste $f1 $situacionesCancelar[0] ""), (Ajuste $f2 "" $motivoRechazo), (Ajuste $f3 $situacionesCancelar[1] "")) }
+    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol1/funcionario/responder" -Token $fa1.Token -Cuerpo @{ programacion = (Programacion-T7); enviarMensaje = $true; mensaje = "Acerquese a la Decanatura T7"; observacion = $mensajeAprobada; ajustes = @((Ajuste $f1 $situacionesCancelar[0] ""), (Ajuste $f2 "" $motivoRechazo), (Ajuste $f3 $situacionesCancelar[1] "")) }
     Escribir-Resultado "enviar la respuesta con los ajustes deja la solicitud APROBADA (obtuvo $($r.Status), etapa $(Etapa-De $sol1))" (($r.Status -eq 200) -and ((Etapa-De $sol1) -eq "APROBADA"))
     Verificar-Retenida "estudiante 1" $sol1 $est1.Token
     Liberar-Respuesta $sol1
@@ -572,15 +572,15 @@ Escribir-Resultado "tras responder la bandeja del funcionario conserva APROBADA_
     Verificar-EtapaHttp -Solicitud $sol3 -Esperada "RECHAZADA_POR_DECANO" -Estudiante $est3.Token -Funcionario $fa1.Token -Decano $decano.Token
     $r = Subir-Escaneo -Solicitud $sol3 -Pdf $pdfResolucion -Token $fa1.Token
     $mensajeEstudiante = "Consulte la Resolucion adjunta"
-    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol3/funcionario/responder" -Token $fa1.Token -Cuerpo @{ programacion = (Programacion-T7); enviarMensaje = $false }
+    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol3/funcionario/responder" -Token $fa1.Token -Cuerpo @{ programacion = (Programacion-T7); enviarMensaje = $true; mensaje = "Acerquese a la Decanatura T7" }
     Escribir-Resultado "con la solicitud rechazada por el Decano la observacion de la respuesta es obligatoria (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Leer-Json $r).codigoError -eq "4") -and ((Mensaje-De $r) -like "*requiere una observaci*") -and ((Etapa-De $sol3) -eq "RECHAZADA_POR_DECANO"))
 $bandejaFa = @(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/funcionario" -Token $fa1.Token))
 $decision3 = ($bandejaFa | Where-Object { $_.uuidSolicitudAcademica -eq $sol3 }).decisionDecano
 $decision2 = ($bandejaFa | Where-Object { $_.uuidSolicitudAcademica -eq $sol2 }).decisionDecano
 Escribir-Resultado "la bandeja trae RECHAZADA si el Decano rechazo y nula si rechazo el funcionario (obtuvo $decision3 y $decision2)" (($decision3 -eq "RECHAZADA") -and ($null -eq $decision2))
-    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol3/funcionario/responder" -Token $fa1.Token -Cuerpo @{ programacion = (Programacion-T7); enviarMensaje = $false; observacion = $mensajeEstudiante; ajustes = @((Ajuste $g1 $situacionesCancelar[1] "")) }
+    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol3/funcionario/responder" -Token $fa1.Token -Cuerpo @{ programacion = (Programacion-T7); enviarMensaje = $true; mensaje = "Acerquese a la Decanatura T7"; observacion = $mensajeEstudiante; ajustes = @((Ajuste $g1 $situacionesCancelar[1] "")) }
     Escribir-Resultado "una solicitud rechazada por el Decano no admite ajustes (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Leer-Json $r).codigoError -eq "4") -and ((Etapa-De $sol3) -eq "RECHAZADA_POR_DECANO"))
-    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol3/funcionario/responder" -Token $fa1.Token -Cuerpo @{ programacion = (Programacion-T7); enviarMensaje = $false; observacion = $mensajeEstudiante }
+    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol3/funcionario/responder" -Token $fa1.Token -Cuerpo @{ programacion = (Programacion-T7); enviarMensaje = $true; mensaje = "Acerquese a la Decanatura T7"; observacion = $mensajeEstudiante }
     Escribir-Resultado "la respuesta final deja la solicitud RECHAZADA (obtuvo $($r.Status), etapa $(Etapa-De $sol3))" (($r.Status -eq 200) -and ((Etapa-De $sol3) -eq "RECHAZADA"))
     Verificar-Retenida "estudiante 3" $sol3 $est3.Token
     Liberar-Respuesta $sol3
@@ -619,7 +619,7 @@ Escribir-Resultado "la bandeja trae RECHAZADA si el Decano rechazo y nula si rec
     $detalle = Leer-Json (Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$sol4" -Token $fa1.Token)
     Escribir-Resultado "con la evaluacion aceptada ninguna decision sale cambiada" (@($detalle.asignaturas | Where-Object { $_.decisionCambiadaPorDecano -eq $false }).Count -eq 2)
     $r = Subir-Escaneo -Solicitud $sol4 -Pdf $pdfResolucion -Token $fa1.Token
-    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol4/funcionario/responder" -Token $fa1.Token -Cuerpo @{ programacion = (Programacion-T7); enviarMensaje = $false }
+    $r = Invoke-Api -Metodo POST -Ruta "$Global:Ruta/$sol4/funcionario/responder" -Token $fa1.Token -Cuerpo @{ programacion = (Programacion-T7); enviarMensaje = $true; mensaje = "Acerquese a la Decanatura T7" }
     Liberar-Respuesta $sol4
     $situacionesBd = Ejecutar-Sql "select group_concat(coalesce(SituacionCancelar_uuid, '-') order by field(uuidAsignaturaSolicitud, '$h1', '$h2') separator ';') from ASIGNATURA_SOLICITUD_ACADEMICA where SolicitudAcademica_uuid = '$sol4'"
     Escribir-Resultado "la aprobada sin situacion al cancelar se responde igual, sin observacion, y queda APROBADA: la situacion es opcional (obtuvo $($r.Status), etapa $(Etapa-De $sol4), $situacionesBd)" (($r.Status -eq 200) -and ((Etapa-De $sol4) -eq "APROBADA") -and ((Estados $activas4) -eq "cancelada,cancelada") -and ($situacionesBd -eq "$($situacionesCancelar[1]);-"))

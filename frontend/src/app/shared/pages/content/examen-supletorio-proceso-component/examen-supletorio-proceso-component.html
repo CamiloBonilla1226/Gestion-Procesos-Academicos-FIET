@@ -80,7 +80,16 @@
 
   @if (accionesVisibles.length > 0) {
   <section class="tarjeta tarjeta-acciones" data-acciones>
-    @for (accion of accionesVisibles; track accion) {
+    @if (decide) {
+    <app-decision-decano-component nombre="decision-supletorio" textoAprobar="Aprobar el examen supletorio"
+      textoRechazar="Rechazar el examen supletorio" [decision]="decisionDecano" [deshabilitado]="!detalle || cargandoTipos"
+      (decisionChange)="decisionDecano = $event">
+    </app-decision-decano-component>
+    <app-simple-button-component data-accion="ENVIAR_DECISION" [label]="etiquetaEnviarDecision" width="auto" height="38px"
+      color="#2A3A86" [disabled]="!detalle || cargandoTipos || decisionDecano === null" (clicked)="abrirDecision()">
+    </app-simple-button-component>
+    }
+    @for (accion of accionesBotones; track accion) {
     <app-simple-button-component [attr.data-accion]="accion" [label]="etiquetaBoton(accion)" width="auto" height="38px"
       [color]="esRechazo(accion) ? '#D0463B' : '#2A3A86'" [contorno]="esRechazo(accion)"
       [disabled]="!detalle || cargandoTipos" (clicked)="abrir(accion)">

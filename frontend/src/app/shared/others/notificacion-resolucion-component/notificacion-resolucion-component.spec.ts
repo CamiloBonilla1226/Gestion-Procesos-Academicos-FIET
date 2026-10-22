@@ -21,7 +21,9 @@ const SOLICITUD = {
 function notificacion(cambios: Partial<NotificacionResolucionDTORespuesta> = {}): NotificacionResolucionDTORespuesta {
   return {
     estado: 'PROGRAMADA', fechaProgramada: '2099-01-01T08:30:00', firmada: false, numeroResolucion: '123-26', anioResolucion: 2026,
-    sufijoResolucion: '/178', decision: 'aprueba la', mensajeInicial: 'Buen día', fechaEnvioEstudiante: null, fechaEnvioDarca: null,
+    sufijoResolucion: '/178', decision: 'aprueba la', mensajeInicial: 'Buen día', textoComunicacion: 'Texto {numero}',
+    textoDarca: 'Popayán, Cauca, {fecha}\n\nSe comunicó.', textoDarcaFirma: 'Popayán, Cauca, {fecha}\n\nFirmó.',
+    fechaEnvioEstudiante: null, fechaEnvioDarca: null,
     intentos: 0, ultimoError: null, fechaEnvio: null, fechaLiberacion: null, editable: true, ...cambios
   };
 }
@@ -81,14 +83,21 @@ describe('NotificacionResolucionComponent', () => {
     expect(panel.querySelector('[data-resolucion-vigente]').textContent.trim()).toBe('Sin firmar por el estudiante');
   });
 
-  it('con la firmada vigente lo indica y deja volver a subirla', () => {
-    const fixture = crear(notificacion({ firmada: true }));
+  it('con la firma registrada la comunicacion queda cerrada y no se puede subir otra firmada', () => {
+    const fixture = crear(notificacion({ firmada: true, editable: false, estado: 'ENVIADA', fechaEnvioDarca: '2099-01-01T08:31:00' }));
     const componente = fixture.componentInstance;
     expect(fixture.nativeElement.querySelector('[data-resolucion-vigente]').textContent.trim()).toBe('Firmada por el estudiante');
-    expect(componente.textoBotonFirma).toBe('Volver a subir la firmada');
+    expect(fixture.nativeElement.querySelector('[data-estado]').textContent).toContain('Cerrada por la firma del estudiante');
+    expect(fixture.nativeElement.querySelector('[data-nota-firmada]')).toBeTruthy();
+    expect(acciones(fixture)).toEqual([]);
     componente.abrir('firma');
-    expect(componente.dialogo).toBe('firma');
-    expect(componente.tituloDialogo).toBe('Volver a subir la Resolución firmada');
+    expect(componente.dialogo).toBeNull();
+  });
+
+  it('con la firma cerrada y el correo a DARCA fallido solo deja reintentar', () => {
+    const fixture = crear(notificacion({ firmada: true, editable: false, estado: 'FALLIDA', intentos: 3, ultimoError: 'Correo a DARCA: caído' }));
+    expect(acciones(fixture)).toEqual(['REINTENTAR']);
+    expect(fixture.nativeElement.querySelector('[data-estado]').textContent).toContain('fallida');
   });
 
   it('enviada es de solo lectura', () => {
@@ -138,19 +147,26 @@ describe('NotificacionResolucionComponent', () => {
     expect(toast.showSuccess).toHaveBeenCalled();
   });
 
-  it('la firma exige el PDF y lo envia', () => {
-    servicio.registrarFirma.and.returnValue(of(notificacion({ firmada: true })));
+  it('la firma exige el PDF y el texto de DARCA, que llega prellenado y editable, y los envia', () => {
+    servicio.registrarFirma.and.returnValue(of(notificacion({ firmada: true, editable: false })));
     const fixture = crear(notificacion());
     const componente = fixture.componentInstance;
     componente.abrir('firma');
+    fixture.detectChanges();
+    expect(componente.textoDarca).toBe('Popayán, Cauca, {fecha}\n\nFirmó.');
+    expect(document.querySelector('[data-campo-texto-darca] [data-vista-texto]')?.textContent).toContain('Popayán, Cauca, ');
+    expect(document.querySelector('[data-campo-texto-darca] [data-vista-texto]')?.textContent).not.toContain('{fecha}');
+    componente.textoDarca = ' ';
     componente.confirmar();
     expect(componente.errores['firma']).toContain('PDF');
+    expect(componente.errores['textoDarca']).toContain('DARCA');
+    componente.textoDarca = ' Texto editado {fecha} ';
     componente.alSeleccionarFirma(new File(['x'], 'firmada.png'), entrada);
     expect(componente.archivoFirma).toBeNull();
     const pdf = new File(['%PDF-'], 'firmada.pdf', { type: 'application/pdf' });
     componente.alSeleccionarFirma(pdf, entrada);
     componente.confirmar();
-    expect(servicio.registrarFirma).toHaveBeenCalledWith('s-1', pdf);
+    expect(servicio.registrarFirma).toHaveBeenCalledWith('s-1', pdf, 'Texto editado {fecha}');
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('[data-nota-firmada]')).toBeTruthy();
   });

@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Set;
 
@@ -23,6 +24,7 @@ import static com.unicauca.cfiet.solicitudes.dominio.modelos.EstadoNotificacionR
 @Service
 @RequiredArgsConstructor
 public class NotificacionResolucionGatewayImplAdaptador implements NotificacionResolucionGatewayIntPuerto {
+    private static final ZoneId ZONA_COLOMBIA = ZoneId.of("America/Bogota");
     private final NotificacionResolucionRepositorio repositorio;
     private final SolicitudAcademicaRepositorio solicitudRepositorio;
     private final NotificacionResolucionOwnMapper mapper;
@@ -45,7 +47,7 @@ public class NotificacionResolucionGatewayImplAdaptador implements NotificacionR
     @Override
     @Transactional(readOnly = true)
     public boolean estaRetenida(String uuidSolicitudAcademica) {
-        return uuidSolicitudAcademica != null && repositorio.existsByUuidSolicitudAcademicaAndFechaLiberacionIsNull(uuidSolicitudAcademica);
+        return uuidSolicitudAcademica != null && repositorio.estaRetenida(uuidSolicitudAcademica, LocalDateTime.now(ZONA_COLOMBIA));
     }
 
     @Override
@@ -53,7 +55,7 @@ public class NotificacionResolucionGatewayImplAdaptador implements NotificacionR
     public Set<String> getRetenidas(List<String> uuidsSolicitud) {
         if (uuidsSolicitud == null || uuidsSolicitud.isEmpty())
             return Set.of();
-        return Set.copyOf(repositorio.findRetenidas(uuidsSolicitud));
+        return Set.copyOf(repositorio.findRetenidas(uuidsSolicitud, LocalDateTime.now(ZONA_COLOMBIA)));
     }
 
     @Override
@@ -77,8 +79,8 @@ public class NotificacionResolucionGatewayImplAdaptador implements NotificacionR
 
     @Override
     @Transactional
-    public boolean marcarFirmada(String uuidSolicitudAcademica, LocalDateTime ahora) {
-        return repositorio.marcarFirmada(uuidSolicitudAcademica, PROGRAMADA, ahora) == 1;
+    public boolean marcarFirmada(String uuidSolicitudAcademica, String textoDarca, LocalDateTime ahora) {
+        return repositorio.marcarFirmada(uuidSolicitudAcademica, textoDarca, PROGRAMADA, ahora) == 1;
     }
 
     @Override

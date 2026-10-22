@@ -1,29 +1,31 @@
-<div class="d-flex flex-column gap-2" data-comunicacion>
-  <h4 class="subtitulo">Mensaje inmediato al estudiante</h4>
-  <div class="form-check">
-    <input class="form-check-input" type="checkbox" id="enviar-mensaje-estudiante" data-campo="enviar-mensaje"
-      [checked]="comunicacion.enviarMensaje" (change)="cambiarEnvio($event)">
-    <label class="form-check-label" for="enviar-mensaje-estudiante">Enviar mensaje al estudiante</label>
-  </div>
-  @if (comunicacion.enviarMensaje) {
-  <div class="campo-mensaje" data-campo-mensaje>
-    <app-input-text-tarea-component label="Mensaje al estudiante" [required]="true" [(value)]="comunicacion.mensaje">
-    </app-input-text-tarea-component>
-    <div class="fila-ayuda">
-      <small class="texto-error" data-error="mensaje">{{ errores['mensaje'] || '' }}</small>
-      <small class="contador" [class.excedido]="comunicacion.mensaje.length > maximoMensaje" data-contador-mensaje>
-        {{ comunicacion.mensaje.length }}/{{ maximoMensaje }}</small>
-    </div>
-    <p class="nota-gris mb-0">Sale de inmediato, sin adjuntos y sin decir el resultado de la solicitud.</p>
-  </div>
-  }
+<div class="d-flex flex-column gap-3" data-comunicacion>
+  <section class="d-flex flex-column gap-2" data-bloque="mensaje">
+    <h4 class="subtitulo">Mensaje inmediato al estudiante</h4>
+    <p class="nota-gris mb-0">Siempre se envía al guardar la respuesta, sin adjuntos y sin decir el resultado de la solicitud.</p>
+    <app-texto-comunicacion-component etiqueta="Mensaje al estudiante" [(texto)]="comunicacion.mensaje" [maximo]="maximoMensaje"
+      [error]="errores['mensaje'] || ''" [conVista]="false" data-campo-mensaje>
+    </app-texto-comunicacion-component>
+  </section>
 
-  <h4 class="subtitulo">Comunicación programada de la Resolución</h4>
-  <p class="nota-gris mb-0">
-    En la fecha y hora programadas se envía al estudiante la comunicación electrónica con la Resolución y a DARCA la
-    notificación con sus soportes. Si el estudiante firma antes en la Decanatura, regístralo en el detalle.
-  </p>
-  <app-programacion-resolucion-component [programacion]="comunicacion.programacion" [sufijo]="sufijo" [errores]="errores">
-  </app-programacion-resolucion-component>
-  <p class="nota-aviso mb-0" data-nota-retencion>{{ notaRetencion }}</p>
+  <ng-content></ng-content>
+
+  <section class="d-flex flex-column gap-2" data-bloque="programacion">
+    <h4 class="subtitulo">Comunicación programada de la Resolución</h4>
+    <p class="nota-gris mb-0">
+      En la fecha y hora programadas se envía al estudiante la comunicación electrónica con la Resolución y a DARCA la
+      notificación con sus soportes. Si el estudiante firma antes en la Decanatura, regístralo en el detalle: DARCA recibe de
+      inmediato la Resolución firmada y al estudiante no se le envía la comunicación.
+    </p>
+    <app-programacion-resolucion-component [programacion]="comunicacion.programacion" [sufijo]="sufijo" [errores]="errores">
+    </app-programacion-resolucion-component>
+    <app-texto-comunicacion-component etiqueta="Mensaje que recibirá el estudiante" [(texto)]="comunicacion.textoComunicacion"
+      [valores]="valoresEstudiante" [maximo]="maximoTexto" [error]="errores['textoComunicacion'] || ''" [ayuda]="ayudaEstudiante"
+      [sugerido]="sugeridoComunicacion" tituloVista="Así lo recibirá el estudiante" data-campo-texto-estudiante>
+    </app-texto-comunicacion-component>
+    <app-texto-comunicacion-component etiqueta="Mensaje que recibirá DARCA" [(texto)]="comunicacion.textoDarca" [valores]="valoresDarca"
+      [resaltar]="false" [maximo]="maximoTexto" [error]="errores['textoDarca'] || ''" [ayuda]="ayudaDarca" [sugerido]="sugeridoDarca"
+      tituloVista="Así lo recibirá DARCA" data-campo-texto-darca>
+    </app-texto-comunicacion-component>
+    <p class="nota-aviso mb-0" data-nota-retencion>{{ notaRetencion }}</p>
+  </section>
 </div>

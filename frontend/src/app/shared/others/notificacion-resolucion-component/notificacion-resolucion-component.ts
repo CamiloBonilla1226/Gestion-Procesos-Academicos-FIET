@@ -5,6 +5,7 @@ import { SimpleButtonComponent } from '../../buttons/simple-button-component/sim
 import { InputAnexoUploadComponent } from '../../inputs/input-anexo-upload-component/input-anexo-upload-component';
 import { ResumenSolicitudComponent } from '../resumen-solicitud-component/resumen-solicitud-component';
 import { ProgramacionResolucionComponent } from '../programacion-resolucion-component/programacion-resolucion-component';
+import { TextoComunicacionComponent } from '../texto-comunicacion-component/texto-comunicacion-component';
 import { CancelacionAsignaturaService } from '../../../core/services/cancelacion-asignatura-service';
 import { ErrorHandlerService } from '../../../core/services/error-handler-service';
 import { ToastService } from '../../../core/services/toast-service';
@@ -15,7 +16,10 @@ import { comoTipoAnexo, errorDeArchivo } from '../../../core/utils/validaciones-
 import {
   ESTADOS_NOTIFICACION,
   ProgramacionEnEdicion,
+  ahoraEnColombia,
+  errorDeTextoComunicacion,
   erroresDeProgramacion,
+  fechaCarta,
   programacionAPeticion,
   programacionDesde,
   textoFechaHora
@@ -25,7 +29,7 @@ type DialogoNotificacion = 'reprogramar' | 'firma' | 'reintentar';
 
 const RESOLUCION_SIN_FIRMAR = 'Sin firmar por el estudiante';
 const RESOLUCION_FIRMADA = 'Firmada por el estudiante';
-const TITULO_REEMPLAZO_FIRMA = 'Volver a subir la Resolución firmada';
+const ESTADO_CERRADA = 'Cerrada por la firma del estudiante';
 
 const TITULOS: Record<DialogoNotificacion, string> = {
   reprogramar: 'Reprogramar la comunicación de la Resolución',
@@ -41,13 +45,20 @@ const BOTONES: Record<DialogoNotificacion, string> = {
 
 const EXITOS: Record<DialogoNotificacion, string> = {
   reprogramar: 'La comunicación quedó reprogramada.',
-  firma: 'La Resolución firmada por el estudiante quedó vigente: no se le enviará la comunicación.',
+  firma: 'La comunicación quedó cerrada: DARCA recibe ahora la Resolución firmada y el estudiante ya ve la respuesta.',
   reintentar: 'El envío quedó programado de nuevo.'
 };
 
 @Component({
   selector: 'app-notificacion-resolucion-component',
-  imports: [GenericDialogFormComponent, SimpleButtonComponent, InputAnexoUploadComponent, ResumenSolicitudComponent, ProgramacionResolucionComponent],
+  imports: [
+    GenericDialogFormComponent,
+    SimpleButtonComponent,
+    InputAnexoUploadComponent,
+    ResumenSolicitudComponent,
+    ProgramacionResolucionComponent,
+    TextoComunicacionComponent
+  ],
   templateUrl: './notificacion-resolucion-component.html',
   styleUrl: '../../pages/content/estilos-academicos.css'
 })
@@ -65,6 +76,8 @@ export class NotificacionResolucionComponent implements OnChanges {
   enviando = false;
   programacion: ProgramacionEnEdicion = { fecha: '', numero: '', anio: '', decision: '' };
   archivoFirma: File | null = null;
+  textoDarca = '';
+  readonly ayudaDarca = '{fecha} se reemplaza por la fecha de hoy, cuando sale el correo.';
   errores: Record<string, string> = {};
 
   constructor(
@@ -78,7 +91,13 @@ export class NotificacionResolucionComponent implements OnChanges {
   }
 
   get estado(): string {
-    return this.notificacion ? ESTADOS_NOTIFICACION[this.notificacion.estado] ?? this.notificacion.estado : '';
+    if (!this.notificacion) return '';
+    const envio = ESTADOS_NOTIFICACION[this.notificacion.estado] ?? this.notificacion.estado;
+    return this.notificacion.firmada ? `${ESTADO_CERRADA} (correo a DARCA: ${envio.toLowerCase()})` : envio;
+  }
+
+  get valoresDarca(): Record<string, string> {
+    return { fecha: fechaCarta(ahoraEnColombia()) };
   }
 
   get resolucion(): string {
@@ -90,10 +109,6 @@ export class NotificacionResolucionComponent implements OnChanges {
     return this.notificacion?.firmada ? RESOLUCION_FIRMADA : RESOLUCION_SIN_FIRMAR;
   }
 
-  get textoBotonFirma(): string {
-    return this.notificacion?.firmada ? 'Volver a subir la firmada' : 'El estudiante firmó';
-  }
-
   get puedeReintentar(): boolean {
     return this.notificacion?.estado === 'FALLIDA';
   }
@@ -103,7 +118,6 @@ export class NotificacionResolucionComponent implements OnChanges {
   }
 
   get tituloDialogo(): string {
-    if (this.dialogo === 'firma' && this.notificacion?.firmada) return TITULO_REEMPLAZO_FIRMA;
     return this.dialogo ? TITULOS[this.dialogo] : '';
   }
 
@@ -139,6 +153,7 @@ export class NotificacionResolucionComponent implements OnChanges {
     this.dialogo = dialogo;
     this.errores = {};
     this.archivoFirma = null;
+    this.textoDarca = this.notificacion.textoDarcaFirma ?? this.notificacion.textoDarca ?? '';
     this.programacion = programacionDesde(this.notificacion);
   }
 
@@ -187,14 +202,19 @@ export class NotificacionResolucionComponent implements OnChanges {
 
   private validar(dialogo: DialogoNotificacion): Record<string, string> {
     if (dialogo === 'reprogramar') return erroresDeProgramacion(this.programacion);
-    if (dialogo === 'firma' && !this.archivoFirma) return { firma: 'Sube la Resolución firmada por el estudiante (PDF).' };
-    return {};
+    if (dialogo !== 'firma') return {};
+    const errores: Record<string, string> = {};
+    if (!this.archivoFirma) errores['firma'] = 'Sube la Resolución firmada por el estudiante (PDF).';
+    const errorTexto = errorDeTextoComunicacion(this.textoDarca, 'DARCA');
+    if (errorTexto) errores['textoDarca'] = errorTexto;
+    return errores;
   }
 
   private ejecutar(dialogo: DialogoNotificacion): Observable<NotificacionResolucionDTORespuesta> {
     if (dialogo === 'reprogramar')
       return this.cancelacionAsignaturaService.reprogramarNotificacion(this.uuidSolicitud, programacionAPeticion(this.programacion));
-    if (dialogo === 'firma') return this.cancelacionAsignaturaService.registrarFirma(this.uuidSolicitud, this.archivoFirma!);
+    if (dialogo === 'firma')
+      return this.cancelacionAsignaturaService.registrarFirma(this.uuidSolicitud, this.archivoFirma!, this.textoDarca.trim());
     return this.cancelacionAsignaturaService.reintentarNotificacion(this.uuidSolicitud);
   }
 }

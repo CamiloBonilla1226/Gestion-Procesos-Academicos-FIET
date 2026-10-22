@@ -31,6 +31,8 @@ import { NOTA_SIMCA } from '../../../../core/constantes/textos-cancelacion-matri
 import { CeldaEncabezado, agruparEncabezados } from '../../../../core/utils/encabezado-agrupado';
 import { ResumenSolicitudComponent } from '../../../others/resumen-solicitud-component/resumen-solicitud-component';
 import { DocumentoAdicionalComponent } from '../../../others/documento-adicional-component/documento-adicional-component';
+import { DecisionDecanoComponent } from '../../../others/decision-decano-component/decision-decano-component';
+import { DecisionDecano, ETIQUETA_ENVIAR_DECISION, accionDeDecision, esAccionDecisionDecano } from '../../../../core/utils/decision-decano';
 import {
   TITULO_FALLA_DOCUMENTO_ADICIONAL,
   admiteDocumentoAdicional,
@@ -87,8 +89,6 @@ const ACCIONES_DEL_PROCESO: AccionAcademica[] = [
 const ETIQUETAS_BOTON: Partial<Record<AccionAcademica, string>> = {
   [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'Rechazar solicitud',
   [ACCIONES_ACADEMICAS.REMITIR_DECANO]: 'Remitir al Decano',
-  [ACCIONES_ACADEMICAS.APROBAR_DECANO]: 'Aprobar',
-  [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: 'Rechazar',
   [ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA]: 'Enviar respuesta'
 };
 
@@ -103,9 +103,9 @@ const TITULOS_DIALOGO: Partial<Record<AccionAcademica, string>> = {
 const TEXTOS_BOTON_DIALOGO: Partial<Record<AccionAcademica, string>> = {
   [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'Rechazar solicitud',
   [ACCIONES_ACADEMICAS.REMITIR_DECANO]: 'Remitir al Decano',
-  [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: 'Rechazar solicitud',
+  [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: ETIQUETA_ENVIAR_DECISION,
   [ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA]: 'Enviar respuesta',
-  [ACCIONES_ACADEMICAS.APROBAR_DECANO]: 'Aprobar solicitud'
+  [ACCIONES_ACADEMICAS.APROBAR_DECANO]: ETIQUETA_ENVIAR_DECISION
 };
 
 const MENSAJES_EXITO: Partial<Record<AccionAcademica, string>> = {
@@ -126,7 +126,8 @@ const COLUMNAS_FIJAS = ['Código', 'Asignatura'];
     InputTextTareaComponent,
     InputAnexoUploadComponent,
     ResumenSolicitudComponent,
-    DocumentoAdicionalComponent
+    DocumentoAdicionalComponent,
+    DecisionDecanoComponent
   ],
   templateUrl: './cancelacion-matricula-proceso-component.html',
   styleUrls: ['../estilos-academicos.css', '../tabla-asignaturas.css']
@@ -143,6 +144,7 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
 
   readonly notaAprobarDecano = NOTA_APROBAR_DECANO;
   readonly notaSimca = NOTA_SIMCA;
+  readonly etiquetaEnviarDecision = ETIQUETA_ENVIAR_DECISION;
 
   columnas: ColumnaAsignatura[] = COLUMNAS;
   encabezadoAgrupado: CeldaEncabezado[][] = agruparEncabezados(COLUMNAS.map(c => c.titulo), RUTAS_ENCABEZADO_ASIGNATURAS);
@@ -166,6 +168,7 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
   adicionalSubido = false;
   errorAdicional = '';
   evaluaciones: Record<string, EvaluacionEnEdicion> = {};
+  decisionDecano: DecisionDecano | null = null;
   errores: Record<string, string> = {};
   erroresServidor: string[] = [];
 
@@ -181,6 +184,7 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
     if (cambios['uuidSolicitud'] || cambios['solicitud']) {
       this.resolucionSubida = false;
       this.adicionalSubido = false;
+      this.decisionDecano = null;
       this.cargarDetalle();
     }
   }
@@ -188,6 +192,14 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
   get accionesVisibles(): AccionAcademica[] {
     const disponibles = this.solicitud?.accionesDisponibles ?? [];
     return ACCIONES_DEL_PROCESO.filter(accion => disponibles.includes(accion));
+  }
+
+  get accionesBotones(): AccionAcademica[] {
+    return this.accionesVisibles.filter(accion => !esAccionDecisionDecano(accion));
+  }
+
+  get decide(): boolean {
+    return this.accionesVisibles.some(accion => esAccionDecisionDecano(accion));
   }
 
   get muestraNotaSimca(): boolean {
@@ -287,6 +299,11 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
       return;
     }
     this.dialogoVisible = true;
+  }
+
+  abrirDecision(): void {
+    const accion = accionDeDecision(this.decisionDecano);
+    if (accion) this.abrir(accion);
   }
 
   private abrirRemision(): void {

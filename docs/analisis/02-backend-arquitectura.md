@@ -4,9 +4,9 @@ Análisis estático de solo lectura del backend (`backend/solicitudes`, Spring B
 
 ## 1. Criterio BASE / EXTENSIÓN y alcance
 
-- Fuente de las cifras: `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes` (459 archivos `.java`) y `backend/solicitudes/src/test/java` (38 archivos). Las lecturas de `backend/CLAUDE.md` y del `CLAUDE.md` raíz se contrastaron contra el código.
-- Criterio exacto de clasificación: `git ls-tree -r --name-only d3a48cc` (primer commit, 2026-09-30, "Inicializa el repositorio del trabajo de grado") lista **175** archivos `.java` bajo `backend/solicitudes/src/main/java`; los otros **284** aparecen en commits posteriores (41 commits tocan ese árbol después de `d3a48cc`). Ninguno de los 175 tiene vocabulario de la extensión (grep de `Academic|Cancel|Supletorio|Estudiante|Asignatura|Programa|Resolucion|Situacion|Etapa|Maquina` sobre sus nombres: 0 coincidencias) y todos los 284 sí. Se asume que `d3a48cc` es el estado del prototipo de Julián, coherente con lo que declaran los dos `CLAUDE.md`. Esto precisa lo dicho en `00-indice-y-metodo.md` ("el historial no sirve para separar"): para el árbol Java de main sí separa limpiamente porque la extensión llegó en commits posteriores al import inicial.
-- Cuatro archivos [BASE] fueron ampliados por la extensión, **solo con líneas agregadas** (`git diff d3a48cc --numstat`: 0 líneas borradas en los cuatro): `dominio/helper/constantes/ApplicationConstantes.java` (+8), `infraestructura/configuracion/BeanConfiguracion.java` (+267), `infraestructura/configuracion/seguridad/configuracion/ConfiguracionSeguridad.java` (+61), `infraestructura/output/manejadorExcepciones/MensajesError.java` (+93). Cuenta como [BASE] el archivo y como [EXTENSIÓN] sus adiciones. Los demás 171 archivos [BASE] no cambiaron desde `d3a48cc`.
+- Fuente de las cifras: `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes` (517 archivos `.java`) y `backend/solicitudes/src/test/java` (51 archivos). Las lecturas de `backend/CLAUDE.md` y del `CLAUDE.md` raíz se contrastaron contra el código. Cifras actualizadas el 2026-10-21 (T12.37) sobre el árbol de trabajo; el análisis original es del 2026-10-14 y tenía 459 archivos.
+- Criterio exacto de clasificación: `git -c core.quotepath=false ls-tree -r --name-only d3a48cc` (primer commit, 2026-09-30, "Inicializa el repositorio del trabajo de grado") lista **175** archivos `.java` bajo `backend/solicitudes/src/main/java`; los otros **342** aparecen en commits posteriores o en el árbol de trabajo. Sin `core.quotepath=false` git cita el nombre `CambioContraseñaDTOPeticion.java` y un filtro por `.java$` cuenta 174. Ninguno de los 175 tiene vocabulario de la extensión (grep de `Academic|Cancel|Supletorio|Estudiante|Asignatura|Programa|Resolucion|Situacion|Etapa|Maquina` sobre sus nombres: 0 coincidencias). Se asume que `d3a48cc` es el estado del prototipo de Julián, coherente con lo que declaran los dos `CLAUDE.md`. Esto precisa lo dicho en `00-indice-y-metodo.md` ("el historial no sirve para separar"): para el árbol Java de main sí separa limpiamente porque la extensión llegó en commits posteriores al import inicial.
+- Once archivos [BASE] tienen cambios de la extensión (`git diff d3a48cc --numstat`). Siete solo con líneas agregadas: `dominio/casosdeuso/SolicitudCUImplAdaptador.java` (+2), `dominio/helper/constantes/ApplicationConstantes.java` (+11), `infraestructura/configuracion/BeanConfiguracion.java` (+349), `infraestructura/configuracion/lectorArchivos/almacenador/AlmacenadorArchivos.java` (+24), `infraestructura/configuracion/seguridad/configuracion/ConfiguracionSeguridad.java` (+86), `infraestructura/configuracion/seguridad/jwt/JwtFiltroAutenticacion.java` (+11) e `infraestructura/output/manejadorExcepciones/MensajesError.java` (+110). Cuatro con líneas reemplazadas, todas de la tarea T12.21 (autorización de los endpoints de Julián, que lo pidió de forma explícita): `JwtServicio.java` (+4 -2, clave del JWT por variable de entorno), `RespuestaRestController.java` (+10 -3), `SolicitudesRestController.java` (+11 -3) y `UsuarioRestController.java` (+12 -3), estos tres por el control de dueño. Cuenta como [BASE] el archivo y como [EXTENSIÓN] sus cambios. Los demás 164 archivos [BASE] no cambiaron desde `d3a48cc`.
 - Cada módulo funcional lleva su origen; las clases compartidas (por ejemplo `ObservacionDTOPeticion`, ubicada en el paquete de Cancelación de Matrícula y reutilizada por Cancelación de Asignatura y Examen Supletorio) se atribuyen al paquete donde viven.
 
 ## 2. Árbol completo de paquetes
@@ -14,38 +14,38 @@ Análisis estático de solo lectura del backend (`backend/solicitudes`, Spring B
 Raíz Java: `backend/solicitudes/src/main/java/com/unicauca/cfiet/solicitudes`. Solo se muestran directorios con código; entre corchetes, archivos `.java` (BASE / EXT).
 
 ```
-solicitudes (raíz del paquete com.unicauca.cfiet.solicitudes)  [459 archivos en total (BASE 175, EXT 284); directos: 1 (BASE 1, EXT 0)]
-├── aplicacion/  [60 archivos en total (BASE 20, EXT 40)]
-│   ├── input/  [30 archivos en total (BASE 8, EXT 22)]
-│   └── output/  [30 archivos en total (BASE 12, EXT 18)]
-├── dominio/  [100 archivos en total (BASE 24, EXT 76)]
-│   ├── casosdeuso/  [30 archivos en total (BASE 8, EXT 22)]
+solicitudes (raíz del paquete com.unicauca.cfiet.solicitudes)  [517 archivos en total (BASE 175, EXT 342); directos: 1 (BASE 1, EXT 0)]
+├── aplicacion/  [70 archivos en total (BASE 20, EXT 50)]
+│   ├── input/  [34 archivos en total (BASE 8, EXT 26)]
+│   └── output/  [36 archivos en total (BASE 12, EXT 24)]
+├── dominio/  [122 archivos en total (BASE 24, EXT 98)]
+│   ├── casosdeuso/  [34 archivos en total (BASE 8, EXT 26)]
 │   ├── helper/  [5 archivos en total (BASE 2, EXT 3); directos: 1 (BASE 1, EXT 0)]
 │   │   └── constantes/  [4 archivos en total (BASE 1, EXT 3)]
-│   ├── modelos/  [58 archivos en total (BASE 14, EXT 44)]
-│   └── servicios/  [7 archivos en total (BASE 0, EXT 7)]
-└── infraestructura/  [298 archivos en total (BASE 130, EXT 168)]
-    ├── configuracion/  [26 archivos en total (BASE 14, EXT 12); directos: 1 (BASE 1, EXT 0)]
+│   ├── modelos/  [74 archivos en total (BASE 14, EXT 60)]
+│   └── servicios/  [9 archivos en total (BASE 0, EXT 9)]
+└── infraestructura/  [324 archivos en total (BASE 130, EXT 194)]
+    ├── configuracion/  [28 archivos en total (BASE 14, EXT 14); directos: 3 (BASE 1, EXT 2)]
     │   ├── lectorArchivos/  [19 archivos en total (BASE 7, EXT 12); directos: 12 (BASE 3, EXT 9)]
     │   │   ├── almacenador/  [1 archivos en total (BASE 1, EXT 0)]
     │   │   └── validadoresArchivos/  [6 archivos en total (BASE 3, EXT 3)]
     │   └── seguridad/  [6 archivos en total (BASE 6, EXT 0)]
     │       ├── configuracion/  [4 archivos en total (BASE 4, EXT 0)]
     │       └── jwt/  [2 archivos en total (BASE 2, EXT 0)]
-    ├── input/  [131 archivos en total (BASE 53, EXT 78)]
+    ├── input/  [140 archivos en total (BASE 53, EXT 87)]
     │   ├── controladorAsignaturas/  [6 archivos en total (BASE 0, EXT 6)]
     │   │   ├── controlador/  [1 archivos en total (BASE 0, EXT 1)]
     │   │   ├── DTOPeticion/  [3 archivos en total (BASE 0, EXT 3)]
     │   │   ├── DTORespuesta/  [1 archivos en total (BASE 0, EXT 1)]
     │   │   └── mapeador/  [1 archivos en total (BASE 0, EXT 1)]
-    │   ├── controladorCancelacionesAsignatura/  [14 archivos en total (BASE 0, EXT 14)]
+    │   ├── controladorCancelacionesAsignatura/  [17 archivos en total (BASE 0, EXT 17)]
     │   │   ├── controlador/  [1 archivos en total (BASE 0, EXT 1)]
-    │   │   ├── DTOPeticion/  [6 archivos en total (BASE 0, EXT 6)]
-    │   │   ├── DTORespuesta/  [6 archivos en total (BASE 0, EXT 6)]
+    │   │   ├── DTOPeticion/  [7 archivos en total (BASE 0, EXT 7)]
+    │   │   ├── DTORespuesta/  [8 archivos en total (BASE 0, EXT 8)]
     │   │   └── mapeador/  [1 archivos en total (BASE 0, EXT 1)]
-    │   ├── controladorCancelacionesMatricula/  [14 archivos en total (BASE 0, EXT 14)]
+    │   ├── controladorCancelacionesMatricula/  [12 archivos en total (BASE 0, EXT 12)]
     │   │   ├── controlador/  [1 archivos en total (BASE 0, EXT 1)]
-    │   │   ├── DTOPeticion/  [5 archivos en total (BASE 0, EXT 5)]
+    │   │   ├── DTOPeticion/  [3 archivos en total (BASE 0, EXT 3)]
     │   │   ├── DTORespuesta/  [7 archivos en total (BASE 0, EXT 7)]
     │   │   └── mapeador/  [1 archivos en total (BASE 0, EXT 1)]
     │   ├── controladorCatalogosAcademicos/  [9 archivos en total (BASE 0, EXT 9)]
@@ -58,10 +58,10 @@ solicitudes (raíz del paquete com.unicauca.cfiet.solicitudes)  [459 archivos en
     │   │   ├── DTOPeticion/  [5 archivos en total (BASE 0, EXT 5)]
     │   │   ├── DTORespuesta/  [2 archivos en total (BASE 0, EXT 2)]
     │   │   └── mapeador/  [1 archivos en total (BASE 0, EXT 1)]
-    │   ├── controladorExamenesSupletorios/  [10 archivos en total (BASE 0, EXT 10)]
+    │   ├── controladorExamenesSupletorios/  [12 archivos en total (BASE 0, EXT 12)]
     │   │   ├── controlador/  [1 archivos en total (BASE 0, EXT 1)]
     │   │   ├── DTOPeticion/  [2 archivos en total (BASE 0, EXT 2)]
-    │   │   ├── DTORespuesta/  [6 archivos en total (BASE 0, EXT 6)]
+    │   │   ├── DTORespuesta/  [8 archivos en total (BASE 0, EXT 8)]
     │   │   └── mapeador/  [1 archivos en total (BASE 0, EXT 1)]
     │   ├── controladorFuncionariosAcademicos/  [7 archivos en total (BASE 0, EXT 7)]
     │   │   ├── controlador/  [1 archivos en total (BASE 0, EXT 1)]
@@ -72,6 +72,10 @@ solicitudes (raíz del paquete com.unicauca.cfiet.solicitudes)  [459 archivos en
     │   │   ├── controlador/  [1 archivos en total (BASE 1, EXT 0)]
     │   │   ├── DTORespuesta/  [3 archivos en total (BASE 3, EXT 0)]
     │   │   └── mapeador/  [1 archivos en total (BASE 1, EXT 0)]
+    │   ├── controladorNotificacionesDocente/  [5 archivos en total (BASE 0, EXT 5)]
+    │   │   ├── controlador/  [1 archivos en total (BASE 0, EXT 1)]
+    │   │   ├── DTORespuesta/  [3 archivos en total (BASE 0, EXT 3)]
+    │   │   └── mapeador/  [1 archivos en total (BASE 0, EXT 1)]
     │   ├── controladorRespuestas/  [4 archivos en total (BASE 4, EXT 0)]
     │   │   ├── controlador/  [1 archivos en total (BASE 1, EXT 0)]
     │   │   ├── DTOPeticion/  [1 archivos en total (BASE 1, EXT 0)]
@@ -101,13 +105,15 @@ solicitudes (raíz del paquete com.unicauca.cfiet.solicitudes)  [459 archivos en
     │   │   ├── DTOPeticion/  [2 archivos en total (BASE 2, EXT 0)]
     │   │   ├── DTORespuesta/  [5 archivos en total (BASE 5, EXT 0)]
     │   │   └── mapeador/  [1 archivos en total (BASE 1, EXT 0)]
-    │   └── controladorUsuarios/  [12 archivos en total (BASE 12, EXT 0)]
-    │       ├── controlador/  [1 archivos en total (BASE 1, EXT 0)]
-    │       ├── DTOPeticion/  [6 archivos en total (BASE 6, EXT 0)]
-    │       ├── DTORespuesta/  [4 archivos en total (BASE 4, EXT 0)]
-    │       └── mapeador/  [1 archivos en total (BASE 1, EXT 0)]
-    └── output/  [141 archivos en total (BASE 63, EXT 78)]
+    │   ├── controladorUsuarios/  [12 archivos en total (BASE 12, EXT 0)]
+    │   │   ├── controlador/  [1 archivos en total (BASE 1, EXT 0)]
+    │   │   ├── DTOPeticion/  [6 archivos en total (BASE 6, EXT 0)]
+    │   │   ├── DTORespuesta/  [4 archivos en total (BASE 4, EXT 0)]
+    │   │   └── mapeador/  [1 archivos en total (BASE 1, EXT 0)]
+    │   └── programadorNotificaciones/  [1 archivos en total (BASE 0, EXT 1)]
+    └── output/  [156 archivos en total (BASE 63, EXT 93)]
         ├── almacenamiento/  [2 archivos en total (BASE 0, EXT 2)]
+        ├── correo/  [3 archivos en total (BASE 0, EXT 3)]
         ├── encoder/  [1 archivos en total (BASE 1, EXT 0)]
         ├── exportador/  [1 archivos en total (BASE 1, EXT 0)]
         ├── formateador/  [1 archivos en total (BASE 1, EXT 0)]
@@ -115,51 +121,58 @@ solicitudes (raíz del paquete com.unicauca.cfiet.solicitudes)  [459 archivos en
         ├── manejadorExcepciones/  [14 archivos en total (BASE 14, EXT 0); directos: 2 (BASE 2, EXT 0)]
         │   ├── estructura/  [3 archivos en total (BASE 3, EXT 0)]
         │   └── excepcionesPropias/  [9 archivos en total (BASE 9, EXT 0)]
-        └── persistencia/  [121 archivos en total (BASE 45, EXT 76)]
-            ├── entidades/  [33 archivos en total (BASE 13, EXT 20)]
-            ├── gateway/  [25 archivos en total (BASE 8, EXT 17)]
-            ├── mapeador/  [34 archivos en total (BASE 15, EXT 19); directos: 1 (BASE 1, EXT 0)]
-            │   └── ownMapper/  [33 archivos en total (BASE 14, EXT 19)]
-            └── repositorios/  [29 archivos en total (BASE 9, EXT 20)]
+        ├── pdf/  [1 archivos en total (BASE 0, EXT 1)]
+        └── persistencia/  [132 archivos en total (BASE 45, EXT 87)]
+            ├── entidades/  [35 archivos en total (BASE 13, EXT 22)]
+            ├── gateway/  [28 archivos en total (BASE 8, EXT 20)]
+            ├── mapeador/  [37 archivos en total (BASE 15, EXT 22); directos: 1 (BASE 1, EXT 0)]
+            │   └── ownMapper/  [36 archivos en total (BASE 14, EXT 22)]
+            └── repositorios/  [32 archivos en total (BASE 9, EXT 23)]
 ```
 
-Recursos fuera del árbol Java: `backend/solicitudes/src/main/resources/application.properties`, `data.sql` y `templates/` (plantilla del .docx de la orden del día, NO VERIFICADO su contenido). Pruebas: `backend/solicitudes/src/test/java` (38 archivos: 1 [BASE] `SolicitudesApplicationTests` y 37 [EXTENSIÓN]); detalle en el documento 11.
+Recursos fuera del árbol Java: `backend/solicitudes/src/main/resources/application.properties`, `data.sql` y `templates/` (plantilla del .docx de la orden del día, NO VERIFICADO su contenido). Pruebas: `backend/solicitudes/src/test/java` (51 archivos: 1 [BASE] `SolicitudesApplicationTests` y 50 [EXTENSIÓN]); detalle en el documento 11.
+
+Paquetes nuevos desde el corte del 2026-10-14: `infraestructura/output/correo` (envío de correo), `infraestructura/output/pdf` (PDF del radicado y constancia), `infraestructura/input/programadorNotificaciones` (tarea programada de la comunicación de la Resolución) e `infraestructura/input/controladorNotificacionesDocente`. Se explican en [correo-electronico.md](correo-electronico.md) y en el apartado 4.2.
 
 ## 3. Inventario por capa (conteos)
 
 | Capa / paquete | BASE | EXTENSIÓN | Total |
 |---|---|---|---|
-| aplicacion/input (puertos de entrada `*CUIntPuerto`) | 8 | 22 | 30 |
-| aplicacion/output (puertos de salida) | 12 | 18 | 30 |
-| dominio/casosdeuso (`*CUImplAdaptador`) | 8 | 22 | 30 |
-| dominio/modelos | 14 | 44 | 58 |
-| dominio/servicios | 0 | 7 | 7 |
+| aplicacion/input (puertos de entrada `*CUIntPuerto`) | 8 | 26 | 34 |
+| aplicacion/output (puertos de salida) | 12 | 24 | 36 |
+| dominio/casosdeuso (`*CUImplAdaptador`) | 8 | 26 | 34 |
+| dominio/modelos | 14 | 60 | 74 |
+| dominio/servicios | 0 | 9 | 9 |
 | dominio/helper (+ constantes) | 2 | 3 | 5 |
-| infraestructura/input: controladores | 7 | 8 | 15 |
-| infraestructura/input: DTOPeticion | 17 | 25 | 42 |
-| infraestructura/input: DTORespuesta | 21 | 37 | 58 |
-| infraestructura/input: mapeadores `Mapper*InfraestructuraDominio` | 7 | 8 | 15 |
+| infraestructura/input: controladores | 7 | 9 | 16 |
+| infraestructura/input: DTOPeticion | 17 | 24 | 41 |
+| infraestructura/input: DTORespuesta | 21 | 44 | 65 |
+| infraestructura/input: mapeadores `Mapper*InfraestructuraDominio` | 7 | 9 | 16 |
 | infraestructura/input: otros (ValidadorAnexosService) | 1 | 0 | 1 |
-| infraestructura/output/persistencia: entidades | 13 | 20 | 33 |
-| infraestructura/output/persistencia: repositorios | 9 | 20 | 29 |
-| infraestructura/output/persistencia: gateways `*GatewayImplAdaptador` | 8 | 17 | 25 |
-| infraestructura/output/persistencia: mapeadores (`OwnMapper` + impl + `Mapper` ModelMapper) | 15 | 19 | 34 |
+| infraestructura/input/programadorNotificaciones (`TareaNotificacionResolucion`) | 0 | 1 | 1 |
+| infraestructura/output/persistencia: entidades | 13 | 22 | 35 |
+| infraestructura/output/persistencia: repositorios | 9 | 23 | 32 |
+| infraestructura/output/persistencia: gateways `*GatewayImplAdaptador` | 8 | 20 | 28 |
+| infraestructura/output/persistencia: mapeadores (`OwnMapper` + impl + `Mapper` ModelMapper) | 15 | 22 | 37 |
 | infraestructura/output: almacenamiento, encoder, exportador, formateador, JWT | 4 | 2 | 6 |
+| infraestructura/output: correo (`ServicioCorreo`, `CorreoImplAdaptador`, `PreparacionCorreoImplAdaptador`) y pdf (`GeneradorPdfRespuesta`) | 0 | 4 | 4 |
 | infraestructura/output/manejadorExcepciones (`RestApiExcepcion`, `MensajesError`, `CodigoError`, excepciones) | 14 | 0 | 14 |
-| infraestructura/configuracion: BeanConfiguracion | 1 | 0 | 1 |
+| infraestructura/configuracion: BeanConfiguracion, ConfiguracionAsincrona, ConfiguracionProgramada | 1 | 2 | 3 |
 | infraestructura/configuracion/lectorArchivos (Excel y almacenador) | 7 | 12 | 19 |
 | infraestructura/configuracion/seguridad (Spring Security + JWT) | 6 | 0 | 6 |
 | SolicitudesApplication | 1 | 0 | 1 |
-| **Total archivos `.java` de main** | **175** | **284** | **459** |
+| **Total archivos `.java` de main** | **175** | **342** | **517** |
+
+Al 2026-10-21 (T12.40) son 527 (175 [BASE] y 352 [EXTENSIÓN]): T12.38 agregó el borrado de respuestas por rango (`EliminacionRespuestasCUIntPuerto`, `EliminacionRespuestasCUImplAdaptador`, `EliminacionRespuestasGatewayIntPuerto` y su gateway y mapper; los dos endpoints van en `SolicitudAcademicaRestController`) y la ejecución diferida de la firma (`EjecucionDiferidaIntPuerto`, `EjecucionDiferidaImplAdaptador`, `EjecutorAsincrono`), y T12.40 `infraestructura/configuracion/VariablesEntornoObligatorias` (`EnvironmentPostProcessor` que detiene el arranque si faltan `JWT_SECRET` o `CORREO_DARCA`). El detalle por paquete de esta sección sigue en el corte T12.37.
 
 Lectura de los conteos:
 
-- **Puertos**: 30 de entrada (`aplicacion/input`, todos `*CUIntPuerto`) y 30 de salida (`aplicacion/output`): 26 llevan sufijo `GatewayIntPuerto` (25 de persistencia más `PasswordEncoderGatewayIntPuerto`, cuya implementación `PasswordEnconderGatewayImplAdaptador` está en `infraestructura/output/encoder`) y 4 son de otro tipo (`AlmacenamientoAnexosIntPuerto`, `ExcepcionesFormateadorIntPuerto`, `IJwtServicio`, `OrdenDelDiaExportador`). Se verificó con un parser que **cada uno de los 60 puertos tiene exactamente una implementación** y que los 30 `*CUImplAdaptador` implementan 1:1 los 30 puertos de entrada.
-- **Casos de uso**: 30 `*CUImplAdaptador` (8 [BASE], 22 [EXTENSIÓN]), más 7 servicios de dominio en `dominio/servicios` (todos [EXTENSIÓN]): `DatosPersonales`, `MaquinaEtapas`, `ReglasAsignatura`, `TramiteCancelacion`, `TramiteSolicitud`, `ValidadorActorSolicitud`, `ValidadorArchivoAdjunto`.
-- **Persistencia**: 33 clases en `entidades` (32 `@Entity` con `@Table` más `EtapaEtiquetaRolIdEntidad`, `@Embeddable`), 29 repositorios (`extends JpaRepository`), 25 gateways y 33 archivos en `mapeador/ownMapper` (32 implementaciones de `OwnMapper<D,E>` más la interfaz `OwnMapper`) más `Mapper` (configuración de `ModelMapper`, [BASE]).
-- **Dominio**: 58 archivos en `modelos` (5 enums: `AccionEtapa`, `CausaSupletorio`, `ResponsableEtapa`, `RolEtiquetaEtapa`, `TipoProcesoAcademico`; el resto POJOs con Lombok). No hay interfaces en `dominio/`. `MaquinaEtapas` y `ConsultaSolicitudAcademicaCUImplAdaptador` declaran `record` internos.
-- **Entrada HTTP**: 15 controladores, 42 DTO de petición (17 [BASE], 25 [EXTENSIÓN]), 58 DTO de respuesta (21 [BASE], 37 [EXTENSIÓN]), 15 mapeadores de entrada (7 [BASE] con `ModelMapper`, 8 [EXTENSIÓN] a mano, ver `backend/CLAUDE.md`), 1 servicio auxiliar (`ValidadorAnexosService`).
-- Clases por capa (suma de archivos): aplicación = 60, dominio = 100 (30 casos de uso + 58 modelos + 7 servicios + 5 de helper/constantes), infraestructura = 298, raíz (`SolicitudesApplication`) = 1; total 459.
+- **Puertos**: 34 de entrada (`aplicacion/input`, todos `*CUIntPuerto`) y 36 de salida (`aplicacion/output`): 29 llevan sufijo `GatewayIntPuerto` (28 de persistencia más `PasswordEncoderGatewayIntPuerto`, cuya implementación `PasswordEnconderGatewayImplAdaptador` está en `infraestructura/output/encoder`) y 7 son de otro tipo (`AlmacenamientoAnexosIntPuerto`, `CorreoIntPuerto`, `ExcepcionesFormateadorIntPuerto`, `GeneradorPdfRespuestaIntPuerto`, `IJwtServicio`, `OrdenDelDiaExportador`, `PreparacionCorreoIntPuerto`). En el análisis original se verificó con un parser que cada puerto tenía exactamente una implementación; en la actualización del 2026-10-21 no se repitió esa verificación (NO VERIFICADO para los puertos nuevos).
+- **Casos de uso**: 34 `*CUImplAdaptador` (8 [BASE], 26 [EXTENSIÓN]), más 9 servicios de dominio en `dominio/servicios` (todos [EXTENSIÓN]): `ComunicacionResolucion`, `DatosPersonales`, `MaquinaEtapas`, `NotificadorRespuestaFinal`, `ReglasAsignatura`, `TramiteCancelacion`, `TramiteSolicitud`, `ValidadorActorSolicitud`, `ValidadorArchivoAdjunto`. Los cuatro casos de uso nuevos son `AccesoRecursoConsejoCUImplAdaptador` (control de dueño sobre recursos de Julián, T12.21), `DocenteCUImplAdaptador` y `NotificacionDocenteCUImplAdaptador` (T12.28) y `NotificacionResolucionCUImplAdaptador` (T12.32).
+- **Persistencia**: 35 clases en `entidades` (34 `@Entity` con `@Table` más `EtapaEtiquetaRolIdEntidad`, `@Embeddable`), 32 repositorios (`extends JpaRepository`), 28 gateways y 36 archivos en `mapeador/ownMapper` (35 implementaciones de `OwnMapper<D,E>` más la interfaz `OwnMapper`) más `Mapper` (configuración de `ModelMapper`, [BASE]).
+- **Dominio**: 74 archivos en `modelos` (7 enums: `AccionEtapa`, `AmbitoSituacionAcademica`, `CausaSupletorio`, `EstadoNotificacionResolucion`, `ResponsableEtapa`, `RolEtiquetaEtapa`, `TipoProcesoAcademico`; el resto POJOs con Lombok). No hay interfaces en `dominio/`. `MaquinaEtapas` y `ConsultaSolicitudAcademicaCUImplAdaptador` declaran `record` internos.
+- **Entrada HTTP**: 16 controladores, 41 DTO de petición (17 [BASE], 24 [EXTENSIÓN]; T12.28 eliminó `AprobacionDecanoDTOPeticion` y `SituacionCancelarDTOPeticion`), 65 DTO de respuesta (21 [BASE], 44 [EXTENSIÓN]), 16 mapeadores de entrada (7 [BASE] con `ModelMapper`, 9 [EXTENSIÓN] a mano, ver `backend/CLAUDE.md`), 1 servicio auxiliar (`ValidadorAnexosService`) y una tarea programada (`TareaNotificacionResolucion`, entrada sin HTTP).
+- Clases por capa (suma de archivos): aplicación = 70, dominio = 122 (34 casos de uso + 74 modelos + 9 servicios + 5 de helper/constantes), infraestructura = 324, raíz (`SolicitudesApplication`) = 1; total 517.
 
 ## 4. Inventario por módulo funcional
 
@@ -185,6 +198,8 @@ Lectura de los conteos:
 | Examen Supletorio | 0/3 | 0/3 | 0/1 | 0/1 | 0/2 | 0/2 | 0/6 | 0 | 0/1 | 0/2 | 0/6 | 0/1 | 0/2 |
 | Transversal | 0 | 0 | 1/0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1/0 |
 | **Total (B/E)** | 8/22 | 8/22 | 9/17 | 8/17 | 9/20 | 13/20 | 14/44 | 0/7 | 7/8 | 17/25 | 21/37 | 7/8 | 14/19 |
+
+Esta tabla y el detalle de 4.1 son del corte del 2026-10-14 (459 archivos). Las clases agregadas después, que llevan el total a 517, se listan en el apartado 4.2 sin redistribuirlas en la tabla.
 
 Notas: "Transversal" agrupa lo que no pertenece a un módulo (formateador de excepciones, JWT, encoder, exportador, `ApplicationConstantes`, `OwnMapper`, manejadores de excepciones, configuración); sus filas de puertos no contadas arriba (4 de salida distintos de gateway, 1 `PasswordEncoder`) están en la tabla de capas. Las filas con `0` no tienen clases de esa categoría. Las clases de "Programas académicos" no tienen controlador propio: se exponen por `catalogos-academicos/programas`.
 
@@ -482,6 +497,51 @@ Origen del módulo: BASE. Solo se marca la clase cuyo origen difiere del módulo
 - Otros (output/config) (18): `JwtServicioImpl`, `PasswordEnconderGatewayImplAdaptador`, `ExcepcionesFormateadorImplAdaptador`, `MensajesError`, `RestApiExcepcion`, `CodigoError`, `Error`, `UtilidadesError`, `ErrorCredencialesIncorrectasExcepcion`, `ErrorEntidadExisteExcepcion`, `ErrorEntidadNoExisteExcepcion`, `ErrorGenericoExcepcion`, `ErrorMalFormatoExcepcion`, `ErrorNoInformacionExcepcion`, `ErrorReglaNegocioVioladaExcepcion`, `ErrorSinAccesoExcepcion`, `ErrorTokenExpiradoExcepcion`, `Mapper`
 - Configuración (11): `BeanConfiguracion`, `CatalogoAcademicoExcel [EXT]`, `ProcesadorArchivos`, `AlmacenadorArchivos`, `ValidadorPeticionesExcel`, `ConfiguracionAplicacion`, `ConfiguracionSeguridad`, `CustomAccessDeniedHandler`, `CustomAuthenticationEntryPoint`, `JwtFiltroAutenticacion`, `JwtServicio`
 
+### 4.2 Clases agregadas después del corte (T12.21 a T12.35)
+
+Origen: EXTENSIÓN. Fuente: `change.md` y el árbol de trabajo del 2026-10-21.
+
+#### Control de dueño sobre recursos de Julián (T12.21, T12.23)
+
+- Puerto de entrada y caso de uso: `AccesoRecursoConsejoCUIntPuerto`, `AccesoRecursoConsejoCUImplAdaptador`. Lo usan los controladores [BASE] de usuarios, solicitudes y respuestas para verificar que quien pide un recurso sea su dueño (ver documento 06).
+
+#### Profesor del supletorio y notificaciones del docente (T12.28)
+
+- Puertos de entrada (2): `DocenteCUIntPuerto`, `NotificacionDocenteCUIntPuerto`
+- Casos de uso (2): `DocenteCUImplAdaptador`, `NotificacionDocenteCUImplAdaptador`
+- Puertos de salida (2): `DocenteGatewayIntPuerto`, `NotificacionDocenteGatewayIntPuerto`
+- Gateways (2): `DocenteGatewayImplAdaptador`, `NotificacionDocenteGatewayImplAdaptador`
+- Repositorios (2): `DocenteRepositorio`, `NotificacionDocenteRepositorio`
+- Mappers persistencia (2): `DocenteOwnMapper`, `NotificacionDocenteOwnMapper`
+- Modelos (3): `Docente`, `NotificacionDocente`, `DetalleNotificacionDocente`
+- Controlador nuevo: `NotificacionDocenteRestController` (`controladorNotificacionesDocente`), con su mapper y tres DTO de respuesta (`NotificacionDocenteResumenDTORespuesta`, `NotificacionDocenteDetalleDTORespuesta`, `AnexoNotificacionDTORespuesta`)
+- DTO de respuesta en Examen Supletorio (2): `DocenteDTORespuesta`, `DocenteAsignadoDTORespuesta`
+- Entidad y tabla: `NotificacionDocenteEntidad` -> `NOTIFICACION_DOCENTE`
+
+#### Correo de la respuesta final y PDF del radicado (P54 a P57)
+
+- Puertos de salida (3): `CorreoIntPuerto`, `PreparacionCorreoIntPuerto`, `GeneradorPdfRespuestaIntPuerto`
+- Implementaciones: `ServicioCorreo`, `CorreoImplAdaptador`, `PreparacionCorreoImplAdaptador` (`infraestructura/output/correo`) y `GeneradorPdfRespuesta` (`infraestructura/output/pdf`)
+- Servicio de dominio: `NotificadorRespuestaFinal`
+- Modelos: `AdjuntoCorreo`, `ResumenRespuesta`, `DatoResumenRespuesta`, `AsignaturaResumenRespuesta`
+- Configuración: `ConfiguracionAsincrona` (`@EnableAsync`)
+
+#### Comunicación programada de la Resolución (T12.32, T12.33)
+
+- Puerto de entrada y caso de uso: `NotificacionResolucionCUIntPuerto`, `NotificacionResolucionCUImplAdaptador`
+- Puerto de salida, gateway, repositorio y mapper: `NotificacionResolucionGatewayIntPuerto`, `NotificacionResolucionGatewayImplAdaptador`, `NotificacionResolucionRepositorio`, `NotificacionResolucionOwnMapper`
+- Servicio de dominio: `ComunicacionResolucion`
+- Modelos: `NotificacionResolucion`, `EstadoNotificacionResolucion` (enum), `ProgramacionResolucion`, `ComunicacionRespuesta`, `PlantillaNotificacionResolucion`, `CorreoPreparado`, `FragmentoTexto`, `ConstanciaComunicacion`, `FirmaCorreo`
+- Entrada sin HTTP: `TareaNotificacionResolucion` (`infraestructura/input/programadorNotificaciones`, `@Scheduled`) y `ConfiguracionProgramada` (`@EnableScheduling`)
+- DTO en Cancelación de Asignatura: `ProgramacionResolucionDTOPeticion`, `NotificacionResolucionDTORespuesta`, `PlantillaNotificacionResolucionDTORespuesta`
+- Entidad y tabla: `NotificacionResolucionEntidad` -> `NOTIFICACION_RESOLUCION`
+
+#### Listas cerradas de situaciones (T12.34)
+
+- Modelo: `AmbitoSituacionAcademica` (enum `MATRICULA` o `CANCELACION`), que se guarda en la columna nueva `ambito` de `SITUACION_ACADEMICA_ASIGNATURA`.
+
+El detalle de cómo funcionan el correo, el PDF y la tarea programada está en [correo-electronico.md](correo-electronico.md).
+
 ## 5. Regla de dependencias entre capas
 
 ### 5.1 Regla declarada
@@ -492,17 +552,17 @@ Sentido permitido de las flechas (de quien importa hacia lo importado): `infraes
 
 ### 5.2 Matriz real de imports
 
-Conteo de sentencias `import com.unicauca.cfiet.solicitudes.<capa>...` por capa de origen (filas) y destino (columnas), solo entre capas distintas, calculado leyendo los 459 archivos de main. "Archivos" = archivos distintos que contienen al menos un import hacia esa capa.
+Conteo de sentencias `import com.unicauca.cfiet.solicitudes.<capa>...` por capa de origen (filas) y destino (columnas), solo entre capas distintas, calculado leyendo los 517 archivos de main (recalculado el 2026-10-21 con un script que cuenta las líneas `import` y `import static`; el corte original tenía 459). "Archivos" = archivos distintos que contienen al menos un import hacia esa capa.
 
 | Origen \ Destino | aplicacion | dominio | infra.input | infra.output | infra.configuracion |
 |---|---|---|---|---|---|
-| **aplicacion** | 0 | 108 (55 arch.) | 0 | 0 | 0 |
-| **dominio** | 147 (36 arch.) | 0 | 0 | 34 (33 arch.) | 2 (2 arch.) |
-| **infra.input** | 30 (16 arch.) | 80 (30 arch.) | 0 | 2 (2 arch.) | 14 (5 arch.) |
-| **infra.output** | 31 (30 arch.) | 102 (59 arch.) | 0 | 0 | 3 (3 arch.) |
-| **infra.configuracion** | 15 (8 arch.) | 6 (3 arch.) | 30 (13 arch.) | 15 (13 arch.) | 0 |
+| **aplicacion** | 0 | 129 (64 arch.) | 0 | 0 | 0 |
+| **dominio** | 174 (41 arch.) | 0 | 0 | 38 (37 arch.) | 2 (2 arch.) |
+| **infra.input** | 38 (19 arch.) | 91 (32 arch.) | 0 | 3 (3 arch.) | 16 (7 arch.) |
+| **infra.output** | 38 (37 arch.) | 127 (71 arch.) | 0 | 0 | 3 (3 arch.) |
+| **infra.configuracion** | 17 (8 arch.) | 9 (3 arch.) | 30 (13 arch.) | 17 (13 arch.) | 0 |
 
-Lectura: `aplicacion` solo importa de `dominio` (modelos y `PaginacionRespuestaDTO`); `dominio` importa de `aplicacion` (puertos) y, por las excepciones del apartado 5.3, de `infra.output` e `infra.configuracion`; `infra.input` e `infra.output` importan de `aplicacion` y `dominio`; `infra.input` -> `infra.output` son 2 imports: `MensajesError` (no cuenta como violación de entrada) y `ErrorMalFormatoExcepcion` en `ValidadorAnexosService`. No hay ningún import de `infra.input` hacia `infra.output.persistencia`, ni de `infra.output` hacia `infra.input`; ningún controlador ni gateway importa un `casosdeuso`, salvo `BeanConfiguracion` (que instancia todos) y `CatalogoAcademicoExcel` (que usa `dominio/servicios`).
+Lectura: `aplicacion` solo importa de `dominio` (modelos y `PaginacionRespuestaDTO`); `dominio` importa de `aplicacion` (puertos) y, por las excepciones del apartado 5.3, de `infra.output` e `infra.configuracion`; `infra.input` e `infra.output` importan de `aplicacion` y `dominio`; `infra.input` -> `infra.output` eran 2 imports en el corte original (`MensajesError`, que no cuenta como violación de entrada, y `ErrorMalFormatoExcepcion` en `ValidadorAnexosService`); en el recálculo son 3 en 3 archivos: `ErrorMalFormatoExcepcion` en `ValidadorAnexosService` [BASE] y `MensajesError` en los mapeadores de entrada de Cancelación de Asignatura y Examen Supletorio [EXTENSIÓN]. No hay ningún import de `infra.input` hacia `infra.output.persistencia`, ni de `infra.output` hacia `infra.input`; ningún controlador ni gateway importa un `casosdeuso`, salvo `BeanConfiguracion` (que instancia todos) y `CatalogoAcademicoExcel` (que usa `dominio/servicios`).
 
 ### 5.3 Verificación con grep: ¿el dominio importa Spring, JPA o infraestructura?
 
@@ -519,19 +579,19 @@ Comandos (sobre `dominio/` y `aplicacion/`): `grep -rn "org\.springframework\|ja
 | 3 | `dominio/modelos/Anexo.java` | 4 | `MultipartFile anexoFile` (campo del modelo de dominio, línea 19) | BASE |
 | 4 | `aplicacion/input/RespuestaCUIntPuerto.java` | 5 | `MultipartFile` en la firma `responderSolicitud(String, MultipartFile, String)` (línea 88) | BASE |
 
-**Dominio -> infraestructura (violación de la dirección de dependencia): 36 imports en 33 archivos distintos**, distinta de Spring/JPA:
+**Dominio -> infraestructura (violación de la dirección de dependencia): 40 imports en 37 archivos distintos** (36 en 33 en el corte original), distinta de Spring/JPA:
 
 | Import | Archivos | BASE | EXT |
 |---|---|---|---|
-| `infraestructura.output.manejadorExcepciones.MensajesError` (constantes de texto de error) | 33 | 8 | 25 |
+| `infraestructura.output.manejadorExcepciones.MensajesError` (constantes de texto de error) | 37 | 8 | 29 |
 | `infraestructura.output.manejadorExcepciones.estructura.CodigoError` | 1 (`LogCUImplAdaptador`) | 1 | 0 |
 | `infraestructura.configuracion.lectorArchivos.almacenador.AlmacenadorArchivos` (clase concreta con `@Service`, usada como dependencia del caso de uso) | 2 (`RespuestaCUImplAdaptador`, `SolicitudCUImplAdaptador`) | 2 | 0 |
 
 Observaciones:
 
-1. El dominio depende de `MensajesError` (clase de infraestructura) en 33 archivos: 8 [BASE] (`LogCU`, `OrdenDelDiaCU`, `RespuestaCU`, `RolCU`, `SesionCU`, `SolicitudCU`, `TipoSolicitudCU`, `UsuarioCU`) y 25 [EXTENSIÓN] (19 casos de uso y los 6 servicios de dominio que usan excepciones: `DatosPersonales`, `MaquinaEtapas`, `TramiteCancelacion`, `TramiteSolicitud`, `ValidadorActorSolicitud`, `ValidadorArchivoAdjunto`; no lo importan `ProgramaAcademicoCU`, `SituacionAcademicaAsignaturaCU` ni `TipoSolicitudAcademicaCU`). Es una dependencia a una clase de constantes, sin Spring ni JPA, pero rompe la regla de que `dominio` no mire hacia `infraestructura`. La extensión **replica** el patrón de Julián, tal como lo exige `backend/CLAUDE.md` ("se agrega como constante en `MensajesError`").
+1. El dominio depende de `MensajesError` (clase de infraestructura) en 37 archivos: 8 [BASE] (`LogCU`, `OrdenDelDiaCU`, `RespuestaCU`, `RolCU`, `SesionCU`, `SolicitudCU`, `TipoSolicitudCU`, `UsuarioCU`) y 29 [EXTENSIÓN] (23 casos de uso y los 6 servicios de dominio que usan excepciones: `DatosPersonales`, `MaquinaEtapas`, `TramiteCancelacion`, `TramiteSolicitud`, `ValidadorActorSolicitud`, `ValidadorArchivoAdjunto`; no lo importan `ProgramaAcademicoCU`, `SituacionAcademicaAsignaturaCU` ni `TipoSolicitudAcademicaCU`, ni los servicios nuevos `ComunicacionResolucion` y `NotificadorRespuestaFinal`). Es una dependencia a una clase de constantes, sin Spring ni JPA, pero rompe la regla de que `dominio` no mire hacia `infraestructura`. La extensión **replica** el patrón de Julián, tal como lo exige `backend/CLAUDE.md` ("se agrega como constante en `MensajesError`").
 2. `AlmacenadorArchivos` es un `@Service` concreto en `infraestructura/configuracion/lectorArchivos/almacenador`; los casos de uso [BASE] de Respuestas y Solicitudes lo reciben por constructor (el `@Bean` correspondiente lo pasa), es decir, no hay puerto de salida para él. La extensión **sí** introduce un puerto (`AlmacenamientoAnexosIntPuerto`, `AlmacenamientoAnexosImplAdaptador`) que internamente reutiliza `AlmacenadorArchivos`.
-3. Con el criterio estricto de la regla declarada ("dominio sin Spring ni JPA"), el resultado es: **JPA = 0 violaciones; Spring = 4 archivos [BASE] y 0 [EXTENSIÓN]**. La única dependencia hacia `infraestructura` de la que participa la extensión es `MensajesError`.
+3. Con el criterio estricto de la regla declarada ("dominio sin Spring ni JPA"), el resultado es: **JPA = 0 violaciones; Spring = 4 archivos [BASE] y 0 [EXTENSIÓN]** (confirmado de nuevo el 2026-10-21: el correo, el PDF y la tarea programada entran al dominio por puertos y sus clases con Spring, `@Async`, `@Scheduled`, `JavaMailSender` y OpenPDF, viven en `infraestructura`). La única dependencia hacia `infraestructura` de la que participa la extensión es `MensajesError`.
 4. Ningún caso de uso, servicio ni modelo de la extensión importa Spring, JPA ni `MultipartFile`: los archivos entran al dominio como `ArchivoAdjunto` (modelo propio con `byte[]`, `nombreOriginal`, `tipoContenido`), construido por el mapper de entrada (`MapperSolicitudAcademicaInfraestructuraDominio.mapearArchivo`), y `MensajesError` es la única dependencia hacia infraestructura. Verificado con el grep anterior: los únicos `org.springframework` en `dominio/` y `aplicacion/` son los 4 archivos de la tabla.
 5. `PaginacionRespuestaDTO` (en `dominio/helper`, [BASE]) es un tipo de transporte llamado "DTO" que los puertos de entrada y salida usan para paginar; el caso de uso devuelve así un tipo con nombre de DTO, aunque vive en dominio y no importa nada de framework. Se registra como matiz a "el caso de uso nunca ve un DTO".
 
@@ -546,16 +606,18 @@ Observaciones:
 
 ### 6.1 Cómo se arma
 
-1. **Casos de uso: fábrica manual en `BeanConfiguracion`** (`infraestructura/configuracion/BeanConfiguracion.java`, `@Configuration`, 345 líneas, 31 métodos `@Bean`). Cada método recibe los puertos de salida que necesita el caso de uso (más `ExcepcionesFormateadorIntPuerto`, `LogCUIntPuerto`, etc.) y devuelve `new XCUImplAdaptador(...)` con el tipo de retorno **concreto**. Los 30 `*CUImplAdaptador` tienen su `@Bean`; el bean 31 es `crearMaquinaEtapas` (`MaquinaEtapas`, servicio de dominio con `@Bean`, no `@Component`). Verificado: el conjunto de tipos de retorno de los `@Bean` es exactamente los 30 casos de uso más `MaquinaEtapas`.
+1. **Casos de uso: fábrica manual en `BeanConfiguracion`** (`infraestructura/configuracion/BeanConfiguracion.java`, `@Configuration`, 427 líneas, 36 métodos `@Bean` al 2026-10-21; 345 y 31 en el corte original). Cada método recibe los puertos de salida que necesita el caso de uso (más `ExcepcionesFormateadorIntPuerto`, `LogCUIntPuerto`, etc.) y devuelve `new XCUImplAdaptador(...)` con el tipo de retorno **concreto**. Los 34 `*CUImplAdaptador` tienen su `@Bean`; los otros dos son servicios de dominio registrados como bean: `crearMaquinaEtapas` (`MaquinaEtapas`) y `crearNotificadorRespuestaFinal` (`NotificadorRespuestaFinal`).
 2. **Dependencias entre casos de uso: implícitas por tipo**. Ningún método `@Bean` llama a otro; cuando un caso de uso depende de otro recibe el puerto de entrada (`LogCUIntPuerto`, `UsuarioCUIntPuerto`, `SolicitudAcademicaCUIntPuerto`, `AnexoAcademicoCUIntPuerto`, `ConsultaSolicitudAcademicaCUIntPuerto`) y Spring resuelve el bean que lo implementa. Como cada puerto tiene una sola implementación no se usan `@Qualifier` para casos de uso. Spring ordena la creación solo (no hay ciclos: verificado por la existencia de los beans, no por arranque, NO VERIFICADO en ejecución).
-3. **Puertos de salida: autodescubrimiento por estereotipo**. Los 25 gateways persistentes son `@Service` + `@RequiredArgsConstructor` (inyección por constructor) y se resuelven por el tipo del puerto. Igual `ExcepcionesFormateadorImplAdaptador`, `PasswordEnconderGatewayImplAdaptador`, `OrdenDelDiaExportadorImpl`, `JwtServicioImpl` (que envuelve a `JwtServicio` de seguridad) y, en la extensión, `AlmacenamientoAnexosImplAdaptador`. Los repositorios se generan con `@Repository`/`JpaRepository` y los `*OwnMapper` son `@Service`.
-4. **Capa de entrada**: 15 `@RestController`, 15 mapeadores `@Component` y `ValidadorAnexosService` (`@Service`) se inyectan por constructor (`@RequiredArgsConstructor` o constructor explícito). Los controladores de carga masiva usan `@Qualifier` por nombre de bean para elegir `ProcesadorArchivos<T>` y `ValidadorPeticionesExcel<T>`: `archivos-usuarios`/`validador-usuarios`, `archivos-tipos-solicitudes`/`validador-tipos-solicitud` [BASE]; `archivos-asignaturas`/`validador-asignaturas`, `archivos-estudiantes`/`validador-estudiantes`, `archivos-funcionarios-academicos`/`validador-funcionarios-academicos` [EXTENSIÓN].
-5. **Servicios de dominio sin Spring**: `TramiteSolicitud`, `TramiteCancelacion`, `ValidadorActorSolicitud`, `ValidadorArchivoAdjunto` y `DatosPersonales` se crean con `new` dentro del constructor del caso de uso o de otro servicio (por ejemplo `TramiteCancelacion` crea su `TramiteSolicitud`; `TramiteSolicitud` crea su `ValidadorActorSolicitud`; `TramiteExamenSupletorioCUImplAdaptador` crea su `TramiteSolicitud`). `ReglasAsignatura` es una clase `final` con constructor privado y métodos estáticos. El único servicio de dominio que se registra como bean es `MaquinaEtapas`.
-6. **Reloj**: los casos de uso que fechan o miden plazos reciben un `Clock` que el propio método `@Bean` crea con `Clock.system(ZoneId.of("America/Bogota"))` (no es un bean compartido): 4 beans lo reciben (`crearSolicitudAcademicaCU`, `crearAnexoAcademicoCU`, `crearResolucionAcademicaCU`, `crearExamenSupletorioCU`; `grep -c "Clock.system"` = 4).
-7. **Otros beans de configuración**: `ConfiguracionAplicacion` (`@Bean` `AuthenticationManager`, `UserDetailsService` que busca por `findByUsername` en `UsuarioRepositorio`, `AuthenticationProvider`, `PasswordEncoder` = `BCryptPasswordEncoder`), `ConfiguracionSeguridad` (`@Bean` `SecurityFilterChain` y `UrlBasedCorsConfigurationSource`, `@EnableWebSecurity`), `Mapper` (`@Bean("mapeadorSimple")` `ModelMapper`). Total de métodos `@Bean` en el proyecto: **38** (31 + 4 + 2 + 1).
-8. **Estereotipos en infraestructura**: `@Service` 78 archivos (25 gateways, 32 `OwnMapper`, 14 de `lectorArchivos`: 5 `Procesar*Impl`, 5 validadores `*ExcelService`, `AlmacenadorArchivos`, `AgrupadorEstudiantesExcel`, `CatalogoAcademicoExcel`, `DuplicadosFuncionariosAcademicosExcel`; y 7 más: `JwtServicio`, `JwtServicioImpl`, `ValidadorAnexosService`, `AlmacenamientoAnexosImplAdaptador`, `PasswordEnconderGatewayImplAdaptador`, `OrdenDelDiaExportadorImpl`, `ExcepcionesFormateadorImplAdaptador`), `@Component` 18 (15 mapeadores de entrada + `CustomAccessDeniedHandler`, `CustomAuthenticationEntryPoint`, `JwtFiltroAutenticacion`), `@Configuration` 4, `@RestController` 15, `@ControllerAdvice` 1, `@Repository` 29, `@Entity` 32. Conteos por grep de la anotación a nivel de clase.
+3. **Puertos de salida: autodescubrimiento por estereotipo**. Los 28 gateways persistentes son `@Service` + `@RequiredArgsConstructor` (inyección por constructor) y se resuelven por el tipo del puerto. Igual `ExcepcionesFormateadorImplAdaptador`, `PasswordEnconderGatewayImplAdaptador`, `OrdenDelDiaExportadorImpl`, `JwtServicioImpl` (que envuelve a `JwtServicio` de seguridad) y, en la extensión, `AlmacenamientoAnexosImplAdaptador`, `ServicioCorreo`, `CorreoImplAdaptador`, `PreparacionCorreoImplAdaptador` y `GeneradorPdfRespuesta`. Los repositorios se generan con `@Repository`/`JpaRepository` y los `*OwnMapper` son `@Service`.
+4. **Capa de entrada**: 16 `@RestController`, 16 mapeadores `@Component` y `ValidadorAnexosService` (`@Service`) se inyectan por constructor (`@RequiredArgsConstructor` o constructor explícito). Los controladores de carga masiva usan `@Qualifier` por nombre de bean para elegir `ProcesadorArchivos<T>` y `ValidadorPeticionesExcel<T>`: `archivos-usuarios`/`validador-usuarios`, `archivos-tipos-solicitudes`/`validador-tipos-solicitud` [BASE]; `archivos-asignaturas`/`validador-asignaturas`, `archivos-estudiantes`/`validador-estudiantes`, `archivos-funcionarios-academicos`/`validador-funcionarios-academicos` [EXTENSIÓN].
+5. **Servicios de dominio sin Spring**: `TramiteSolicitud`, `TramiteCancelacion`, `ValidadorActorSolicitud`, `ValidadorArchivoAdjunto` y `DatosPersonales` se crean con `new` dentro del constructor del caso de uso o de otro servicio (por ejemplo `TramiteCancelacion` crea su `TramiteSolicitud`; `TramiteSolicitud` crea su `ValidadorActorSolicitud`; `TramiteExamenSupletorioCUImplAdaptador` crea su `TramiteSolicitud`). `ReglasAsignatura` es una clase `final` con constructor privado y métodos estáticos. Los servicios de dominio que se registran como bean son `MaquinaEtapas` y `NotificadorRespuestaFinal`; `ComunicacionResolucion` se crea con `new` dentro de `crearNotificacionResolucionCU`, con la firma y el sufijo leídos de propiedades (`@Value`).
+6. **Reloj**: los casos de uso que fechan o miden plazos reciben un `Clock` que el propio método `@Bean` crea con `Clock.system(ZoneId.of("America/Bogota"))` (no es un bean compartido): en el corte original 4 beans lo recibían (`crearSolicitudAcademicaCU`, `crearAnexoAcademicoCU`, `crearResolucionAcademicaCU`, `crearExamenSupletorioCU`); al 2026-10-21 son 7, porque se suman `crearNotificacionResolucionCU`, `crearTramiteExamenSupletorioCU` y `crearNotificacionDocenteCU`.
+7. **Otros beans de configuración**: `ConfiguracionAplicacion` (`@Bean` `AuthenticationManager`, `UserDetailsService` que busca por `findByUsername` en `UsuarioRepositorio`, `AuthenticationProvider`, `PasswordEncoder` = `BCryptPasswordEncoder`), `ConfiguracionSeguridad` (`@Bean` `SecurityFilterChain` y `UrlBasedCorsConfigurationSource`, `@EnableWebSecurity`), `Mapper` (`@Bean("mapeadorSimple")` `ModelMapper`). Total de métodos `@Bean` en el proyecto: **43** (36 + 4 + 2 + 1). Además, `ConfiguracionAsincrona` (`@EnableAsync`) y `ConfiguracionProgramada` (`@EnableScheduling`) son `@Configuration` sin métodos `@Bean`.
+8. **Estereotipos en infraestructura** (al 2026-10-21): `@Service` 88 archivos (28 gateways, 35 `OwnMapper`, 14 de `lectorArchivos`: 5 `Procesar*Impl`, 5 validadores `*ExcelService`, `AlmacenadorArchivos`, `AgrupadorEstudiantesExcel`, `CatalogoAcademicoExcel`, `DuplicadosFuncionariosAcademicosExcel`; y 7 más: `JwtServicio`, `JwtServicioImpl`, `ValidadorAnexosService`, `AlmacenamientoAnexosImplAdaptador`, `PasswordEnconderGatewayImplAdaptador`, `OrdenDelDiaExportadorImpl`, `ExcepcionesFormateadorImplAdaptador`; y 4 de correo y PDF: `ServicioCorreo`, `CorreoImplAdaptador`, `PreparacionCorreoImplAdaptador`, `GeneradorPdfRespuesta`), `@Component` 20 (16 mapeadores de entrada + `CustomAccessDeniedHandler`, `CustomAuthenticationEntryPoint`, `JwtFiltroAutenticacion`, `TareaNotificacionResolucion`), `@Configuration` 6, `@RestController` 16, `@ControllerAdvice` 1, `@Repository` 32, `@Entity` 34. Conteos por grep de la anotación a nivel de clase.
 
-### 6.2 Los 31 métodos `@Bean` de `BeanConfiguracion`
+### 6.2 Los métodos `@Bean` de `BeanConfiguracion`
+
+La tabla es del corte original (31 métodos). Después se agregaron cinco (`crearNotificadorRespuestaFinal`, `crearNotificacionResolucionCU`, `crearDocenteCU`, `crearNotificacionDocenteCU` y `crearAccesoRecursoConsejoCU`), que van al final de la tabla, y algunos de los existentes recibieron dependencias nuevas: `crearSolicitudAcademicaCU` recibe además `CorreoIntPuerto` y `NotificadorRespuestaFinal` (14 con el `Clock`); `crearTramiteCancelacionAsignaturaCU`, `NotificacionResolucionCUIntPuerto`; `crearTramiteExamenSupletorioCU`, `DocenteGatewayIntPuerto`, `NotificacionDocenteGatewayIntPuerto`, `NotificadorRespuestaFinal` y un `Clock`. Las filas de los beans existentes no se reescribieron.
 
 "Deps." incluye el `Clock` que el método crea localmente. Origen = origen del caso de uso (el método vive en un archivo [BASE] ampliado por la extensión).
 
@@ -592,6 +654,11 @@ Observaciones:
 | EXTENSIÓN | crearExamenSupletorioCU | ExamenSupletorioCUImplAdaptador | 10 | SolicitudExamenSupletorioGatewayIntPuerto, EstudianteGatewayIntPuerto, UsuarioGatewayIntPuerto, TipoSolicitudAcademicaGatewayIntPuerto, TipoAnexoAcademicoGatewayIntPuerto, SolicitudAcademicaCUIntPuerto, AnexoAcademicoCUIntPuerto, ExcepcionesFormateadorIntPuerto, LogCUIntPuerto, Clock(new) |
 | EXTENSIÓN | crearTramiteExamenSupletorioCU | TramiteExamenSupletorioCUImplAdaptador | 9 | SolicitudExamenSupletorioGatewayIntPuerto, SolicitudAcademicaGatewayIntPuerto, UsuarioGatewayIntPuerto, SesionGatewayIntPuerto, IJwtServicio, SolicitudAcademicaCUIntPuerto, MaquinaEtapas, ExcepcionesFormateadorIntPuerto, LogCUIntPuerto |
 | EXTENSIÓN | crearConsultaExamenSupletorioCU | ConsultaExamenSupletorioCUImplAdaptador | 8 | SolicitudExamenSupletorioGatewayIntPuerto, EstudianteGatewayIntPuerto, TipoSolicitudAcademicaGatewayIntPuerto, TipoAnexoAcademicoGatewayIntPuerto, SesionGatewayIntPuerto, IJwtServicio, ConsultaSolicitudAcademicaCUIntPuerto, ExcepcionesFormateadorIntPuerto |
+| EXTENSIÓN | crearNotificadorRespuestaFinal | NotificadorRespuestaFinal | 9 | SolicitudCancelacionAsignaturaGatewayIntPuerto, SolicitudExamenSupletorioGatewayIntPuerto, ResolucionAcademicaGatewayIntPuerto, AnexoAcademicoGatewayIntPuerto, UsuarioGatewayIntPuerto, GeneradorPdfRespuestaIntPuerto, PreparacionCorreoIntPuerto, CorreoIntPuerto, propiedad `correo.darca.destinatario` |
+| EXTENSIÓN | crearNotificacionResolucionCU | NotificacionResolucionCUImplAdaptador | 13 | NotificacionResolucionGatewayIntPuerto, SolicitudAcademicaGatewayIntPuerto, SolicitudCancelacionAsignaturaGatewayIntPuerto, SesionGatewayIntPuerto, IJwtServicio, ResolucionAcademicaCUIntPuerto, NotificadorRespuestaFinal, GeneradorPdfRespuestaIntPuerto, CorreoIntPuerto, ComunicacionResolucion(new, con `correo.firma.*` y `correo.resolucion.sufijo`), ExcepcionesFormateadorIntPuerto, LogCUIntPuerto, Clock(new) |
+| EXTENSIÓN | crearDocenteCU | DocenteCUImplAdaptador | 2 | DocenteGatewayIntPuerto, ExcepcionesFormateadorIntPuerto |
+| EXTENSIÓN | crearNotificacionDocenteCU | NotificacionDocenteCUImplAdaptador | 9 | NotificacionDocenteGatewayIntPuerto, SolicitudAcademicaGatewayIntPuerto, SolicitudExamenSupletorioGatewayIntPuerto, AnexoAcademicoGatewayIntPuerto, AlmacenamientoAnexosIntPuerto, SesionGatewayIntPuerto, IJwtServicio, ExcepcionesFormateadorIntPuerto, Clock(new) |
+| EXTENSIÓN | crearAccesoRecursoConsejoCU | AccesoRecursoConsejoCUImplAdaptador | 6 | UsuarioGatewayIntPuerto, SesionGatewayIntPuerto, SolicitudGatewayIntPuerto, RespuestaGatewayIntPuerto, IJwtServicio, ExcepcionesFormateadorIntPuerto |
 
 Observaciones sobre los beans: (a) los nombres de los tres primeros de Julián usan `create...` y el resto `crear...` (inconsistencia ya señalada por `backend/CLAUDE.md`); (b) los casos de uso con más dependencias son `SolicitudAcademicaCUImplAdaptador` (12), `EstudianteCUImplAdaptador` (11) y `TramiteCancelacionAsignaturaCUImplAdaptador` (11); (c) el árbol de dependencias entre casos de uso en la extensión es: `Cancelacion*`/`ExamenSupletorio` -> `SolicitudAcademicaCU` + `AnexoAcademicoCU`; `Tramite*` -> `SolicitudAcademicaCU`; `Consulta*` -> `ConsultaSolicitudAcademicaCU`; `EstudianteCU`/`FuncionarioAcademicoCU` -> `UsuarioCU` (reutilizan la creación de usuarios de Julián); casi todos -> `LogCU`.
 
@@ -603,10 +670,10 @@ Observaciones sobre los beans: (a) los nombres de los tres primeros de Julián u
 
 | # | Hallazgo | Evidencia | Origen |
 |---|---|---|---|
-| 1 | El dominio importa clases de infraestructura (`MensajesError`, `CodigoError`, `AlmacenadorArchivos`) | 36 imports en 33 archivos distintos de `dominio/` (apartado 5.3) | BASE 8 archivos / EXTENSIÓN 25 archivos (patrón replicado) |
+| 1 | El dominio importa clases de infraestructura (`MensajesError`, `CodigoError`, `AlmacenadorArchivos`) | 40 imports en 37 archivos distintos de `dominio/` al 2026-10-21 (apartado 5.3) | BASE 8 archivos / EXTENSIÓN 29 archivos (patrón replicado) |
 | 2 | Spring en dominio/aplicación (`@Value`, `MultipartFile`) | `RespuestaCUImplAdaptador`, `SolicitudCUImplAdaptador`, `Anexo`, `RespuestaCUIntPuerto` | BASE |
-| 3 | `@Transactional` en los 13 controladores que lo usan y en 8 clases de `infraestructura/output/persistencia` (gateways), nunca en `dominio/`; los casos de uso dependen de que la transacción del controlador exista (por `LazyInitializationException` en `UsuarioGatewayIntPuerto.getUsuario`) | `backend/CLAUDE.md` "Patrón de los controladores"; grep `@Transactional`: 13 controladores + 8 de persistencia + 0 en dominio | BASE y EXT |
-| 4 | `@PreAuthorize` presente en 14 archivos pero sin `@EnableMethodSecurity`: no se evalúa | grep sin resultados de `EnableMethodSecurity`; ver documento 03 sección 5 | BASE/EXT |
+| 3 | `@Transactional` en los 14 controladores que lo usan y en 11 clases de `infraestructura/output/persistencia` (gateways), nunca en `dominio/`; los casos de uso dependen de que la transacción del controlador exista (por `LazyInitializationException` en `UsuarioGatewayIntPuerto.getUsuario`). La tarea programada `TareaNotificacionResolucion` no pasa por un controlador: cada lectura y cada `UPDATE` condicional de `NOTIFICACION_RESOLUCION` corre en la transacción de su gateway, y el envío de cada correo queda fuera de transacción | `backend/CLAUDE.md` "Patrón de los controladores"; grep `@Transactional` al 2026-10-21: 14 controladores + 11 de persistencia + 0 en dominio | BASE y EXT |
+| 4 | `@PreAuthorize` presente en 15 archivos pero sin `@EnableMethodSecurity`: no se evalúa. Desde T12.21 la autorización de los endpoints de Julián que solo dependían de la anotación quedó en reglas por URL de `ConfiguracionSeguridad`, que es la que decide (las anotaciones no se cambiaron) | grep sin resultados de `EnableMethodSecurity`; ver documento 03 sección 5 y documento 06 | BASE/EXT |
 | 5 | Dos controladores [BASE] leen disco sin pasar por un caso de uso | `RespuestaRestController.descargarRespuesta`, `SolicitudesRestController.descargarAnexo` | BASE |
 | 6 | Dos servicios JWT: `JwtServicio` (seguridad, usado por el filtro) y `JwtServicioImpl` (implementa `IJwtServicio` y delega en el primero) | `infraestructura/configuracion/seguridad/jwt`, `infraestructura/output/JWT` | BASE |
 | 7 | Irregularidades de nombres heredadas: `SolicitudCUintPuerto` (minúscula), `UsuarioGatewayImplAdapter` (sin "ador"), `RolOwnMapperImpl` (sufijo "Impl"), `PasswordEnconderGatewayImplAdaptador` ("Enconder"), carpeta `output/JWT` en mayúsculas, `crear`/`create` en beans | nombres de archivo; `backend/CLAUDE.md` "Convención de nombres" | BASE |
@@ -632,6 +699,8 @@ Observaciones sobre los beans: (a) los nombres de los tres primeros de Julián u
 | `HistorialSolicitudAcademicaEntidad` | `HISTORIAL_SOLICITUD_ACADEMICA` | EXTENSIÓN |
 | `InformacionSolicitanteEntidad` | `informacionSolicitantes` | BASE |
 | `LogEntidad` | `logs` | BASE |
+| `NotificacionDocenteEntidad` | `NOTIFICACION_DOCENTE` | EXTENSIÓN |
+| `NotificacionResolucionEntidad` | `NOTIFICACION_RESOLUCION` | EXTENSIÓN |
 | `OrdenDelDiaEntidad` | `ordenesDelDia` | BASE |
 | `ProgramaAcademicoEntidad` | `PROGRAMA_ACADEMICO` | EXTENSIÓN |
 | `ResolucionAcademicaEntidad` | `RESOLUCION_ACADEMICA` | EXTENSIÓN |
@@ -652,4 +721,4 @@ Observaciones sobre los beans: (a) los nombres de los tres primeros de Julián u
 | `UsuarioEntidad` | `usuarios` | BASE |
 | `UsuarioLivianoEntidad` | `usuariosLivianos` | BASE |
 
-Hay 13 entidades/tablas [BASE] (`anexos`, `funcionarios`, `informacionSolicitantes`, `logs`, `ordenesDelDia`, `respuestas`, `roles`, `solicitudes`, `tiposAnexos`, `tiposSolicitudes`, `tiposUsuario`, `usuarios`, `usuariosLivianos`) y 20 clases [EXTENSIÓN] (19 tablas con `@Table` en mayúsculas más el `@Embeddable`), de acuerdo con las "19 tablas nuevas" de `CLAUDE.md`. `UsuarioEntidad extends UsuarioLivianoEntidad` (herencia JPA, `@SuperBuilder`). La estrategia de nombres es `PhysicalNamingStrategyStandardImpl` (sin conversión). Detalle de columnas y relaciones: documento 05.
+Hay 13 entidades/tablas [BASE] (`anexos`, `funcionarios`, `informacionSolicitantes`, `logs`, `ordenesDelDia`, `respuestas`, `roles`, `solicitudes`, `tiposAnexos`, `tiposSolicitudes`, `tiposUsuario`, `usuarios`, `usuariosLivianos`) y 22 clases [EXTENSIÓN] (21 tablas con `@Table` en mayúsculas más el `@Embeddable`), de acuerdo con las "21 tablas nuevas" de `CLAUDE.md`. Las dos posteriores al corte original son `NOTIFICACION_DOCENTE` (T12.28) y `NOTIFICACION_RESOLUCION` (T12.32). `UsuarioEntidad extends UsuarioLivianoEntidad` (herencia JPA, `@SuperBuilder`). La estrategia de nombres es `PhysicalNamingStrategyStandardImpl` (sin conversión). Detalle de columnas y relaciones: documento 05.

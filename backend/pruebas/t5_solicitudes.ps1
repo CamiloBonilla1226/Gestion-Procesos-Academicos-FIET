@@ -149,7 +149,7 @@ function Insertar-Historial {
 $tokenRoot = Iniciar-Sesion -Usuario "rootfiet" -Clave "rootfiet1234"
 $tipoCm = Ejecutar-Sql "select uuidTipoSolicitudAcademica from TIPO_SOLICITUD_ACADEMICA where nombre like 'Cancelaci%n de Matr%cula'"
 $tipoCa = Ejecutar-Sql "select uuidTipoSolicitudAcademica from TIPO_SOLICITUD_ACADEMICA where nombre like 'Cancelaci%n de Asignatura'"
-$tipoPaz = Ejecutar-Sql "select uuidTipoAnexoAcademico from TIPO_ANEXO_ACADEMICO where TipoSolicitudAcademica_uuid = '$tipoCm' and nombre like 'Paz y salvo - Divisi%n de Bibliotecas'"
+$tipoPaz = Ejecutar-Sql "select uuidTipoAnexoAcademico from TIPO_ANEXO_ACADEMICO where TipoSolicitudAcademica_uuid = '$tipoCm' and nombre like 'Paz y salvos (un solo PDF%' and vigente = 1"
 $responsableCm = Ejecutar-Sql "select coalesce(FuncionarioAcademico_uuid, '') from TIPO_SOLICITUD_ACADEMICA where uuidTipoSolicitudAcademica = '$tipoCm'"
 if (-not $tipoCm -or -not $tipoCa -or -not $tipoPaz) { Write-Host "FAIL faltan los catalogos sembrados de procesos academicos"; exit 1 }
 $habiaAnexos = Test-Path $Global:CarpetaAnexos

@@ -8,7 +8,9 @@ import { HistorialSolicitudAcademicaDTORespuesta } from '../models/SolicitudAcad
 import { ResolucionAcademicaDTORespuesta } from '../models/SolicitudAcademica/DTOResponse/ResolucionAcademicaDTORespuesta';
 import { SolicitudAcademicaDetalleDTORespuesta } from '../models/SolicitudAcademica/DTOResponse/SolicitudAcademicaDetalleDTORespuesta';
 import { SolicitudAcademicaResumenDTORespuesta } from '../models/SolicitudAcademica/DTOResponse/SolicitudAcademicaResumenDTORespuesta';
+import { EliminacionRespuestasDTORespuesta } from '../models/SolicitudAcademica/DTOResponse/EliminacionRespuestasDTORespuesta';
 import { parsearErrorBlob } from '../utils/descargas';
+import { armarParametros } from '../utils/parametros-http';
 
 @Injectable({
   providedIn: 'root'
@@ -24,6 +26,18 @@ export class SolicitudAcademicaService {
 
   getSolicitudesFuncionario(): Observable<SolicitudAcademicaResumenDTORespuesta[]> {
     return this.http.get<SolicitudAcademicaResumenDTORespuesta[]>(`${this.url}/funcionario`);
+  }
+
+  contarRespuestasEliminables(desde: string, hasta: string): Observable<EliminacionRespuestasDTORespuesta> {
+    return this.http.get<EliminacionRespuestasDTORespuesta>(`${this.url}/funcionario/respuestas/conteo`, {
+      params: armarParametros({ desde, hasta })
+    });
+  }
+
+  eliminarRespuestas(desde: string, hasta: string): Observable<EliminacionRespuestasDTORespuesta> {
+    return this.http.delete<EliminacionRespuestasDTORespuesta>(`${this.url}/funcionario/respuestas`, {
+      params: armarParametros({ desde, hasta })
+    });
   }
 
   getSolicitudesDecano(): Observable<SolicitudAcademicaResumenDTORespuesta[]> {

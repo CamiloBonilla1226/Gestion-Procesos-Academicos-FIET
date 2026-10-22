@@ -18,6 +18,8 @@ public class NotificacionResolucion {
     private Integer anioResolucion;
     private String decision;
     private String mensajeInicial;
+    private String textoComunicacion;
+    private String textoDarca;
     private LocalDateTime fechaEnvioEstudiante;
     private LocalDateTime fechaEnvioDarca;
     private int intentos;
@@ -28,4 +30,5 @@ public class NotificacionResolucion {
     private LocalDateTime fechaCreacion;
     private boolean editable;
     private String sufijoResolucion;
+    private String textoDarcaFirma;
 }

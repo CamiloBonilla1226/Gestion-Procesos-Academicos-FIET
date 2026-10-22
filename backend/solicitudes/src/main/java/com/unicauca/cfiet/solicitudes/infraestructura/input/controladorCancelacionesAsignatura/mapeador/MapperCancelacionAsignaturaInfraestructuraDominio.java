@@ -84,6 +84,8 @@ public class MapperCancelacionAsignaturaInfraestructuraDominio {
         return ComunicacionRespuesta.builder()
                 .enviarMensaje(peticion.getEnviarMensaje())
                 .mensaje(peticion.getMensaje())
+                .textoComunicacion(peticion.getTextoComunicacion())
+                .textoDarca(peticion.getTextoDarca())
                 .programacion(mapearProgramacion(peticion.getProgramacion()))
                 .build();
     }
@@ -112,6 +114,9 @@ public class MapperCancelacionAsignaturaInfraestructuraDominio {
                 .sufijoResolucion(notificacion.getSufijoResolucion())
                 .decision(notificacion.getDecision())
                 .mensajeInicial(notificacion.getMensajeInicial())
+                .textoComunicacion(notificacion.getTextoComunicacion())
+                .textoDarca(notificacion.getTextoDarca())
+                .textoDarcaFirma(notificacion.getTextoDarcaFirma())
                 .fechaEnvioEstudiante(notificacion.getFechaEnvioEstudiante())
                 .fechaEnvioDarca(notificacion.getFechaEnvioDarca())
                 .intentos(notificacion.getIntentos())
@@ -129,6 +134,10 @@ public class MapperCancelacionAsignaturaInfraestructuraDominio {
                 .decisionPropuesta(plantilla.getDecisionPropuesta())
                 .anioResolucion(plantilla.getAnioResolucion())
                 .sufijoResolucion(plantilla.getSufijoResolucion())
+                .textoComunicacion(plantilla.getTextoComunicacion())
+                .textoDarca(plantilla.getTextoDarca())
+                .maximoTexto(ComunicacionResolucion.MAXIMO_TEXTO)
+                .nombreEstudiante(plantilla.getNombreEstudiante())
                 .build();
     }
 

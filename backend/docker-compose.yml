@@ -17,14 +17,15 @@ services:
       - "8080:8080"
     environment:
       SERVER_PORT: 8080
-      DB_URL: jdbc:mysql://cfiet_database:3306/cfiet?createDatabaseIfNotExist=true&serverTimezone=UTC
+      TZ: America/Bogota
+      DB_URL: jdbc:mysql://cfiet_database:3306/cfiet?createDatabaseIfNotExist=true&serverTimezone=America/Bogota
       DB_USER_NAME: root
       DB_PASSWORD: mysql
       UPLOADS_PATH: /app/uploads
-      JWT_SECRET: ${JWT_SECRET:-586E3272357538782F413F4428472B4B6250655368566B597033733676397924}
+      JWT_SECRET: ${JWT_SECRET:?Falta JWT_SECRET en backend/.env (ver backend/.env.example)}
       MAIL_USER: ${MAIL_USER:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
-      CORREO_DARCA: ${CORREO_DARCA:-camilobonillab26@gmail.com}
+      CORREO_DARCA: ${CORREO_DARCA:?Falta CORREO_DARCA en backend/.env (ver backend/.env.example)}
     volumes:
       - ./uploads:/app/uploads
     restart: always
@@ -33,12 +34,14 @@ services:
         condition: service_healthy
   cfiet_database:
     image: mysql:8.0.33
+    command: --default-time-zone=-05:00
     ports:
       - "3307:3306"
     environment:
       MYSQL_ROOT_PASSWORD: mysql
       MYSQL_PASSWORD: mysql
       MYSQL_DATABASE: cfiet_database
+      TZ: America/Bogota
     restart: always
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]

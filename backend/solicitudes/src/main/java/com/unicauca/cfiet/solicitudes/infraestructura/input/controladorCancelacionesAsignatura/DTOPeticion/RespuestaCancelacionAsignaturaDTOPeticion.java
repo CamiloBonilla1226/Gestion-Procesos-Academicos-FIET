@@ -16,5 +16,7 @@ public class RespuestaCancelacionAsignaturaDTOPeticion {
     private List<AjusteAsignaturaDTOPeticion> ajustes;
     private Boolean enviarMensaje;
     private String mensaje;
+    private String textoComunicacion;
+    private String textoDarca;
     private ProgramacionResolucionDTOPeticion programacion;
 }

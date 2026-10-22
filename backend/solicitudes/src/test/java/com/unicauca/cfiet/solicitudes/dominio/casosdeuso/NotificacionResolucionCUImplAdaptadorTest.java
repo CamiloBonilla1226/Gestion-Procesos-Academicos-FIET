@@ -76,6 +76,7 @@ class NotificacionResolucionCUImplAdaptadorTest {
     private LogCUIntPuerto log;
 
     private final List<ConstanciaComunicacion> constancias = new ArrayList<>();
+    private final List<Runnable> diferidas = new ArrayList<>();
     private NotificacionResolucionCUImplAdaptador casoDeUso;
 
     private final GeneradorPdfRespuestaIntPuerto generador = new GeneradorPdfRespuestaIntPuerto() {
@@ -100,7 +101,7 @@ class NotificacionResolucionCUImplAdaptadorTest {
                 .dependencia("Decanatura").facultad("Facultad de Ingeniería Electrónica y Telecomunicaciones").build();
         casoDeUso = new NotificacionResolucionCUImplAdaptador(gateway, solicitudGateway, cancelacionGateway, sesionGateway, jwtServicio,
                 resolucionCU, notificador, generador, correo, new ComunicacionResolucion(firma, "/178"), formateador, log,
-                Clock.fixed(Instant.parse("2026-10-20T15:00:00Z"), ZoneId.of("America/Bogota")));
+                Clock.fixed(Instant.parse("2026-10-20T15:00:00Z"), ZoneId.of("America/Bogota")), (descripcion, tarea) -> diferidas.add(tarea));
         sesion(FUNCIONARIO, "Funcionario Académico");
         sesion(OTRO_FUNCIONARIO, "Funcionario Académico");
         sesion(ESTUDIANTE, "Estudiante");
@@ -184,37 +185,58 @@ class NotificacionResolucionCUImplAdaptadorTest {
 
     @Test
     void laFechaProgramadaEsObligatoriaYDebeSerFuturaEnHoraDeColombia() {
-        assertEquals(MensajesError.FECHA_PROGRAMADA_REQUERIDA, mensaje(() -> casoDeUso.validarComunicacion(comunicacion(false, null, programacion(null)))));
-        assertTrue(mensaje(() -> casoDeUso.validarComunicacion(comunicacion(false, null, programacion(AHORA))))
+        assertEquals(MensajesError.FECHA_PROGRAMADA_REQUERIDA, mensaje(() -> casoDeUso.validarComunicacion(comunicacion(false, "Hola", programacion(null)))));
+        assertTrue(mensaje(() -> casoDeUso.validarComunicacion(comunicacion(false, "Hola", programacion(AHORA))))
                 .contains("20 de octubre de 2026 a las 10:00"));
-        assertTrue(mensaje(() -> casoDeUso.validarComunicacion(comunicacion(false, null, programacion(AHORA.minusDays(1))))).contains("posteriores"));
-        assertDoesNotThrow(() -> casoDeUso.validarComunicacion(comunicacion(false, null, programacion(AHORA.plusMinutes(1)))));
+        assertTrue(mensaje(() -> casoDeUso.validarComunicacion(comunicacion(false, "Hola", programacion(AHORA.minusDays(1))))).contains("posteriores"));
+        assertDoesNotThrow(() -> casoDeUso.validarComunicacion(comunicacion(false, "Hola", programacion(AHORA.plusMinutes(1)))));
     }
 
     @Test
     void numeroAnioYDecisionSonObligatoriosYAcotados() {
         ProgramacionResolucion sinNumero = programacion(AHORA.plusDays(1));
         sinNumero.setNumeroResolucion(" ");
-        assertEquals(MensajesError.NUMERO_RESOLUCION_REQUERIDO, mensaje(() -> casoDeUso.validarComunicacion(comunicacion(false, null, sinNumero))));
+        assertEquals(MensajesError.NUMERO_RESOLUCION_REQUERIDO, mensaje(() -> casoDeUso.validarComunicacion(comunicacion(false, "Hola", sinNumero))));
         ProgramacionResolucion numeroLargo = programacion(AHORA.plusDays(1));
         numeroLargo.setNumeroResolucion("1".repeat(21));
-        assertThrows(ErrorMalFormatoExcepcion.class, () -> casoDeUso.validarComunicacion(comunicacion(false, null, numeroLargo)));
+        assertThrows(ErrorMalFormatoExcepcion.class, () -> casoDeUso.validarComunicacion(comunicacion(false, "Hola", numeroLargo)));
         ProgramacionResolucion sinAnio = programacion(AHORA.plusDays(1));
         sinAnio.setAnioResolucion(null);
         assertEquals(String.format(MensajesError.ANIO_RESOLUCION_INVALIDO, 2000, 2100),
-                mensaje(() -> casoDeUso.validarComunicacion(comunicacion(false, null, sinAnio))));
+                mensaje(() -> casoDeUso.validarComunicacion(comunicacion(false, "Hola", sinAnio))));
         ProgramacionResolucion sinDecision = programacion(AHORA.plusDays(1));
         sinDecision.setDecision("");
-        assertEquals(MensajesError.DECISION_RESOLUCION_REQUERIDA, mensaje(() -> casoDeUso.validarComunicacion(comunicacion(false, null, sinDecision))));
+        assertEquals(MensajesError.DECISION_RESOLUCION_REQUERIDA, mensaje(() -> casoDeUso.validarComunicacion(comunicacion(false, "Hola", sinDecision))));
     }
 
     @Test
-    void elMensajeEsObligatorioSoloSiSeMarcaEnviarloYTieneMaximoDosMil() {
+    void elMensajeInicialSiempreEsObligatorioAunqueLaCasillaVengaDesmarcadaYTieneMaximoDosMil() {
         ProgramacionResolucion valida = programacion(AHORA.plusDays(1));
         assertEquals(MensajesError.MENSAJE_INICIAL_REQUERIDO, mensaje(() -> casoDeUso.validarComunicacion(comunicacion(true, "  ", valida))));
+        assertEquals(MensajesError.MENSAJE_INICIAL_REQUERIDO, mensaje(() -> casoDeUso.validarComunicacion(comunicacion(false, null, valida))));
+        assertEquals(MensajesError.MENSAJE_INICIAL_REQUERIDO, mensaje(() -> casoDeUso.validarComunicacion(comunicacion(null, "", valida))));
         assertThrows(ErrorMalFormatoExcepcion.class, () -> casoDeUso.validarComunicacion(comunicacion(true, "x".repeat(2001), valida)));
         assertDoesNotThrow(() -> casoDeUso.validarComunicacion(comunicacion(true, "x".repeat(2000), valida)));
-        assertDoesNotThrow(() -> casoDeUso.validarComunicacion(comunicacion(false, null, valida)));
+        assertDoesNotThrow(() -> casoDeUso.validarComunicacion(comunicacion(false, "x", valida)));
+    }
+
+    @Test
+    void losTextosDeLaComunicacionYDeDarcaSonOpcionalesPeroSiLleganNoVanVaciosNiPasanDeCuatroMil() {
+        ComunicacionRespuesta vacio = comunicacion(true, "Hola", programacion(AHORA.plusDays(1)));
+        vacio.setTextoComunicacion(" \n ");
+        assertEquals(String.format(MensajesError.TEXTO_COMUNICACION_REQUERIDO, "El texto de la comunicación al estudiante"),
+                mensaje(() -> casoDeUso.validarComunicacion(vacio)));
+        ComunicacionRespuesta darcaVacio = comunicacion(true, "Hola", programacion(AHORA.plusDays(1)));
+        darcaVacio.setTextoDarca("");
+        assertEquals(String.format(MensajesError.TEXTO_COMUNICACION_REQUERIDO, "El texto del correo a DARCA"),
+                mensaje(() -> casoDeUso.validarComunicacion(darcaVacio)));
+        ComunicacionRespuesta largo = comunicacion(true, "Hola", programacion(AHORA.plusDays(1)));
+        largo.setTextoDarca("x".repeat(4001));
+        assertThrows(ErrorMalFormatoExcepcion.class, () -> casoDeUso.validarComunicacion(largo));
+        ComunicacionRespuesta justo = comunicacion(true, "Hola", programacion(AHORA.plusDays(1)));
+        justo.setTextoComunicacion("x".repeat(4000));
+        justo.setTextoDarca("x".repeat(4000));
+        assertDoesNotThrow(() -> casoDeUso.validarComunicacion(justo));
     }
 
     @Test
@@ -230,20 +252,41 @@ class NotificacionResolucionCUImplAdaptadorTest {
         assertFalse(creada.isFirmada());
         assertNull(creada.getFechaLiberacion());
         assertTrue(creada.isEditable());
+        assertTrue(creada.getTextoComunicacion().contains("RESOLUCIÓN No. {numero}/178 de {anio}"));
+        assertTrue(creada.getTextoComunicacion().contains("Se comunica al estudiante, {nombre}, del texto"));
+        assertTrue(creada.getTextoComunicacion().endsWith("Cordialmente,\n\nCRISTIAN ESTIBEN ILLERA OSPITIA\nApoyo Administrativo\nDecanatura\n"
+                + "Facultad de Ingeniería Electrónica y Telecomunicaciones"));
+        assertTrue(creada.getTextoDarca().startsWith("Popayán, Cauca, {fecha}\n\nEl estudiante Ana María Muñoz Peña, con código 104618021, "
+                + "solicita cancelar 2 asignaturas: 1 aprobada y 1 rechazada."));
+        assertTrue(creada.getTextoDarca().contains("se adjunta la constancia de la comunicación."));
+        assertTrue(creada.getTextoDarca().endsWith("La información de la respuesta está en el PDF adjunto."));
         verify(correo).enviar(CORREO_ESTUDIANTE, "Respuesta a su solicitud de cancelación de asignatura - Radicado " + RADICADO,
                 "Buen día,\n<b>venga</b> a la Decanatura", List.of());
         verify(log).crearLog(eq("Programar comunicación de la Resolución"), contains("123-26/178 de 2026"), eq("token"));
     }
 
     @Test
-    void sinLaCasillaNoSeEnviaMensajeNiSeGuardaTexto() {
+    void elMensajeInicialSaleSiempreAunqueLaCasillaVengaDesmarcada() {
         when(gateway.crear(any())).thenAnswer(invocacion -> invocacion.getArgument(0));
 
         NotificacionResolucion creada = casoDeUso.programar(solicitud("Cancelación de Asignatura", RECHAZADA),
-                comunicacion(false, "no se envía", programacion(AHORA.plusDays(2))), "token");
+                comunicacion(false, "Acérquese a la Decanatura", programacion(AHORA.plusDays(2))), "token");
 
-        assertNull(creada.getMensajeInicial());
-        verifyNoInteractions(correo);
+        assertEquals("Acérquese a la Decanatura", creada.getMensajeInicial());
+        verify(correo).enviar(eq(CORREO_ESTUDIANTE), any(), eq("Acérquese a la Decanatura"), eq(List.of()));
+    }
+
+    @Test
+    void programarGuardaLosTextosEditadosNormalizados() {
+        when(gateway.crear(any())).thenAnswer(invocacion -> invocacion.getArgument(0));
+        ComunicacionRespuesta datos = comunicacion(true, "Hola", programacion(AHORA.plusDays(2)));
+        datos.setTextoComunicacion("  Resolución {numero} de {anio}\r\npara {nombre}: se {decision}  ");
+        datos.setTextoDarca("Popayán, {fecha}\r\n\r\nTexto editado para DARCA");
+
+        NotificacionResolucion creada = casoDeUso.programar(solicitud("Cancelación de Asignatura", RECHAZADA), datos, "token");
+
+        assertEquals("Resolución {numero} de {anio}\npara {nombre}: se {decision}", creada.getTextoComunicacion());
+        assertEquals("Popayán, {fecha}\n\nTexto editado para DARCA", creada.getTextoDarca());
     }
 
     @Test
@@ -257,6 +300,21 @@ class NotificacionResolucionCUImplAdaptadorTest {
         assertEquals("aprueba parcialmente la", plantilla.getDecisionPropuesta());
         assertEquals(2026, plantilla.getAnioResolucion());
         assertEquals("/178", plantilla.getSufijoResolucion());
+        assertTrue(plantilla.getTextoComunicacion().contains("RESOLUCIÓN No. {numero}/178 de {anio}"));
+        assertFalse(plantilla.getTextoComunicacion().contains("{firma}"));
+        assertEquals("Ana María Muñoz Peña", plantilla.getNombreEstudiante());
+        assertTrue(plantilla.getTextoDarca().startsWith("Popayán, Cauca, {fecha}"));
+    }
+
+    @Test
+    void laPlantillaDeDarcaResumeLaDecisionFinalAntesDeEnviarLaRespuesta() {
+        when(solicitudGateway.getPorUuid(SOLICITUD)).thenReturn(solicitud("Cancelación de Asignatura", APROBADA_POR_DECANO));
+        assertTrue(casoDeUso.getPlantilla(SOLICITUD, token(FUNCIONARIO)).getTextoDarca()
+                .contains("solicita cancelar 2 asignaturas: 1 aprobada y 1 rechazada. La Resolución se comunicó al estudiante"));
+
+        when(solicitudGateway.getPorUuid(SOLICITUD)).thenReturn(solicitud("Cancelación de Asignatura", RECHAZADA_POR_DECANO));
+        assertTrue(casoDeUso.getPlantilla(SOLICITUD, token(FUNCIONARIO)).getTextoDarca()
+                .contains("solicita cancelar 2 asignaturas: 0 aprobadas y 2 rechazadas."));
     }
 
     @Test
@@ -265,13 +323,13 @@ class NotificacionResolucionCUImplAdaptadorTest {
             assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso.getNotificacion(SOLICITUD, token(ajeno)), ajeno);
             assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso.getPlantilla(SOLICITUD, token(ajeno)), ajeno);
             assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso.reprogramar(SOLICITUD, programacion(AHORA.plusDays(1)), token(ajeno)), ajeno);
-            assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso.registrarFirma(SOLICITUD, null, token(ajeno)), ajeno);
+            assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso.registrarFirma(SOLICITUD, null, null, token(ajeno)), ajeno);
             assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso.reintentar(SOLICITUD, token(ajeno)), ajeno);
         }
         when(solicitudGateway.getPorUuid(SOLICITUD)).thenReturn(solicitud("Cancelación de Matrícula", APROBADA));
         assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso.getNotificacion(SOLICITUD, token(FUNCIONARIO)));
         verify(gateway, never()).actualizarProgramacion(any(), any(), any());
-        verify(gateway, never()).marcarFirmada(any(), any());
+        verify(gateway, never()).marcarFirmada(any(), any(), any());
         verify(gateway, never()).reintentar(any());
         verifyNoInteractions(resolucionCU);
     }
@@ -284,6 +342,10 @@ class NotificacionResolucionCUImplAdaptadorTest {
         when(gateway.getPorSolicitud(SOLICITUD)).thenReturn(futura);
         assertTrue(casoDeUso.getNotificacion(SOLICITUD, token(FUNCIONARIO)).isEditable());
 
+        futura.setFirmada(true);
+        assertFalse(casoDeUso.getNotificacion(SOLICITUD, token(FUNCIONARIO)).isEditable());
+
+        futura.setFirmada(false);
         futura.setFechaProgramada(AHORA.minusMinutes(1));
         assertFalse(casoDeUso.getNotificacion(SOLICITUD, token(FUNCIONARIO)).isEditable());
         assertEquals("/178", casoDeUso.getNotificacion(SOLICITUD, token(FUNCIONARIO)).getSufijoResolucion());
@@ -312,12 +374,12 @@ class NotificacionResolucionCUImplAdaptadorTest {
     void despuesDeLaFechaONoProgramadaNoSeEditaNiSeRegistraLaFirma() {
         when(gateway.getPorSolicitud(SOLICITUD)).thenReturn(registro(false));
         when(gateway.actualizarProgramacion(any(), any(), any())).thenReturn(false);
-        when(gateway.marcarFirmada(SOLICITUD, AHORA)).thenReturn(false);
+        when(gateway.marcarFirmada(eq(SOLICITUD), any(), eq(AHORA))).thenReturn(false);
 
         assertEquals(String.format(MensajesError.NOTIFICACION_NO_EDITABLE, RADICADO),
                 mensaje(() -> casoDeUso.reprogramar(SOLICITUD, programacion(AHORA.plusDays(1)), token(FUNCIONARIO))));
         assertEquals(String.format(MensajesError.NOTIFICACION_NO_EDITABLE, RADICADO),
-                mensaje(() -> casoDeUso.registrarFirma(SOLICITUD, ArchivoAdjunto.builder().build(), token(FUNCIONARIO))));
+                mensaje(() -> casoDeUso.registrarFirma(SOLICITUD, ArchivoAdjunto.builder().build(), null, token(FUNCIONARIO))));
         verifyNoInteractions(resolucionCU);
         verify(log, never()).crearLog(any(), any(), any());
     }
@@ -331,17 +393,85 @@ class NotificacionResolucionCUImplAdaptadorTest {
     }
 
     @Test
-    void laFirmaMarcaElRegistroYReemplazaLaResolucionConElReemplazoExistente() {
+    void laFirmaCierraLaComunicacionConElTextoDeDarcaEditadoYReemplazaLaResolucion() {
         when(gateway.getPorSolicitud(SOLICITUD)).thenReturn(registro(false));
-        when(gateway.marcarFirmada(SOLICITUD, AHORA)).thenReturn(true);
+        when(gateway.marcarFirmada(eq(SOLICITUD), any(), eq(AHORA))).thenReturn(true);
         ArchivoAdjunto archivo = ArchivoAdjunto.builder().nombreOriginal("firmada.pdf").contenido(PDF).build();
 
-        casoDeUso.registrarFirma(SOLICITUD, archivo, token(FUNCIONARIO));
+        casoDeUso.registrarFirma(SOLICITUD, archivo, " Popayán, {fecha}\r\nFirmó en la Decanatura ", token(FUNCIONARIO));
 
+        verify(gateway).marcarFirmada(SOLICITUD, "Popayán, {fecha}\nFirmó en la Decanatura", AHORA);
         ArgumentCaptor<ActorSolicitud> actor = ArgumentCaptor.forClass(ActorSolicitud.class);
         verify(resolucionCU).reemplazarResolucionFirmada(eq(SOLICITUD), same(archivo), actor.capture(), eq(token(FUNCIONARIO)));
         assertEquals(FUNCIONARIO, actor.getValue().getUuidUsuario());
         assertEquals(RolEtiquetaEtapa.FUNCIONARIO, actor.getValue().getRol());
+        verify(log).crearLog(eq("Registrar firma de la Resolución"), contains("queda cerrada y se notifica a DARCA"), eq(token(FUNCIONARIO)));
+        assertEquals(1, diferidas.size());
+        verifyNoInteractions(correo);
+    }
+
+    @Test
+    void sinTextoNuevoLaFirmaUsaElTextoGuardadoConLaNotaDeLaFirma() {
+        NotificacionResolucion guardada = registro(false);
+        guardada.setTextoDarca("Popayán, Cauca, {fecha}\n\nResumen. La Resolución se comunicó al estudiante por correo electrónico; "
+                + "se adjunta la constancia de la comunicación.\n\nPie");
+        when(gateway.getPorSolicitud(SOLICITUD)).thenReturn(guardada);
+        when(gateway.marcarFirmada(eq(SOLICITUD), any(), eq(AHORA))).thenReturn(true);
+
+        casoDeUso.registrarFirma(SOLICITUD, ArchivoAdjunto.builder().build(), null, token(FUNCIONARIO));
+
+        verify(gateway).marcarFirmada(SOLICITUD, "Popayán, Cauca, {fecha}\n\nResumen. El estudiante firmó la Resolución en la Decanatura; "
+                + "se adjunta la Resolución firmada.\n\nPie", AHORA);
+    }
+
+    @Test
+    void laFirmaRechazaUnTextoDeDarcaVacio() {
+        when(gateway.getPorSolicitud(SOLICITUD)).thenReturn(registro(false));
+
+        assertEquals(String.format(MensajesError.TEXTO_COMUNICACION_REQUERIDO, "El texto del correo a DARCA"),
+                mensaje(() -> casoDeUso.registrarFirma(SOLICITUD, ArchivoAdjunto.builder().build(), "  ", token(FUNCIONARIO))));
+        verify(gateway, never()).marcarFirmada(any(), any(), any());
+        verifyNoInteractions(resolucionCU);
+    }
+
+    @Test
+    void trasConfirmarLaFirmaDarcaRecibeDeInmediatoDosPdfConElTextoEditadoYElEstudianteNada() {
+        NotificacionResolucion firmada = registro(true);
+        firmada.setEstado(EstadoNotificacionResolucion.PROGRAMADA);
+        firmada.setFechaProgramada(AHORA.plusDays(2));
+        firmada.setTextoDarca("Popayán, Cauca, {fecha}\n\nEl estudiante firmó.");
+        when(gateway.getPorSolicitud(SOLICITUD)).thenReturn(registro(false), firmada);
+        when(gateway.marcarFirmada(eq(SOLICITUD), any(), eq(AHORA))).thenReturn(true);
+        casoDeUso.registrarFirma(SOLICITUD, ArchivoAdjunto.builder().build(), "Popayán, Cauca, {fecha}\n\nEl estudiante firmó.", token(FUNCIONARIO));
+        when(gateway.reclamar(SOLICITUD, AHORA, AHORA.minusMinutes(15))).thenReturn(true);
+
+        diferidas.get(0).run();
+
+        ArgumentCaptor<CorreoPreparado> enviados = ArgumentCaptor.forClass(CorreoPreparado.class);
+        verify(correo, times(1)).enviarAhora(enviados.capture());
+        assertEquals(DARCA, enviados.getValue().getDestinatario());
+        assertEquals("Popayán, Cauca, 20 de octubre de 2026\n\nEl estudiante firmó.", enviados.getValue().getTexto());
+        assertEquals(List.of("Radicado-" + RADICADO + ".pdf", "Resolucion-" + RADICADO + ".pdf"),
+                enviados.getValue().getAdjuntos().stream().map(AdjuntoCorreo::getNombre).toList());
+        verify(gateway, never()).marcarEnvioEstudiante(any(), any());
+        verify(gateway).marcarEnvioDarca(SOLICITUD, AHORA);
+        verify(gateway).registrarResultado(SOLICITUD, EstadoNotificacionResolucion.ENVIADA, 1, null, AHORA);
+    }
+
+    @Test
+    void elPanelOfreceElTextoDeDarcaParaLaFirma() {
+        NotificacionResolucion guardada = registro(false);
+        guardada.setEstado(EstadoNotificacionResolucion.PROGRAMADA);
+        guardada.setFechaProgramada(AHORA.plusDays(1));
+        guardada.setTextoDarca("Inicio. La Resolución se comunicó al estudiante por correo electrónico; se adjunta la constancia de la comunicación.");
+        when(gateway.getPorSolicitud(SOLICITUD)).thenReturn(guardada);
+
+        assertEquals("Inicio. El estudiante firmó la Resolución en la Decanatura; se adjunta la Resolución firmada.",
+                casoDeUso.getNotificacion(SOLICITUD, token(FUNCIONARIO)).getTextoDarcaFirma());
+
+        guardada.setTextoDarca(null);
+        assertTrue(casoDeUso.getNotificacion(SOLICITUD, token(FUNCIONARIO)).getTextoDarcaFirma()
+                .contains("El estudiante firmó la Resolución en la Decanatura; se adjunta la Resolución firmada."));
     }
 
     @Test
@@ -383,6 +513,25 @@ class NotificacionResolucionCUImplAdaptadorTest {
         verify(gateway).marcarEnvioEstudiante(SOLICITUD, AHORA);
         verify(gateway).marcarEnvioDarca(SOLICITUD, AHORA);
         verify(gateway).registrarResultado(SOLICITUD, EstadoNotificacionResolucion.ENVIADA, 1, null, AHORA);
+    }
+
+    @Test
+    void conTextosEditadosElEstudianteRecibeElSuyoConNegrillaYDarcaElSuyoConLaFecha() {
+        NotificacionResolucion editada = registro(false);
+        editada.setTextoComunicacion("Señor(a) {nombre}\n\nResolución {numero}/178 de {anio}: se {decision} cancelación.");
+        editada.setTextoDarca("Popayán, Cauca, {fecha}\n\nTexto editado para DARCA.");
+        pendiente(editada);
+
+        casoDeUso.procesarPendientes();
+
+        ArgumentCaptor<CorreoPreparado> enviados = ArgumentCaptor.forClass(CorreoPreparado.class);
+        verify(correo, times(2)).enviarAhora(enviados.capture());
+        CorreoPreparado alEstudiante = enviados.getAllValues().get(0);
+        assertEquals("Señor(a) Ana María Muñoz Peña\n\nResolución 123-26/178 de 2026: se aprueba parcialmente la cancelación.", alEstudiante.getTexto());
+        assertTrue(alEstudiante.getHtml().contains("Señor(a) <strong>Ana María Muñoz Peña</strong>"));
+        assertTrue(alEstudiante.getHtml().contains("<strong>123-26</strong>/178 de <strong>2026</strong>"));
+        assertEquals("Popayán, Cauca, 20 de octubre de 2026\n\nTexto editado para DARCA.", enviados.getAllValues().get(1).getTexto());
+        assertEquals(alEstudiante.getParrafos(), constancias.get(0).getParrafos());
     }
 
     @Test

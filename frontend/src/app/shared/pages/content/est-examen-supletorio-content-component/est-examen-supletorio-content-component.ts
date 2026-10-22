@@ -3,7 +3,6 @@ import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import { InputSelectComponent } from '../../../inputs/input-select-component/input-select-component';
 import { InputDateComponent } from '../../../inputs/input-date-component/input-date-component';
-import { InputTextComponent } from '../../../inputs/input-text-component/input-text-component';
 import { InputAnexoUploadComponent } from '../../../inputs/input-anexo-upload-component/input-anexo-upload-component';
 import { SimpleButtonComponent } from '../../../buttons/simple-button-component/simple-button-component';
 import { ExamenSupletorioService } from '../../../../core/services/examen-supletorio-service';
@@ -49,7 +48,6 @@ const TEXTOS_CAUSA: Record<string, string> = {
   imports: [
     InputSelectComponent,
     InputDateComponent,
-    InputTextComponent,
     InputAnexoUploadComponent,
     SimpleButtonComponent,
     DatosEstudianteSesionComponent,

@@ -72,15 +72,15 @@
     @if (n.ultimoError) {
     <div class="nota-error mt-3" data-ultimo-error>Último error: {{ n.ultimoError }}</div>
     }
-    @if (n.editable && n.firmada) {
+    @if (n.firmada) {
     <p class="nota-aviso mt-3 mb-0" data-nota-firmada>
-      El estudiante firmó: no se le enviará la comunicación. En la fecha programada DARCA recibirá el PDF de la respuesta y la
-      Resolución firmada. Hasta esa fecha puedes volver a subir la firmada si hace falta corregirla.
+      El estudiante firmó en la Decanatura: la comunicación programada quedó cerrada y no se le envía. DARCA recibe de inmediato el
+      PDF de la respuesta y la Resolución firmada, y el estudiante ya ve la respuesta. Ya no se puede subir otra firmada ni editar.
     </p>
     } @else if (n.editable) {
     <p class="nota-gris mt-3 mb-0" data-nota-editable>
       La Resolución vigente es la que subiste sin la firma del estudiante. Hasta la fecha y hora programadas puedes reprogramar,
-      corregir los datos o, si el estudiante firma en la Decanatura, reemplazarla por la firmada.
+      corregir los datos o, si el estudiante firma en la Decanatura, registrar la firmada: eso cierra la comunicación.
     </p>
     } @else if (n.estado === 'PROGRAMADA' || n.estado === 'EN_PROCESO') {
     <p class="nota-gris mt-3 mb-0" data-nota-en-envio>La fecha programada ya llegó: la comunicación se está enviando y no se puede modificar.</p>
@@ -94,7 +94,7 @@
   <app-simple-button-component data-accion="REPROGRAMAR" label="Reprogramar o editar" width="auto" height="38px" color="#2A3A86"
     [disabled]="enviando" (clicked)="abrir('reprogramar')">
   </app-simple-button-component>
-  <app-simple-button-component data-accion="FIRMA" [label]="textoBotonFirma" width="auto" height="38px" color="#2A3A86"
+  <app-simple-button-component data-accion="FIRMA" label="El estudiante firmó" width="auto" height="38px" color="#2A3A86"
     [disabled]="enviando" (clicked)="abrir('firma')">
   </app-simple-button-component>
   }
@@ -118,12 +118,9 @@
     }
     @case ('firma') {
     <p class="nota-gris mb-0" data-nota-firma>
-      @if (notificacion?.firmada) {
-      Sube otra vez la Resolución firmada por el estudiante; reemplaza a la firmada que está vigente.
-      } @else {
-      Sube la Resolución firmada por el estudiante; reemplaza a la Resolución sin firmar.
-      }
-      No se enviará el correo al estudiante y, en la fecha programada, DARCA recibirá el PDF de la respuesta y esta Resolución.
+      Sube la Resolución firmada por el estudiante; reemplaza a la Resolución sin firmar. Al guardar, la comunicación programada
+      queda cerrada: al estudiante no se le envía, DARCA recibe de inmediato el PDF de la respuesta y esta Resolución con el texto de
+      abajo, y el estudiante ya ve la respuesta. Después no se puede subir otra firmada.
     </p>
     <div data-campo-firma>
       <app-input-anexo-upload-component #entradaFirma [tipoAnexo]="tipoFirma" [uploadedFile]="archivoFirma"
@@ -131,6 +128,10 @@
       </app-input-anexo-upload-component>
       <small class="texto-error" data-error="firma">{{ errores['firma'] || '' }}</small>
     </div>
+    <app-texto-comunicacion-component etiqueta="Mensaje que recibirá DARCA" [(texto)]="textoDarca" [valores]="valoresDarca"
+      [resaltar]="false" [error]="errores['textoDarca'] || ''" [ayuda]="ayudaDarca"
+      tituloVista="Así lo recibirá DARCA" data-campo-texto-darca>
+    </app-texto-comunicacion-component>
     }
     @case ('reintentar') {
     <p class="nota-gris mb-0">Se volverán a enviar solo los correos que fallaron, en el próximo ciclo de envío (cerca de un minuto).</p>

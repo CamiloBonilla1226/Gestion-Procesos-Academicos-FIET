@@ -1,6 +1,6 @@
 # 16 - Archivos para subir a la asistente
 
-La asistente (otra instancia de Claude en un proyecto de claude.ai) no tiene acceso al repositorio. Rutas relativas a la raíz del repositorio. Tamaños en KB aproximados.
+La asistente (otra instancia de Claude en un proyecto de claude.ai) no tiene acceso al repositorio. Rutas relativas a la raíz del repositorio. Tamaños en KB aproximados, recalculados el 2026-10-21 (T12.37) para los documentos de `docs/analisis`.
 
 ## 1. Lista priorizada
 
@@ -8,24 +8,25 @@ La asistente (otra instancia de Claude en un proyecto de claude.ai) no tiene acc
 
 | Ruta | KB | Contiene | Capítulo | Por qué |
 |---|---|---|---|---|
-| docs/analisis/00-RESUMEN-EJECUTIVO.md | 5 | Cifras y 10 hallazgos | Introducción, conclusiones | Da el panorama en tres páginas |
-| docs/analisis/02-backend-arquitectura.md | 67 | Capas, inventario, inyección de dependencias | Arquitectura | Base del capítulo de diseño |
-| docs/analisis/05-base-de-datos.md | 51 | Tablas, E-R, mapeo JPA | Base de datos | Sustenta el modelo de datos |
-| docs/analisis/04-backend-casos-de-uso.md | 60 | Reglas por caso de uso y proceso | Implementación | Sustenta la lógica de negocio |
+| docs/analisis/00-RESUMEN-EJECUTIVO.md | 5 | Cifras y 11 hallazgos | Introducción, conclusiones | Da el panorama en tres páginas |
+| docs/analisis/02-backend-arquitectura.md | 78 | Capas, inventario, inyección de dependencias | Arquitectura | Base del capítulo de diseño |
+| docs/analisis/05-base-de-datos.md | 58 | Tablas, E-R, mapeo JPA | Base de datos | Sustenta el modelo de datos |
+| docs/analisis/04-backend-casos-de-uso.md | 71 | Reglas por caso de uso y proceso | Implementación | Sustenta la lógica de negocio |
 | docs/analisis/10-contraste-monografia.md | 11 | Afirmaciones de Julián contra el código | Patrones, antecedentes | Evita repetir afirmaciones falsas |
-| docs/analisis/13-diagramas-fuente.md | 11 | 41 diagramas Mermaid | Diagramas | Listos para pegar |
-| docs/analisis/09-flujos-y-estados.md | 73 | Flujos y máquinas de estado | Implementación | Describe los tres procesos |
+| docs/analisis/13-diagramas-fuente.md | 85 | 42 diagramas Mermaid | Diagramas | Listos para pegar |
+| docs/analisis/09-flujos-y-estados.md | 79 | Flujos y máquinas de estado | Implementación | Describe los tres procesos |
+| docs/analisis/correo-electronico.md | 29 | Correo electrónico: destinatarios, implementación, comunicación programada, configuración, pruebas y puntos abiertos | Implementación, pruebas | Única fuente sobre la mensajería |
 
 ### Recomendados
 
 | Ruta | KB | Contiene | Capítulo | Por qué |
 |---|---|---|---|---|
-| docs/analisis/03-backend-endpoints.md | 114 | 128 endpoints | Implementación | Catálogo de la API |
-| docs/analisis/06-seguridad-y-errores.md | 32 | Seguridad, JWT, errores, logs | Seguridad | Sustenta el capítulo de seguridad |
-| docs/analisis/07-frontend-arquitectura.md y 08-frontend-pantallas.md | 44 y 41 | Rutas, servicios, pantallas | Frontend | Describe la interfaz |
+| docs/analisis/03-backend-endpoints.md | 123 | 138 endpoints | Implementación | Catálogo de la API |
+| docs/analisis/06-seguridad-y-errores.md | 37 | Seguridad, JWT, errores, logs | Seguridad | Sustenta el capítulo de seguridad |
+| docs/analisis/07-frontend-arquitectura.md y 08-frontend-pantallas.md | 48 y 44 | Rutas, servicios, pantallas | Frontend | Describe la interfaz |
 | docs/analisis/12-insumos-diagramas.md | — | Listas de elementos de diagramas | Diagramas | Complementa el 13 |
-| docs/analisis/11-pruebas-despliegue-configuracion.md | 21 | Tests, Docker, configuración | Pruebas, despliegue | Corrige la afirmación "solo Postman" |
-| docs/analisis/14-hallazgos-deuda-tecnica.md | 7 | Hallazgos | Discusión | Trabajo futuro |
+| docs/analisis/11-pruebas-despliegue-configuracion.md | 27 | Tests, Docker, configuración | Pruebas, despliegue | Corrige la afirmación "solo Postman" |
+| docs/analisis/14-hallazgos-deuda-tecnica.md | 11 | Hallazgos | Discusión | Trabajo futuro |
 | docs/database/etapas-por-proceso.md | 37 | Decisiones por proceso | Requisitos | Fuente de reglas de negocio |
 
 ### Opcionales
@@ -33,7 +34,7 @@ La asistente (otra instancia de Claude en un proyecto de claude.ai) no tiene acc
 | Ruta | KB | Contiene | Capítulo | Por qué |
 |---|---|---|---|---|
 | docs/analisis/01, 15, SUPUESTOS, VERIFICACION | pocos | Stack, glosario, control | Anexos | Contexto |
-| docs/api/contrato-api-procesos-academicos.md | 61 | Contrato de 66 endpoints | Anexos | Detalle de la API nueva |
+| docs/api/contrato-api-procesos-academicos.md | NO VERIFICADO | Contrato de 78 endpoints | Anexos | Detalle de la API nueva |
 | docs/database/script_bd_extension.sql y diccionario-datos-extension.md | 18 y 21 | DDL de referencia y diccionario | Base de datos | Detalle de columnas |
 | backend/CLAUDE.md y frontend/CLAUDE.md | 85 y 54 | Arquitectura documentada | Arquitectura | Redundante con el análisis |
 
@@ -58,13 +59,15 @@ Doce archivos, todos de 150 KB o menos; secretos reemplazados por `<REDACTADO>` 
 
 Cada archivo concatena sus fuentes bajo separadores `===== ... =====`. Los archivos 01 a 07 se generaron de los documentos de este análisis; los 08 a 12 son copias de archivos del repositorio. Estos paquetes se copiaron al momento del análisis: si el repositorio cambia, hay que regenerarlos.
 
+**Estado al 2026-10-21:** el paquete es del 2026-10-14 y está desactualizado; no incluye la actualización T12.37 ni `correo-electronico.md`. No se regeneró en T12.37 porque los archivos 08 a 12 copian código y configuración con secretos redactados y regenerarlos exige repetir esa redacción (ver `SUPUESTOS.md`). Mientras tanto conviene subir directamente los documentos de `docs/analisis/` de la lista priorizada.
+
 ## 3. Qué NO subir
 
 - Binarios y compilados: `backend/solicitudes/target/`, `frontend/dist/`, `.jar`.
 - Dependencias: `frontend/node_modules/`.
 - Archivos subidos por usuarios: `backend/uploads/`.
 - Dumps o bases con datos reales, `limpieza_local.sql` si contiene datos reales (NO VERIFICADO su contenido).
-- Archivos `.env` y cualquier credencial; `package-lock.json` (grande y sin valor para la monografía).
+- Archivos `.env` (incluido `backend/.env`, con la cuenta y la contraseña del correo) y cualquier credencial; `package-lock.json` (grande y sin valor para la monografía).
 - Carpeta `.git`.
 
 ## 4. Orden recomendado de subida

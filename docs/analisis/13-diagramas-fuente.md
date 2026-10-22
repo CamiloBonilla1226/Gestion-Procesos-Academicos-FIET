@@ -9,7 +9,9 @@ Código Mermaid de los diagramas descritos en `12-insumos-diagramas.md`. Cada bl
 - Etiquetas de origen: [BASE] = prototipo de Julián David Camacho Erazo; [EXTENSIÓN] = trabajo de grado. Van en el título del diagrama o en el nombre del subgrafo.
 - Cada diagrama tiene su evidencia y sus supuestos en `12-insumos-diagramas.md` (misma numeración).
 
-Índice: CU-01 a CU-05 (casos de uso), CL-01 a CL-08 y ER-01 (clases y modelo relacional), PK-01 y C4-01 a C4-05 (paquetes y C4), DP-01 (despliegue), SQ-01 a SQ-10 (secuencias), AC-01 a AC-04 (actividades), ST-01 a ST-06 (estados). Total: 41 diagramas.
+Actualización del 2026-10-21 (T12.37): se corrigieron los bloques CU-02, CU-03, CL-08 (firma de `aprobarPorDecano` de Matrícula), SQ-05, SQ-07, AC-01, AC-02, AC-03, ST-01 y ST-04 según las decisiones P50 a P62, y se agregó ST-07. Los diagramas de clases CL-01 a CL-06, ER-01, PK-01, C4 y DP-01 conservan el corte del 2026-10-14 salvo las notas que llevan; no incluyen las clases ni las tablas nuevas (`NOTIFICACION_DOCENTE`, `NOTIFICACION_RESOLUCION`), que sí están en el ER completo del documento 05 (10.1). Los diagramas del correo electrónico (secuencia de la respuesta final, secuencia y estados de la comunicación programada) están en [correo-electronico.md](correo-electronico.md).
+
+Índice: CU-01 a CU-05 (casos de uso), CL-01 a CL-08 y ER-01 (clases y modelo relacional), PK-01 y C4-01 a C4-05 (paquetes y C4), DP-01 (despliegue), SQ-01 a SQ-10 (secuencias), AC-01 a AC-04 (actividades), ST-01 a ST-07 (estados). Total: 42 diagramas.
 
 ---
 
@@ -85,15 +87,18 @@ flowchart LR
         F06(["Descargar anexo"])
         F07(["Descargar Resolución escaneada"])
         F08(["Rechazar solicitud"])
-        F09(["Subir escaneo de la Resolución (solo CM y CA)"])
+        F09(["Subir escaneo de la Resolución (solo CM y CA, después del Decano)"])
         F10(["Remitir al Decano"])
-        F11(["Evaluar asignaturas (solo CM y CA)"])
+        F11(["Evaluar asignaturas, datos opcionales (solo CM y CA)"])
         F12(["Enviar respuesta al estudiante"])
-        F13(["Ajustar situación al cancelar (solo CA)"])
+        F13(["Ajustar situación al cancelar, opcional (solo CA)"])
         F14(["Enviar recibo de pago (solo ES)"])
         F15(["Adjuntar recibo de pago"])
         F16(["Aprobar comprobante de pago"])
-        F17(["Acordar fecha del examen"])
+        F17(["Elegir el profesor del examen"])
+        F22(["Programar la comunicación de la Resolución (solo CA)"])
+        F23(["Gestionar la notificación: reprogramar, registrar firma, reintentar (solo CA)"])
+        F24(["Adjuntar documento adicional (solo CM y ES)"])
         F18(["Rechazar comprobante de pago"])
         F19(["Consultar estudiantes, asignaturas y funcionarios"])
         F20(["Consultar procesos asignados"])
@@ -115,12 +120,15 @@ flowchart LR
     F04 -.->|include| F05
     F06 -.->|extend| F04
     F07 -.->|extend| F04
-    F08 -.->|include| F09
     F10 -.->|include| F11
     F12 -.->|include| F09
     F13 -.->|extend| F12
     F14 -.->|include| F15
-    F17 -.->|extend| F16
+    F16 -.->|include| F17
+    F12 -.->|include| F22
+    FA --> F23
+    F24 -.->|extend| F12
+    F24 -.->|extend| F08
     classDef actor fill:#ffffff,stroke:#333333,stroke-width:2px
 ```
 
@@ -140,15 +148,14 @@ flowchart LR
         D05(["Descargar Resolución escaneada"])
         D06(["Descargar anexo"])
         D07(["Aprobar Cancelación de Matrícula"])
-        D08(["Registrar situación al cancelar por asignatura"])
         D09(["Rechazar solicitud"])
         D10(["Aprobar Cancelación de Asignatura"])
-        D11(["Aceptar la evaluación del Funcionario"])
         D12(["Decidir asignatura por asignatura"])
         D13(["Aprobar Examen Supletorio"])
         D14(["Cambiar contraseña"])
         D15(["Administrar catálogos académicos (ver CU-04)"])
         D16(["Enviar solicitud al Consejo (ver CU-05)"])
+        D17(["Enviar decisión con un solo botón"])
     end
     DEC --> D01
     DEC --> D02
@@ -163,9 +170,11 @@ flowchart LR
     D03 -.->|include| D04
     D05 -.->|extend| D03
     D06 -.->|extend| D03
-    D07 -.->|include| D08
-    D11 -->|especializa| D10
     D12 -->|especializa| D10
+    D07 -.->|include| D17
+    D09 -.->|include| D17
+    D10 -.->|include| D17
+    D13 -.->|include| D17
     classDef actor fill:#ffffff,stroke:#333333,stroke-width:2px
 ```
 
@@ -987,7 +996,7 @@ classDiagram
         <<interface>>
         +rechazarPorFuncionario(uuid, observacion, token)
         +remitirADecano(uuid, evaluaciones, observacion, token)
-        +aprobarPorDecano(uuid, situacionesAlCancelar, observacion, token)
+        +aprobarPorDecano(uuid, observacion, token)
         +rechazarPorDecano(uuid, observacion, token)
         +enviarRespuesta(uuid, observacion, token)
     }
@@ -1756,10 +1765,11 @@ sequenceDiagram
     participant MQ as MaquinaEtapas
     participant GW as Gateways de persistencia
     participant LG as LogCU
-    D->>FE: marca cada asignatura como aprobada o rechazada
-    alt no cambia nada
-        FE->>CT: POST decano/aprobar con aceptarEvaluacion verdadero
-    else cambia alguna decisión
+    D->>FE: elige Aprobar o Rechazar en cada asignatura, sin valor inicial
+    D->>FE: pulsa Enviar decisión, habilitado cuando todas tienen decisión
+    alt todas quedaron en Rechazar
+        FE->>CT: POST decano/rechazar
+    else al menos una aprobada
         FE->>CT: POST decano/aprobar con decisiones por asignatura
     end
     CT->>TR: aprobarPorDecano(uuid, aceptarEvaluacion, decisiones, observacion, token)
@@ -1884,16 +1894,16 @@ sequenceDiagram
     TR->>SO: cambiarEtapa(uuid, SUBIR_COMPROBANTE, actor, null, token)
     SO->>GW: actualizarEtapa a EN_VERIFICACION_PAGO
     alt el Funcionario aprueba el comprobante
-        F->>FE: indica fecha acordada opcional
-        FE->>ES: POST funcionario/comprobante/aprobar
-        ES->>TR: aprobarComprobante(uuid, fechaAcordadaExamen, token)
-        TR->>TR: la fecha acordada no puede ser anterior al examen no presentado
-        TR->>SO: cambiarEtapa(uuid, APROBAR_COMPROBANTE, actor, null, token)
+        F->>FE: busca y elige el profesor, observación opcional para el estudiante
+        FE->>ES: GET examenes-supletorios/docentes
+        FE->>ES: POST funcionario/comprobante/aprobar con observacion y docenteUuid
+        ES->>TR: aprobarComprobante(uuid, observacion, uuidDocente, token)
+        TR->>TR: exige el profesor, usuario activo con rol Docente
+        TR->>SO: cambiarEtapa(uuid, APROBAR_COMPROBANTE, actor, observacion, token)
         SO->>GW: actualizarEtapa a APROBADA
-        opt llegó fecha acordada
-            TR->>GW: actualizarFechaAcordada
-            TR->>LG: crearLog(Acordar fecha de examen supletorio)
-        end
+        TR->>GW: asignarDocente y crear NOTIFICACION_DOCENTE
+        TR->>LG: crearLog(Asignar profesor de examen supletorio)
+        Note over TR: tras el commit salen los correos al estudiante, a DARCA y al profesor
     else el Funcionario rechaza el comprobante
         F->>FE: escribe la observación obligatoria
         FE->>ES: POST funcionario/comprobante/rechazar
@@ -2047,7 +2057,7 @@ flowchart TB
     subgraph EST["Estudiante"]
         E1(["Inicio"])
         E2["Abrir el formulario y revisar la normativa"]
-        E3["Escribir el motivo y adjuntar los 6 anexos obligatorios y soportes opcionales"]
+        E3["Escribir el motivo y adjuntar el PDF único de paz y salvos y soportes opcionales"]
         E4["Radicar la solicitud"]
         E9["Consultar el estado y descargar la Resolución escaneada"]
         E10(["Fin"])
@@ -2066,15 +2076,15 @@ flowchart TB
     subgraph FUN["Funcionario Académico"]
         F1["Revisar la solicitud y los anexos"]
         F2{"Procede"}
-        F3["Subir el escaneo de la Resolución y rechazar con observación"]
-        F4["Evaluar cada asignatura con faltas, nota y situación"]
+        F3["Rechazar con observación, sin Resolución"]
+        F4["Evaluar cada asignatura con faltas, nota y situaciones opcionales"]
         F5["Remitir al Decano"]
         F6["Subir el escaneo de la Resolución firmada"]
-        F7["Enviar la respuesta al estudiante"]
+        F7["Enviar la respuesta; el sistema envía el correo al estudiante y a DARCA"]
     end
     subgraph DEC["Decano"]
         D1{"Decisión"}
-        D2["Aprobar y fijar la situación al cancelar de cada asignatura"]
+        D2["Aprobar con observación opcional"]
         D3["Rechazar con observación opcional"]
     end
     E1 --> E2 --> E3 --> E4 --> S1
@@ -2101,7 +2111,7 @@ flowchart TB
         E1(["Inicio"])
         E2["Elegir una o más asignaturas activas y escribir el motivo"]
         E3["Adjuntar soportes libres opcionales y radicar"]
-        E9["Consultar la decisión por asignatura y descargar la Resolución"]
+        E9["Recibir el correo y consultar la decisión por asignatura y la Resolución cuando se libera"]
         E10(["Fin"])
     end
     subgraph SIS["Sistema"]
@@ -2115,40 +2125,37 @@ flowchart TB
         S8{"Resultado final"}
         S9["Cancelar solo las asignaturas aprobadas y etapa APROBADA"]
         S10["Etapa RECHAZADA"]
+        S11["En la fecha programada, la tarea envía la comunicación al estudiante y a DARCA y libera la respuesta"]
     end
     subgraph FUN["Funcionario Académico"]
         F1["Revisar la solicitud"]
         F2{"Procede"}
-        F3["Subir el escaneo de la Resolución y rechazar"]
+        F3["Rechazar con observación, sin Resolución"]
         F4["Evaluar cada asignatura y marcar si cumple las condiciones"]
-        F5{"Ninguna cumple"}
-        F6["Remitir al Decano"]
-        F7["Subir el escaneo de la Resolución firmada"]
-        F8["Ajustar situaciones si cambió la decisión y enviar respuesta"]
+        F6["Remitir al Decano, aunque ninguna cumpla"]
+        F7["Subir la Resolución sin firmar por el estudiante"]
+        F8["Ajustes opcionales, programar la comunicación y enviar respuesta"]
+        F9["Si el estudiante firma antes de la fecha, registrar la Resolución firmada"]
     end
     subgraph DEC["Decano"]
         D1{"Decisión sobre la solicitud"}
-        D2{"Acepta la evaluación"}
-        D3["Aceptar tal como está"]
-        D4["Decidir asignatura por asignatura"]
+        D4["Decidir asignatura por asignatura y pulsar Enviar decisión"]
         D5["Rechazar la solicitud completa"]
     end
     E1 --> E2 --> E3 --> S1
     S1 -->|no| E2
     S1 -->|sí| S2 --> F1 --> F2
     F2 -->|no| F3 --> S3 --> E9
-    F2 -->|sí| F4 --> F5
-    F5 -->|sí| F4
-    F5 -->|no| F6 --> S4 --> D1
-    D1 -->|aprobar| D2
-    D2 -->|sí| D3 --> S5
-    D2 -->|no| D4 --> S5
+    F2 -->|sí| F4 --> F6 --> S4 --> D1
+    D1 -->|aprobar| D4 --> S5
     S5 -->|sí| S6 --> F7
     S5 -->|no| D5
     D1 -->|rechazar| D5 --> S7 --> F7
     F7 --> F8 --> S8
-    S8 -->|viene de aprobación| S9 --> E9
-    S8 -->|viene de rechazo| S10 --> E9
+    S8 -->|viene de aprobación| S9 --> S11
+    S8 -->|viene de rechazo| S10 --> S11
+    F9 -.-> S11
+    S11 --> E9
     E9 --> E10
 ```
 
@@ -2186,7 +2193,7 @@ flowchart TB
         F5["Enviar respuesta de rechazo"]
         F6["Adjuntar el recibo de pago y enviarlo"]
         F7{"Comprobante válido"}
-        F8["Aprobar el comprobante con fecha acordada opcional"]
+        F8["Aprobar el comprobante eligiendo al profesor; notificación y correo al profesor"]
         F9["Rechazar el comprobante con observación"]
     end
     subgraph DEC["Decano"]
@@ -2245,7 +2252,7 @@ title: ST-01 Etapas de la solicitud en Cancelación de Matrícula y de Asignatur
 ---
 stateDiagram-v2
     [*] --> RADICADA : RADICAR por el Estudiante
-    RADICADA --> RECHAZADA : RECHAZAR_FUNCIONARIO con observación y escaneo
+    RADICADA --> RECHAZADA : RECHAZAR_FUNCIONARIO con observación, sin Resolución
     RADICADA --> EN_REVISION_DECANO : REMITIR_DECANO
     EN_REVISION_DECANO --> APROBADA_POR_DECANO : APROBAR_DECANO
     EN_REVISION_DECANO --> RECHAZADA_POR_DECANO : RECHAZAR_DECANO
@@ -2303,8 +2310,29 @@ stateDiagram-v2
     SinEscaneo --> ConEscaneo : adjuntar en RADICADA, APROBADA_POR_DECANO o RECHAZADA_POR_DECANO
     ConEscaneo --> ConEscaneo : reemplazar
     ConEscaneo --> SinEscaneo : REMITIR_DECANO retira el escaneo
-    ConEscaneo --> Entregada : transición final con escaneo
+    ConEscaneo --> Entregada : ENVIAR_RESPUESTA después del Decano
+    Entregada --> FirmadaPorEstudiante : CA, registrar firma antes de la fecha
+    FirmadaPorEstudiante --> FirmadaPorEstudiante : sin re-subida desde T12.38: la firma cierra la comunicación (P63)
     Entregada --> [*]
+    FirmadaPorEstudiante --> [*]
+```
+
+### ST-07 Comunicación programada de la Resolución (Cancelación de Asignatura) [EXTENSIÓN]
+
+```mermaid
+---
+title: ST-07 Estados de NOTIFICACION_RESOLUCION [EXTENSIÓN]
+---
+stateDiagram-v2
+    [*] --> PROGRAMADA : ENVIAR_RESPUESTA después del Decano
+    PROGRAMADA --> PROGRAMADA : reprogramar o registrar firma antes de la fecha
+    PROGRAMADA --> EN_PROCESO : la tarea la reclama en la fecha
+    EN_PROCESO --> EN_PROCESO : reclamo vencido de más de 15 minutos
+    EN_PROCESO --> ENVIADA : los dos correos salieron
+    EN_PROCESO --> PROGRAMADA : algún correo falló, intentos menor que 3
+    EN_PROCESO --> FALLIDA : algún correo falló en el tercer intento
+    FALLIDA --> PROGRAMADA : reintento manual del Funcionario
+    ENVIADA --> [*]
 ```
 
 ### ST-05 Decisión por asignatura en Cancelación de Asignatura [EXTENSIÓN]

@@ -19,6 +19,7 @@ import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSoli
 
 public class ComunicacionResolucion {
     public static final int MAXIMO_MENSAJE = 2000;
+    public static final int MAXIMO_TEXTO = 4000;
     public static final String APRUEBA = "aprueba la";
     public static final String RECHAZA = "rechaza la";
     public static final String APRUEBA_PARCIALMENTE = "aprueba parcialmente la";
@@ -63,6 +64,10 @@ public class ComunicacionResolucion {
         return MENSAJE_INICIAL.replace(FIRMA, firma());
     }
 
+    public String plantillaComunicacion() {
+        return COMUNICACION_ESTUDIANTE.replace("{sufijo}", sufijo).replace("{firma}", firma());
+    }
+
     public String asuntoMensajeInicial(String radicado) {
         return String.format(ASUNTO_MENSAJE_INICIAL, radicado);
     }
@@ -75,7 +80,9 @@ public class ComunicacionResolucion {
                 "nombre", valor(nombreCompleto),
                 "decision", valor(notificacion.getDecision()),
                 "firma", firma());
-        List<List<FragmentoTexto>> parrafos = parrafos(COMUNICACION_ESTUDIANTE, valores);
+        String plantilla = notificacion.getTextoComunicacion() == null || notificacion.getTextoComunicacion().isBlank()
+                ? COMUNICACION_ESTUDIANTE : notificacion.getTextoComunicacion();
+        List<List<FragmentoTexto>> parrafos = parrafos(plantilla, valores);
         return CorreoPreparado.builder()
                 .destinatario(destinatario)
                 .asunto(ASUNTO_COMUNICACION)
@@ -118,14 +125,15 @@ public class ComunicacionResolucion {
 
     private List<List<FragmentoTexto>> parrafos(String plantilla, Map<String, String> valores) {
         List<List<FragmentoTexto>> parrafos = new ArrayList<>();
-        for (String bloque : plantilla.split("\n\n")) {
+        for (String bloque : plantilla.strip().split("\n\\s*\n")) {
             List<FragmentoTexto> fragmentos = new ArrayList<>();
             Matcher marcador = MARCADOR.matcher(bloque);
             int desde = 0;
             while (marcador.find()) {
                 agregar(fragmentos, bloque.substring(desde, marcador.start()), false);
                 String clave = marcador.group(1);
-                agregar(fragmentos, valores.getOrDefault(clave, ""), RESALTADOS.contains(clave));
+                boolean conocida = valores.containsKey(clave);
+                agregar(fragmentos, conocida ? valores.get(clave) : marcador.group(), conocida && RESALTADOS.contains(clave));
                 desde = marcador.end();
             }
             agregar(fragmentos, bloque.substring(desde), false);

@@ -464,14 +464,17 @@ class TramiteCancelacionAsignaturaCUImplAdaptadorTest {
     }
 
     @Test
-    void remitirSinNingunaAsignaturaQueCumplaIndicaQueDebeRechazar() {
+    void remitirConTodasLasAsignaturasQueNoCumplenPasaAEnRevisionDecanoSinPedirResolucion() {
         enEtapa(RADICADA);
 
-        ErrorReglaNegocioVioladaExcepcion error = falla(() -> casoDeUso.remitirADecano(SOLICITUD, List.of(evaluacion("as-1", 0, "2.0", "sit-a", false, "Nota"),
-                evaluacion("as-2", 9, "4.0", "sit-a", false, "Repitente"), evaluacion("as-3", 0, "4.0", "sit-a", false, "Co-requisito")), null, TOKEN_FUNCIONARIO));
+        SolicitudCancelacionAsignatura resultado = casoDeUso.remitirADecano(SOLICITUD, List.of(evaluacion("as-1", 0, "2.0", "sit-a", false, "Nota"),
+                evaluacion("as-2", 9, "4.0", "sit-a", false, "Repitente"), evaluacion("as-3", 0, "4.0", "sit-a", false, "Co-requisito")),
+                "No se recomienda aprobar", TOKEN_FUNCIONARIO);
 
-        assertTrue(error.getMessage().contains("rechazarla"), error::getMessage);
-        verificarQueNoSeEscribioNada();
+        assertEquals(EN_REVISION_DECANO, etapaGuardada());
+        assertEquals(EN_REVISION_DECANO, resultado.getSolicitudAcademica().getEtapa().getCodigo());
+        assertEquals(List.of(false, false, false), asignaturasGuardadas().stream().map(AsignaturaSolicitudAcademica::getCumpleCondiciones).toList());
+        verify(log).crearLog(eq("Evaluar asignaturas de cancelación de asignatura"), contains("0 cumplen"), eq(TOKEN_FUNCIONARIO));
     }
 
     @Test

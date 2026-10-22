@@ -15,14 +15,16 @@ import java.util.List;
 @Repository
 public interface NotificacionResolucionRepositorio extends JpaRepository<NotificacionResolucionEntidad, String> {
 
-    boolean existsByUuidSolicitudAcademicaAndFechaLiberacionIsNull(String uuidSolicitudAcademica);
+    @Query("select count(n) > 0 from NotificacionResolucionEntidad n "
+            + "where n.uuidSolicitudAcademica = :uuid and n.fechaLiberacion is null and n.fechaProgramada > :ahora")
+    boolean estaRetenida(@Param("uuid") String uuid, @Param("ahora") LocalDateTime ahora);
 
     @Query("select n.uuidSolicitudAcademica from NotificacionResolucionEntidad n "
-            + "where n.uuidSolicitudAcademica in :uuids and n.fechaLiberacion is null")
-    List<String> findRetenidas(@Param("uuids") Collection<String> uuids);
+            + "where n.uuidSolicitudAcademica in :uuids and n.fechaLiberacion is null and n.fechaProgramada > :ahora")
+    List<String> findRetenidas(@Param("uuids") Collection<String> uuids, @Param("ahora") LocalDateTime ahora);
 
     @Query("select n.uuidSolicitudAcademica from NotificacionResolucionEntidad n "
-            + "where (n.estado = :programada and n.fechaProgramada <= :ahora) "
+            + "where (n.estado = :programada and (n.fechaProgramada <= :ahora or n.firmada = true)) "
             + "or (n.estado = :enProceso and n.fechaReclamo < :reclamoVencido) "
             + "order by n.fechaProgramada")
     List<String> findPendientes(@Param("programada") EstadoNotificacionResolucion programada,
@@ -33,7 +35,7 @@ public interface NotificacionResolucionRepositorio extends JpaRepository<Notific
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update NotificacionResolucionEntidad n set n.estado = :enProceso, n.fechaReclamo = :ahora, "
             + "n.fechaLiberacion = coalesce(n.fechaLiberacion, :ahora) "
-            + "where n.uuidSolicitudAcademica = :uuid and ((n.estado = :programada and n.fechaProgramada <= :ahora) "
+            + "where n.uuidSolicitudAcademica = :uuid and ((n.estado = :programada and (n.fechaProgramada <= :ahora or n.firmada = true)) "
             + "or (n.estado = :enProceso and n.fechaReclamo < :reclamoVencido))")
     int reclamar(@Param("uuid") String uuid,
                  @Param("programada") EstadoNotificacionResolucion programada,
@@ -44,7 +46,7 @@ public interface NotificacionResolucionRepositorio extends JpaRepository<Notific
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("update NotificacionResolucionEntidad n set n.fechaProgramada = :fecha, n.numeroResolucion = :numero, "
             + "n.anioResolucion = :anio, n.decision = :decision "
-            + "where n.uuidSolicitudAcademica = :uuid and n.estado = :programada and n.fechaProgramada > :ahora")
+            + "where n.uuidSolicitudAcademica = :uuid and n.estado = :programada and n.firmada = false and n.fechaProgramada > :ahora")
     int actualizarProgramacion(@Param("uuid") String uuid,
                                @Param("fecha") LocalDateTime fecha,
                                @Param("numero") String numero,
@@ -54,9 +56,11 @@ public interface NotificacionResolucionRepositorio extends JpaRepository<Notific
                                @Param("ahora") LocalDateTime ahora);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("update NotificacionResolucionEntidad n set n.firmada = true "
-            + "where n.uuidSolicitudAcademica = :uuid and n.estado = :programada and n.fechaProgramada > :ahora")
+    @Query("update NotificacionResolucionEntidad n set n.firmada = true, n.textoDarca = :textoDarca, "
+            + "n.fechaLiberacion = coalesce(n.fechaLiberacion, :ahora) "
+            + "where n.uuidSolicitudAcademica = :uuid and n.estado = :programada and n.firmada = false and n.fechaProgramada > :ahora")
     int marcarFirmada(@Param("uuid") String uuid,
+                      @Param("textoDarca") String textoDarca,
                       @Param("programada") EstadoNotificacionResolucion programada,
                       @Param("ahora") LocalDateTime ahora);
 
@@ -85,4 +89,8 @@ public interface NotificacionResolucionRepositorio extends JpaRepository<Notific
                            @Param("ultimoError") String ultimoError,
                            @Param("fechaEnvio") LocalDateTime fechaEnvio,
                            @Param("enProceso") EstadoNotificacionResolucion enProceso);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("delete from NotificacionResolucionEntidad x where x.uuidSolicitudAcademica in :uuids")
+    int eliminarPorSolicitudes(@Param("uuids") Collection<String> uuids);
 }

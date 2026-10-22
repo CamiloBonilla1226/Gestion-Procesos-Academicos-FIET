@@ -41,6 +41,31 @@ class ComunicacionResolucionTest {
     }
 
     @Test
+    void laPlantillaEditableTraeSufijoYFirmaYDejaLasMarcasDeLosDatos() {
+        String plantilla = comunicacion.plantillaComunicacion();
+
+        assertTrue(plantilla.contains("COMUNICACIÓN ELECTRÓNICA - RESOLUCIÓN No. {numero}/178 de {anio}"));
+        assertTrue(plantilla.contains("Se comunica al estudiante, {nombre}, del texto de la resolución No. {numero}/178 de {anio}"));
+        assertTrue(plantilla.contains("la misma por la cual se {decision} cancelación de asignatura"));
+        assertTrue(plantilla.endsWith("Cordialmente,\n\n" + FIRMA));
+        assertFalse(plantilla.contains("{sufijo}"));
+        assertFalse(plantilla.contains("{firma}"));
+    }
+
+    @Test
+    void unTextoEditadoReemplazaLasMarcasYResaltaLosDatos() {
+        NotificacionResolucion editada = notificacion("45", "rechaza la");
+        editada.setTextoComunicacion("Hola {nombre}.\n \nResolución {numero}/178 de {anio}: se {decision} cancelación. {otra}");
+
+        CorreoPreparado correo = comunicacion.comunicacionEstudiante("ana@unicauca.edu.co", "Ana Muñoz", editada);
+
+        assertEquals("Hola Ana Muñoz.\n\nResolución 45/178 de 2026: se rechaza la cancelación. {otra}", correo.getTexto());
+        assertEquals(2, correo.getParrafos().size());
+        assertTrue(correo.getHtml().contains("Hola <strong>Ana Muñoz</strong>."));
+        assertTrue(correo.getHtml().contains("Resolución <strong>45</strong>/178 de <strong>2026</strong>: se <strong>rechaza la</strong>"));
+    }
+
+    @Test
     void elCorreoAlEstudianteConservaElTextoDelClienteEnTextoPlano() {
         CorreoPreparado correo = comunicacion.comunicacionEstudiante("ana@unicauca.edu.co", "Ana María Muñoz Peña",
                 notificacion("123-25", "aprueba la"));

@@ -147,8 +147,9 @@ public class CancelacionAsignaturaRestController {
     @PostMapping(value = UUID_SOLICITUD + NOTIFICACION + "/firma", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> registrarFirma(@PathVariable String uuidSolicitud,
                                             @RequestParam("archivo") MultipartFile archivo,
+                                            @RequestParam(value = "textoDarca", required = false) String textoDarca,
                                             @RequestHeader("Authorization") String token) {
-        return notificacion(() -> notificacionCU.registrarFirma(uuidSolicitud, mapper.mapearArchivo(archivo), token.substring(7)));
+        return notificacion(() -> notificacionCU.registrarFirma(uuidSolicitud, mapper.mapearArchivo(archivo), textoDarca, token.substring(7)));
     }
 
     @PreAuthorize(ApplicationConstantes.FUNCIONARIO_ACADEMICO_ACCESO)

@@ -20,3 +20,4 @@
 
 Siguiente acción: ninguna; análisis completo.
 | T12.20 | VERIFICACION-SEGURIDAD.md | hecha |
+| T12.37 | Actualización de 00 a 16, VERIFICACION, VERIFICACION-SEGURIDAD (8.7) y documento nuevo correo-electronico.md | hecha (2026-10-21) |

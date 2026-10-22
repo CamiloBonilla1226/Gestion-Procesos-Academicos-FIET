@@ -12,4 +12,7 @@ public class PlantillaNotificacionResolucion {
     private String decisionPropuesta;
     private Integer anioResolucion;
     private String sufijoResolucion;
+    private String textoComunicacion;
+    private String textoDarca;
+    private String nombreEstudiante;
 }

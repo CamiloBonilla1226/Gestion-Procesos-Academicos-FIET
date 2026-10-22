@@ -89,7 +89,6 @@ public class MensajesError {
     public static final String ASIGNATURA_NO_ACTIVA = "La asignatura %s está %s y solo se pueden cancelar asignaturas activas...";
     public static final String SOLO_SOPORTES_LIBRES = "La cancelación de asignatura solo admite soportes libres, sin tipo de anexo, y llegó uno de tipo %s...";
     public static final String NOTA_INSUFICIENTE_CUMPLE = "La asignatura %s tiene nota %s, menor a 3.0, y no puede marcarse como que cumple las condiciones...";
-    public static final String NINGUNA_ASIGNATURA_CUMPLE = "Ninguna asignatura cumple las condiciones: en lugar de remitir la solicitud al Decano debe rechazarla...";
     public static final String NINGUNA_ASIGNATURA_APROBADA = "No se aprobó ninguna asignatura: para negar la solicitud completa use el rechazo del Decano...";
     public static final String FORMA_APROBACION_DECANO = "Debe aceptar la evaluación del funcionario (aceptarEvaluacion) o enviar la decisión de cada asignatura (decisiones), una de las dos...";
     public static final String SITUACION_NO_PERMITIDA = "%s no admite el valor %s: las opciones son %s...";
@@ -135,8 +134,13 @@ public class MensajesError {
     public static final String DATO_RESOLUCION_MUY_LARGO = "%s de la Resolución supera los %d caracteres permitidos...";
     public static final String ANIO_RESOLUCION_INVALIDO = "El año de la Resolución debe estar entre %d y %d...";
     public static final String DECISION_RESOLUCION_REQUERIDA = "Debe indicar la decisión de la Resolución...";
-    public static final String MENSAJE_INICIAL_REQUERIDO = "Marcó enviar mensaje al estudiante: el mensaje no puede estar vacío...";
+    public static final String MENSAJE_INICIAL_REQUERIDO = "El mensaje inmediato al estudiante es obligatorio: no puede estar vacío...";
     public static final String MENSAJE_INICIAL_MUY_LARGO = "El mensaje al estudiante supera los %d caracteres permitidos...";
-    public static final String NOTIFICACION_NO_EDITABLE = "La comunicación de la Resolución de la solicitud %s ya no se puede modificar: solo se edita o se registra la firma mientras está programada y antes de la fecha y hora programadas...";
+    public static final String NOTIFICACION_NO_EDITABLE = "La comunicación de la Resolución de la solicitud %s ya no se puede modificar: solo se edita o se registra la firma mientras está programada, sin firma registrada y antes de la fecha y hora programadas...";
     public static final String NOTIFICACION_NO_REINTENTABLE = "La comunicación de la Resolución de la solicitud %s no está fallida y no se puede reintentar...";
+    public static final String TEXTO_COMUNICACION_REQUERIDO = "%s no puede estar vacío...";
+    public static final String TEXTO_COMUNICACION_MUY_LARGO = "%s supera los %d caracteres permitidos...";
+    public static final String RANGO_FECHAS_REQUERIDO = "Debe indicar la fecha inicial y la fecha final del rango...";
+    public static final String RANGO_FECHAS_INVERTIDO = "La fecha inicial (%s) no puede ser posterior a la fecha final (%s)...";
+    public static final String RANGO_FECHAS_FUTURO = "%s (%s) no puede ser posterior a hoy (%s, hora de Colombia)...";
 }

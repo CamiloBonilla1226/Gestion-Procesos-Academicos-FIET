@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -31,7 +32,9 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@TestPropertySource(properties = "server.port=0")
+@TestPropertySource(properties = {"server.port=0",
+        "jwt.secreto=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "correo.darca.destinatario=darca-prueba@localhost"})
 @WebMvcTest(controllers = ConfiguracionSeguridadRolesTest.ControladorComodin.class)
 @Import({ConfiguracionSeguridad.class, JwtFiltroAutenticacion.class, JwtServicio.class,
         CustomAuthenticationEntryPoint.class, CustomAccessDeniedHandler.class,
@@ -279,6 +282,21 @@ class ConfiguracionSeguridadRolesTest {
         mockMvc.perform(llamar("POST", "notificaciones-docente", DOCENTE)).andExpect(status().isForbidden());
         mockMvc.perform(llamar("DELETE", "notificaciones-docente/{uuid}", DOCENTE)).andExpect(status().isForbidden());
         mockMvc.perform(llamar("PATCH", "notificaciones-docente/{uuid}", DOCENTE)).andExpect(status().isForbidden());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"GET,solicitudes-academicas/funcionario/respuestas/conteo", "DELETE,solicitudes-academicas/funcionario/respuestas"})
+    void elBorradoDeRespuestasEsSoloDelFuncionarioAcademico(String metodo, String ruta) throws Exception {
+        mockMvc.perform(llamar(metodo, ruta, FUNCIONARIO_ACADEMICO)).andExpect(status().isOk());
+        for (String rol : List.of(ESTUDIANTE, DOCENTE, DECANO, SG, FUNCIONARIO, SECRETARIA))
+            mockMvc.perform(llamar(metodo, ruta, rol)).andExpect(status().isForbidden());
+        mockMvc.perform(llamar(metodo, ruta, null)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void elBorradoDeRespuestasNoAceptaOtrosMetodos() throws Exception {
+        mockMvc.perform(llamar("POST", "solicitudes-academicas/funcionario/respuestas", FUNCIONARIO_ACADEMICO)).andExpect(status().isForbidden());
+        mockMvc.perform(llamar("DELETE", "solicitudes-academicas/funcionario/respuestas/conteo", FUNCIONARIO_ACADEMICO)).andExpect(status().isForbidden());
     }
 
     @Test

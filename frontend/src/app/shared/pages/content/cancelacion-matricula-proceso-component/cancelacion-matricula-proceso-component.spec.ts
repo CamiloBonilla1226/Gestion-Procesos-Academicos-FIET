@@ -134,9 +134,76 @@ describe('CancelacionMatriculaProcesoComponent', () => {
     expect(botones(crear(solicitud(['RECHAZAR_FUNCIONARIO', 'REMITIR_DECANO'])))).toEqual(['RECHAZAR_FUNCIONARIO', 'REMITIR_DECANO']);
   });
 
-  it('el Decano solo ve aprobar y rechazar si vienen en accionesDisponibles', () => {
-    expect(botones(crear(solicitud(['APROBAR_DECANO', 'RECHAZAR_DECANO']), 'DECANO'))).toEqual(['APROBAR_DECANO', 'RECHAZAR_DECANO']);
-    expect(botones(crear(solicitud(['APROBAR_DECANO']), 'DECANO'))).toEqual(['APROBAR_DECANO']);
+  describe('decision del Decano', () => {
+    function decano(): ComponentFixture<CancelacionMatriculaProcesoComponent> {
+      return crear(solicitud(['APROBAR_DECANO', 'RECHAZAR_DECANO'], false, 'EN_REVISION_DECANO'), 'DECANO');
+    }
+
+    function boton(fixture: ComponentFixture<CancelacionMatriculaProcesoComponent>): HTMLButtonElement {
+      return fixture.nativeElement.querySelector('[data-accion="ENVIAR_DECISION"] button');
+    }
+
+    function elegir(fixture: ComponentFixture<CancelacionMatriculaProcesoComponent>, opcion: string): void {
+      (fixture.nativeElement.querySelector(`[data-decision-decano] [data-opcion="${opcion}"]`) as HTMLInputElement).click();
+      fixture.detectChanges();
+    }
+
+    it('tiene un solo boton Enviar decision y la decision todo o nada sin preseleccionar', () => {
+      const fixture = decano();
+      expect(botones(fixture)).toEqual(['ENVIAR_DECISION']);
+      expect(boton(fixture).textContent?.trim()).toBe('Enviar decisión');
+      const opciones = Array.from(fixture.nativeElement.querySelectorAll('[data-decision-decano] input')) as HTMLInputElement[];
+      expect(opciones.map(o => o.getAttribute('data-opcion'))).toEqual(['aprobar', 'rechazar']);
+      expect(opciones.every(o => !o.checked)).toBeTrue();
+      expect(fixture.nativeElement.querySelector('[data-decision-decano]')?.textContent).toContain('Aprobar la cancelación de matrícula');
+      expect(fixture.nativeElement.querySelector('[data-decision-decano]')?.textContent).toContain('Rechazar la cancelación de matrícula');
+    });
+
+    it('el boton queda deshabilitado hasta elegir la decision', () => {
+      const fixture = decano();
+      expect(boton(fixture).disabled).toBeTrue();
+      fixture.componentInstance.abrirDecision();
+      expect(fixture.componentInstance.dialogoVisible).toBeFalse();
+      elegir(fixture, 'aprobar');
+      expect(boton(fixture).disabled).toBeFalse();
+    });
+
+    it('aprobar abre el dialogo de aprobacion y envia decano/aprobar', () => {
+      cancelaciones.aprobarPorDecano.and.returnValue(of(DETALLE));
+      const fixture = decano();
+      elegir(fixture, 'aprobar');
+      boton(fixture).click();
+      fixture.detectChanges();
+      const componente = fixture.componentInstance;
+      expect(componente.accionActiva).toBe('APROBAR_DECANO');
+      expect((document.querySelector('[data-boton-dialogo] button')?.textContent ?? '').trim()).toBe('Enviar decisión');
+      componente.confirmar();
+      expect(cancelaciones.aprobarPorDecano).toHaveBeenCalledWith('s-1', { observacion: null });
+      expect(cancelaciones.rechazarPorDecano).not.toHaveBeenCalled();
+    });
+
+    it('rechazar abre el dialogo de rechazo y envia decano/rechazar', () => {
+      cancelaciones.rechazarPorDecano.and.returnValue(of(DETALLE));
+      const fixture = decano();
+      elegir(fixture, 'rechazar');
+      boton(fixture).click();
+      fixture.detectChanges();
+      const componente = fixture.componentInstance;
+      expect(componente.accionActiva).toBe('RECHAZAR_DECANO');
+      expect(componente.tituloDialogo).toBe('Rechazar la cancelación de matrícula');
+      componente.confirmar();
+      expect(cancelaciones.rechazarPorDecano).toHaveBeenCalledWith('s-1', { observacion: null });
+      expect(cancelaciones.aprobarPorDecano).not.toHaveBeenCalled();
+    });
+
+    it('al cambiar de solicitud la decision vuelve a quedar sin elegir', () => {
+      const fixture = decano();
+      elegir(fixture, 'rechazar');
+      fixture.componentRef.setInput('solicitud', solicitud(['APROBAR_DECANO', 'RECHAZAR_DECANO'], false, 'EN_REVISION_DECANO'));
+      fixture.detectChanges();
+      expect(fixture.componentInstance.decisionDecano).toBeNull();
+      expect(boton(fixture).disabled).toBeTrue();
+    });
   });
 
   it('no pinta acciones ajenas al proceso ni abre una accion que no esta disponible', () => {
@@ -655,7 +722,9 @@ describe('CancelacionMatriculaProcesoComponent con el catalogo real', () => {
 
   it('con rol Decano abre el dialogo de aprobar sin pedir el catalogo de situaciones', () => {
     const fixture = crearConRol(['APROBAR_DECANO', 'RECHAZAR_DECANO'], 'EN_REVISION_DECANO', 'DECANO');
-    clic(fixture, 'APROBAR_DECANO');
+    (fixture.nativeElement.querySelector('[data-decision-decano] [data-opcion="aprobar"]') as HTMLInputElement).click();
+    fixture.detectChanges();
+    clic(fixture, 'ENVIAR_DECISION');
     http.expectNone(URL_SITUACIONES);
     expect(fixture.componentInstance.dialogoVisible).toBeTrue();
     expect(document.querySelector('[data-situacion-cancelar]')).toBeNull();

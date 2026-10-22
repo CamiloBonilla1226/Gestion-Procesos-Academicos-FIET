@@ -19,7 +19,7 @@ public interface NotificacionResolucionCUIntPuerto {
 
     NotificacionResolucion reprogramar(String uuidSolicitudAcademica, ProgramacionResolucion programacion, String token);
 
-    NotificacionResolucion registrarFirma(String uuidSolicitudAcademica, ArchivoAdjunto archivo, String token);
+    NotificacionResolucion registrarFirma(String uuidSolicitudAcademica, ArchivoAdjunto archivo, String textoDarca, String token);
 
     NotificacionResolucion reintentar(String uuidSolicitudAcademica, String token);
 

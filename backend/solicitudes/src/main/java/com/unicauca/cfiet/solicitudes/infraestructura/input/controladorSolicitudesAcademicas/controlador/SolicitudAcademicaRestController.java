@@ -2,6 +2,7 @@ package com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitu
 
 import com.unicauca.cfiet.solicitudes.aplicacion.input.AnexoAcademicoCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.ConsultaSolicitudAcademicaCUIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.input.EliminacionRespuestasCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.ResolucionAcademicaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.dominio.helper.constantes.ApplicationConstantes;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.ActorSolicitud;
@@ -9,10 +10,12 @@ import com.unicauca.cfiet.solicitudes.dominio.modelos.AnexoAcademico;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.ArchivoAdjunto;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.ResolucionAcademica;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudesAcademicas.DTORespuesta.AnexoAcademicoDTORespuesta;
+import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudesAcademicas.DTORespuesta.EliminacionRespuestasDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudesAcademicas.DTORespuesta.HistorialSolicitudAcademicaDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudesAcademicas.DTORespuesta.ResolucionAcademicaDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudesAcademicas.DTORespuesta.SolicitudAcademicaDetalleDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudesAcademicas.DTORespuesta.SolicitudAcademicaResumenDTORespuesta;
+import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudesAcademicas.mapeador.MapperEliminacionRespuestasInfraestructuraDominio;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudesAcademicas.mapeador.MapperSolicitudAcademicaInfraestructuraDominio;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +32,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,11 +45,15 @@ import java.util.Map;
 public class SolicitudAcademicaRestController {
     private static final String UUID_SOLICITUD = "/{uuidSolicitud:[0-9a-fA-F\\-]{36}}";
     private static final String UUID_ANEXO = "/{uuidAnexo:[0-9a-fA-F\\-]{36}}";
+    private static final String FECHA_INICIAL = "la fecha inicial";
+    private static final String FECHA_FINAL = "la fecha final";
 
     private final ConsultaSolicitudAcademicaCUIntPuerto consultaCU;
     private final AnexoAcademicoCUIntPuerto anexoCU;
     private final ResolucionAcademicaCUIntPuerto resolucionCU;
     private final MapperSolicitudAcademicaInfraestructuraDominio mapper;
+    private final EliminacionRespuestasCUIntPuerto eliminacionCU;
+    private final MapperEliminacionRespuestasInfraestructuraDominio mapperEliminacion;
 
     @PreAuthorize(ApplicationConstantes.ESTUDIANTE_ACCESO)
     @Transactional(readOnly = true)
@@ -59,6 +67,35 @@ public class SolicitudAcademicaRestController {
     @GetMapping("/funcionario")
     public ResponseEntity<List<SolicitudAcademicaResumenDTORespuesta>> getBandejaFuncionario(@RequestHeader("Authorization") String token) {
         return new ResponseEntity<>(mapper.mapearBandejaARespuesta(consultaCU.getBandejaFuncionario(token.substring(7))), HttpStatus.OK);
+    }
+
+    @PreAuthorize(ApplicationConstantes.FUNCIONARIO_ACADEMICO_ACCESO)
+    @Transactional(readOnly = true)
+    @GetMapping("/funcionario/respuestas/conteo")
+    public ResponseEntity<EliminacionRespuestasDTORespuesta> contarRespuestas(@RequestParam(value = "desde", required = false) String desde,
+                                                                             @RequestParam(value = "hasta", required = false) String hasta,
+                                                                             @RequestHeader("Authorization") String token) {
+        LocalDate inicio = mapperEliminacion.mapearFecha(desde, FECHA_INICIAL);
+        LocalDate fin = mapperEliminacion.mapearFecha(hasta, FECHA_FINAL);
+        int cantidad = eliminacionCU.contarRespuestas(inicio, fin, token.substring(7));
+        return new ResponseEntity<>(mapperEliminacion.mapearARespuesta(cantidad, inicio, fin), HttpStatus.OK);
+    }
+
+    @PreAuthorize(ApplicationConstantes.FUNCIONARIO_ACADEMICO_ACCESO)
+    @Transactional
+    @DeleteMapping("/funcionario/respuestas")
+    public ResponseEntity<?> eliminarRespuestas(@RequestParam(value = "desde", required = false) String desde,
+                                                @RequestParam(value = "hasta", required = false) String hasta,
+                                                @RequestHeader("Authorization") String token) {
+        LocalDate inicio = mapperEliminacion.mapearFecha(desde, FECHA_INICIAL);
+        LocalDate fin = mapperEliminacion.mapearFecha(hasta, FECHA_FINAL);
+        int cantidad;
+        try {
+            cantidad = eliminacionCU.eliminarRespuestas(inicio, fin, token.substring(7));
+        } catch (DataAccessException ex) {
+            return errorBaseDeDatos(ex);
+        }
+        return new ResponseEntity<EliminacionRespuestasDTORespuesta>(mapperEliminacion.mapearARespuesta(cantidad, inicio, fin), HttpStatus.OK);
     }
 
     @PreAuthorize(ApplicationConstantes.DECANO_ACCESO)

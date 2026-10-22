@@ -102,7 +102,16 @@
 
   @if (accionesVisibles.length > 0) {
   <section class="tarjeta tarjeta-acciones" data-acciones>
-    @for (accion of accionesVisibles; track accion) {
+    @if (decide) {
+    <app-decision-decano-component nombre="decision-matricula" textoAprobar="Aprobar la cancelación de matrícula"
+      textoRechazar="Rechazar la cancelación de matrícula" [decision]="decisionDecano" [deshabilitado]="!detalle"
+      (decisionChange)="decisionDecano = $event">
+    </app-decision-decano-component>
+    <app-simple-button-component data-accion="ENVIAR_DECISION" [label]="etiquetaEnviarDecision" width="auto" height="38px"
+      color="#2A3A86" [disabled]="!detalle || decisionDecano === null" (clicked)="abrirDecision()">
+    </app-simple-button-component>
+    }
+    @for (accion of accionesBotones; track accion) {
     <app-simple-button-component [attr.data-accion]="accion" [label]="etiquetaBoton(accion)" width="auto" height="38px"
       [color]="esRechazo(accion) ? '#D0463B' : '#2A3A86'" [contorno]="esRechazo(accion)"
       [disabled]="!detalle || cargandoSituaciones" (clicked)="abrir(accion)">

@@ -30,7 +30,7 @@ uses "Sesión" (con tilde) ni "DTPResponse" (sin la O) como referencia de
 nombre de carpeta — es un typo heredado de un módulo existente, un recurso
 nuevo usa siempre `DTOResponse` bien escrito.
 
-Los 76 endpoints académicos ya tienen sus modelos en `core/models`
+Los 78 endpoints académicos ya tienen sus modelos en `core/models`
 (`Asignatura`, `Estudiante`, `FuncionarioAcademico`, `CatalogoAcademico`,
 `SolicitudAcademica`, `CancelacionMatricula`, `CancelacionAsignatura`,
 `ExamenSupletorio`). Busca ahí antes de crear uno; los modelos son siempre

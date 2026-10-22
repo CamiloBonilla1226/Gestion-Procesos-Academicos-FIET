@@ -220,6 +220,61 @@ describe('ExamenSupletorioProcesoComponent', () => {
     expect(componente.errores['observacion']).toContain('obligatoria');
   });
 
+  describe('decision del Decano', () => {
+    function decano(): ComponentFixture<ExamenSupletorioProcesoComponent> {
+      return crear(solicitud(['APROBAR_DECANO', 'RECHAZAR_DECANO'], 'EN_REVISION_DECANO'), 'DECANO');
+    }
+
+    function boton(fixture: ComponentFixture<ExamenSupletorioProcesoComponent>): HTMLButtonElement {
+      return fixture.nativeElement.querySelector('[data-accion="ENVIAR_DECISION"] button');
+    }
+
+    function elegir(fixture: ComponentFixture<ExamenSupletorioProcesoComponent>, opcion: string): void {
+      (fixture.nativeElement.querySelector(`[data-decision-decano] [data-opcion="${opcion}"]`) as HTMLInputElement).click();
+      fixture.detectChanges();
+    }
+
+    it('tiene un solo boton Enviar decision, deshabilitado hasta elegir, sin preseleccion', () => {
+      const fixture = decano();
+      expect(botones(fixture)).toEqual(['ENVIAR_DECISION']);
+      expect(boton(fixture).textContent?.trim()).toBe('Enviar decisión');
+      expect(boton(fixture).disabled).toBeTrue();
+      const opciones = Array.from(fixture.nativeElement.querySelectorAll('[data-decision-decano] input')) as HTMLInputElement[];
+      expect(opciones.every(o => !o.checked)).toBeTrue();
+      expect(fixture.nativeElement.querySelector('[data-decision-decano]')?.textContent).toContain('Aprobar el examen supletorio');
+      fixture.componentInstance.abrirDecision();
+      expect(fixture.componentInstance.dialogoVisible).toBeFalse();
+      elegir(fixture, 'rechazar');
+      expect(boton(fixture).disabled).toBeFalse();
+    });
+
+    it('aprobar envia decano/aprobar', () => {
+      const fixture = decano();
+      elegir(fixture, 'aprobar');
+      boton(fixture).click();
+      fixture.detectChanges();
+      expect(fixture.componentInstance.accionActiva).toBe('APROBAR_DECANO');
+      expect((document.querySelector('[data-boton-dialogo] button')?.textContent ?? '').trim()).toBe('Enviar decisión');
+      fixture.componentInstance.confirmar();
+      terminar(accion('decano/aprobar'));
+      http.expectNone(`${URL}/decano/rechazar`);
+    });
+
+    it('rechazar envia decano/rechazar', () => {
+      const fixture = decano();
+      elegir(fixture, 'rechazar');
+      boton(fixture).click();
+      fixture.detectChanges();
+      expect(fixture.componentInstance.accionActiva).toBe('RECHAZAR_DECANO');
+      expect(fixture.componentInstance.tituloDialogo).toBe('Rechazar el examen supletorio');
+      fixture.componentInstance.confirmar();
+      const req = accion('decano/rechazar');
+      expect(req.request.body).toEqual({ observacion: null });
+      terminar(req);
+      http.expectNone(`${URL}/decano/aprobar`);
+    });
+  });
+
   it('el Decano aprueba sin cuerpo o con observacion, y rechaza con observacion opcional', () => {
     const componente = crear(solicitud(['APROBAR_DECANO', 'RECHAZAR_DECANO'], 'EN_REVISION_DECANO'), 'DECANO').componentInstance;
     componente.abrir('APROBAR_DECANO');
@@ -548,8 +603,8 @@ describe('ExamenSupletorioProcesoComponent', () => {
     fixture.detectChanges();
     expect((document.querySelector('[data-boton-dialogo] button')?.textContent ?? '').trim()).toBe('Rechazar comprobante');
     const textos: Record<string, string> = {
-      ENVIAR_RECIBO: 'Enviar recibo', SUBIR_COMPROBANTE: 'Subir comprobante', APROBAR_DECANO: 'Aprobar solicitud',
-      RECHAZAR_DECANO: 'Rechazar solicitud', REMITIR_DECANO: 'Remitir al Decano', ENVIAR_RESPUESTA: 'Enviar respuesta'
+      ENVIAR_RECIBO: 'Enviar recibo', SUBIR_COMPROBANTE: 'Subir comprobante', APROBAR_DECANO: 'Enviar decisión',
+      RECHAZAR_DECANO: 'Enviar decisión', REMITIR_DECANO: 'Remitir al Decano', ENVIAR_RESPUESTA: 'Enviar respuesta'
     };
     for (const [accion, texto] of Object.entries(textos)) {
       componente.accionActiva = accion as typeof componente.accionActiva;

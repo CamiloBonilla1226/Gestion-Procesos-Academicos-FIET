@@ -20,6 +20,9 @@ public class NotificacionResolucionDTORespuesta {
     private String sufijoResolucion;
     private String decision;
     private String mensajeInicial;
+    private String textoComunicacion;
+    private String textoDarca;
+    private String textoDarcaFirma;
     private LocalDateTime fechaEnvioEstudiante;
     private LocalDateTime fechaEnvioDarca;
     private int intentos;

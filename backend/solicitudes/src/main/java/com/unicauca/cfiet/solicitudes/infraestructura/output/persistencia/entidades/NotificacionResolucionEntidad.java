@@ -43,6 +43,10 @@ public class NotificacionResolucionEntidad implements Persistable<String> {
     private String decision;
     @Column(name = "mensajeInicial", length = 2000)
     private String mensajeInicial;
+    @Column(name = "textoComunicacion", length = 4000)
+    private String textoComunicacion;
+    @Column(name = "textoDarca", length = 4000)
+    private String textoDarca;
     @Column(name = "fechaEnvioEstudiante", columnDefinition = "datetime")
     private LocalDateTime fechaEnvioEstudiante;
     @Column(name = "fechaEnvioDarca", columnDefinition = "datetime")

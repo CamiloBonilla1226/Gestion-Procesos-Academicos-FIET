@@ -24,3 +24,19 @@
 - Tests ejecutados (1233 según `backend/CLAUDE.md`) contra 696 métodos contados: NO VERIFICADO.
 - No se ejecutó nada: ni builds, ni tests, ni diagramas renderizados, ni consultas a la base (Docker apagado).
 - Las clasificaciones [BASE] de archivos de tests y del frontend parten del commit inicial; no hay historial anterior de Julián.
+
+## Verificación de la actualización T12.37 (2026-10-21)
+
+| Comprobación | Resultado | Método |
+|---|---|---|
+| Endpoints | 138: 81 GET, 43 POST, 10 PUT, 4 PATCH, 0 DELETE; 62 [BASE] en 7 controladores (incluido `SesionRestController`, presente en `d3a48cc`) y 76 [EXTENSIÓN] en 9 | grep de anotaciones de mapeo por controlador y `git grep` sobre `d3a48cc` |
+| Endpoints de la extensión contra el contrato | CUADRA: 76 (línea 3 del contrato) | suma por controlador |
+| Archivos `.java` de main | 517: 175 [BASE] y 342 [EXTENSIÓN] | `git -c core.quotepath=false ls-tree` sobre `d3a48cc` (sin esa opción git cita `CambioContraseñaDTOPeticion.java` y el filtro cuenta 174) |
+| Entidades y tablas | 34 `@Entity` (13 y 21) más el `@Embeddable`; 35 tablas físicas con `Usuario_has_Roles`; 21 tablas de la extensión como dicen `CLAUDE.md` y el diccionario | grep y lectura |
+| Casos de uso | 34 (8 y 26), 157 `@Override` | conteo por archivo |
+| Pruebas backend | 51 archivos, 789 `@Test`, 100 `@ParameterizedTest`; 1580 ejecutadas en T12.32 según `change.md` | grep; no se ejecutó |
+| Frontend | 157 componentes, 149 specs, 629 `it(`, 37 rutas, 18 servicios | grep y `find` |
+| `MensajesError` | 132 constantes (22 y 110) | grep |
+| Credenciales | Ningún documento de `docs/analisis` reproduce contraseñas, claves, la cuenta de correo, el destinatario por defecto de DARCA ni la firma | revisión de los textos agregados |
+
+Discrepancias abiertas nuevas: las de `etapas-por-proceso.md` frente a las decisiones P50 a P62 (documento 04, D10 a D13) y las listadas en `reporte-tarea.md` de la raíz.

@@ -1,4 +1,5 @@
 import { Component, Input, OnChanges, SimpleChanges, inject } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { EMPTY, Observable, finalize, map, of, switchMap, tap } from 'rxjs';
@@ -50,8 +51,10 @@ import { NotificacionResolucionComponent } from '../../../others/notificacion-re
 import {
   ComunicacionEnEdicion,
   MAXIMO_MENSAJE_INICIAL,
+  MAXIMO_TEXTO_COMUNICACION,
   errorDeMensajeInicial,
   erroresDeProgramacion,
+  erroresDeTextos,
   programacionAPeticion,
   programacionVacia
 } from '../../../../core/utils/notificacion-resolucion';
@@ -65,6 +68,7 @@ import {
   numeroDeValor
 } from '../../../../core/utils/validaciones-academicas';
 import { AMBITOS_SITUACION, OpcionSituacion, opcionesDeSituacion, textoSituacion } from '../../../../core/utils/situaciones-academicas';
+import { ETIQUETA_ENVIAR_DECISION, accionDeDecisiones, decisionCompleta, esAccionDecisionDecano } from '../../../../core/utils/decision-decano';
 
 interface EvaluacionEnEdicion {
   faltas: string;
@@ -77,8 +81,6 @@ interface EvaluacionEnEdicion {
 interface AjusteEnEdicion {
   situacion: string | null;
 }
-
-type ModoDecision = 'aceptar' | 'modificar';
 
 type CampoEvaluacion = 'faltas' | 'nota' | 'situacion' | 'cancelar' | 'cumple' | 'decision';
 
@@ -99,13 +101,13 @@ const ACCIONES_DEL_PROCESO: AccionAcademica[] = [
 const ETIQUETAS_BOTON: Partial<Record<AccionAcademica, string>> = {
   [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'Rechazar solicitud',
   [ACCIONES_ACADEMICAS.REMITIR_DECANO]: 'Remitir al Decano',
-  [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: 'Rechazar solicitud completa',
   [ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA]: 'Enviar respuesta'
 };
 
 const TITULOS_DIALOGO: Partial<Record<AccionAcademica, string>> = {
   [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'Rechazar la solicitud',
   [ACCIONES_ACADEMICAS.REMITIR_DECANO]: 'Remitir la solicitud al Decano',
+  [ACCIONES_ACADEMICAS.APROBAR_DECANO]: 'Enviar la decisión del Decano',
   [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: 'Rechazar la solicitud completa',
   [ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA]: 'Enviar la respuesta al estudiante'
 };
@@ -113,18 +115,9 @@ const TITULOS_DIALOGO: Partial<Record<AccionAcademica, string>> = {
 const TEXTOS_BOTON_DIALOGO: Partial<Record<AccionAcademica, string>> = {
   [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'Rechazar solicitud',
   [ACCIONES_ACADEMICAS.REMITIR_DECANO]: 'Remitir al Decano',
-  [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: 'Rechazar solicitud',
+  [ACCIONES_ACADEMICAS.APROBAR_DECANO]: ETIQUETA_ENVIAR_DECISION,
+  [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: ETIQUETA_ENVIAR_DECISION,
   [ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA]: 'Enviar respuesta'
-};
-
-const TITULOS_DECISION: Record<ModoDecision, string> = {
-  aceptar: 'Aceptar la evaluación del Funcionario',
-  modificar: 'Enviar la decisión modificada'
-};
-
-const TEXTOS_BOTON_DECISION: Record<ModoDecision, string> = {
-  aceptar: 'Aceptar evaluación',
-  modificar: 'Enviar decisión'
 };
 
 const MENSAJES_EXITO: Partial<Record<AccionAcademica, string>> = {
@@ -180,6 +173,7 @@ const COLUMNAS_FIJAS_EVALUACION = new Set([
 @Component({
   selector: 'app-cancelacion-asignatura-proceso-component',
   imports: [
+    NgTemplateOutlet,
     GenericDialogFormComponent,
     SimpleButtonComponent,
     InputTextTareaComponent,
@@ -205,6 +199,7 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   readonly notaSimca = NOTA_SIMCA;
   readonly sinDato = SIN_DATO;
   readonly columnaDecision = COLUMNA_DECISION;
+  readonly etiquetaEnviarDecision = ETIQUETA_ENVIAR_DECISION;
 
   private readonly ruta = inject(ActivatedRoute, { optional: true });
   readonly columnaNombre = COLUMNA_NOMBRE;
@@ -225,20 +220,23 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   cargandoSituaciones = false;
 
   accionActiva: AccionAcademica | null = null;
-  modoDecision: ModoDecision | null = null;
   dialogoVisible = false;
   enviando = false;
   observacion = '';
   archivoResolucion: File | null = null;
   resolucionSubida = false;
   evaluaciones: Record<string, EvaluacionEnEdicion> = {};
-  decisiones: Record<string, boolean> = {};
+  decisiones: Record<string, boolean | null> = {};
   ajustes: Record<string, AjusteEnEdicion> = {};
   errores: Record<string, string> = {};
   erroresServidor: string[] = [];
   comunicacion: ComunicacionEnEdicion | null = null;
   sufijoResolucion = '';
   maximoMensaje = MAXIMO_MENSAJE_INICIAL;
+  maximoTexto = MAXIMO_TEXTO_COMUNICACION;
+  nombreEstudiante = '';
+  sugeridoComunicacion = '';
+  sugeridoDarca = '';
   cargandoPlantilla = false;
 
   constructor(
@@ -262,6 +260,10 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
     if (this.rol === ROLES_ETIQUETA.ESTUDIANTE) return [];
     const disponibles = this.solicitud?.accionesDisponibles ?? [];
     return ACCIONES_DEL_PROCESO.filter(accion => disponibles.includes(accion));
+  }
+
+  get accionesBotones(): AccionAcademica[] {
+    return this.accionesVisibles.filter(accion => !esAccionDecisionDecano(accion));
   }
 
   get muestraPanelNotificacion(): boolean {
@@ -313,12 +315,10 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   }
 
   get tituloDialogo(): string {
-    if (this.accionActiva === ACCIONES_ACADEMICAS.APROBAR_DECANO) return TITULOS_DECISION[this.modoDecision ?? 'aceptar'];
     return this.accionActiva ? TITULOS_DIALOGO[this.accionActiva] ?? '' : '';
   }
 
   get textoBotonDialogo(): string {
-    if (this.accionActiva === ACCIONES_ACADEMICAS.APROBAR_DECANO) return TEXTOS_BOTON_DECISION[this.modoDecision ?? 'aceptar'];
     return this.accionActiva ? TEXTOS_BOTON_DIALOGO[this.accionActiva] ?? 'Confirmar' : 'Confirmar';
   }
 
@@ -346,25 +346,20 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
     return this.asignaturas.filter(a => a.decisionCambiadaPorDecano === true);
   }
 
-  get ningunaCumple(): boolean {
-    const lista = Object.values(this.evaluaciones);
-    return lista.length > 0 && lista.every(e => e.cumple === false);
-  }
-
   get editable(): boolean {
     return this.accionesVisibles.includes(ACCIONES_ACADEMICAS.REMITIR_DECANO);
   }
 
   get decide(): boolean {
-    return this.accionesVisibles.includes(ACCIONES_ACADEMICAS.APROBAR_DECANO);
+    return this.accionesVisibles.some(accion => esAccionDecisionDecano(accion));
   }
 
-  get hayCambiosDecano(): boolean {
-    return this.asignaturas.some(a => this.decisiones[a.uuidAsignaturaSolicitud] !== (a.cumpleCondiciones === true));
+  get decisionLista(): boolean {
+    return decisionCompleta(this.listaDecisiones());
   }
 
   get todasRechazadas(): boolean {
-    return this.asignaturas.length > 0 && this.asignaturas.every(a => !this.decisiones[a.uuidAsignaturaSolicitud]);
+    return this.decisionLista && this.asignaturas.every(a => this.decisiones[a.uuidAsignaturaSolicitud] === false);
   }
 
   get asignaturasConAjuste(): AsignaturaSolicitadaDTORespuesta[] {
@@ -389,12 +384,13 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
     return valor === 'si' ? true : valor === 'no' ? false : null;
   }
 
-  cambiarDecision(uuid: string, evento: Event): void {
-    this.decisiones[uuid] = (evento.target as HTMLInputElement).checked;
+  cambiarDecision(uuid: string, valor: string): void {
+    this.decisiones[uuid] = valor === 'aprobar' ? true : valor === 'rechazar' ? false : null;
   }
 
   decisionDistinta(a: AsignaturaSolicitadaDTORespuesta): boolean {
-    return this.decisiones[a.uuidAsignaturaSolicitud] !== (a.cumpleCondiciones === true);
+    const decision = this.decisiones[a.uuidAsignaturaSolicitud];
+    return decision !== null && decision !== undefined && decision !== (a.cumpleCondiciones === true);
   }
 
   marcaCambioDecano(columna: Columna, a: AsignaturaSolicitadaDTORespuesta): boolean {
@@ -437,19 +433,15 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
       });
   }
 
-  abrirDecision(modo: ModoDecision): void {
+  abrirDecision(): void {
     if (!this.decide) return;
-    if (modo === 'modificar' && this.todasRechazadas) {
-      this.abrir(ACCIONES_ACADEMICAS.RECHAZAR_DECANO);
-      return;
-    }
-    this.abrir(ACCIONES_ACADEMICAS.APROBAR_DECANO, modo);
+    const accion = accionDeDecisiones(this.listaDecisiones());
+    if (accion) this.abrir(accion);
   }
 
-  abrir(accion: AccionAcademica, modo: ModoDecision | null = null): void {
+  abrir(accion: AccionAcademica): void {
     if (!this.accionesVisibles.includes(accion) || this.cargandoSituaciones || this.cargandoPlantilla) return;
     this.accionActiva = accion;
-    this.modoDecision = modo;
     this.observacion = '';
     this.archivoResolucion = null;
     this.errores = {};
@@ -489,9 +481,14 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
         next: plantilla => {
           this.sufijoResolucion = plantilla.sufijoResolucion ?? '';
           this.maximoMensaje = plantilla.maximoMensaje || MAXIMO_MENSAJE_INICIAL;
+          this.maximoTexto = plantilla.maximoTexto || MAXIMO_TEXTO_COMUNICACION;
+          this.nombreEstudiante = plantilla.nombreEstudiante ?? '';
+          this.sugeridoComunicacion = plantilla.textoComunicacion ?? '';
+          this.sugeridoDarca = plantilla.textoDarca ?? '';
           this.comunicacion = {
-            enviarMensaje: true,
             mensaje: plantilla.mensajeInicial ?? '',
+            textoComunicacion: this.sugeridoComunicacion,
+            textoDarca: this.sugeridoDarca,
             programacion: programacionVacia(plantilla.anioResolucion, plantilla.decisionPropuesta ?? '')
           };
           this.abrirRespuestaConPlantilla();
@@ -519,7 +516,6 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
     if (visible || this.enviando) return;
     this.dialogoVisible = false;
     this.accionActiva = null;
-    this.modoDecision = null;
   }
 
   alSeleccionarResolucion(archivo: File, entrada: InputAnexoUploadComponent): void {
@@ -552,7 +548,6 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
           this.toastService.showSuccess('Listo', MENSAJES_EXITO[accion] ?? 'Acción realizada.');
           this.dialogoVisible = false;
           this.accionActiva = null;
-          this.modoDecision = null;
           this.recargar();
         },
         error: err => {
@@ -571,7 +566,7 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
       ? Object.fromEntries(detalle.asignaturas.map(a => [a.uuidAsignaturaSolicitud, this.evaluacionInicial(a)]))
       : {};
     this.decisiones = this.decide
-      ? Object.fromEntries(detalle.asignaturas.map(a => [a.uuidAsignaturaSolicitud, a.cumpleCondiciones === true]))
+      ? Object.fromEntries(detalle.asignaturas.map(a => [a.uuidAsignaturaSolicitud, null]))
       : {};
     if (this.editable) this.asegurarSituaciones(() => undefined);
   }
@@ -625,8 +620,10 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
         const cuerpo = {
           observacion: opcional,
           ...(ajustes.length > 0 ? { ajustes } : {}),
-          enviarMensaje: comunicacion.enviarMensaje,
-          mensaje: comunicacion.enviarMensaje ? comunicacion.mensaje.trim() : null,
+          enviarMensaje: true,
+          mensaje: comunicacion.mensaje.trim(),
+          textoComunicacion: comunicacion.textoComunicacion.trim(),
+          textoDarca: comunicacion.textoDarca.trim(),
           programacion: programacionAPeticion(comunicacion.programacion)
         };
         return this.subirResolucion().pipe(switchMap(() => this.cancelacionAsignaturaService.enviarRespuesta(uuid, cuerpo)));
@@ -661,8 +658,11 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   }
 
   private armarAprobacion(observacion: string | null): AprobacionCancelacionAsignaturaDTOPeticion {
-    if (this.modoDecision === 'modificar') return { decisiones: this.armarDecisiones(), observacion };
-    return { aceptarEvaluacion: true, observacion };
+    return { decisiones: this.armarDecisiones(), observacion };
+  }
+
+  private listaDecisiones(): (boolean | null)[] {
+    return this.asignaturas.map(a => this.decisiones[a.uuidAsignaturaSolicitud] ?? null);
   }
 
   private armarDecisiones(): DecisionAsignaturaDTOPeticion[] {
@@ -698,6 +698,7 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
         Object.assign(errores, erroresDeProgramacion(this.comunicacion.programacion));
         const errorMensaje = errorDeMensajeInicial(this.comunicacion, this.maximoMensaje);
         if (errorMensaje) errores['mensaje'] = errorMensaje;
+        Object.assign(errores, erroresDeTextos(this.comunicacion, this.maximoTexto));
       }
     }
 
@@ -719,9 +720,6 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
       } else if (evaluacion.cumple && nota !== null && nota < NOTA_MINIMA_PARA_CUMPLIR) {
         errores[`cumple-${uuid}`] = 'Con una nota numérica menor a 3.0 no puede marcarse que cumple las condiciones.';
       }
-    }
-    if (!Object.values(this.evaluaciones).some(e => e.cumple === true)) {
-      errores['ninguna'] = 'Ninguna asignatura cumple las condiciones: en lugar de remitir la solicitud al Decano debes rechazarla.';
     }
   }
 

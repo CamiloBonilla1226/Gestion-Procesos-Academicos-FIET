@@ -10,5 +10,7 @@ import lombok.*;
 public class ComunicacionRespuesta {
     private Boolean enviarMensaje;
     private String mensaje;
+    private String textoComunicacion;
+    private String textoDarca;
     private ProgramacionResolucion programacion;
 }

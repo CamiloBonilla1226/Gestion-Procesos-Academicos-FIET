@@ -91,12 +91,12 @@ tres procesos.
 | 3.9 | Estudiante | Detalle | Abrir la solicitud rechazada | Botón "Descargar Resolución"; descarga el PDF | RECHAZADA |
 | 3.10 | Estudiante | Radicación | Radicar una nueva solicitud | Queda radicada | RADICADA |
 | 3.11 | Funcionario Académico | Detalle | "Remitir al Decano": faltas, nota y situación de cada asignatura, "Remitir al Decano" | Toast "La solicitud fue remitida al Decano." | EN_REVISION_DECANO |
-| 3.12 | Decano | `/decano/solicitudes`, detalle | Abrir | Botones "Aprobar" y "Rechazar" | EN_REVISION_DECANO |
-| 3.13 | Decano | Detalle | "Aprobar" | El diálogo abre después de cargar las situaciones; un select "situación al cancelar" por asignatura | |
-| 3.14 | Decano | Detalle | Elegir situaciones y "Aprobar solicitud" | Toast "La cancelación quedó aprobada." | APROBADA_POR_DECANO |
+| 3.12 | Decano | `/decano/solicitudes`, detalle | Abrir | "Decisión del Decano" con "Aprobar la cancelación de matrícula" y "Rechazar la cancelación de matrícula" sin marcar; un solo botón "Enviar decisión", deshabilitado | EN_REVISION_DECANO |
+| 3.13 | Decano | Detalle | Marcar "Aprobar la cancelación de matrícula" y "Enviar decisión" | El botón se habilita; abre el diálogo "Aprobar la cancelación de matrícula" con la observación opcional | |
+| 3.14 | Decano | Diálogo | "Enviar decisión" | Toast "La cancelación quedó aprobada." | APROBADA_POR_DECANO |
 | 3.15 | Funcionario Académico | Detalle | "Enviar respuesta" con el escaneo PDF | Toast "La respuesta fue enviada al estudiante."; las asignaturas activas quedan canceladas | APROBADA |
 | 3.16 | Estudiante | Detalle | Abrir | "Descargar Resolución" disponible; la tabla muestra la situación al cancelar | APROBADA |
-| 3.17 | Decano | Detalle de otra solicitud remitida | "Rechazar" con observación, botón "Rechazar solicitud" | Toast "La cancelación quedó rechazada." | RECHAZADA_POR_DECANO |
+| 3.17 | Decano | Detalle de otra solicitud remitida | Marcar "Rechazar la cancelación de matrícula", "Enviar decisión" con observación | Toast "La cancelación quedó rechazada." | RECHAZADA_POR_DECANO |
 | 3.18 | Funcionario Académico | Detalle | "Enviar respuesta" con escaneo | La solicitud termina | RECHAZADA |
 
 ## 4. Cancelación de Asignatura
@@ -108,14 +108,20 @@ tres procesos.
 | 4.3 | Estudiante | Radicación | Marcar dos asignaturas, motivo, "Radicar solicitud" | Radicado y "Ver solicitud"; navega al detalle | RADICADA |
 | 4.4 | Estudiante | Detalle | Abrir | Tabla solo con Código y Asignatura; sin botones | RADICADA |
 | 4.5 | Funcionario Académico | Detalle | "Remitir al Decano": en una asignatura nota 2.5 y "Cumple condiciones" Sí | Error "Con nota menor a 3.0 no puede marcarse que cumple las condiciones." | |
-| 4.6 | Funcionario Académico | Detalle | Marcar las dos como "No" | Aviso "Ninguna asignatura cumple las condiciones: en lugar de remitir la solicitud al Decano debes rechazarla."; no se envía | |
+| 4.6 | Funcionario Académico | Detalle de otra solicitud | Marcar las dos como "No" y "Remitir al Decano" | Sin aviso de rechazo ni campo de Resolución; toast "La solicitud fue remitida al Decano." | EN_REVISION_DECANO |
 | 4.7 | Funcionario Académico | Detalle | Una que cumple (nota 3.5, Sí) y otra que no (nota 2.5, No, con observación), "Remitir al Decano" | Toast "La solicitud fue remitida al Decano." | EN_REVISION_DECANO |
-| 4.8 | Decano | Detalle | "Decidir por asignatura" | Cada asignatura muestra la evaluación del Funcionario; la que no cumple arranca en "No" | |
-| 4.9 | Decano | Detalle | Aprobar la que cumple con situación al cancelar, "No" en la otra con observación, "Registrar decisiones" | Toast "La decisión por asignatura quedó registrada." | APROBADA_POR_DECANO |
-| 4.10 | Decano | Detalle de otra solicitud | Marcar todas en "No" | Aviso "No se aprobó ninguna asignatura: para negar la solicitud completa usa Rechazar solicitud completa." | |
-| 4.11 | Funcionario Académico | Detalle | "Enviar respuesta" con escaneo | Solo se cancela la asignatura aprobada | APROBADA |
-| 4.12 | Estudiante | Detalle | Abrir | Tabla con Código, Asignatura, "Decisión del Decano" (Aprobada / No aprobada) y la observación; "Descargar Resolución" | APROBADA |
-| 4.13 | Decano | Detalle de otra solicitud remitida | "Rechazar solicitud completa" con observación | Toast "La solicitud quedó rechazada." | RECHAZADA_POR_DECANO |
+| 4.8 | Decano | Detalle | Abrir | Cada asignatura muestra la evaluación del Funcionario y un select "Decisión del Decano" en "—"; un solo botón "Enviar decisión", deshabilitado; no hay "Aceptar tal como está" ni "Rechazar solicitud completa" | |
+| 4.9 | Decano | Detalle | "Aprobar" en la que cumple y "Rechazar" en la otra, "Enviar decisión" y confirmar | El botón se habilita al decidir las dos; toast "La decisión por asignatura quedó registrada." | APROBADA_POR_DECANO |
+| 4.10 | Decano | Detalle de la solicitud del paso 4.6 | "Aprobar" en una aunque el Funcionario la marcó "No", "Rechazar" en la otra, "Enviar decisión" | Toast "La decisión por asignatura quedó registrada." | APROBADA_POR_DECANO |
+| 4.11 | Funcionario Académico | Detalle | "Enviar respuesta" | El diálogo muestra en orden: situación al cancelar (opcional), "Mensaje inmediato al estudiante" sin casilla y completo (sin scroll interno), "Resolución sin firmar por el estudiante", "Comunicación programada de la Resolución" con fecha, número, año, decisión y los textos para el estudiante y DARCA con su vista "Así lo recibirá...", y al final la observación | |
+| 4.11a | Funcionario Académico | Diálogo de respuesta | Cambiar el número de la Resolución y editar el texto de DARCA | La vista del estudiante toma el número nuevo en negrilla; la de DARCA muestra el texto editado con la fecha programada | |
+| 4.11b | Funcionario Académico | Diálogo de respuesta | Programar a unos minutos, subir la Resolución sin firmar y "Enviar respuesta" | Solo se cancela la asignatura aprobada; sale el mensaje inmediato | APROBADA |
+| 4.11c | Estudiante | Detalle | Abrir antes de la fecha | "En trámite", sin decisión ni Resolución | |
+| 4.11d | Funcionario Académico | Notificación de la Resolución | "El estudiante firmó": subir el PDF firmado, revisar el texto de DARCA y "Registrar firma" | Estado "Cerrada por la firma del estudiante"; sin botones de reprogramar ni de firma; DARCA recibe de inmediato el radicado y la Resolución firmada | |
+| 4.12 | Estudiante | Detalle | Abrir justo después de la firma (o, sin firma, al llegar la fecha) | Tabla con Código, Asignatura, "Decisión del Decano" (Aprobada / No aprobada) y la observación; "Descargar Resolución" | APROBADA |
+| 4.12a | Funcionario Académico | `/funcionario-academico/respuestas` | "Eliminar respuestas por fecha": elegir fecha inicial y final y "Eliminar respuestas" | Diálogo "Se eliminarán N respuestas entre X y Y. Esta acción no se puede deshacer. ¿Seguro?" con Aceptar y Cancelar; Cancelar no borra | |
+| 4.12b | Funcionario Académico | Respuestas | Repetir y "Aceptar" | Toast "Se eliminaron N respuestas."; la lista se recarga sin ellas; las que están en trámite o con la comunicación programada siguen | |
+| 4.13 | Decano | Detalle de otra solicitud remitida | "Rechazar" en todas las asignaturas, "Enviar decisión" con observación | Aviso de que se rechaza la solicitud completa; toast "La solicitud quedó rechazada." | RECHAZADA_POR_DECANO |
 | 4.14 | Funcionario Académico | Detalle | "Enviar respuesta" con escaneo | | RECHAZADA |
 
 ## 5. Examen Supletorio
@@ -132,7 +138,7 @@ tres procesos.
 | 5.8 | Estudiante | Radicación | Radicar una nueva con causa otra | | RADICADA |
 | 5.9 | Funcionario Académico | Detalle | "Remitir al Decano" sin marcar "Verifiqué los requisitos del examen supletorio." | Error "Confirma que verificaste los requisitos..." | |
 | 5.10 | Funcionario Académico | Detalle | Marcar la casilla y "Remitir al Decano" | Toast "La solicitud fue remitida al Decano." | EN_REVISION_DECANO |
-| 5.11 | Decano | Detalle | "Aprobar" con observación opcional, botón "Aprobar solicitud" | Toast "El examen supletorio quedó aprobado." | APROBADA_POR_DECANO |
+| 5.11 | Decano | Detalle | Marcar "Aprobar el examen supletorio", "Enviar decisión" con observación opcional | Toast "El examen supletorio quedó aprobado." | APROBADA_POR_DECANO |
 | 5.12 | Funcionario Académico | Detalle | "Enviar recibo de pago" | El diálogo abre después de cargar los tipos de anexo; pide el recibo en PDF | |
 | 5.13 | Funcionario Académico | Detalle | Subir el recibo y "Enviar recibo" | Toast "El recibo de pago fue enviado al estudiante."; el recibo aparece en Anexos | PENDIENTE_PAGO |
 | 5.14 | Estudiante | Detalle | Abrir | Insignia amarilla; aviso "Descarga el recibo de pago en la sección Anexos, realiza el pago y sube el comprobante..."; descarga el recibo | PENDIENTE_PAGO |
@@ -141,7 +147,7 @@ tres procesos.
 | 5.17 | Funcionario Académico | Detalle | Fecha acordada válida y "Aprobar comprobante" | Toast "El comprobante quedó aprobado."; el detalle muestra la fecha acordada | APROBADA |
 | 5.18 | Estudiante y Funcionario | Detalle de otra solicitud en EN_VERIFICACION_PAGO | El Funcionario usa "Rechazar comprobante" con observación | Toast "El comprobante quedó rechazado."; el Estudiante ve "Tu comprobante de pago fue rechazado... debes radicar una solicitud nueva." | RECHAZADA |
 | 5.19 | Estudiante | `/estudiante/examen-supletorio` | Radicar de nuevo | Se acepta la nueva radicación | RADICADA |
-| 5.20 | Decano | Detalle de otra solicitud remitida | "Rechazar" con observación, botón "Rechazar solicitud" | Toast "El examen supletorio quedó rechazado." | RECHAZADA_POR_DECANO |
+| 5.20 | Decano | Detalle de otra solicitud remitida | Marcar "Rechazar el examen supletorio", "Enviar decisión" con observación | Toast "El examen supletorio quedó rechazado." | RECHAZADA_POR_DECANO |
 | 5.21 | Funcionario Académico | Detalle | "Enviar respuesta", botón "Enviar respuesta" | Toast "La respuesta fue enviada al estudiante." | RECHAZADA |
 
 ## 6. Sesión vencida (401)

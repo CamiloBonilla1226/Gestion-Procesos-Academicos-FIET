@@ -91,9 +91,9 @@
           <small class="texto-error" data-error="fechaCruce">{{ errores['fechaCruce'] || '' }}</small>
         </div>
         <div class="col-md-3">
-          <app-input-text-component label="Hora (HH:mm)" [required]="true" [value]="horaCruce"
+          <app-input-date-component label="Hora del examen cruzado" tipo="time" [required]="true" [value]="horaCruce"
             (valueChange)="alCambiarHoraCruce($event)">
-          </app-input-text-component>
+          </app-input-date-component>
           <small class="texto-error" data-error="horaCruce">{{ errores['horaCruce'] || '' }}</small>
         </div>
       </div>

@@ -9,14 +9,25 @@ export interface ProgramacionEnEdicion {
 }
 
 export interface ComunicacionEnEdicion {
-  enviarMensaje: boolean;
   mensaje: string;
+  textoComunicacion: string;
+  textoDarca: string;
   programacion: ProgramacionEnEdicion;
 }
+
+export interface FragmentoVista {
+  texto: string;
+  resaltado: boolean;
+}
+
+export type ParrafoVista = FragmentoVista[];
 
 export const MAXIMO_NUMERO_RESOLUCION = 20;
 export const MAXIMO_DECISION_RESOLUCION = 60;
 export const MAXIMO_MENSAJE_INICIAL = 2000;
+export const MAXIMO_TEXTO_COMUNICACION = 4000;
+export const MARCAS_COMUNICACION_ESTUDIANTE = ['numero', 'anio', 'nombre', 'decision'];
+export const MARCAS_DARCA = ['fecha'];
 export const ANIO_MINIMO_RESOLUCION = 2000;
 export const ANIO_MAXIMO_RESOLUCION = 2100;
 export const ZONA_COLOMBIA = 'America/Bogota';
@@ -95,11 +106,67 @@ export function erroresDeProgramacion(programacion: ProgramacionEnEdicion, ahora
 }
 
 export function errorDeMensajeInicial(comunicacion: ComunicacionEnEdicion, maximo: number = MAXIMO_MENSAJE_INICIAL): string {
-  if (!comunicacion.enviarMensaje) return '';
   const mensaje = comunicacion.mensaje.trim();
-  if (!mensaje) return 'Escribe el mensaje o desmarca la casilla para no enviarlo.';
+  if (!mensaje) return 'Escribe el mensaje inmediato al estudiante; siempre se envía.';
   if (mensaje.length > maximo) return `El mensaje admite máximo ${maximo} caracteres.`;
   return '';
+}
+
+export function errorDeTextoComunicacion(texto: string, destinatario: string, maximo: number = MAXIMO_TEXTO_COMUNICACION): string {
+  const limpio = texto.trim();
+  if (!limpio) return `Escribe el texto que recibirá ${destinatario}.`;
+  if (limpio.length > maximo) return `El texto admite máximo ${maximo} caracteres.`;
+  return '';
+}
+
+export function erroresDeTextos(comunicacion: ComunicacionEnEdicion, maximo: number = MAXIMO_TEXTO_COMUNICACION): Record<string, string> {
+  const errores: Record<string, string> = {};
+  const estudiante = errorDeTextoComunicacion(comunicacion.textoComunicacion, 'el estudiante', maximo);
+  const darca = errorDeTextoComunicacion(comunicacion.textoDarca, 'DARCA', maximo);
+  if (estudiante) errores['textoComunicacion'] = estudiante;
+  if (darca) errores['textoDarca'] = darca;
+  return errores;
+}
+
+export function parrafosConMarcas(texto: string, valores: Record<string, string>, resaltar = true): ParrafoVista[] {
+  return texto
+    .replace(/\r\n?/g, '\n')
+    .trim()
+    .split(/\n\s*\n/)
+    .filter(parrafo => parrafo.trim() !== '')
+    .map(parrafo => {
+      const fragmentos: FragmentoVista[] = [];
+      let desde = 0;
+      for (const marca of parrafo.matchAll(/\{(\w+)\}/g)) {
+        const conocida = Object.prototype.hasOwnProperty.call(valores, marca[1]);
+        if (marca.index! > desde) fragmentos.push({ texto: parrafo.slice(desde, marca.index), resaltado: false });
+        fragmentos.push({ texto: conocida ? valores[marca[1]] : marca[0], resaltado: conocida && resaltar });
+        desde = marca.index! + marca[0].length;
+      }
+      if (desde < parrafo.length) fragmentos.push({ texto: parrafo.slice(desde), resaltado: false });
+      return fragmentos;
+    });
+}
+
+export function valoresComunicacionEstudiante(programacion: ProgramacionEnEdicion, nombre: string): Record<string, string> {
+  const vacio = '___';
+  return {
+    numero: programacion.numero.trim() || vacio,
+    anio: programacion.anio.trim() || vacio,
+    nombre: nombre.trim() || vacio,
+    decision: programacion.decision.trim() || vacio
+  };
+}
+
+export function fechaCarta(valor: string | null | undefined): string {
+  const coincidencia = FORMATO_FECHA_HORA.exec(valor ?? '');
+  if (!coincidencia) return '___';
+  const [, anio, mes, dia] = coincidencia.map(Number);
+  return new Intl.DateTimeFormat('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(anio, mes - 1, dia));
+}
+
+export function filasDeTexto(texto: string, minimo = 6, anchoLinea = 90): number {
+  return Math.max(minimo, texto.split('\n').reduce((total, linea) => total + Math.max(1, Math.ceil(linea.length / anchoLinea)), 0) + 1);
 }
 
 export function programacionAPeticion(programacion: ProgramacionEnEdicion): ProgramacionResolucionDTOPeticion {

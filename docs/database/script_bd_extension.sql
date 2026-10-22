@@ -434,14 +434,25 @@ ALTER TABLE SOLICITUD_EXAMEN_SUPLETORIO MODIFY fechaAcordadaExamen DATETIME NULL
 -- más de 15 minutos se vuelve a reclamar), ENVIADA o FALLIDA (tres intentos
 -- sin éxito). firmada = 1 cuando el estudiante firmó la Resolución en la
 -- Decanatura: no se le envía la comunicación y DARCA recibe solo el PDF de
--- la respuesta y la Resolución firmada. fechaEnvioEstudiante y
+-- la respuesta y la Resolución firmada. Desde T12.38 (P63) la firma cierra
+-- la comunicación: se guarda con una actualización condicional (PROGRAMADA,
+-- firmada = 0 y antes de la fecha) que también llena fechaLiberacion y
+-- textoDarca; la tarea la reclama de inmediato aunque la fecha no haya
+-- llegado (envía solo a DARCA) y después ya no se edita ni se vuelve a
+-- firmar. fechaEnvioEstudiante y
 -- fechaEnvioDarca son la marca de cada correo: el reintento repite solo el
 -- que sigue nulo. fechaLiberacion es el momento en que la tarea reclamó la
--- fila por primera vez: hasta ese momento el Estudiante ve la solicitud en
--- trámite, sin respuesta ni Resolución; después no se vuelve a ocultar.
--- mensajeInicial guarda el texto del mensaje inmediato al estudiante (nulo
--- si no se envió); solo lo ve el Funcionario. Hibernate crea estado como
--- ENUM y firmada como BIT(1).
+-- fila por primera vez o en que se registró la firma. Desde T12.38 el
+-- Estudiante ve la solicitud en trámite solo mientras fechaLiberacion sea
+-- nula y fechaProgramada siga en el futuro; después no se vuelve a ocultar.
+-- mensajeInicial guarda el texto del mensaje inmediato al estudiante; desde
+-- T12.38 siempre se envía (las filas anteriores pueden tenerlo nulo).
+-- textoComunicacion y textoDarca (T12.38) son los textos que editó el
+-- Funcionario para el correo al estudiante y para DARCA: el primero con las
+-- marcas {numero}, {anio}, {nombre} y {decision}, que se llenan al enviar
+-- (en negrilla en el HTML); el segundo con {fecha}, la fecha de envío.
+-- Nulos en las filas anteriores a T12.38, que usan la plantilla fija.
+-- Hibernate crea estado como ENUM y firmada como BIT(1).
 CREATE TABLE IF NOT EXISTS NOTIFICACION_RESOLUCION (
     SolicitudAcademica_uuid   VARCHAR(100)  NOT NULL,
     fechaProgramada           DATETIME      NOT NULL,
@@ -451,6 +462,8 @@ CREATE TABLE IF NOT EXISTS NOTIFICACION_RESOLUCION (
     anioResolucion            INT           NOT NULL,
     decision                  VARCHAR(60)   NOT NULL,
     mensajeInicial            VARCHAR(2000) NULL,
+    textoComunicacion         VARCHAR(4000) NULL,
+    textoDarca                VARCHAR(4000) NULL,
     fechaEnvioEstudiante      DATETIME      NULL,
     fechaEnvioDarca           DATETIME      NULL,
     intentos                  INT           NOT NULL DEFAULT 0,

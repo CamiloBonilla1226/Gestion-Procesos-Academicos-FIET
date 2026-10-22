@@ -89,8 +89,6 @@ public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCance
             if (asignatura.getCumpleCondiciones())
                 cumplen++;
         }
-        if (cumplen == 0)
-            formateadorExcepciones.lanzarReglaNegocioViolada(MensajesError.NINGUNA_ASIGNATURA_CUMPLE);
 
         SolicitudAcademica actualizada = solicitudCU.cambiarEtapa(uuidSolicitudAcademica, AccionEtapa.REMITIR_DECANO, actor, observacion, token);
         cancelacion.setAsignaturas(tramite.guardarAsignaturas(cancelacion.getAsignaturas()));

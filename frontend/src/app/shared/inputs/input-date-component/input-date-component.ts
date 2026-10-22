@@ -36,7 +36,7 @@ export class InputDateComponent {
    */
   @Output() valueChange = new EventEmitter<string>();
 
-  @Input() tipo: 'date' | 'datetime-local' = 'date';
+  @Input() tipo: 'date' | 'datetime-local' | 'time' = 'date';
 
   @Input() minimo = '';
 

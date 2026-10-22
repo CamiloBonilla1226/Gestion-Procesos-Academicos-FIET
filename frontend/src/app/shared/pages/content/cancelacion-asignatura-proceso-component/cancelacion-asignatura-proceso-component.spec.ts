@@ -23,12 +23,18 @@ const PLANTILLA: PlantillaNotificacionResolucionDTORespuesta = {
   maximoMensaje: 2000,
   decisionPropuesta: 'aprueba parcialmente la',
   anioResolucion: 2026,
-  sufijoResolucion: '/178'
+  sufijoResolucion: '/178',
+  textoComunicacion: 'RESOLUCIÓN No. {numero}/178 de {anio}\n\nSe comunica al estudiante, {nombre}, que se {decision} cancelación.',
+  textoDarca: 'Popayán, Cauca, {fecha}\n\nResumen para DARCA.',
+  maximoTexto: 4000,
+  nombreEstudiante: 'María Pérez'
 };
 
 const CUERPO_COMUNICACION = {
   enviarMensaje: true,
   mensaje: PLANTILLA.mensajeInicial,
+  textoComunicacion: PLANTILLA.textoComunicacion,
+  textoDarca: PLANTILLA.textoDarca,
   programacion: { fechaProgramada: '2099-01-01T08:00', numeroResolucion: '123-26', anioResolucion: 2026, decision: 'aprueba parcialmente la' }
 };
 
@@ -245,7 +251,7 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
   it('solo pinta los botones que vienen en accionesDisponibles', () => {
     expect(botones(crear(solicitud(['RECHAZAR_FUNCIONARIO', 'REMITIR_DECANO']), EVALUADAS))).toEqual(['RECHAZAR_FUNCIONARIO', 'REMITIR_DECANO']);
     expect(botones(crear(solicitud(['APROBAR_DECANO', 'RECHAZAR_DECANO'], 'EN_REVISION_DECANO'), EVALUADAS, 'DECANO'))).toEqual([
-      'ACEPTAR_EVALUACION', 'DECISION_MODIFICADA', 'RECHAZAR_DECANO'
+      'ENVIAR_DECISION'
     ]);
     expect(botones(crear(solicitud(['ENVIAR_RECIBO']), EVALUADAS))).toEqual([]);
   });
@@ -334,17 +340,25 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
       expect(cuerpo.evaluaciones.map(e => e.observacionEvaluacion)).toEqual([null, null]);
     });
 
-    it('si ninguna cumple avisa que debe rechazar y no envia', () => {
+    it('si ninguna cumple igual remite al Decano, sin aviso de rechazo ni Resolucion', () => {
+      cancelaciones.remitirADecano.and.returnValue(of(detalle(EVALUADAS)));
       const fixture = abrirRemision();
       const componente = fixture.componentInstance;
       componente.evaluaciones['as-1'] = { faltas: '0', nota: '2.0', situacion: 'r0', cancelar: null, cumple: false };
       componente.evaluaciones['as-2'] = { faltas: '0', nota: '2.0', situacion: 'r0', cancelar: null, cumple: false };
       fixture.detectChanges();
-      expect(document.querySelector('[data-error="ninguna"]')?.textContent).toContain('debes rechazarla');
-      componente.abrir('REMITIR_DECANO');
+      expect(fixture.nativeElement.querySelector('[data-error="ninguna"]')).toBeNull();
+      (fixture.nativeElement.querySelector('[data-accion="REMITIR_DECANO"] button') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      expect(componente.dialogoVisible).toBeTrue();
+      expect(fixture.nativeElement.querySelector('[data-error="tabla"]')).toBeNull();
+      expect(document.querySelector('[data-campo-resolucion]')).toBeNull();
       componente.confirmar();
-      expect(componente.errores['ninguna']).toBeTruthy();
-      expect(cancelaciones.remitirADecano).not.toHaveBeenCalled();
+      expect(componente.errores).toEqual({});
+      expect(solicitudes.adjuntarResolucion).not.toHaveBeenCalled();
+      const cuerpo = cancelaciones.remitirADecano.calls.mostRecent().args[1];
+      expect(cuerpo.evaluaciones.map(e => e.cumpleCondiciones)).toEqual([false, false]);
+      expect(recargar).toHaveBeenCalled();
     });
 
     it('envia el cuerpo exacto de la remision', () => {
@@ -436,15 +450,22 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
       return crear(solicitud(acciones, 'EN_REVISION_DECANO'), EVALUADAS, 'DECANO');
     }
 
-    function interruptor(fixture: ComponentFixture<CancelacionAsignaturaProcesoComponent>, uuid: string): HTMLInputElement {
+    function selector(fixture: ComponentFixture<CancelacionAsignaturaProcesoComponent>, uuid: string): HTMLSelectElement {
       return fixture.nativeElement.querySelector(`[data-fila="${uuid}"] [data-campo="decision"]`);
+    }
+
+    function decidir(fixture: ComponentFixture<CancelacionAsignaturaProcesoComponent>, uuid: string, valor: string): void {
+      const campo = selector(fixture, uuid);
+      campo.value = valor;
+      campo.dispatchEvent(new Event('change'));
+      fixture.detectChanges();
     }
 
     function boton(fixture: ComponentFixture<CancelacionAsignaturaProcesoComponent>, accion: string): HTMLButtonElement {
       return fixture.nativeElement.querySelector(`[data-accion="${accion}"] button`);
     }
 
-    it('cada asignatura muestra la evaluacion del Funcionario y un interruptor que parte de ella', () => {
+    it('cada asignatura muestra la evaluacion del Funcionario y una decision sin preseleccionar', () => {
       const fixture = decano();
       expect(encabezados(fixture)).toContain('Cumple condiciones');
       expect(encabezados(fixture)).not.toContain('Observación de la evaluación');
@@ -452,9 +473,35 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
       const fila2 = fixture.nativeElement.querySelector('[data-fila="as-2"]') as HTMLElement;
       expect(fila2.textContent).toContain('No');
       expect(fila2.textContent).not.toContain('Nota menor a 3.0');
-      expect(interruptor(fixture, 'as-1').checked).toBeTrue();
-      expect(interruptor(fixture, 'as-2').checked).toBeFalse();
-      expect(fila2.textContent).toContain('Rechazar');
+      expect(selector(fixture, 'as-1').value).toBe('');
+      expect(selector(fixture, 'as-2').value).toBe('');
+      expect(Array.from(selector(fixture, 'as-1').options).map(o => o.textContent?.trim())).toEqual(['—', 'Aprobar', 'Rechazar']);
+      expect(fixture.componentInstance.decisiones).toEqual({ 'as-1': null, 'as-2': null });
+      expect(fixture.nativeElement.querySelector('[data-cambio-decision]')).toBeNull();
+    });
+
+    it('tiene un solo boton Enviar decision, sin Rechazar todo ni Aceptar tal como esta', () => {
+      const fixture = decano();
+      expect(botones(fixture)).toEqual(['ENVIAR_DECISION']);
+      expect(boton(fixture, 'ENVIAR_DECISION').textContent?.trim()).toBe('Enviar decisión');
+      expect(fixture.nativeElement.textContent).not.toContain('Aceptar tal como está');
+      expect(fixture.nativeElement.textContent).not.toContain('Rechazar solicitud completa');
+      expect(fixture.nativeElement.querySelector('[data-ayuda-decision]')?.textContent).toContain('Enviar decisión');
+    });
+
+    it('el boton queda deshabilitado hasta que todas las asignaturas tengan decision', () => {
+      const fixture = decano();
+      expect(boton(fixture, 'ENVIAR_DECISION').disabled).toBeTrue();
+      fixture.componentInstance.abrirDecision();
+      expect(fixture.componentInstance.dialogoVisible).toBeFalse();
+      decidir(fixture, 'as-1', 'aprobar');
+      expect(boton(fixture, 'ENVIAR_DECISION').disabled).toBeTrue();
+      decidir(fixture, 'as-2', 'rechazar');
+      expect(boton(fixture, 'ENVIAR_DECISION').disabled).toBeFalse();
+      decidir(fixture, 'as-2', '');
+      expect(boton(fixture, 'ENVIAR_DECISION').disabled).toBeTrue();
+      expect(cancelaciones.aprobarPorDecano).not.toHaveBeenCalled();
+      expect(cancelaciones.rechazarPorDecano).not.toHaveBeenCalled();
     });
 
     it('el Decano no ve ni llena situacion al cancelar ni observacion por asignatura', () => {
@@ -463,73 +510,106 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
       expect(encabezados(fixture)).not.toContain('Al Cancelar');
       expect(encabezados(fixture)).not.toContain('Observación de la decisión');
       expect(fixture.nativeElement.textContent).not.toContain('No vista');
-      fixture.componentInstance.abrirDecision('aceptar');
+      decidir(fixture, 'as-1', 'aprobar');
+      decidir(fixture, 'as-2', 'rechazar');
+      fixture.componentInstance.abrirDecision();
       fixture.detectChanges();
       expect(document.querySelectorAll('[data-dialogo] select').length).toBe(0);
       expect(document.querySelectorAll('[data-dialogo] textarea').length).toBe(1);
     });
 
-    it('sin cambios solo se puede aceptar tal como esta y envia aceptarEvaluacion', () => {
+    it('aprobacion parcial: envia la decision de cada asignatura por decano/aprobar', () => {
       cancelaciones.aprobarPorDecano.and.returnValue(of(detalle(EVALUADAS)));
       const fixture = decano();
-      expect(boton(fixture, 'ACEPTAR_EVALUACION').disabled).toBeFalse();
-      expect(boton(fixture, 'DECISION_MODIFICADA').disabled).toBeTrue();
-      boton(fixture, 'ACEPTAR_EVALUACION').click();
-      fixture.detectChanges();
-      const componente = fixture.componentInstance;
-      expect(componente.tituloDialogo).toBe('Aceptar la evaluación del Funcionario');
-      expect((document.querySelector('[data-boton-dialogo] button')?.textContent ?? '').trim()).toBe('Aceptar evaluación');
-      componente.confirmar();
-      expect(cancelaciones.aprobarPorDecano).toHaveBeenCalledWith('s-1', { aceptarEvaluacion: true, observacion: null });
-      expect(recargar).toHaveBeenCalled();
-    });
-
-    it('al cambiar un interruptor envia la decision modificada de cada asignatura', () => {
-      cancelaciones.aprobarPorDecano.and.returnValue(of(detalle(EVALUADAS)));
-      const fixture = decano();
-      const segundo = interruptor(fixture, 'as-2');
-      segundo.checked = true;
-      segundo.dispatchEvent(new Event('change'));
-      fixture.detectChanges();
+      decidir(fixture, 'as-1', 'rechazar');
+      decidir(fixture, 'as-2', 'aprobar');
+      expect(fixture.nativeElement.querySelector('[data-fila="as-1"] [data-cambio-decision]')).toBeTruthy();
       expect(fixture.nativeElement.querySelector('[data-fila="as-2"] [data-cambio-decision]')).toBeTruthy();
-      expect(boton(fixture, 'ACEPTAR_EVALUACION').disabled).toBeTrue();
-      expect(boton(fixture, 'DECISION_MODIFICADA').disabled).toBeFalse();
-      boton(fixture, 'DECISION_MODIFICADA').click();
+      boton(fixture, 'ENVIAR_DECISION').click();
       fixture.detectChanges();
       const componente = fixture.componentInstance;
       expect(componente.accionActiva).toBe('APROBAR_DECANO');
-      expect(componente.tituloDialogo).toBe('Enviar la decisión modificada');
-      componente.observacion = ' Aprueba las dos ';
+      expect(componente.tituloDialogo).toBe('Enviar la decisión del Decano');
+      expect((document.querySelector('[data-boton-dialogo] button')?.textContent ?? '').trim()).toBe('Enviar decisión');
+      expect(document.querySelector('[data-decision="as-1"]')?.textContent).toContain('Rechazar');
+      expect(document.querySelector('[data-decision="as-2"]')?.textContent).toContain('Aprobar');
+      componente.observacion = ' Solo la segunda ';
       componente.confirmar();
       expect(cancelaciones.aprobarPorDecano).toHaveBeenCalledWith('s-1', {
         decisiones: [
-          { asignaturaSolicitudUuid: 'as-1', aprobada: true },
+          { asignaturaSolicitudUuid: 'as-1', aprobada: false },
           { asignaturaSolicitudUuid: 'as-2', aprobada: true }
         ],
-        observacion: 'Aprueba las dos'
+        observacion: 'Solo la segunda'
+      });
+      expect(cancelaciones.aprobarPorDecano.calls.mostRecent().args[1].aceptarEvaluacion).toBeUndefined();
+      expect(recargar).toHaveBeenCalled();
+    });
+
+    it('aunque coincida con la evaluacion envia las decisiones, nunca aceptarEvaluacion', () => {
+      cancelaciones.aprobarPorDecano.and.returnValue(of(detalle(EVALUADAS)));
+      const fixture = decano();
+      decidir(fixture, 'as-1', 'aprobar');
+      decidir(fixture, 'as-2', 'rechazar');
+      expect(fixture.nativeElement.querySelector('[data-cambio-decision]')).toBeNull();
+      boton(fixture, 'ENVIAR_DECISION').click();
+      fixture.componentInstance.confirmar();
+      expect(cancelaciones.aprobarPorDecano).toHaveBeenCalledWith('s-1', {
+        decisiones: [
+          { asignaturaSolicitudUuid: 'as-1', aprobada: true },
+          { asignaturaSolicitudUuid: 'as-2', aprobada: false }
+        ],
+        observacion: null
       });
     });
 
-    it('si todas quedan en Rechazar la decision modificada usa decano/rechazar', () => {
+    it('si todas quedan en Rechazar el boton unico usa decano/rechazar', () => {
       cancelaciones.rechazarPorDecano.and.returnValue(of(detalle(EVALUADAS)));
       const fixture = decano();
-      const primero = interruptor(fixture, 'as-1');
-      primero.checked = false;
-      primero.dispatchEvent(new Event('change'));
-      fixture.detectChanges();
+      decidir(fixture, 'as-1', 'rechazar');
+      decidir(fixture, 'as-2', 'rechazar');
       expect(fixture.nativeElement.querySelector('[data-aviso-todas-rechazadas]')).toBeTruthy();
-      boton(fixture, 'DECISION_MODIFICADA').click();
+      boton(fixture, 'ENVIAR_DECISION').click();
       fixture.detectChanges();
       const componente = fixture.componentInstance;
       expect(componente.accionActiva).toBe('RECHAZAR_DECANO');
+      expect((document.querySelector('[data-boton-dialogo] button')?.textContent ?? '').trim()).toBe('Enviar decisión');
+      expect(document.querySelectorAll('[data-resumen-decisiones] li').length).toBe(2);
       componente.confirmar();
       expect(cancelaciones.rechazarPorDecano).toHaveBeenCalledWith('s-1', { observacion: null });
       expect(cancelaciones.aprobarPorDecano).not.toHaveBeenCalled();
     });
 
+    it('con todas en No cumple el Decano puede aprobar alguna o rechazar la solicitud', () => {
+      const sinCumplir = EVALUADAS.map(a => ({ ...a, cumpleCondiciones: false }));
+      cancelaciones.aprobarPorDecano.and.returnValue(of(detalle(sinCumplir)));
+      const fixture = crear(solicitud(['APROBAR_DECANO', 'RECHAZAR_DECANO'], 'EN_REVISION_DECANO'), sinCumplir, 'DECANO');
+      expect(boton(fixture, 'ENVIAR_DECISION').disabled).toBeTrue();
+      decidir(fixture, 'as-1', 'aprobar');
+      decidir(fixture, 'as-2', 'rechazar');
+      boton(fixture, 'ENVIAR_DECISION').click();
+      fixture.componentInstance.confirmar();
+      expect(cancelaciones.aprobarPorDecano.calls.mostRecent().args[1].decisiones).toEqual([
+        { asignaturaSolicitudUuid: 'as-1', aprobada: true },
+        { asignaturaSolicitudUuid: 'as-2', aprobada: false }
+      ]);
+    });
+
+    it('al recargar la solicitud las decisiones vuelven a quedar sin elegir', () => {
+      const fixture = decano();
+      decidir(fixture, 'as-1', 'aprobar');
+      decidir(fixture, 'as-2', 'aprobar');
+      fixture.componentRef.setInput('solicitud', solicitud(['APROBAR_DECANO', 'RECHAZAR_DECANO'], 'EN_REVISION_DECANO'));
+      fixture.detectChanges();
+      expect(fixture.componentInstance.decisiones).toEqual({ 'as-1': null, 'as-2': null });
+      expect(boton(fixture, 'ENVIAR_DECISION').disabled).toBeTrue();
+    });
+
     it('la observacion general es opcional y solo la ve el Funcionario', () => {
       const fixture = decano();
-      fixture.componentInstance.abrirDecision('aceptar');
+      decidir(fixture, 'as-1', 'aprobar');
+      decidir(fixture, 'as-2', 'aprobar');
+      fixture.componentInstance.abrirDecision();
       fixture.detectChanges();
       const campo = document.querySelector('[data-campo-observacion]') as HTMLElement;
       expect(campo.textContent).toContain('Observación (opcional)');
@@ -746,7 +826,7 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
       expect(solicitudes.adjuntarAnexo).not.toHaveBeenCalled();
     });
 
-    it('al abrir pide la plantilla y carga el mensaje con la firma, la casilla marcada, el anio y la decision propuesta', () => {
+    it('al abrir pide la plantilla y carga el mensaje sin casilla, los dos textos, el anio y la decision propuesta', () => {
       const fixture = crear(solicitud(['ENVIAR_RESPUESTA'], 'APROBADA_POR_DECANO', true), [DECIDIDAS[0]]);
       const componente = fixture.componentInstance;
       componente.abrir('ENVIAR_RESPUESTA');
@@ -754,12 +834,15 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
       expect(cancelaciones.getPlantillaNotificacion).toHaveBeenCalledWith('s-1');
       expect(componente.dialogoVisible).toBeTrue();
       expect(componente.comunicacion).toEqual({
-        enviarMensaje: true,
         mensaje: PLANTILLA.mensajeInicial,
+        textoComunicacion: PLANTILLA.textoComunicacion,
+        textoDarca: PLANTILLA.textoDarca,
         programacion: { fecha: '', numero: '', anio: '2026', decision: 'aprueba parcialmente la' }
       });
-      expect((document.querySelector('[data-campo="enviar-mensaje"]') as HTMLInputElement).checked).toBeTrue();
+      expect(document.querySelector('[data-campo="enviar-mensaje"]')).toBeNull();
       expect(document.querySelector('[data-campo-mensaje] textarea')).toBeTruthy();
+      expect(document.querySelector('[data-campo-texto-estudiante] [data-vista-texto]')?.textContent).toContain('María Pérez');
+      expect(document.querySelector('[data-campo-texto-darca] textarea')).toBeTruthy();
       expect(document.querySelector('[data-programacion] input[type="datetime-local"]')).toBeTruthy();
       expect(document.querySelector('[data-vista-previa]')?.textContent).toContain('/178 de 2026');
       expect(document.querySelector('[data-nota-retencion]')?.textContent).toContain('en trámite');
@@ -787,20 +870,45 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
       expect(cancelaciones.enviarRespuesta).not.toHaveBeenCalled();
     });
 
-    it('el mensaje es obligatorio con la casilla marcada, con maximo, y sin la casilla no se envia', () => {
+    it('el mensaje inmediato siempre es obligatorio y tiene maximo, y los dos textos no pueden quedar vacios', () => {
       cancelaciones.enviarRespuesta.and.returnValue(of(detalle(EVALUADAS)));
       const aprobada = [{ ...EVALUADAS[0], aprobadaPorDecano: true, decisionCambiadaPorDecano: false, situacionCancelar: SITUACION_R3 }];
       const componente = responder(aprobada).componentInstance;
       componente.comunicacion!.mensaje = '   ';
+      componente.comunicacion!.textoComunicacion = '';
+      componente.comunicacion!.textoDarca = ' ';
       componente.confirmar();
       expect(componente.errores['mensaje']).toContain('Escribe el mensaje');
+      expect(componente.errores['textoComunicacion']).toContain('estudiante');
+      expect(componente.errores['textoDarca']).toContain('DARCA');
       componente.comunicacion!.mensaje = 'x'.repeat(2001);
       componente.confirmar();
       expect(componente.errores['mensaje']).toContain('2000');
-      componente.comunicacion!.enviarMensaje = false;
+      expect(cancelaciones.enviarRespuesta).not.toHaveBeenCalled();
+    });
+
+    it('el dialogo queda en orden: situaciones, mensaje, Resolucion sin firmar, comunicacion programada y la observacion al final', () => {
+      const aprobadas = [{ ...EVALUADAS[0], aprobadaPorDecano: true, decisionCambiadaPorDecano: false, situacionCancelar: null }];
+      const fixture = crear(solicitud(['ENVIAR_RESPUESTA'], 'APROBADA_POR_DECANO'), aprobadas);
+      fixture.componentInstance.abrir('ENVIAR_RESPUESTA');
+      fixture.detectChanges();
+      const orden = Array.from(document.querySelectorAll(
+        '[data-dialogo] [data-ajustes], [data-dialogo] [data-bloque="mensaje"], [data-dialogo] [data-campo-resolucion], '
+        + '[data-dialogo] [data-bloque="programacion"], [data-dialogo] [data-campo-observacion]'))
+        .map(nodo => nodo.getAttribute('data-bloque') ?? (nodo.hasAttribute('data-ajustes') ? 'ajustes'
+          : nodo.hasAttribute('data-campo-resolucion') ? 'resolucion' : 'observacion'));
+      expect(orden).toEqual(['ajustes', 'mensaje', 'resolucion', 'programacion', 'observacion']);
+    });
+
+    it('envia los textos editados del estudiante y de DARCA recortados', () => {
+      cancelaciones.enviarRespuesta.and.returnValue(of(detalle(EVALUADAS)));
+      const aprobada = [{ ...EVALUADAS[0], aprobadaPorDecano: true, decisionCambiadaPorDecano: false, situacionCancelar: SITUACION_R3 }];
+      const componente = responder(aprobada).componentInstance;
+      componente.comunicacion!.textoComunicacion = ' Hola {nombre} ';
+      componente.comunicacion!.textoDarca = ' DARCA {fecha} ';
       componente.confirmar();
       expect(cancelaciones.enviarRespuesta).toHaveBeenCalledWith('s-1', {
-        ...CUERPO_COMUNICACION, enviarMensaje: false, mensaje: null, observacion: null
+        ...CUERPO_COMUNICACION, textoComunicacion: 'Hola {nombre}', textoDarca: 'DARCA {fecha}', observacion: null
       });
     });
 
@@ -863,11 +971,11 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
     expect(recargar).not.toHaveBeenCalled();
   });
 
-  it('el rechazo del Decano usa Rechazar solicitud en el dialogo', () => {
+  it('el rechazo del Decano usa Enviar decision en el dialogo', () => {
     const fixture = crear(solicitud(['APROBAR_DECANO', 'RECHAZAR_DECANO'], 'EN_REVISION_DECANO'), EVALUADAS, 'DECANO');
     fixture.componentInstance.abrir('RECHAZAR_DECANO');
     fixture.detectChanges();
-    expect((document.querySelector('[data-boton-dialogo] button')?.textContent ?? '').trim()).toBe('Rechazar solicitud');
+    expect((document.querySelector('[data-boton-dialogo] button')?.textContent ?? '').trim()).toBe('Enviar decisión');
   });
 });
 

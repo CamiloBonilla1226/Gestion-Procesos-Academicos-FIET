@@ -154,6 +154,17 @@ describe('BandejaSolicitudesAcademicasComponent', () => {
       expect(encabezados(fixture)).not.toContain('Decisión del Decano');
     });
 
+    it('el borrado por fechas solo aparece en Respuestas', async () => {
+      const respuestas = crearEnModo('respuestas');
+      await respuestas.whenStable();
+      respuestas.detectChanges();
+      expect(respuestas.nativeElement.querySelector('[data-eliminacion-respuestas]')).toBeTruthy();
+      const enCurso = crearEnModo('solicitudes');
+      await enCurso.whenStable();
+      enCurso.detectChanges();
+      expect(enCurso.nativeElement.querySelector('[data-eliminacion-respuestas]')).toBeNull();
+    });
+
     it('sin modo la bandeja del Funcionario se comporta como Solicitudes', () => {
       servicio.getSolicitudesFuncionario.and.returnValue(of(mezcla()));
       expect(radicados(crear('FUNCIONARIO'))).toEqual(['2026-CA-0001', '2026-CA-0003', '2026-CA-0005']);

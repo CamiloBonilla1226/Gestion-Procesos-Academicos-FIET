@@ -661,6 +661,9 @@ try {
     $r = Invoke-Api -Metodo GET -Ruta "cancelaciones-asignatura/$($sol.Uuid)/funcionario/notificacion/plantilla" -Token $fa.Token
     $plantilla = Leer-Json $r
     Escribir-Resultado "asignatura: la plantilla trae el mensaje con la firma de cuatro lineas, la decision propuesta, el anio y el sufijo (obtuvo $($r.Status), '$($plantilla.decisionPropuesta)', $($plantilla.anioResolucion), '$($plantilla.sufijoResolucion)')" (($r.Status -eq 200) -and ([string]$plantilla.mensajeInicial).Contains($Global:Firma) -and (-not ([string]$plantilla.mensajeInicial).Contains("[FIRMA]")) -and ($plantilla.decisionPropuesta -eq "aprueba parcialmente la") -and ($plantilla.anioResolucion -eq (Ahora-Bogota).Year) -and ($plantilla.sufijoResolucion -eq "/178"))
+    Escribir-Resultado "asignatura: la plantilla trae los textos editables del estudiante y de DARCA con sus marcas (maximo $($plantilla.maximoTexto))" (([string]$plantilla.textoComunicacion).Contains("{numero}/178 de {anio}") -and ([string]$plantilla.textoComunicacion).Contains($Global:Firma) -and ([string]$plantilla.textoDarca).Contains("{fecha}") -and ([string]$plantilla.textoDarca).Contains("1 aprobada y 1 rechazada") -and ($plantilla.maximoTexto -eq 4000) -and ($plantilla.nombreEstudiante -eq $estCa2.Nombre))
+    $r = Invoke-Api -Metodo POST -Ruta "cancelaciones-asignatura/$($sol.Uuid)/funcionario/responder" -Token $fa.Token -Cuerpo @{ observacion = $Global:Privada; enviarMensaje = $false; programacion = (Programacion -Segundos $Global:Espera -Numero "100-T9" -Decision "aprueba la") }
+    Escribir-Resultado "asignatura: sin mensaje inmediato no se envia la respuesta aunque la casilla venga desmarcada (obtuvo $($r.Status), etapa $(Etapa-De $sol.Uuid): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Etapa-De $sol.Uuid) -eq "APROBADA_POR_DECANO") -and ((Mensaje-De $r) -like "*mensaje inmediato*"))
     foreach ($ajeno in @(@{ Nombre = "estudiante"; Token = $estCa2.Token }, @{ Nombre = "Decano"; Token = $decano.Token })) {
         $r = Invoke-Api -Metodo GET -Ruta "cancelaciones-asignatura/$($sol.Uuid)/funcionario/notificacion/plantilla" -Token $ajeno.Token
         Escribir-Resultado "asignatura: el $($ajeno.Nombre) no pide la plantilla (403, obtuvo $($r.Status))" ($r.Status -eq 403)
@@ -697,8 +700,10 @@ try {
     Paso "asignatura: remite al Decano" (Invoke-Api -Metodo POST -Ruta "cancelaciones-asignatura/$($sol.Uuid)/funcionario/remitir" -Token $fa.Token -Cuerpo @{ evaluaciones = $evaluaciones }) $sol.Uuid "EN_REVISION_DECANO"
     Paso "asignatura: el Decano acepta la evaluacion" (Invoke-Api -Metodo POST -Ruta "cancelaciones-asignatura/$($sol.Uuid)/decano/aprobar" -Token $decano.Token -Cuerpo @{ aceptarEvaluacion = $true }) $sol.Uuid "APROBADA_POR_DECANO"
     Cargar-Archivos "asignatura con firma del estudiante" $sol.Uuid $adicionalCa $true $false
-    Paso "asignatura: el funcionario responde sin mensaje inicial" (Invoke-Api -Metodo POST -Ruta "cancelaciones-asignatura/$($sol.Uuid)/funcionario/responder" -Token $fa.Token -Cuerpo @{ enviarMensaje = $false; mensaje = "no se envia"; programacion = (Programacion -Segundos $Global:Espera -Numero "201-T9" -Decision "aprueba la") }) $sol.Uuid "APROBADA"
+    Paso "asignatura: el funcionario responde con la casilla desmarcada y el mensaje sale igual" (Invoke-Api -Metodo POST -Ruta "cancelaciones-asignatura/$($sol.Uuid)/funcionario/responder" -Token $fa.Token -Cuerpo @{ enviarMensaje = $false; mensaje = "Mensaje firma T9"; programacion = (Programacion -Segundos 600 -Numero "201-T9" -Decision "aprueba la") }) $sol.Uuid "APROBADA"
     $solFirma = $sol
+    Verificar-Mensaje-Inicial "asignatura con firma" $estCa4 $sol "Mensaje firma T9"
+    Verificar-Retenida "asignatura con firma (antes de la firma)" $estCa4 $sol
     $r = Ejecutar-Curl -Argumentos @("-F", "archivo=@$pdfFirmada;type=application/pdf") -Ruta "cancelaciones-asignatura/$($sol.Uuid)/funcionario/notificacion/firma" -Token $decano.Token
     Escribir-Resultado "asignatura con firma: el Decano no registra la firma (403, obtuvo $($r.Status))" ($r.Status -eq 403)
     $r = Ejecutar-Curl -Argumentos @("-F", "archivo=@$pdfFirmada;type=application/pdf") -Ruta "cancelaciones-asignatura/$($sol.Uuid)/funcionario/notificacion/firma" -Token $fa.Token
@@ -706,12 +711,31 @@ try {
     $firmada = Ejecutar-Sql "select firmada + 0 from NOTIFICACION_RESOLUCION where SolicitudAcademica_uuid = '$($sol.Uuid)'"
     Escribir-Resultado "asignatura con firma: el funcionario sube la Resolucion firmada, reemplaza la sin firmar y queda marcada (obtuvo $($r.Status), archivo $resolucion, firmada $firmada)" (($r.Status -eq 200) -and ($resolucion -eq $nombreFirmada) -and ($firmada -eq "1"))
     $panel = Leer-Json (Invoke-Api -Metodo GET -Ruta "cancelaciones-asignatura/$($sol.Uuid)/funcionario/notificacion" -Token $fa.Token)
-    Escribir-Resultado "asignatura con firma: el panel indica la firmada vigente y sigue editable (firmada $($panel.firmada), editable $($panel.editable))" ($panel.firmada -and $panel.editable)
+    Escribir-Resultado "asignatura con firma: el panel indica la firmada y la comunicacion queda cerrada, sin edicion (firmada $($panel.firmada), editable $($panel.editable))" ($panel.firmada -and (-not $panel.editable))
+    Verificar-Liberada "asignatura con firma (apenas se guarda la firma, antes de la fecha)" $estCa4 $sol "Aprobada" $false
     $r = Ejecutar-Curl -Argumentos @("-F", "archivo=@$pdfFirmadaOtra;type=application/pdf") -Ruta "cancelaciones-asignatura/$($sol.Uuid)/funcionario/notificacion/firma" -Token $fa.Token
     $resolucion = Ejecutar-Sql "select nombreArchivo from RESOLUCION_ACADEMICA where SolicitudAcademica_uuid = '$($sol.Uuid)'"
-    $filas = Ejecutar-Sql "select count(*) from RESOLUCION_ACADEMICA where SolicitudAcademica_uuid = '$($sol.Uuid)'"
-    Escribir-Resultado "asignatura con firma: antes de la fecha el funcionario vuelve a subir la firmada y reemplaza la anterior (obtuvo $($r.Status), archivo $resolucion, filas $filas)" (($r.Status -eq 200) -and ($resolucion -eq $nombreFirmadaOtra) -and ($filas -eq "1"))
-    Verificar-Retenida "asignatura con firma" $estCa4 $sol
+    Escribir-Resultado "asignatura con firma: ya no se puede volver a subir otra firmada (obtuvo $($r.Status), archivo $($resolucion), $(Mensaje-De $r))" (($r.Status -ne 200) -and ($resolucion -eq $nombreFirmada) -and ((Mensaje-De $r) -like "*ya no se puede modificar*"))
+    $r = Invoke-Api -Metodo PUT -Ruta "cancelaciones-asignatura/$($sol.Uuid)/funcionario/notificacion" -Token $fa.Token -Cuerpo (Programacion -Segundos 900 -Numero "202-T9" -Decision "aprueba la")
+    Escribir-Resultado "asignatura con firma: tras la firma no se reprograma (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "*ya no se puede modificar*"))
+    $estado = Esperar-Notificacion $sol.Uuid @("ENVIADA") 60
+    $darcaFirma = @(Esperar-Asunto $Global:CorreoDarca "$($Global:DarcaCa) - Radicado $($sol.Radicado)")
+    Escribir-Resultado "asignatura con firma: DARCA recibe de inmediato su correo, sin esperar la fecha programada a 10 minutos (estado $estado, DARCA $($darcaFirma.Count))" (($estado -eq "ENVIADA") -and ($darcaFirma.Count -eq 1))
+
+    $estCa5 = Nuevo-Estudiante -Token $tokenRoot -Materias 1
+    $sol = Radicar-Asignatura $estCa5
+    $evaluaciones = @(Filas-Asignatura $sol.Uuid | ForEach-Object { @{ asignaturaSolicitudUuid = $_; cumpleCondiciones = $true; situacionCancelarUuid = $situacion } })
+    Paso "asignatura: remite al Decano" (Invoke-Api -Metodo POST -Ruta "cancelaciones-asignatura/$($sol.Uuid)/funcionario/remitir" -Token $fa.Token -Cuerpo @{ evaluaciones = $evaluaciones }) $sol.Uuid "EN_REVISION_DECANO"
+    Paso "asignatura: el Decano acepta la evaluacion" (Invoke-Api -Metodo POST -Ruta "cancelaciones-asignatura/$($sol.Uuid)/decano/aprobar" -Token $decano.Token -Cuerpo @{ aceptarEvaluacion = $true }) $sol.Uuid "APROBADA_POR_DECANO"
+    Cargar-Archivos "asignatura con textos editados" $sol.Uuid $adicionalCa $true $false
+    $textoEstudiante = "Senor(a) {nombre}`n`nTEXTO-EST-T9 Resolucion {numero}/178 de {anio}: se {decision} cancelacion."
+    $textoDarcaEditado = "Popayan, {fecha}`n`nTEXTO-DARCA-T9 editado por el funcionario."
+    Paso "asignatura: el funcionario responde con los textos del estudiante y de DARCA editados" (Invoke-Api -Metodo POST -Ruta "cancelaciones-asignatura/$($sol.Uuid)/funcionario/responder" -Token $fa.Token -Cuerpo @{ mensaje = "Mensaje T9"; textoComunicacion = $textoEstudiante; textoDarca = $textoDarcaEditado; programacion = (Programacion -Segundos $Global:Espera -Numero "501-T9" -Decision "aprueba la") }) $sol.Uuid "APROBADA"
+    $solEditada = $sol
+    $guardados = Ejecutar-Sql "select concat(textoComunicacion = '$($textoEstudiante.Replace("`n", "
+"))', '-', textoDarca = '$($textoDarcaEditado.Replace("`n", "
+"))') from NOTIFICACION_RESOLUCION where SolicitudAcademica_uuid = '$($sol.Uuid)'"
+    Escribir-Resultado "asignatura con textos editados: quedan guardados en NOTIFICACION_RESOLUCION (obtuvo $guardados)" ($guardados -eq "1-1")
 
     $estCa3 = Nuevo-Estudiante -Token $tokenRoot -Materias 1
     $sol = Radicar-Asignatura $estCa3
@@ -731,10 +755,10 @@ try {
     Paso "asignatura: remite al Decano" (Invoke-Api -Metodo POST -Ruta "cancelaciones-asignatura/$($sol.Uuid)/funcionario/remitir" -Token $fa.Token -Cuerpo @{ evaluaciones = $evaluaciones }) $sol.Uuid "EN_REVISION_DECANO"
     Paso "asignatura: el Decano acepta la evaluacion" (Invoke-Api -Metodo POST -Ruta "cancelaciones-asignatura/$($sol.Uuid)/decano/aprobar" -Token $decano.Token -Cuerpo @{ aceptarEvaluacion = $true }) $sol.Uuid "APROBADA_POR_DECANO"
     Cargar-Archivos "asignatura con el correo del estudiante rechazado" $sol.Uuid $adicionalCa $true $false
-    Paso "asignatura: el funcionario responde a un estudiante cuyo correo rechaza el servidor" (Invoke-Api -Metodo POST -Ruta "cancelaciones-asignatura/$($sol.Uuid)/funcionario/responder" -Token $fa.Token -Cuerpo @{ enviarMensaje = $false; programacion = (Programacion -Segundos $Global:Espera -Numero "401-T9" -Decision "aprueba la") }) $sol.Uuid "APROBADA"
+    Paso "asignatura: el funcionario responde a un estudiante cuyo correo rechaza el servidor" (Invoke-Api -Metodo POST -Ruta "cancelaciones-asignatura/$($sol.Uuid)/funcionario/responder" -Token $fa.Token -Cuerpo @{ mensaje = "Mensaje falla T9"; programacion = (Programacion -Segundos $Global:Espera -Numero "401-T9" -Decision "aprueba la") }) $sol.Uuid "APROBADA"
     $solFalla = $sol
 
-    foreach ($caso in @(@{ Sol = $solParcial; Fin = "ENVIADA" }, @{ Sol = $solFirma; Fin = "ENVIADA" }, @{ Sol = $solRechazada; Fin = "ENVIADA" }, @{ Sol = $solFalla; Fin = "FALLIDA" })) {
+    foreach ($caso in @(@{ Sol = $solParcial; Fin = "ENVIADA" }, @{ Sol = $solEditada; Fin = "ENVIADA" }, @{ Sol = $solRechazada; Fin = "ENVIADA" }, @{ Sol = $solFalla; Fin = "FALLIDA" })) {
         $estado = Esperar-Notificacion $caso.Sol.Uuid @($caso.Fin) 240
         Escribir-Resultado "asignatura $($caso.Sol.Radicado): la tarea programada procesa la comunicacion vencida y queda $($caso.Fin) (obtuvo $estado)" ($estado -eq $caso.Fin)
     }
@@ -750,10 +774,19 @@ try {
     Escribir-Resultado "asignatura parcial: pasada la fecha no se edita la programacion (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "*ya no se puede modificar*"))
 
     $correosFirma = @(Correos-Para $estCa4.Correo)
-    Escribir-Resultado "asignatura con firma: el estudiante no recibe ningun correo, ni mensaje inicial ni comunicacion (obtuvo $($correosFirma.Count))" ($correosFirma.Count -eq 0)
+    Escribir-Resultado "asignatura con firma: el estudiante solo recibe el mensaje inmediato, nunca la comunicacion (obtuvo $($correosFirma.Count))" (($correosFirma.Count -eq 1) -and (@(Correos-Con-Asunto $estCa4.Correo $Global:AsuntoCa).Count -eq 0))
     Verificar-Darca-Programada "asignatura con firma" $estCa4 $solFirma @("Resolucion-$($solFirma.Radicado).pdf") "cancela la asignatura $($estCa4.Materias[0].Nombre) (aprobada)." "" $false
-    Verificar-Tamanio-Resolucion "asignatura con firma (DARCA)" $Global:CorreoDarca $solFirma $pdfFirmadaOtra
+    Verificar-Tamanio-Resolucion "asignatura con firma (DARCA)" $Global:CorreoDarca $solFirma $pdfFirmada
     Verificar-Liberada "asignatura con firma" $estCa4 $solFirma "Aprobada" $false
+
+    $alEstudiante = @(Esperar-Asunto $estCa5.Correo $Global:AsuntoCa)
+    $textoRecibido = if ($alEstudiante.Count -gt 0) { Normalizar $alEstudiante[0].texto } else { "" }
+    $htmlRecibido = if ($alEstudiante.Count -gt 0) { [string]$alEstudiante[0].html } else { "" }
+    Escribir-Resultado "asignatura con textos editados: el estudiante recibe el texto editado con los datos llenos y en negrilla" ($textoRecibido.Contains("Senor(a) $($estCa5.Nombre)") -and $textoRecibido.Contains("TEXTO-EST-T9 Resolucion 501-T9/178 de $((Ahora-Bogota).Year): se aprueba la cancelacion.") -and $htmlRecibido.Contains("<strong>501-T9</strong>") -and $htmlRecibido.Contains("<strong>$($estCa5.Nombre)</strong>"))
+    $aDarca = @(Esperar-Asunto $Global:CorreoDarca "$($Global:DarcaCa) - Radicado $($solEditada.Radicado)")
+    $textoDarcaRecibido = if ($aDarca.Count -gt 0) { Normalizar $aDarca[0].texto } else { "" }
+    Escribir-Resultado "asignatura con textos editados: DARCA recibe el texto editado con la fecha de envio y sus tres PDF (adjuntos $(@($aDarca[0].adjuntos).Count))" ($textoDarcaRecibido.Contains("TEXTO-DARCA-T9 editado por el funcionario.") -and (-not $textoDarcaRecibido.Contains("{fecha}")) -and $textoDarcaRecibido.StartsWith("Popayan, ") -and (@($aDarca[0].adjuntos).Count -eq 3))
+    Verificar-Liberada "asignatura con textos editados" $estCa5 $solEditada "Aprobada" $false
 
     Verificar-Comunicacion "asignatura rechazada" $estCa3 $solRechazada "301-T9" "rechaza la" @("Resolucion-$($solRechazada.Radicado).pdf")
     Verificar-Darca-Programada "asignatura rechazada" $estCa3 $solRechazada @("Resolucion-$($solRechazada.Radicado).pdf", "Comunicacion-Estudiante-$($solRechazada.Radicado).pdf") "solicita cancelar la asignatura $($estCa3.Materias[0].Nombre) (rechazada)." "301-T9" $true

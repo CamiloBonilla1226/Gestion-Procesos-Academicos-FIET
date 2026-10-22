@@ -2,6 +2,8 @@
 
 Análisis de solo lectura. Docker no estaba corriendo, así que no se consultó la base real (`SHOW TABLES`, `DESCRIBE`). El esquema se deduce de las entidades JPA, de `docs/database/*` y de `data.sql` y los seeds. Todo lo que dependa de la base viva queda marcado NO VERIFICADO.
 
+Actualizado el 2026-10-21 (T12.37): dos tablas nuevas (`NOTIFICACION_DOCENTE`, T12.28, y `NOTIFICACION_RESOLUCION`, T12.32), columnas nuevas (`SOLICITUD_EXAMEN_SUPLETORIO.Docente_uuid`, `TIPO_ANEXO_ACADEMICO.vigente`, `SITUACION_ACADEMICA_ASIGNATURA.ambito`), datos sembrados y siglas. Fuente: entidades JPA y `docs/database/diccionario-datos-extension.md`; según el `CLAUDE.md` raíz las 21 tablas coinciden con la base real, lo que esta actualización no volvió a comprobar.
+
 Marcas: [BASE] es el prototipo de Julián Camacho; [EXTENSIÓN] es lo agregado en este trabajo de grado.
 
 Rutas abreviadas:
@@ -13,17 +15,17 @@ Rutas abreviadas:
 
 | Concepto | Valor | Evidencia |
 |---|---|---|
-| Clases `@Entity` | 32 | búsqueda de `@Entity` en `backend/`, todas en ENT |
+| Clases `@Entity` | 34 | búsqueda de `@Entity` en `backend/`, todas en ENT (32 en el corte del 2026-10-14) |
 | Entidades [BASE] | 13 | sección 3 |
-| Entidades [EXTENSIÓN] | 19 | sección 4 |
+| Entidades [EXTENSIÓN] | 21 | sección 4 |
 | Tabla de unión sin entidad [BASE] | 1 (`Usuario_has_Roles`) | `UsuarioEntidad.roles` con `@JoinTable` |
 | Tablas físicas [BASE] | 14 (13 + la de unión) | deducido |
-| Tablas físicas [EXTENSIÓN] | 19 | `DOC/script_bd_extension.sql` tiene 19 `CREATE TABLE` |
-| Total tablas físicas | 33 | 14 + 19 |
+| Tablas físicas [EXTENSIÓN] | 21 | `DOC/diccionario-datos-extension.md` y `CLAUDE.md` raíz; `NOTIFICACION_DOCENTE` y `NOTIFICACION_RESOLUCION` se agregaron después del corte |
+| Total tablas físicas | 35 | 14 + 21 |
 | `@Embeddable` (no es tabla) | 1: `EtapaEtiquetaRolIdEntidad` | ENT |
 | Configuración de esquema | `ddl-auto=update`, `spring.sql.init.mode=never`, `PhysicalNamingStrategyStandardImpl` | `RES/application.properties` |
 
-Resolución 19 contra 18: son 19 tablas de extensión. Evidencia:
+Resolución 19 contra 18 (al corte del 2026-10-14; hoy son 21, ver 4.20 y 4.21): eran 19 tablas de extensión. Evidencia:
 1. `DOC/script_bd_extension.sql` define 19 `CREATE TABLE` (PROGRAMA_ACADEMICO, ESTUDIANTE, FUNCIONARIO_ACADEMICO, ASIGNATURA, ASIGNATURA_MATRICULADA, TIPO_SOLICITUD_ACADEMICA, ETAPA_SOLICITUD_ACADEMICA, ETAPA_ETIQUETA_ROL, SOLICITUD_ACADEMICA, SOLICITUD_CANCELACION_MATRICULA, SOLICITUD_CANCELACION_ASIGNATURA, SOLICITUD_EXAMEN_SUPLETORIO, SOLICITUD_SUPLETORIO_CRUCE_ASIGNATURA, SITUACION_ACADEMICA_ASIGNATURA, ASIGNATURA_SOLICITUD_ACADEMICA, TIPO_ANEXO_ACADEMICO, ANEXO_ACADEMICO, RESOLUCION_ACADEMICA, HISTORIAL_SOLICITUD_ACADEMICA). Su pie dice "Son 19 tablas nuevas".
 2. ENT contiene 19 entidades de extensión, una por tabla.
 3. `DOC/diccionario-datos-extension.md` documenta 19 secciones `##` de tabla.
@@ -123,7 +125,7 @@ Entidad `RespuestaEntidad`. `uuidRespuesta varchar(150)` PK; `tipoRespuesta varc
 
 ## 4. Tablas [EXTENSIÓN]
 
-Fuente primaria: `DOC/script_bd_extension.sql` (DDL de referencia, no se ejecuta; las crea Hibernate). Tipos y nulabilidad coinciden entre ese script y las entidades en las 19 tablas (comparado columna por columna). Todas son `ENGINE=InnoDB DEFAULT CHARSET=utf8mb4` en el script. Las FK no declaran acción referencial.
+Fuente primaria: `DOC/script_bd_extension.sql` (DDL de referencia, no se ejecuta; las crea Hibernate). Tipos y nulabilidad coinciden entre ese script y las entidades en las 19 tablas del corte (comparado columna por columna); las dos tablas y las columnas posteriores se tomaron de las entidades y del diccionario sin repetir esa comparación. Todas son `ENGINE=InnoDB DEFAULT CHARSET=utf8mb4` en el script. Las FK no declaran acción referencial.
 
 ### 4.1 PROGRAMA_ACADEMICO [EXTENSIÓN]
 Entidad `ProgramaAcademicoEntidad`.
@@ -133,7 +135,7 @@ Entidad `ProgramaAcademicoEntidad`.
 | uuidProgramaAcademico | varchar(100) | No | | PK |
 | nombre | varchar(100) | No | | UNIQUE `uk_programa_nombre` |
 | sigla | varchar(10) | No | | UNIQUE `uk_programa_sigla` |
-| ultimoConsecutivoAsignatura | int | No | 0 | contador del código `ISI-001` |
+| ultimoConsecutivoAsignatura | int | No | 0 | contador del código (`PIS-294`; las creadas antes de T12.34 conservan la sigla anterior, como `ISI-001`) |
 
 ### 4.2 ESTUDIANTE [EXTENSIÓN]
 Entidad `EstudianteEntidad implements Persistable<String>`.
@@ -185,13 +187,13 @@ Entidad `SolicitudCancelacionMatriculaEntidad`. `SolicitudAcademica_uuid` PK y F
 Entidad `SolicitudCancelacionAsignaturaEntidad`. PK/FK `fk_solca_solacad`; `motivoCancelacion varchar(255)` NOT NULL.
 
 ### 4.12 SOLICITUD_EXAMEN_SUPLETORIO [EXTENSIÓN]
-Entidad `SolicitudExamenSupletorioEntidad`. `SolicitudAcademica_uuid` PK/FK `fk_solsup_solacad`; `AsignaturaMatriculada_uuid` NOT NULL FK `fk_solsup_asigmat`; `fechaExamenNoPresentado datetime` NOT NULL; `fechaAcordadaExamen datetime` NULL; `tipoCausa enum('cruce','otra')` NOT NULL (en la entidad es `String` con `columnDefinition`).
+Entidad `SolicitudExamenSupletorioEntidad`. `SolicitudAcademica_uuid` PK/FK `fk_solsup_solacad`; `AsignaturaMatriculada_uuid` NOT NULL FK `fk_solsup_asigmat`; `fechaExamenNoPresentado datetime` NOT NULL; `fechaAcordadaExamen datetime` NULL, en desuso desde T12.28 (P52: no se pide ni se escribe; se conserva por los datos anteriores); `tipoCausa enum('cruce','otra')` NOT NULL (en la entidad es `String` con `columnDefinition`); `Docente_uuid varchar(100)` NULL, FK `fk_solsup_docente` a usuarios, desde T12.28: el profesor con rol Docente que el Funcionario elige al aprobar el comprobante (P53).
 
 ### 4.13 SOLICITUD_SUPLETORIO_CRUCE_ASIGNATURA [EXTENSIÓN]
 Entidad `SolicitudSupletorioCruceAsignaturaEntidad`. `SolicitudAcademica_uuid` PK y FK `fk_solcruce_solsup` a SOLICITUD_EXAMEN_SUPLETORIO; `AsignaturaMatriculadaCruzada_uuid` NOT NULL FK `fk_solcruce_asigmat`; `fechaExamenCruzada datetime` NOT NULL; `horaExamenCruzada varchar(10)` NOT NULL. La regla "existe solo si `tipoCausa='cruce'`" es de negocio; no hay CHECK (NO VERIFICADA en código de servicio en este documento).
 
 ### 4.14 SITUACION_ACADEMICA_ASIGNATURA [EXTENSIÓN]
-Entidad `SituacionAcademicaAsignaturaEntidad`. `uuidSituacionAcademica` PK; `codigo varchar(10)` NOT NULL; `nombre varchar(100)` NOT NULL. Catálogo R0 a R3 (formato PA-GA-4.2-FOR-9).
+Entidad `SituacionAcademicaAsignaturaEntidad`. `uuidSituacionAcademica` PK; `codigo varchar(10)` NOT NULL; `nombre varchar(100)` NOT NULL; desde T12.34 `ambito enum('CANCELACION','MATRICULA')` NULL (enum `AmbitoSituacionAcademica`). Catálogo del formato PA-GA-4.2-FOR-9 con dos listas cerradas (P60): situación de la asignatura (`MATRICULA`): R1 Cursada por primera vez, R1R Recursada por primera vez, R2 Cursada por segunda vez, R3 Cursada por tercera vez; situación al cancelar (`CANCELACION`): C1 No vista, C2 Perdida. R0 No cursada queda retirada (`ambito` nulo), sin borrarse. El backend rechaza con código 6 un valor fuera de la lista del campo.
 
 ### 4.15 ASIGNATURA_SOLICITUD_ACADEMICA [EXTENSIÓN]
 Entidad `AsignaturaSolicitudAcademicaEntidad`.
@@ -201,26 +203,53 @@ Entidad `AsignaturaSolicitudAcademicaEntidad`.
 | uuidAsignaturaSolicitud | varchar(100) | No | PK |
 | SolicitudAcademica_uuid | varchar(100) | No | FK `fk_asigsol_solacad` |
 | AsignaturaMatriculada_uuid | varchar(100) | No | FK `fk_asigsol_asigmat` |
-| numeroFaltas | varchar(20) | Sí | texto; si es numérico, entero >= 0 |
-| nota | varchar(20) | Sí | texto; si es numérico, 0.0 a 5.0 |
-| SituacionMatricula_uuid | varchar(100) | Sí | FK `fk_asigsol_situmatricula` a SITUACION_ACADEMICA_ASIGNATURA |
-| SituacionCancelar_uuid | varchar(100) | Sí | FK `fk_asigsol_situcancelar` a la misma tabla |
+| numeroFaltas | varchar(20) | Sí | opcional desde T12.28 (P50); texto; si es numérico, entero >= 0 |
+| nota | varchar(20) | Sí | opcional desde T12.28 (P50); texto; si es numérico, 0.0 a 5.0 |
+| SituacionMatricula_uuid | varchar(100) | Sí | FK `fk_asigsol_situmatricula` a SITUACION_ACADEMICA_ASIGNATURA; opcional (P50), solo de la lista `MATRICULA` (P60); la registra el Funcionario al remitir |
+| SituacionCancelar_uuid | varchar(100) | Sí | FK `fk_asigsol_situcancelar` a la misma tabla; opcional (P50), solo de la lista `CANCELACION` (P60); la registra solo el Funcionario, nunca el Decano (P51) |
 | cumpleCondiciones | tinyint(1) | Sí | solo Cancelación de Asignatura |
 | observacionEvaluacion | varchar(255) | Sí | |
 | aprobadaPorDecano | tinyint(1) | Sí | decisión por asignatura (P14) |
 | observacionDecision | varchar(255) | Sí | |
 
 ### 4.16 TIPO_ANEXO_ACADEMICO [EXTENSIÓN]
-Entidad `TipoAnexoAcademicoEntidad`. `uuidTipoAnexoAcademico` PK; `TipoSolicitudAcademica_uuid` NOT NULL FK `fk_tipoanexo_tiposolicitud`; `nombre varchar(150)` NOT NULL; `formatosPermitidos varchar(60)` NOT NULL (lista separada por comas: `pdf`, `pdf,jpg,png`); `obligatorio tinyint(1)` NOT NULL DEFAULT 1.
+Entidad `TipoAnexoAcademicoEntidad`. `uuidTipoAnexoAcademico` PK; `TipoSolicitudAcademica_uuid` NOT NULL FK `fk_tipoanexo_tiposolicitud`; `nombre varchar(150)` NOT NULL; `formatosPermitidos varchar(60)` NOT NULL (lista separada por comas: `pdf`, `pdf,jpg,png`); `obligatorio tinyint(1)` NOT NULL DEFAULT 1; desde T12.31 `vigente tinyint(1)` NOT NULL DEFAULT 1 (0 = retirado: no se ofrece, no se exige ni se puede subir, pero los anexos ya radicados se conservan). Quedaron con `vigente = 0` los seis anexos anteriores de Cancelación de Matrícula (P55) y, desde T12.33, el "Documento adicional de la respuesta" de Cancelación de Asignatura (P59).
 
 ### 4.17 ANEXO_ACADEMICO [EXTENSIÓN]
 Entidad `AnexoAcademicoEntidad`. `uuidAnexoAcademico` PK; `SolicitudAcademica_uuid` NOT NULL FK `fk_anexo_solacad`; `TipoAnexoAcademico_uuid` NULL FK `fk_anexo_tipoanexo`; `nombreArchivo varchar(255)`, `urlArchivo varchar(400)`, `tipoArchivo varchar(100)` NOT NULL; `tamanioBytes bigint` NOT NULL; `Usuario_uuid` NOT NULL FK `fk_anexo_usuario` a usuarios; `fechaSubida datetime` NOT NULL DEFAULT CURRENT_TIMESTAMP.
 
 ### 4.18 RESOLUCION_ACADEMICA [EXTENSIÓN]
-Entidad `ResolucionAcademicaEntidad`. `SolicitudAcademica_uuid` PK y FK `fk_resolucion_solacad` (`@MapsId`, 1 a 0..1 con la solicitud); `urlArchivo varchar(400)`, `nombreArchivo varchar(255)` NOT NULL; `fechaSubida datetime` NOT NULL DEFAULT CURRENT_TIMESTAMP; `FuncionarioAcademico_uuid` NOT NULL FK `fk_resolucion_funcionario`.
+Entidad `ResolucionAcademicaEntidad`. `SolicitudAcademica_uuid` PK y FK `fk_resolucion_solacad` (`@MapsId`, 1 a 0..1 con la solicitud); `urlArchivo varchar(400)`, `nombreArchivo varchar(255)` NOT NULL; `fechaSubida datetime` NOT NULL DEFAULT CURRENT_TIMESTAMP; `FuncionarioAcademico_uuid` NOT NULL FK `fk_resolucion_funcionario`. Guarda una sola Resolución por solicitud: en Cancelación de Asignatura, la sin firmar por el estudiante hasta que el Funcionario la reemplaza por la firmada (P59).
 
 ### 4.19 HISTORIAL_SOLICITUD_ACADEMICA [EXTENSIÓN]
 Entidad `HistorialSolicitudAcademicaEntidad`. `uuidHistorial` PK; `SolicitudAcademica_uuid` NOT NULL FK `fk_historial_solacad`; `Usuario_uuid` NOT NULL FK `fk_historial_usuario` a usuarios; `accion varchar(150)` NOT NULL; `observaciones varchar(500)` NULL; `fecha datetime` NOT NULL DEFAULT CURRENT_TIMESTAMP.
+
+### 4.20 NOTIFICACION_DOCENTE [EXTENSIÓN]
+Entidad `NotificacionDocenteEntidad`, desde T12.28 (P53). Una fila por cada Examen Supletorio cuyo pago aprueba el Funcionario, para avisar al profesor elegido; solo la ve ese docente. `idNotificacion bigint` PK AUTO_INCREMENT; `uuidNotificacion varchar(100)` NOT NULL UNIQUE `uk_notifdoc_uuid` (el identificador que usa la API); `SolicitudAcademica_uuid` NOT NULL FK `fk_notifdoc_solacad`; `Docente_uuid` NOT NULL FK `fk_notifdoc_usuario` a usuarios; `titulo varchar(255)` NOT NULL; `fechaCreacion datetime` NOT NULL; `fechaLectura datetime` NULL (primera vez que el docente la abrió).
+
+### 4.21 NOTIFICACION_RESOLUCION [EXTENSIÓN]
+Entidad `NotificacionResolucionEntidad implements Persistable<String>`, desde T12.32 (P58). Comunicación programada de la Resolución en Cancelación de Asignatura cuando la solicitud pasó por el Decano; 1 a 0..1 con SOLICITUD_ACADEMICA, creada al enviar la respuesta final. Uso detallado en [correo-electronico.md](correo-electronico.md).
+
+| Columna | Tipo | Nulo | Notas |
+|---|---|---|---|
+| SolicitudAcademica_uuid | varchar(100) | No | PK y FK `fk_notifres_solacad` |
+| fechaProgramada | datetime | No | fecha y hora de la comunicación, hora de Colombia |
+| estado | enum('ENVIADA','EN_PROCESO','FALLIDA','PROGRAMADA') | No | `EstadoNotificacionResolucion`, `@Enumerated(STRING)` |
+| firmada | bit(1) | No | default 0; 1 si el estudiante firmó en la Decanatura antes de la fecha |
+| numeroResolucion | varchar(20) | No | el sufijo `/178` sale de propiedades y no se guarda |
+| anioResolucion | int | No | 2000 a 2100 (validado en código) |
+| decision | varchar(60) | No | "aprueba la", "rechaza la", "aprueba parcialmente la" u otro texto |
+| mensajeInicial | varchar(2000) | Sí | mensaje inmediato enviado al estudiante; desde T12.38 siempre se envía (P63) |
+| textoComunicacion | varchar(4000) | Sí | T12.38 (P63): texto editable de la comunicación al estudiante con `{numero}`, `{anio}`, `{nombre}` y `{decision}`; nulo en filas anteriores, que usan la plantilla fija |
+| textoDarca | varchar(4000) | Sí | T12.38 (P63): texto editable del correo a DARCA con `{fecha}`; al registrar la firma se guarda el que revisa el Funcionario |
+| fechaEnvioEstudiante | datetime | Sí | marca del correo al estudiante |
+| fechaEnvioDarca | datetime | Sí | marca del correo a DARCA |
+| intentos | int | No | default 0; en 3 sin éxito queda FALLIDA |
+| ultimoError | varchar(1000) | Sí | último error, visible para el Funcionario |
+| fechaReclamo | datetime | Sí | última vez que la tarea la reclamó |
+| fechaEnvio | datetime | Sí | cuando quedó ENVIADA |
+| fechaLiberacion | datetime | Sí | primera vez que la tarea la reclamó o momento en que se guardó la firma; desde T12.38 el Estudiante ve la solicitud "En trámite" solo mientras sea nula y `fechaProgramada` siga en el futuro (P63) |
+| fechaCreacion | datetime | No | cuando el Funcionario envió la respuesta |
 
 ## 5. Mapeo JPA: relaciones, direccionalidad, fetch y cascade
 
@@ -267,7 +296,7 @@ Defecto de JPA: `@ManyToOne` y `@OneToOne` son EAGER; `@OneToMany` y `@ManyToMan
 Observaciones:
 - Siete entidades de extensión implementan `Persistable<String>` con un campo `@Transient nuevo`: Estudiante, FuncionarioAcademico, ResolucionAcademica, SolicitudCancelacionAsignatura, SolicitudCancelacionMatricula, SolicitudExamenSupletorio y SolicitudSupletorioCruceAsignatura. Tienen PK asignada con `@MapsId`; con `Persistable` Spring Data decide `persist` en lugar de `merge` (propósito deducido; NO VERIFICADO en los adaptadores).
 - Las entidades [BASE] asignan `fechaCreacion` en `@PrePersist`; las de [EXTENSIÓN] usan `@ColumnDefault("CURRENT_TIMESTAMP")` y `datetime`.
-- Dependencias de la extensión hacia la base: solo hacia `usuarios` (`ESTUDIANTE`, `FUNCIONARIO_ACADEMICO`, `ANEXO_ACADEMICO.Usuario_uuid`, `HISTORIAL_SOLICITUD_ACADEMICA.Usuario_uuid`). Ninguna tabla [BASE] referencia tablas [EXTENSIÓN].
+- Dependencias de la extensión hacia la base: solo hacia `usuarios` (`ESTUDIANTE`, `FUNCIONARIO_ACADEMICO`, `ANEXO_ACADEMICO.Usuario_uuid`, `HISTORIAL_SOLICITUD_ACADEMICA.Usuario_uuid` y, desde T12.28, `SOLICITUD_EXAMEN_SUPLETORIO.Docente_uuid` y `NOTIFICACION_DOCENTE.Docente_uuid`). Las relaciones JPA de las dos tablas nuevas no se agregaron a la tabla de arriba. Ninguna tabla [BASE] referencia tablas [EXTENSIÓN].
 
 ## 6. Enums y catálogos
 
@@ -277,8 +306,10 @@ Observaciones:
 | tipoCausa | `SOLICITUD_EXAMEN_SUPLETORIO.tipoCausa`, enum de base | cruce, otra |
 | estado de asignatura matriculada | `ASIGNATURA_MATRICULADA.estado`, varchar validado en código | activa (default), cancelada, aprobada, perdida |
 | etapas | `ETAPA_SOLICITUD_ACADEMICA`, filas | RADICADA, EN_REVISION_DECANO, APROBADA_POR_DECANO, RECHAZADA_POR_DECANO, APROBADA, RECHAZADA (tipo NULL); PENDIENTE_PAGO, EN_VERIFICACION_PAGO (tipo Examen Supletorio) |
-| situación académica | `SITUACION_ACADEMICA_ASIGNATURA`, filas | R0 No cursada, R1 Cursada por primera vez, R2 Cursada por segunda vez, R3 Cursada por tercera vez |
-| programas | `PROGRAMA_ACADEMICO`, filas | IET, ISI, IAI, TTE, IAC |
+| situación académica | `SITUACION_ACADEMICA_ASIGNATURA`, filas, con `ambito` | MATRICULA: R1 Cursada por primera vez, R1R Recursada por primera vez, R2 Cursada por segunda vez, R3 Cursada por tercera vez; CANCELACION: C1 No vista, C2 Perdida; retirada: R0 No cursada (desde T12.34, P60) |
+| ámbito de la situación | `SITUACION_ACADEMICA_ASIGNATURA.ambito`, enum de base | MATRICULA, CANCELACION (nulo = retirada) |
+| estado de la notificación de la Resolución | `NOTIFICACION_RESOLUCION.estado`, enum de base | PROGRAMADA, EN_PROCESO, ENVIADA, FALLIDA |
+| programas | `PROGRAMA_ACADEMICO`, filas | PIET, PIS, PIAI, TTM, PIAC (desde T12.34, P61; antes IET, ISI, IAI, TTE, IAC) |
 | tipos de solicitud | `TIPO_SOLICITUD_ACADEMICA`, filas | Cancelación de Matrícula, Cancelación de Asignatura, Examen Supletorio |
 | estado de solicitud [BASE] | `solicitudes.estado`, texto libre | sin catálogo en la base |
 
@@ -294,6 +325,7 @@ Observaciones:
 - ETAPA_SOLICITUD_ACADEMICA 1 a N ETAPA_ETIQUETA_ROL (hasta 3 por etapa, una por rol); 1 a N SOLICITUD_ACADEMICA.
 - ESTUDIANTE 1 a N SOLICITUD_ACADEMICA.
 - SOLICITUD_ACADEMICA 1 a 0..1 SOLICITUD_CANCELACION_MATRICULA, SOLICITUD_CANCELACION_ASIGNATURA, SOLICITUD_EXAMEN_SUPLETORIO y RESOLUCION_ACADEMICA; 1 a N ASIGNATURA_SOLICITUD_ACADEMICA, ANEXO_ACADEMICO y HISTORIAL_SOLICITUD_ACADEMICA.
+- SOLICITUD_ACADEMICA 1 a 0..1 NOTIFICACION_RESOLUCION y 1 a N NOTIFICACION_DOCENTE (en la práctica una por supletorio aprobado); usuarios (docente) 1 a N NOTIFICACION_DOCENTE y 0..1 a N SOLICITUD_EXAMEN_SUPLETORIO (`Docente_uuid`).
 - SOLICITUD_EXAMEN_SUPLETORIO 1 a 0..1 SOLICITUD_SUPLETORIO_CRUCE_ASIGNATURA; ASIGNATURA_MATRICULADA 1 a N SOLICITUD_EXAMEN_SUPLETORIO, 1 a N SOLICITUD_SUPLETORIO_CRUCE_ASIGNATURA y 1 a N ASIGNATURA_SOLICITUD_ACADEMICA.
 - SITUACION_ACADEMICA_ASIGNATURA 1 a N ASIGNATURA_SOLICITUD_ACADEMICA, por dos columnas (situación de matrícula y situación a cancelar).
 - TIPO_ANEXO_ACADEMICO 0..1 a N ANEXO_ACADEMICO (FK nullable).
@@ -307,8 +339,9 @@ Observaciones:
 | `RES/data.sql` (46 líneas) [BASE + EXTENSIÓN] | Roles, tipos de usuario, usuario root; al final agrega los roles `Estudiante` y `Funcionario Académico` y el tipo `Estudiante` | a mano, una vez (`INSERT` sin `IGNORE`) |
 | `DOC/seed-roles-extension.sql` [EXTENSIÓN] | Los 2 roles y el tipo nuevos con `INSERT IGNORE`, para bases que ya tenían el `data.sql` de Julián | a mano |
 | `DOC/seed-procesos-academicos.sql` (78 líneas) [EXTENSIÓN] | Programas, tipos de solicitud, etapas, etiquetas, tipos de anexo, situaciones; exige `SET @funcionario_uuid` | a mano; idempotente (`INSERT IGNORE`, UUID fijos) |
-| `DOC/script_bd_extension.sql` (356 líneas) | DDL de referencia de las 19 tablas | no se ejecuta |
+| `DOC/script_bd_extension.sql` | DDL de referencia de las 21 tablas (356 líneas y 19 tablas al corte; T12.28 agregó la sección 13 y T12.32 la 14) | no se ejecuta |
 | `DOC/migracion_programas_asignaturas.sql` (112 líneas) | Migra bases anteriores a PROGRAMA_ACADEMICO: asigna programa ISI y renumera códigos de asignatura | a mano, backend detenido |
+| `DOC/migracion_situaciones_siglas.sql` (T12.34) | Agrega `ambito`, inserta R1R, C1 y C2, retira R0, deja en NULL las situaciones guardadas que no coinciden con su lista y cambia las siglas de los programas con `UPDATE` | a mano |
 | `DOC/migracion_cargo_situaciones_notas.sql` (50 líneas) | Renombra `dependencia` a `cargo`, fija `facultad='FIET'`, ajusta `numeroFaltas` y `nota` a varchar(20), corrige nombres de situaciones y etiquetas | a mano |
 
 Orden de arranque con base vacía (`backend/CLAUDE.md`, "Orden de arranque con una base nueva"): levantar backend; correr `data.sql`; crear el Funcionario Académico por API; correr `seed-procesos-academicos.sql`. Los scripts `backend/pruebas/*.ps1` asumen el seed cargado (`comun.ps1` línea 180, `t5_asignacion.ps1` línea 46).
@@ -323,10 +356,10 @@ Orden de arranque con base vacía (`backend/CLAUDE.md`, "Orden de arranque con u
 
 `data.sql` [EXTENSIÓN]: roles `Estudiante` (`b77e970f-9c82-4c4b-9570-fe79840245a7`) y `Funcionario Académico` (`996f4a2d-e051-4367-a702-a3e6a0a91873`); tipo de usuario `Estudiante` (`5725e5e5-aa04-494c-b347-be14f619fd97`). Con ellos `data.sql` suma 11 roles y 8 tipos de usuario.
 
-`seed-procesos-academicos.sql` [EXTENSIÓN]: 5 programas (IET, ISI, IAI, TTE, IAC, consecutivo 0); 3 tipos de solicitud; 8 etapas (6 con tipo NULL, 2 de Examen Supletorio); 23 etiquetas por rol; 11 tipos de anexo (6 de Cancelación de Matrícula, todos obligatorios; 5 de Examen Supletorio, de los cuales solo el formato del docente que orienta la asignatura es obligatorio); 4 situaciones R0 a R3; tres `UPDATE` finales que corrigen etiquetas y un nombre de anexo. Coincide con las cifras de `backend/CLAUDE.md` (8 etapas, 23 etiquetas, 11 anexos).
+`seed-procesos-academicos.sql` [EXTENSIÓN], al 2026-10-21 según `backend/CLAUDE.md` ("Orden de arranque con una base nueva") y `change.md`: 5 programas (PIET, PIS, PIAI, TTM, PIAC, consecutivo 0); 3 tipos de solicitud; 8 etapas (6 con tipo NULL, 2 de Examen Supletorio); 23 etiquetas por rol; 15 tipos de anexo: los 11 del corte (los 6 de Cancelación de Matrícula quedan con `vigente = 0` desde T12.31), 3 "Documento adicional de la respuesta" (uno por proceso, P54; el de Cancelación de Asignatura con `vigente = 0` desde T12.33) y "Paz y salvos (un solo PDF con todos los paz y salvos)" (P55); 7 situaciones (cuatro de la asignatura, dos al cancelar y R0 retirada, T12.34). El seed no se volvió a leer línea por línea en esta actualización.
 
 Observaciones:
-- Cancelación de Asignatura no tiene filas en TIPO_ANEXO_ACADEMICO; sus condiciones académicas se registran en `ASIGNATURA_SOLICITUD_ACADEMICA.cumpleCondiciones` (inferencia a partir del DDL y del seed).
+- Cancelación de Asignatura no tiene anexos que pida al radicar (solo el soporte libre); su única fila en TIPO_ANEXO_ACADEMICO es el documento adicional retirado. Sus condiciones académicas se registran en `ASIGNATURA_SOLICITUD_ACADEMICA.cumpleCondiciones` (inferencia a partir del DDL y del seed).
 - El Decano y el Secretario General no se siembran como usuarios, salvo `rootfiet`; los demás usuarios se crean por API.
 - `migracion_cargo_situaciones_notas.sql` fija la etiqueta FUNCIONARIO de APROBADA_POR_DECANO en 'Aprobada por el Decano' y la de RECHAZADA_POR_DECANO en 'Rechazada por el Decano', mientras el seed deja 'Pendiente Notificar' para esas mismas etapas. El resultado depende de cuál se corra de último; NO VERIFICADO el estado de la base real.
 
@@ -334,8 +367,8 @@ Observaciones:
 
 | Aspecto | [BASE] | [EXTENSIÓN] |
 |---|---|---|
-| Entidades | 13 | 19 |
-| Tablas físicas | 14 | 19 |
+| Entidades | 13 | 21 |
+| Tablas físicas | 14 | 21 |
 | Nombre de tabla | camelCase (`tiposUsuario`) | MAYÚSCULAS_CON_GUION (`ESTUDIANTE`) |
 | PK | `varchar(150)` | `varchar(100)` |
 | Texto | `varchar(1000)` casi siempre | longitudes ajustadas (10 a 500) |
@@ -345,11 +378,13 @@ Observaciones:
 | DDL versionado | no | sí, documentación en `script_bd_extension.sql` |
 | Subclases | JOINED (`usuarios`, `funcionarios`) | `@MapsId` 1 a 1 |
 
-Tablas [BASE] reutilizadas por la extensión: `usuarios` (FK desde 4 tablas), `roles`, `Usuario_has_Roles`, `tiposUsuario` (vía `usuarios`). Tablas [BASE] sin relación con la extensión: `solicitudes`, `anexos`, `respuestas`, `informacionSolicitantes`, `ordenesDelDia`, `tiposSolicitudes`, `tiposAnexos`, `logs`, `funcionarios` (evidencia: ningún `@JoinColumn` de las 19 entidades de extensión apunta a ellas).
+Tablas [BASE] reutilizadas por la extensión: `usuarios` (FK desde 6 tablas), `roles`, `Usuario_has_Roles`, `tiposUsuario` (vía `usuarios`). Tablas [BASE] sin relación con la extensión: `solicitudes`, `anexos`, `respuestas`, `informacionSolicitantes`, `ordenesDelDia`, `tiposSolicitudes`, `tiposAnexos`, `logs`, `funcionarios` (evidencia: ningún `@JoinColumn` de las 21 entidades de extensión apunta a ellas).
 
 ## 10. Diagramas ER
 
 ### 10.1 Completo
+
+Actualizado el 2026-10-21 con `NOTIFICACION_DOCENTE`, `NOTIFICACION_RESOLUCION` y las columnas `Docente_uuid`, `ambito` y `vigente`. Los diagramas por módulo 10.2 a 10.7 llevan las columnas nuevas donde ya aparecía la tabla, pero no las dos tablas nuevas.
 
 ```mermaid
 erDiagram
@@ -518,6 +553,7 @@ erDiagram
         datetime fechaExamenNoPresentado
         datetime fechaAcordadaExamen
         enum tipoCausa
+        varchar Docente_uuid FK
     }
     SOLICITUD_SUPLETORIO_CRUCE_ASIGNATURA {
         varchar SolicitudAcademica_uuid PK
@@ -529,6 +565,7 @@ erDiagram
         varchar uuidSituacionAcademica PK
         varchar codigo
         varchar nombre
+        enum ambito
     }
     ASIGNATURA_SOLICITUD_ACADEMICA {
         varchar uuidAsignaturaSolicitud PK
@@ -549,6 +586,7 @@ erDiagram
         varchar nombre
         varchar formatosPermitidos
         boolean obligatorio
+        boolean vigente
     }
     ANEXO_ACADEMICO {
         varchar uuidAnexoAcademico PK
@@ -620,6 +658,37 @@ erDiagram
     TIPO_ANEXO_ACADEMICO |o--o{ ANEXO_ACADEMICO : tipifica
     usuarios ||--o{ ANEXO_ACADEMICO : sube
     usuarios ||--o{ HISTORIAL_SOLICITUD_ACADEMICA : actua
+    NOTIFICACION_DOCENTE {
+        bigint idNotificacion PK
+        varchar uuidNotificacion UK
+        varchar SolicitudAcademica_uuid FK
+        varchar Docente_uuid FK
+        varchar titulo
+        datetime fechaCreacion
+        datetime fechaLectura
+    }
+    NOTIFICACION_RESOLUCION {
+        varchar SolicitudAcademica_uuid PK
+        datetime fechaProgramada
+        enum estado
+        boolean firmada
+        varchar numeroResolucion
+        int anioResolucion
+        varchar decision
+        varchar mensajeInicial
+        datetime fechaEnvioEstudiante
+        datetime fechaEnvioDarca
+        int intentos
+        varchar ultimoError
+        datetime fechaReclamo
+        datetime fechaEnvio
+        datetime fechaLiberacion
+        datetime fechaCreacion
+    }
+    SOLICITUD_ACADEMICA ||--o| NOTIFICACION_RESOLUCION : comunica
+    SOLICITUD_ACADEMICA ||--o{ NOTIFICACION_DOCENTE : notifica
+    usuarios ||--o{ NOTIFICACION_DOCENTE : recibe
+    usuarios |o--o{ SOLICITUD_EXAMEN_SUPLETORIO : atiende
 ```
 
 ### 10.2 Módulo usuarios, roles y tipos [BASE]
@@ -806,6 +875,7 @@ erDiagram
         varchar nombre
         varchar formatosPermitidos
         boolean obligatorio
+        boolean vigente
     }
     FUNCIONARIO_ACADEMICO ||--o{ TIPO_SOLICITUD_ACADEMICA : atiende
     TIPO_SOLICITUD_ACADEMICA |o--o{ ETAPA_SOLICITUD_ACADEMICA : propia
@@ -852,6 +922,7 @@ erDiagram
         datetime fechaExamenNoPresentado
         datetime fechaAcordadaExamen
         enum tipoCausa
+        varchar Docente_uuid FK
     }
     SOLICITUD_SUPLETORIO_CRUCE_ASIGNATURA {
         varchar SolicitudAcademica_uuid PK
@@ -863,6 +934,7 @@ erDiagram
         varchar uuidSituacionAcademica PK
         varchar codigo
         varchar nombre
+        enum ambito
     }
     ASIGNATURA_SOLICITUD_ACADEMICA {
         varchar uuidAsignaturaSolicitud PK
@@ -946,13 +1018,13 @@ erDiagram
 
 ## 11. Discrepancias y puntos NO VERIFICADO
 
-1. 19 contra 18 tablas: resuelto, son 19 (sección 1). El 18 es un conteo histórico previo a PROGRAMA_ACADEMICO.
-2. `CLAUDE.md` raíz afirma que las 19 tablas "coinciden con la base real (`SHOW TABLES` y `DESCRIBE`)"; no se pudo verificar porque Docker no corre. Sí se verificó la coincidencia entre las 19 entidades y el DDL de referencia: tipos, nulos, defaults, UNIQUE y nombres de FK.
+1. 19 contra 18 tablas: resuelto al corte, eran 19 (sección 1); hoy son 21 con `NOTIFICACION_DOCENTE` y `NOTIFICACION_RESOLUCION`. El 18 es un conteo histórico previo a PROGRAMA_ACADEMICO.
+2. `CLAUDE.md` raíz afirma que las 21 tablas "coinciden con la base real (`SHOW TABLES` y `DESCRIBE`)"; no se pudo verificar porque Docker no corría en el análisis ni se consultó la base en la actualización. Sí se verificó la coincidencia entre las 19 entidades y el DDL de referencia: tipos, nulos, defaults, UNIQUE y nombres de FK.
 3. Las 14 tablas [BASE] no tienen DDL ni diccionario; se dedujeron de las entidades. Longitudes por defecto (`varchar(255)`), `bit(1)`, `datetime(6)`, nombres de FK y de índices únicos: NO VERIFICADO.
 4. `Usuario_has_Roles`: sin entidad ni PK declarada; el DDL exacto generado es NO VERIFICADO.
 5. PK `varchar(150)` en [BASE] y `varchar(100)` en [EXTENSIÓN]: las FK de la extensión hacia `usuarios` usan `columnDefinition="varchar(100)"` contra una PK `varchar(150)`. Funciona en MySQL si los tipos son compatibles; la documentación afirma que sí, NO VERIFICADO en la base viva.
 6. Los `UPDATE` de etiquetas de `migracion_cargo_situaciones_notas.sql` y del final de `seed-procesos-academicos.sql` dan valores distintos para el rol FUNCIONARIO (sección 8.1).
 7. Reglas sin respaldo en la base (solo en código o documentación): valores de `ASIGNATURA_MATRICULADA.estado`, cruce solo con `tipoCausa='cruce'`, unicidad de nombre de asignatura por programa, `facultad='FIET'`. No hay CHECK ni UNIQUE para ellas.
-8. Sin `ON DELETE` en ninguna FK: el borrado en cascada depende solo de JPA (`Estudiante.asignaturasMatriculadas`, `Solicitud.anexos`, `TipoSolicitud.anexos`).
+8. Sin `ON DELETE` en ninguna FK (las FK de las dos tablas nuevas tampoco lo declaran en `script_bd_extension.sql`): el borrado en cascada depende solo de JPA (`Estudiante.asignaturasMatriculadas`, `Solicitud.anexos`, `TipoSolicitud.anexos`).
 9. Nombre de base: `docker-compose.yml` define `MYSQL_DATABASE: cfiet_database` y la URL usa `cfiet`; la documentación opera sobre `cfiet`.
 10. `SolicitudEntidad.informacionSolicitante` es `@OneToOne` con FK en `solicitudes`; si Hibernate genera o no UNIQUE sobre esa columna es NO VERIFICADO.

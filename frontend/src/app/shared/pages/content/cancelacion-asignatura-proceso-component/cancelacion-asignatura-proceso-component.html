@@ -41,8 +41,8 @@
       }
       @if (decide) {
       <p class="ayuda-tabla" data-ayuda-decision>
-        Cada asignatura parte de la evaluación del Funcionario Académico. Si estás de acuerdo, acepta la evaluación tal
-        como está; si cambias alguna, envía la decisión modificada.
+        Elige Aprobar o Rechazar en cada asignatura; la columna "Cumple condiciones" muestra la evaluación del Funcionario
+        Académico. "{{ etiquetaEnviarDecision }}" se habilita cuando todas tengan una decisión.
       </p>
       }
       @if (resultadoResaltado) {
@@ -104,11 +104,12 @@
                   }
                 </select>
                 } @else if (decide && columna.campo === 'decision') {
-                <div class="form-check form-switch m-0 interruptor-decision">
-                  <input class="form-check-input" type="checkbox" role="switch" data-campo="decision" [id]="'decision-' + uuid"
-                    [checked]="decisiones[uuid]" [disabled]="enviando" (change)="cambiarDecision(uuid, $event)">
-                  <label class="form-check-label" [for]="'decision-' + uuid">{{ decisiones[uuid] ? 'Aprobar' : 'Rechazar' }}</label>
-                </div>
+                <select class="celda-campo" data-campo="decision" [attr.aria-label]="'Decisión del Decano para ' + asignatura.nombreAsignatura"
+                  [disabled]="enviando" (change)="cambiarDecision(uuid, valorDe($event))">
+                  <option value="" [selected]="decisiones[uuid] === null">—</option>
+                  <option value="aprobar" [selected]="decisiones[uuid] === true">Aprobar</option>
+                  <option value="rechazar" [selected]="decisiones[uuid] === false">Rechazar</option>
+                </select>
                 @if (decisionDistinta(asignatura)) {
                 <span class="etiqueta-cambiada" data-cambio-decision>Distinta a la evaluación</span>
                 }
@@ -136,11 +137,6 @@
         Todas las asignaturas quedaron en Rechazar: al enviar la decisión se rechaza la solicitud completa.
       </p>
       }
-      @if (editable && (ningunaCumple || errores['ninguna'])) {
-      <div class="nota-error mt-3" data-error="ninguna">
-        Ninguna asignatura cumple las condiciones: en lugar de remitir la solicitud al Decano debes rechazarla.
-      </div>
-      }
       @if (editable && faltanDatosTabla) {
       <p class="nota-error mt-3" data-error="tabla">Completa los datos resaltados en la tabla antes de remitir la solicitud al Decano.</p>
       }
@@ -162,20 +158,16 @@
 
   @if (accionesVisibles.length > 0) {
   <section class="tarjeta tarjeta-acciones" data-acciones>
-    @for (accion of accionesVisibles; track accion) {
-    @if (accion === acciones.APROBAR_DECANO) {
-    <app-simple-button-component data-accion="ACEPTAR_EVALUACION" label="Aceptar tal como está" width="auto" height="38px"
-      color="#2A3A86" [disabled]="!detalle || hayCambiosDecano" (clicked)="abrirDecision('aceptar')">
+    @if (decide) {
+    <app-simple-button-component data-accion="ENVIAR_DECISION" [label]="etiquetaEnviarDecision" width="auto" height="38px"
+      color="#2A3A86" [disabled]="!detalle || !decisionLista" (clicked)="abrirDecision()">
     </app-simple-button-component>
-    <app-simple-button-component data-accion="DECISION_MODIFICADA" label="Enviar decisión modificada" width="auto"
-      height="38px" color="#2A3A86" [disabled]="!detalle || !hayCambiosDecano" (clicked)="abrirDecision('modificar')">
-    </app-simple-button-component>
-    } @else {
+    }
+    @for (accion of accionesBotones; track accion) {
     <app-simple-button-component [attr.data-accion]="accion" [label]="etiquetaBoton(accion)" width="auto" height="38px"
       [color]="esRechazo(accion) ? '#D0463B' : '#2A3A86'" [contorno]="esRechazo(accion)"
       [disabled]="!detalle || cargandoSituaciones || cargandoPlantilla" (clicked)="abrir(accion)">
     </app-simple-button-component>
-    }
     }
   </section>
   }
@@ -202,31 +194,17 @@
     }
     @case (acciones.APROBAR_DECANO) {
     <p class="nota-gris" data-nota-aprobar>{{ notaAprobarDecano }}</p>
-    @if (modoDecision === 'aceptar') {
-    <p class="mb-0" data-texto-decision>Se aplicará la evaluación del Funcionario Académico tal como está.</p>
-    } @else {
-    <p class="mb-0" data-texto-decision>Se enviará tu decisión por asignatura.</p>
-    }
-    <ul class="lista-decisiones" data-resumen-decisiones>
-      @for (asignatura of asignaturas; track asignatura.uuidAsignaturaSolicitud) {
-      <li [attr.data-decision]="asignatura.uuidAsignaturaSolicitud">
-        {{ asignatura.codigoAsignatura }} - {{ asignatura.nombreAsignatura }}:
-        <b>{{ decisiones[asignatura.uuidAsignaturaSolicitud] ? 'Aprobar' : 'Rechazar' }}</b>
-      </li>
-      }
-    </ul>
+    <p class="mb-0" data-texto-decision>Se enviará tu decisión por asignatura; solo se cancelan las aprobadas.</p>
+    <ng-container *ngTemplateOutlet="resumenDecisiones"></ng-container>
     }
     @case (acciones.RECHAZAR_DECANO) {
     <p class="nota-gris">
-      Se niega la cancelación de todas las asignaturas. La solicitud pasará al Funcionario Académico para que envíe la
-      respuesta al estudiante.
+      Rechazaste todas las asignaturas: se niega la solicitud completa. La solicitud pasará al Funcionario Académico para
+      que envíe la respuesta al estudiante.
     </p>
+    <ng-container *ngTemplateOutlet="resumenDecisiones"></ng-container>
     }
     @case (acciones.ENVIAR_RESPUESTA) {
-    <p class="nota-gris" data-nota-resolucion-sin-firmar>
-      Sube la Resolución sin firmar por el estudiante: es la que se le envía a él y a DARCA en la fecha programada. Si el
-      estudiante firma antes en la Decanatura, la reemplazas por la firmada desde la Notificación de la Resolución.
-    </p>
     <p class="nota-gris">
       Al enviar la respuesta la solicitud termina
       @if (solicitud.etapaCodigo === 'APROBADA_POR_DECANO') {
@@ -237,6 +215,7 @@
     </p>
     @if (asignaturasConAjuste.length > 0) {
     <div class="d-flex flex-column gap-2" data-ajustes>
+      <h4 class="subtitulo mb-0">Situación al cancelar de las asignaturas aprobadas</h4>
       <p class="mb-0">Puedes registrar la situación al cancelar de estas asignaturas aprobadas; es opcional.</p>
       @for (asignatura of asignaturasConAjuste; track asignatura.uuidAsignaturaSolicitud) {
       @let uuid = asignatura.uuidAsignaturaSolicitud;
@@ -259,16 +238,25 @@
     }
     }
 
-    @if (accionActiva === acciones.ENVIAR_RESPUESTA) {
-    <div data-campo-resolucion>
-      @if (hayResolucion) {
-      <p class="nota-gris mb-2">Ya hay una Resolución sin firmar cargada. Puedes reemplazarla si lo necesitas.</p>
-      }
-      <app-input-anexo-upload-component #entradaResolucion [tipoAnexo]="tipoResolucion" [uploadedFile]="archivoResolucion"
-        (fileSelected)="alSeleccionarResolucion($event, entradaResolucion)" (fileRemoved)="alQuitarResolucion()">
-      </app-input-anexo-upload-component>
-      <small class="texto-error" data-error="resolucion">{{ errores['resolucion'] || '' }}</small>
-    </div>
+    @if (accionActiva === acciones.ENVIAR_RESPUESTA && comunicacion) {
+    <app-comunicacion-respuesta-component [comunicacion]="comunicacion" [sufijo]="sufijoResolucion" [maximoMensaje]="maximoMensaje"
+      [maximoTexto]="maximoTexto" [errores]="errores" [nombreEstudiante]="nombreEstudiante" [sugeridoComunicacion]="sugeridoComunicacion"
+      [sugeridoDarca]="sugeridoDarca">
+      <section class="d-flex flex-column gap-2" data-campo-resolucion>
+        <h4 class="subtitulo mb-0">Resolución sin firmar por el estudiante</h4>
+        <p class="nota-gris mb-0" data-nota-resolucion-sin-firmar>
+          Es la que se le envía al estudiante y a DARCA en la fecha programada. Si el estudiante firma antes en la Decanatura, la
+          reemplazas por la firmada desde la Notificación de la Resolución.
+        </p>
+        @if (hayResolucion) {
+        <p class="nota-gris mb-0">Ya hay una Resolución sin firmar cargada. Puedes reemplazarla si lo necesitas.</p>
+        }
+        <app-input-anexo-upload-component #entradaResolucion [tipoAnexo]="tipoResolucion" [uploadedFile]="archivoResolucion"
+          (fileSelected)="alSeleccionarResolucion($event, entradaResolucion)" (fileRemoved)="alQuitarResolucion()">
+        </app-input-anexo-upload-component>
+        <small class="texto-error" data-error="resolucion">{{ errores['resolucion'] || '' }}</small>
+      </section>
+    </app-comunicacion-respuesta-component>
     }
 
     @if (campoObservacion; as campo) {
@@ -283,12 +271,6 @@
         <small class="contador" [class.excedido]="observacion.length > maximoObservacion" data-contador>{{ observacion.length }}/{{ maximoObservacion }}</small>
       </div>
     </div>
-    }
-
-    @if (accionActiva === acciones.ENVIAR_RESPUESTA && comunicacion) {
-    <app-comunicacion-respuesta-component [comunicacion]="comunicacion" [sufijo]="sufijoResolucion" [maximoMensaje]="maximoMensaje"
-      [errores]="errores">
-    </app-comunicacion-respuesta-component>
     }
 
     @if (erroresServidor.length > 0) {
@@ -307,3 +289,14 @@
     }
   </div>
 </app-generic-dialog-form-component>
+
+<ng-template #resumenDecisiones>
+  <ul class="lista-decisiones" data-resumen-decisiones>
+    @for (asignatura of asignaturas; track asignatura.uuidAsignaturaSolicitud) {
+    <li [attr.data-decision]="asignatura.uuidAsignaturaSolicitud">
+      {{ asignatura.codigoAsignatura }} - {{ asignatura.nombreAsignatura }}:
+      <b>{{ decisiones[asignatura.uuidAsignaturaSolicitud] ? 'Aprobar' : 'Rechazar' }}</b>
+    </li>
+    }
+  </ul>
+</ng-template>

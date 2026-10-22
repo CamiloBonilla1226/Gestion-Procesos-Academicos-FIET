@@ -5,6 +5,7 @@ import { TableGenericComponent, TableHeader } from '../../../table-generic-compo
 import { Paginator } from '../../../paginator/paginator';
 import { BarraBusquedaComponent } from '../../../search/barra-busqueda-component/barra-busqueda-component';
 import { SimpleButtonComponent } from '../../../buttons/simple-button-component/simple-button-component';
+import { EliminacionRespuestasComponent } from '../../../others/eliminacion-respuestas-component/eliminacion-respuestas-component';
 import { SolicitudAcademicaService } from '../../../../core/services/solicitud-academica-service';
 import { ErrorHandlerService } from '../../../../core/services/error-handler-service';
 import { SolicitudAcademicaResumenDTORespuesta } from '../../../../core/models/SolicitudAcademica/DTOResponse/SolicitudAcademicaResumenDTORespuesta';
@@ -53,7 +54,7 @@ function textoResultado(aprobada: boolean): string {
 
 @Component({
   selector: 'app-bandeja-solicitudes-academicas-component',
-  imports: [TableGenericComponent, Paginator, BarraBusquedaComponent, SimpleButtonComponent],
+  imports: [TableGenericComponent, Paginator, BarraBusquedaComponent, SimpleButtonComponent, EliminacionRespuestasComponent],
   templateUrl: './bandeja-solicitudes-academicas-component.html',
   styleUrl: './bandeja-solicitudes-academicas-component.css'
 })

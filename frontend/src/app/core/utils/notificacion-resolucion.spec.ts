@@ -1,11 +1,17 @@
 import {
   ahoraEnColombia,
   errorDeMensajeInicial,
+  errorDeTextoComunicacion,
   erroresDeProgramacion,
+  erroresDeTextos,
+  fechaCarta,
   fechaHoraLocal,
+  filasDeTexto,
+  parrafosConMarcas,
   programacionAPeticion,
   programacionDesde,
-  textoFechaHora
+  textoFechaHora,
+  valoresComunicacionEstudiante
 } from './notificacion-resolucion';
 import { NotificacionResolucionDTORespuesta } from '../models/CancelacionAsignatura/DTOResponse/NotificacionResolucionDTORespuesta';
 
@@ -28,12 +34,37 @@ describe('notificacion-resolucion', () => {
     expect(erroresDeProgramacion({ ...valida, anio: '1999' }, '2026-01-01T00:00')['anio']).toContain('2000');
   });
 
-  it('el mensaje solo se valida si la casilla esta marcada', () => {
-    const programacion = valida;
-    expect(errorDeMensajeInicial({ enviarMensaje: false, mensaje: '', programacion })).toBe('');
-    expect(errorDeMensajeInicial({ enviarMensaje: true, mensaje: '  ', programacion })).toContain('Escribe');
-    expect(errorDeMensajeInicial({ enviarMensaje: true, mensaje: 'x'.repeat(2001), programacion })).toContain('2000');
-    expect(errorDeMensajeInicial({ enviarMensaje: true, mensaje: 'x'.repeat(2000), programacion })).toBe('');
+  it('el mensaje inmediato siempre es obligatorio y admite 2000 caracteres', () => {
+    const base = { textoComunicacion: 'a', textoDarca: 'b', programacion: valida };
+    expect(errorDeMensajeInicial({ ...base, mensaje: '' })).toContain('siempre se envía');
+    expect(errorDeMensajeInicial({ ...base, mensaje: '  ' })).toContain('Escribe');
+    expect(errorDeMensajeInicial({ ...base, mensaje: 'x'.repeat(2001) })).toContain('2000');
+    expect(errorDeMensajeInicial({ ...base, mensaje: 'x'.repeat(2000) })).toBe('');
+  });
+
+  it('los textos para el estudiante y DARCA son obligatorios y admiten 4000 caracteres', () => {
+    expect(errorDeTextoComunicacion(' ', 'DARCA')).toContain('DARCA');
+    expect(errorDeTextoComunicacion('x'.repeat(4001), 'DARCA')).toContain('4000');
+    expect(errorDeTextoComunicacion('x'.repeat(4000), 'DARCA')).toBe('');
+    const errores = erroresDeTextos({ mensaje: 'm', textoComunicacion: '', textoDarca: '', programacion: valida });
+    expect(Object.keys(errores).sort()).toEqual(['textoComunicacion', 'textoDarca']);
+  });
+
+  it('la vista previa reemplaza las marcas conocidas en negrilla y deja las desconocidas', () => {
+    const valores = valoresComunicacionEstudiante({ ...valida, numero: ' ' }, 'Ana Muñoz');
+    const parrafos = parrafosConMarcas('Hola {nombre}.\r\n\r\nResolución {numero} de {anio}: se {decision} {otra}', valores);
+    expect(parrafos.length).toBe(2);
+    expect(parrafos[0]).toEqual([{ texto: 'Hola ', resaltado: false }, { texto: 'Ana Muñoz', resaltado: true }, { texto: '.', resaltado: false }]);
+    expect(parrafos[1].map(f => f.texto).join('')).toBe('Resolución ___ de 2026: se aprueba la {otra}');
+    expect(parrafos[1].find(f => f.texto === '{otra}')?.resaltado).toBeFalse();
+    expect(parrafosConMarcas('{fecha}', { fecha: 'hoy' }, false)).toEqual([[{ texto: 'hoy', resaltado: false }]]);
+  });
+
+  it('la fecha de la carta sale en espanol y el cuadro crece con el texto', () => {
+    expect(fechaCarta('2026-10-21T08:30')).toBe('21 de octubre de 2026');
+    expect(fechaCarta('')).toBe('___');
+    expect(filasDeTexto('')).toBe(6);
+    expect(filasDeTexto('a\n'.repeat(20))).toBeGreaterThan(20);
   });
 
   it('arma la peticion recortada y lee la programacion guardada', () => {

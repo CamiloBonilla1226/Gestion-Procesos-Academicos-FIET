@@ -2,6 +2,8 @@
 
 Análisis de solo lectura. Estado analizado: árbol de trabajo de la rama `main` con cambios sin confirmar (entre ellos los del Examen Supletorio, decisión P49). No se ejecutó ni compiló nada: todo lo que dice "verificado" es lectura estática del código o de los documentos 02 a 08. Lo que no se pudo comprobar así se marca NO VERIFICADO.
 
+Actualizado el 2026-10-21 (T12.37) con los cambios de T12.28 a T12.35: rechazo directo sin Resolución, datos de la Facultad opcionales y situaciones de listas cerradas, el Decano de Matrícula sin situaciones, PDF único de paz y salvos, profesor y notificación del supletorio, correos de la respuesta final, comunicación programada de la Resolución en Cancelación de Asignatura con visibilidad diferida, remisión al Decano aunque ninguna asignatura cumpla y decisión del Decano con un solo botón. El correo se describe aparte en [correo-electronico.md](correo-electronico.md).
+
 ## 0. Convenciones
 
 - Marca de origen: [BASE] es el prototipo de Julián Camacho (commit inicial `d3a48cc`); [EXTENSIÓN] es el trabajo de grado. El criterio es el de los documentos 02, 04 y 07.
@@ -156,23 +158,25 @@ Es lo que ocurre en cualquier acción de las secciones 3.2 a 5.2 (rechazar, remi
 | 3 | `SolicitudAcademicaCUImplAdaptador.cambiarEtapa` | Solicitud existe (E3); acción no nula; `ValidadorActorSolicitud.validar` (rol real, Estudiante dueño, Funcionario asignado al tipo); observación recortada, máximo 500 (E6) |
 | 4 | `MaquinaEtapas.transicionar` | Busca la fila de `TRANSICIONES` por proceso, etapa de origen y acción (E4 `TRANSICION_NO_PERMITIDA`); comprueba el rol (E4 `ROL_TRANSICION_NO_PERMITIDO`); exige observación, escaneo, recibo o comprobante según la fila, leídos de la base (`evidencias`: observación recibida, `ResolucionAcademicaGateway.existePorSolicitud`, anexos "Recibo de pago" y "Comprobante de pago") (E4 `REQUISITO_TRANSICION_FALTANTE`); una etapa final lanza E4 `ETAPA_FINAL_SIN_ACCIONES` |
 | 5 | `SolicitudAcademicaGatewayImplAdaptador.actualizarEtapa` (`@Transactional`) | Cambia `SOLICITUD_ACADEMICA.Etapa_uuid` y escribe una fila en `HISTORIAL_SOLICITUD_ACADEMICA` (acción, usuario, observación, fecha); no guarda la etapa en el historial |
-| 6 | `cambiarEtapa` solo en `REMITIR_DECANO` | Si había escaneo de la Resolución, `ResolucionAcademicaGateway.eliminarPorSolicitud` y `AlmacenamientoAnexosIntPuerto.eliminarTrasConfirmar` (el archivo se borra solo después del commit) |
+| 6 | `cambiarEtapa` solo en `REMITIR_DECANO` | Si había escaneo de la Resolución o documento adicional, se retiran (`eliminarPorSolicitud`, `AnexoAcademicoGateway.eliminar` y `AlmacenamientoAnexosIntPuerto.eliminarTrasConfirmar`; el archivo se borra solo después del commit) |
 | 7 | `LogCUIntPuerto.crearLog("Cambiar etapa de solicitud académica", ...)` | Una fila en `logs` con radicado, acción y etapas |
+| 7b | `cambiarEtapa`, si la etapa siguiente es `APROBADA` o `RECHAZADA` | Registra el correo al estudiante y prepara el de DARCA (y, en el supletorio, el del profesor); salen después del commit y en segundo plano. En Cancelación de Asignatura con `ENVIAR_RESPUESTA` no salen: los reemplaza la comunicación programada (sección 4.4 y [correo-electronico.md](correo-electronico.md)) |
 | 8 | Controlador | Responde el detalle del proceso ya actualizado (`Consulta<Proceso>CU.getDetalle`) |
 | 9 | Cliente | `ProcesoComponent.ejecutar(accion)`, luego `recargar()` (vuelve a pedir solicitud e historial) y toast de éxito; la bandera `enviando` evita el doble clic (D-F7) |
 
-Cuando la acción exige un archivo (Resolución en cancelaciones, recibo o comprobante en el supletorio), el cliente lo sube antes con una llamada aparte y encadena la acción con `switchMap`:
+Cuando la acción exige un archivo (Resolución en las cancelaciones después del Decano, recibo o comprobante en el supletorio) o lleva el documento adicional opcional (Matrícula y Supletorio), el cliente lo sube antes con una llamada aparte y encadena la acción con `switchMap`:
 
 | Archivo | Servicio Angular | Endpoint | Caso de uso | Regla | Tablas |
 |---|---|---|---|---|---|
-| Escaneo de la Resolución | `SolicitudAcademicaService.adjuntarResolucion` (`FormData`, parte `archivo`) | `POST /solicitudes-academicas/{uuid}/resolucion` (Funcionario Académico) | `ResolucionAcademicaCUImplAdaptador.adjuntarResolucion`: no es Supletorio (E4), el actor es Funcionario, la etapa es `RADICADA`, `APROBADA_POR_DECANO` o `RECHAZADA_POR_DECANO` (E4), solo `pdf` con firma coherente (E6); reemplaza la fila si existía | E: `RESOLUCION_ACADEMICA`, `logs`; disco |
+| Escaneo de la Resolución | `SolicitudAcademicaService.adjuntarResolucion` (`FormData`, parte `archivo`) | `POST /solicitudes-academicas/{uuid}/resolucion` (Funcionario Académico) | `ResolucionAcademicaCUImplAdaptador.adjuntarResolucion`: no es Supletorio (E4), el actor es Funcionario, la etapa es `RADICADA`, `APROBADA_POR_DECANO` o `RECHAZADA_POR_DECANO` (E4), solo `pdf` con firma coherente (E6); reemplaza la fila si existía. Desde T12.31 el frontend solo la pide al enviar la respuesta después del Decano | E: `RESOLUCION_ACADEMICA`, `logs`; disco |
+| Documento adicional de la respuesta (opcional, Matrícula y Supletorio) | `SolicitudAcademicaService.adjuntarAnexo` | `POST /solicitudes-academicas/{uuid}/anexos` (Funcionario Académico) | `AnexoAcademicoCUImplAdaptador.adjuntarAnexo`: solo el Funcionario asignado, PDF de hasta 5 MB, en las etapas desde las que puede cerrar; uno nuevo reemplaza al anterior; no se admite en Cancelación de Asignatura (E4 `DOCUMENTO_ADICIONAL_NO_ADMITIDO`) | E: `ANEXO_ACADEMICO`, `logs`; disco |
 | Recibo o comprobante de pago | `SolicitudAcademicaService.adjuntarAnexo` (parte `archivo` y `tipoAnexo`) | `POST /solicitudes-academicas/{uuid}/anexos` (Estudiante o Funcionario Académico) | `AnexoAcademicoCUImplAdaptador.adjuntarAnexo`: "Recibo de pago" solo Funcionario en `APROBADA_POR_DECANO`; "Comprobante de pago" solo Estudiante en `PENDIENTE_PAGO`; formato y firma por `ValidadorArchivoAdjunto`; guarda el archivo y luego la ficha, y si la ficha falla borra el archivo | E: `ANEXO_ACADEMICO`, `logs`; disco |
 
 Atomicidad (documento 04, sección 2): subir el archivo y ejecutar la acción son dos transacciones distintas (dos peticiones HTTP). Si el archivo se sube y la acción falla, el archivo queda guardado; el cliente lo recuerda (`resolucionSubida`, `anexoPagoSubido`) para no volver a subirlo en el reintento. Dentro de cada petición, el almacenamiento borra el archivo recién escrito si la transacción se revierte (`AlmacenamientoAnexosImplAdaptador`, `TransactionSynchronizationManager`).
 
 ## 3. Cancelación de Matrícula (CM) [EXTENSIÓN]
 
-Tipo de proceso `CANCELACION_MATRICULA` (sigla `CM`, radicado `AAAA-CM-0001`). Seis anexos obligatorios en el seed. Termina con Resolución física firmada y escaneada.
+Tipo de proceso `CANCELACION_MATRICULA` (sigla `CM`, radicado `AAAA-CM-0001`). Desde T12.31 un solo anexo obligatorio: un PDF con todos los paz y salvos, de hasta 10 MB (los seis anexos anteriores quedan con `vigente = 0`, P55). Si pasa por el Decano termina con Resolución física firmada y escaneada; el rechazo directo del Funcionario no lleva Resolución (P56).
 
 ### 3.1 Radicación por el Estudiante
 
@@ -181,7 +185,7 @@ Tipo de proceso `CANCELACION_MATRICULA` (sigla `CM`, radicado `AAAA-CM-0001`). S
 | 1 | `estudiante/catalogo`, tarjeta "Cancelación de Matrícula", "Iniciar solicitud" navega a `estudiante/cancelacion-matricula` | ninguno (contenido estático `TRAMITES_ESTUDIANTE`) | | | | |
 | 2 | `EstCancelacionMatriculaContentComponent.cargarFormulario` | `CancelacionMatriculaService.getFormulario` | `GET /cancelaciones-matricula/formulario` | `CancelacionMatriculaRestController.getFormulario`, `ConsultaCancelacionMatriculaCUImplAdaptador.getFormulario`: estudiante del token, tipo del proceso (E3), matrículas `activa`, anexos del tipo | `SesionGatewayIntPuerto`, `EstudianteGatewayIntPuerto`, `TipoSolicitudAcademicaGatewayIntPuerto`, `TipoAnexoAcademicoGatewayIntPuerto` | L: `usuarios`, `ESTUDIANTE`, `ASIGNATURA_MATRICULADA`, `TIPO_SOLICITUD_ACADEMICA`, `TIPO_ANEXO_ACADEMICO` |
 | 3 | `radicar()`: valida en cliente, arma `FormData` con `motivo`, una parte por anexo con el uuid del tipo como nombre y partes `soporte` | `CancelacionMatriculaService.radicar` (`armarFormDataRadicacion`) | `POST /cancelaciones-matricula` (multipart) | `CancelacionMatriculaRestController.radicar` (`@Transactional`): `getEstudianteAutenticado` y `CancelacionMatriculaCUImplAdaptador.radicarCancelacionMatricula` | | |
-| 4 | | | | Validación en orden: estudiante con rol y fila (E3, E4); al menos una matrícula activa (E4); motivo obligatorio y máximo 255 (E4, E6); tipo existente (E3); anexos del tipo, todos los obligatorios presentes (E4 `ANEXOS_OBLIGATORIOS_FALTANTES`), cada archivo con `ValidadorArchivoAdjunto` (E6) | `EstudianteGatewayIntPuerto`, `UsuarioGatewayIntPuerto`, `TipoSolicitudAcademicaGatewayIntPuerto`, `TipoAnexoAcademicoGatewayIntPuerto` | L: `usuarios`, `ESTUDIANTE`, `ASIGNATURA_MATRICULADA`, `TIPO_ANEXO_ACADEMICO` |
+| 4 | | | | Validación en orden: estudiante con rol y fila (E3, E4); al menos una matrícula activa (E4); motivo obligatorio y máximo 255 (E4, E6); tipo existente (E3); anexos del tipo, vigentes (E4 `ANEXO_NO_VIGENTE`) y todos los obligatorios presentes (E4 `ANEXOS_OBLIGATORIOS_FALTANTES`), cada archivo con `ValidadorArchivoAdjunto` (E6; 10 MB para el PDF de paz y salvos) | `EstudianteGatewayIntPuerto`, `UsuarioGatewayIntPuerto`, `TipoSolicitudAcademicaGatewayIntPuerto`, `TipoAnexoAcademicoGatewayIntPuerto` | L: `usuarios`, `ESTUDIANTE`, `ASIGNATURA_MATRICULADA`, `TIPO_ANEXO_ACADEMICO` |
 | 5 | | | | `SolicitudAcademicaCUImplAdaptador.crearSolicitud`: sin otra solicitud del mismo tipo fuera de `APROBADA` y `RECHAZADA` (E4 `SOLICITUD_EN_CURSO`); `MaquinaEtapas.siguienteEtapa(CM, null, RADICAR, ESTUDIANTE)` da `RADICADA`; radicado = último del año y tipo más 1 | `SolicitudAcademicaGatewayIntPuerto.crear` (`@Transactional`, `saveAndFlush`; colisión de `uk_solacad_radicado` se convierte en E4 `RADICADO_NO_GENERADO`), `EtapaSolicitudAcademicaGatewayIntPuerto` | E: `SOLICITUD_ACADEMICA`, `HISTORIAL_SOLICITUD_ACADEMICA` (acción `RADICAR`), `logs` ("Radicar solicitud académica") |
 | 6 | | | | `SolicitudCancelacionMatriculaGatewayIntPuerto.guardar` y `guardarAsignaturas`: una `ASIGNATURA_SOLICITUD_ACADEMICA` por cada matrícula activa, evaluación vacía | `SolicitudCancelacionMatriculaGatewayImplAdaptador` | E: `SOLICITUD_CANCELACION_MATRICULA`, `ASIGNATURA_SOLICITUD_ACADEMICA` |
 | 7 | | | | `AnexoAcademicoCUIntPuerto.adjuntarAnexo` por cada anexo (rol Estudiante, etapa `RADICADA`); log "Radicar cancelación de matrícula" | `AnexoAcademicoGatewayIntPuerto`, `AlmacenamientoAnexosIntPuerto` | E: `ANEXO_ACADEMICO`, `logs`; disco |
@@ -195,8 +199,8 @@ Pantalla `funcionario-academico/solicitudes/:uuid` con `CancelacionMatriculaProc
 
 | # | Acción (botón) | Servicio Angular | Endpoint | Caso de uso (`TramiteCancelacionMatriculaCUImplAdaptador`) | Tablas escritas |
 |---|---|---|---|---|---|
-| 1 | Rechazar solicitud (`RECHAZAR_FUNCIONARIO`): escaneo PDF obligatorio y observación obligatoria | `SolicitudAcademicaService.adjuntarResolucion`, luego `CancelacionMatriculaService.rechazarPorFuncionario` | `POST /solicitudes-academicas/{uuid}/resolucion`, luego `POST /cancelaciones-matricula/{uuid}/funcionario/rechazar` | `rechazarPorFuncionario`: `cambiarEtapa` exige observación y escaneo; `RADICADA` a `RECHAZADA` | `RESOLUCION_ACADEMICA`, `SOLICITUD_ACADEMICA`, `HISTORIAL_SOLICITUD_ACADEMICA`, `logs` |
-| 2 | Remitir al Decano (`REMITIR_DECANO`): la tabla pasa a modo editable (faltas, nota, situación en la matrícula, situación al cancelar opcional) | `CatalogoAcademicoService.getSituaciones` (antes de abrir), luego `CancelacionMatriculaService.remitirADecano` | `GET /catalogos-academicos/situaciones`, luego `POST /cancelaciones-matricula/{uuid}/funcionario/remitir` | `remitirADecano`: `solicitudValidada` antes de escribir; `TramiteCancelacion.cobertura` (una evaluación por asignatura, sin ajenas, repetidas ni faltantes); por asignatura faltas (texto máximo 20, entero >= 0 si es numérico), nota (máximo 20, 0.0 a 5.0 con un decimal si es numérica), situación en la matrícula del catálogo (obligatoria); `RADICADA` a `EN_REVISION_DECANO`; retira el escaneo de la Resolución si existía | `ASIGNATURA_SOLICITUD_ACADEMICA`, `SOLICITUD_ACADEMICA`, `HISTORIAL_SOLICITUD_ACADEMICA`, `RESOLUCION_ACADEMICA` (borra), `logs` ("Cambiar etapa..." y "Evaluar asignaturas de cancelación de matrícula") |
+| 1 | Rechazar solicitud (`RECHAZAR_FUNCIONARIO`): observación obligatoria, sin Resolución desde T12.31 (P56), documento adicional opcional | `SolicitudAcademicaService.adjuntarAnexo` (si hay documento adicional), luego `CancelacionMatriculaService.rechazarPorFuncionario` | `POST /solicitudes-academicas/{uuid}/anexos` (opcional), luego `POST /cancelaciones-matricula/{uuid}/funcionario/rechazar` | `rechazarPorFuncionario`: `cambiarEtapa` exige observación; `RADICADA` a `RECHAZADA`; correo al estudiante (sin Resolución, invita a entrar a la aplicación) y a DARCA (PDF del radicado y documento adicional) | `SOLICITUD_ACADEMICA`, `HISTORIAL_SOLICITUD_ACADEMICA`, `logs` |
+| 2 | Remitir al Decano (`REMITIR_DECANO`): la tabla pasa a modo editable (faltas, nota, situación de la asignatura y situación al cancelar, todas opcionales desde T12.28; las situaciones de listas cerradas desde T12.34) | `CatalogoAcademicoService.getSituaciones` (antes de abrir), luego `CancelacionMatriculaService.remitirADecano` | `GET /catalogos-academicos/situaciones`, luego `POST /cancelaciones-matricula/{uuid}/funcionario/remitir` | `remitirADecano`: `solicitudValidada` antes de escribir; `TramiteCancelacion.cobertura` (una evaluación por asignatura, sin ajenas, repetidas ni faltantes); por asignatura faltas (texto máximo 20, entero >= 0 si es numérico), nota (máximo 20, 0.0 a 5.0 con un decimal si es numérica), situación de la asignatura y situación al cancelar, opcionales y de su lista (E6 `SITUACION_NO_PERMITIDA`); `RADICADA` a `EN_REVISION_DECANO`; retira el escaneo de la Resolución si existía | `ASIGNATURA_SOLICITUD_ACADEMICA`, `SOLICITUD_ACADEMICA`, `HISTORIAL_SOLICITUD_ACADEMICA`, `RESOLUCION_ACADEMICA` (borra), `logs` ("Cambiar etapa..." y "Evaluar asignaturas de cancelación de matrícula") |
 
 ### 3.3 Decisión del Decano
 
@@ -204,21 +208,21 @@ Pantalla `decano/solicitudes/:uuid` con el mismo componente (`rol = DECANO`).
 
 | # | Acción (botón) | Servicio Angular | Endpoint | Caso de uso | Tablas escritas |
 |---|---|---|---|---|---|
-| 1 | Aprobar (`APROBAR_DECANO`): elige la situación al cancelar de cada asignatura (obligatoria) y observación opcional | `CancelacionMatriculaService.aprobarPorDecano` (`{situaciones, observacion}`) | `POST /cancelaciones-matricula/{uuid}/decano/aprobar` | `aprobarPorDecano`: `cobertura` de todas las asignaturas, situación al cancelar obligatoria y del catálogo (E4 `DATO_ASIGNATURA_FALTANTE`); `EN_REVISION_DECANO` a `APROBADA_POR_DECANO` | `ASIGNATURA_SOLICITUD_ACADEMICA`, `SOLICITUD_ACADEMICA`, `HISTORIAL_SOLICITUD_ACADEMICA`, `logs` ("Registrar situación al cancelar") |
-| 2 | Rechazar (`RECHAZAR_DECANO`): observación opcional | `CancelacionMatriculaService.rechazarPorDecano` | `POST /cancelaciones-matricula/{uuid}/decano/rechazar` | `rechazarPorDecano`: `EN_REVISION_DECANO` a `RECHAZADA_POR_DECANO`; no toca las situaciones | `SOLICITUD_ACADEMICA`, `HISTORIAL_SOLICITUD_ACADEMICA`, `logs` |
+| 1 | Aprobar (`APROBAR_DECANO`): desde T12.35 elige "Aprobar" en `DecisionDecanoComponent` y pulsa "Enviar decisión"; observación opcional. Desde T12.28 no registra situaciones (P51) | `CancelacionMatriculaService.aprobarPorDecano` (`{observacion}`) | `POST /cancelaciones-matricula/{uuid}/decano/aprobar` | `aprobarPorDecano`: `EN_REVISION_DECANO` a `APROBADA_POR_DECANO` | `SOLICITUD_ACADEMICA`, `HISTORIAL_SOLICITUD_ACADEMICA`, `logs` |
+| 2 | Rechazar (`RECHAZAR_DECANO`): elige "Rechazar" y pulsa "Enviar decisión"; observación opcional | `CancelacionMatriculaService.rechazarPorDecano` | `POST /cancelaciones-matricula/{uuid}/decano/rechazar` | `rechazarPorDecano`: `EN_REVISION_DECANO` a `RECHAZADA_POR_DECANO`; no toca las situaciones | `SOLICITUD_ACADEMICA`, `HISTORIAL_SOLICITUD_ACADEMICA`, `logs` |
 
 ### 3.4 Cierre: respuesta al Estudiante
 
 | # | Acción | Servicio Angular | Endpoint | Caso de uso | Tablas escritas |
 |---|---|---|---|---|---|
-| 1 | Enviar respuesta (`ENVIAR_RESPUESTA`) por el Funcionario Académico: escaneo de la Resolución firmada (obligatorio si no existe) y observación opcional (máximo 500) | `SolicitudAcademicaService.adjuntarResolucion` (si hay archivo nuevo), luego `CancelacionMatriculaService.enviarRespuesta` | `POST /solicitudes-academicas/{uuid}/resolucion`, luego `POST /cancelaciones-matricula/{uuid}/funcionario/responder` | `enviarRespuesta`: `APROBADA_POR_DECANO` a `APROBADA` o `RECHAZADA_POR_DECANO` a `RECHAZADA`, ambas con escaneo; solo en `APROBADA`, `TramiteCancelacion.cancelarActivas` pasa a `cancelada` las matrículas de la solicitud que sigan `activa` (log "Cancelar asignaturas matriculadas") | `RESOLUCION_ACADEMICA`, `SOLICITUD_ACADEMICA`, `HISTORIAL_SOLICITUD_ACADEMICA`, `ASIGNATURA_MATRICULADA` (solo aprobada), `logs` |
+| 1 | Enviar respuesta (`ENVIAR_RESPUESTA`) por el Funcionario Académico: escaneo de la Resolución firmada (obligatorio si no existe), observación opcional (máximo 500) y documento adicional opcional. Correo al estudiante con la Resolución y el documento adicional, y a DARCA con el PDF del radicado, la Resolución y el documento adicional | `SolicitudAcademicaService.adjuntarResolucion` (si hay archivo nuevo) y `adjuntarAnexo` (si hay documento adicional), luego `CancelacionMatriculaService.enviarRespuesta` | `POST /solicitudes-academicas/{uuid}/resolucion`, luego `POST /cancelaciones-matricula/{uuid}/funcionario/responder` | `enviarRespuesta`: `APROBADA_POR_DECANO` a `APROBADA` o `RECHAZADA_POR_DECANO` a `RECHAZADA`, ambas con escaneo; solo en `APROBADA`, `TramiteCancelacion.cancelarActivas` pasa a `cancelada` las matrículas de la solicitud que sigan `activa` (log "Cancelar asignaturas matriculadas") | `RESOLUCION_ACADEMICA`, `SOLICITUD_ACADEMICA`, `HISTORIAL_SOLICITUD_ACADEMICA`, `ASIGNATURA_MATRICULADA` (solo aprobada), `logs` |
 | 2 | El Estudiante ve el resultado y descarga la Resolución | `SolicitudAcademicaService.descargarResolucion` | `GET /solicitudes-academicas/{uuid}/resolucion` | `ResolucionAcademicaCUImplAdaptador.obtenerResolucion` (solo en etapa final) | lectura |
 
 El Estudiante no tiene botones de acción en CM: `accionesDisponibles` de su rol viene vacío en todas las etapas de este proceso porque ninguna fila de `TRANSICIONES` de CM tiene rol Estudiante salvo `RADICAR` (origen nulo). En CM no se oculta al Estudiante `numeroFaltas`, `nota` ni `situacionMatricula`, solo `situacionCancelar` hasta la etapa final (documento 04, D6; NO VERIFICADO si el DTO de respuesta los filtra).
 
 ## 4. Cancelación de Asignatura (CA) [EXTENSIÓN]
 
-Tipo `CANCELACION_ASIGNATURA` (sigla `CA`). Sin anexos obligatorios; aprobación parcial por asignatura (decisión P14). Termina con Resolución escaneada.
+Tipo `CANCELACION_ASIGNATURA` (sigla `CA`). Sin anexos obligatorios; aprobación parcial por asignatura (decisión P14). Si pasa por el Decano termina con Resolución escaneada, que se comunica al estudiante en una fecha programada (P58, P59); el rechazo directo no lleva Resolución. No admite documento adicional desde T12.33.
 
 ### 4.1 Radicación por el Estudiante
 
@@ -234,24 +238,26 @@ Tipo `CANCELACION_ASIGNATURA` (sigla `CA`). Sin anexos obligatorios; aprobación
 
 | # | Acción (botón) | Servicio Angular | Endpoint | Caso de uso (`TramiteCancelacionAsignaturaCUImplAdaptador`) | Tablas escritas |
 |---|---|---|---|---|---|
-| 1 | Rechazar solicitud (`RECHAZAR_FUNCIONARIO`) con escaneo y observación | `adjuntarResolucion` y `CancelacionAsignaturaService.rechazarPorFuncionario` | `POST /solicitudes-academicas/{uuid}/resolucion` y `POST /cancelaciones-asignatura/{uuid}/funcionario/rechazar` | `rechazarPorFuncionario`: `RADICADA` a `RECHAZADA` (rechaza la solicitud completa) | como CM |
-| 2 | Remitir al Decano (`REMITIR_DECANO`): por fila faltas, nota, situación en la matrícula, "Cumple condiciones", observación de la evaluación (opcional, máximo 255) | `CatalogoAcademicoService.getSituaciones`, `CancelacionAsignaturaService.remitirADecano` | `GET /catalogos-academicos/situaciones`, `POST /cancelaciones-asignatura/{uuid}/funcionario/remitir` | `remitirADecano`: `cobertura`; `cumpleCondiciones` obligatorio (E4 `DATO_ASIGNATURA_FALTANTE`); si cumple y la nota es numérica menor a 3.0, E4 `NOTA_INSUFICIENTE_CUMPLE`; al menos una debe cumplir (E4 `NINGUNA_ASIGNATURA_CUMPLE`); `RADICADA` a `EN_REVISION_DECANO` | `ASIGNATURA_SOLICITUD_ACADEMICA`, `SOLICITUD_ACADEMICA`, `HISTORIAL_SOLICITUD_ACADEMICA`, `RESOLUCION_ACADEMICA` (borra), `logs` ("Evaluar asignaturas de cancelación de asignatura") |
+| 1 | Rechazar solicitud (`RECHAZAR_FUNCIONARIO`) con observación, sin Resolución (P56) | `CancelacionAsignaturaService.rechazarPorFuncionario` | `POST /cancelaciones-asignatura/{uuid}/funcionario/rechazar` | `rechazarPorFuncionario`: `RADICADA` a `RECHAZADA` (rechaza la solicitud completa); correos inmediatos al estudiante y a DARCA, sin Resolución ni documento adicional | como CM |
+| 2 | Remitir al Decano (`REMITIR_DECANO`): por fila faltas, nota, situación de la asignatura y situación al cancelar (opcionales, listas cerradas), "Cumple condiciones", observación de la evaluación (opcional, máximo 255) | `CatalogoAcademicoService.getSituaciones`, `CancelacionAsignaturaService.remitirADecano` | `GET /catalogos-academicos/situaciones`, `POST /cancelaciones-asignatura/{uuid}/funcionario/remitir` | `remitirADecano`: `cobertura`; `cumpleCondiciones` obligatorio (E4 `DATO_ASIGNATURA_FALTANTE`); si cumple y la nota es numérica menor a 3.0, E4 `NOTA_INSUFICIENTE_CUMPLE`; desde T12.35 se puede remitir aunque ninguna cumpla (P62; se retiró `NINGUNA_ASIGNATURA_CUMPLE`); `RADICADA` a `EN_REVISION_DECANO` | `ASIGNATURA_SOLICITUD_ACADEMICA`, `SOLICITUD_ACADEMICA`, `HISTORIAL_SOLICITUD_ACADEMICA`, `RESOLUCION_ACADEMICA` (borra), `logs` ("Evaluar asignaturas de cancelación de asignatura") |
 
 ### 4.3 Decisión del Decano (aprobación parcial)
 
 | # | Acción (botón) | Servicio Angular | Endpoint | Caso de uso | Tablas escritas |
 |---|---|---|---|---|---|
-| 1 | "Aceptar tal como está" | `CancelacionAsignaturaService.aprobarPorDecano` con `aceptarEvaluacion = true` | `POST /cancelaciones-asignatura/{uuid}/decano/aprobar` | `aprobarPorDecano`: cada asignatura queda con `aprobadaPorDecano = cumpleCondiciones`; `EN_REVISION_DECANO` a `APROBADA_POR_DECANO` | `ASIGNATURA_SOLICITUD_ACADEMICA`, `SOLICITUD_ACADEMICA`, `HISTORIAL_SOLICITUD_ACADEMICA`, `logs` ("Registrar decisión del Decano por asignatura") |
-| 2 | "Enviar decisión modificada": interruptor Aprobar o Rechazar por fila | igual con `decisiones` | igual | exactamente una de las dos formas (E4 `FORMA_APROBACION_DECANO`); `cobertura`; cada `aprobada` no nulo; al menos una aprobada (E4 `NINGUNA_ASIGNATURA_APROBADA`); las rechazadas pierden la situación al cancelar | igual |
-| 3 | Rechazar solicitud completa (`RECHAZAR_DECANO`): el componente lo abre cuando todas las filas quedaron rechazadas | `CancelacionAsignaturaService.rechazarPorDecano` | `POST /cancelaciones-asignatura/{uuid}/decano/rechazar` | `EN_REVISION_DECANO` a `RECHAZADA_POR_DECANO` | `SOLICITUD_ACADEMICA`, `HISTORIAL_SOLICITUD_ACADEMICA`, `logs` |
+| 1 | Desde T12.35 (P62) hay un solo botón, "Enviar decisión": el Decano elige Aprobar o Rechazar en cada asignatura (sin valor inicial) y el botón se habilita cuando todas tienen decisión. Antes había "Aceptar tal como está" (`aceptarEvaluacion = true`), que el backend todavía acepta pero el frontend ya no envía | `CancelacionAsignaturaService.aprobarPorDecano` con `decisiones` | `POST /cancelaciones-asignatura/{uuid}/decano/aprobar` | `aprobarPorDecano`: cada asignatura queda con la decisión elegida; `EN_REVISION_DECANO` a `APROBADA_POR_DECANO` | `ASIGNATURA_SOLICITUD_ACADEMICA`, `SOLICITUD_ACADEMICA`, `HISTORIAL_SOLICITUD_ACADEMICA`, `logs` ("Registrar decisión del Decano por asignatura") |
+| 2 | (misma acción, reglas del backend) | igual con `decisiones` | igual | exactamente una de las dos formas (E4 `FORMA_APROBACION_DECANO`); `cobertura`; cada `aprobada` no nulo; al menos una aprobada (E4 `NINGUNA_ASIGNATURA_APROBADA`); las rechazadas pierden la situación al cancelar | igual |
+| 3 | Rechazar la solicitud completa (`RECHAZAR_DECANO`): "Enviar decisión" usa este endpoint cuando todas las asignaturas quedaron en Rechazar | `CancelacionAsignaturaService.rechazarPorDecano` | `POST /cancelaciones-asignatura/{uuid}/decano/rechazar` | `EN_REVISION_DECANO` a `RECHAZADA_POR_DECANO` | `SOLICITUD_ACADEMICA`, `HISTORIAL_SOLICITUD_ACADEMICA`, `logs` |
 
 ### 4.4 Cierre: respuesta al Estudiante
 
 | # | Acción | Servicio Angular | Endpoint | Caso de uso | Tablas escritas |
 |---|---|---|---|---|---|
-| 1 | Enviar respuesta: escaneo, observación general y `ajustes` de situación para las aprobadas sin situación o cuya decisión cambió | `adjuntarResolucion`, `CancelacionAsignaturaService.enviarRespuesta` (`ajustes` solo si hay) | `POST /solicitudes-academicas/{uuid}/resolucion`, `POST /cancelaciones-asignatura/{uuid}/funcionario/responder` | `enviarRespuesta`: desde `RECHAZADA_POR_DECANO` no se aceptan ajustes (E4 `AJUSTES_SOLICITUD_RECHAZADA`); desde `APROBADA_POR_DECANO` `aplicarAjustes` (E4 `AJUSTE_ASIGNATURA_FALTANTE`, `SITUACION_CANCELAR_RECHAZADA`, `DATO_ASIGNATURA_FALTANTE`); si el Decano rechazó la solicitud o alguna asignatura, la observación es obligatoria (E4 `OBSERVACION_RESPUESTA_REQUERIDA`); `APROBADA_POR_DECANO` a `APROBADA` o `RECHAZADA_POR_DECANO` a `RECHAZADA`, ambas con escaneo; en `APROBADA` solo se pasan a `cancelada` las asignaturas con `aprobadaPorDecano = true` que sigan `activa` | `RESOLUCION_ACADEMICA`, `ASIGNATURA_SOLICITUD_ACADEMICA` (si hay ajustes), `SOLICITUD_ACADEMICA`, `HISTORIAL_SOLICITUD_ACADEMICA`, `ASIGNATURA_MATRICULADA`, `logs` |
+| 1 | Enviar respuesta: la Resolución sin firmar por el estudiante (P59), observación general, `ajustes` opcionales, mensaje inmediato obligatorio desde T12.38 y programación obligatoria de la comunicación (fecha y hora futuras, número, año y decisión) con los textos editables del estudiante y de DARCA (P63) | `getPlantillaNotificacion` al abrir el diálogo; `adjuntarResolucion`, `CancelacionAsignaturaService.enviarRespuesta` | `GET .../funcionario/notificacion/plantilla`; `POST /solicitudes-academicas/{uuid}/resolucion`, `POST /cancelaciones-asignatura/{uuid}/funcionario/responder` | `enviarRespuesta`: desde `RECHAZADA_POR_DECANO` no se aceptan ajustes (E4 `AJUSTES_SOLICITUD_RECHAZADA`); desde `APROBADA_POR_DECANO` `aplicarAjustes` (E4 `SITUACION_CANCELAR_RECHAZADA`; desde T12.28 ya no exige ajuste ni situación al cancelar, P50); valida la comunicación antes de escribir y la programa después (fila de `NOTIFICACION_RESOLUCION`); si el Decano rechazó la solicitud o alguna asignatura, la observación es obligatoria (E4 `OBSERVACION_RESPUESTA_REQUERIDA`); `APROBADA_POR_DECANO` a `APROBADA` o `RECHAZADA_POR_DECANO` a `RECHAZADA`, ambas con escaneo; en `APROBADA` solo se pasan a `cancelada` las asignaturas con `aprobadaPorDecano = true` que sigan `activa`. No salen los correos inmediatos con la Resolución | `RESOLUCION_ACADEMICA`, `ASIGNATURA_SOLICITUD_ACADEMICA` (si hay ajustes), `SOLICITUD_ACADEMICA`, `HISTORIAL_SOLICITUD_ACADEMICA`, `ASIGNATURA_MATRICULADA`, `NOTIFICACION_RESOLUCION`, `logs` |
+| 2 | Comunicación programada: una tarea `@Scheduled` reclama la programación vencida, envía al estudiante la comunicación con el PDF del radicado y la Resolución vigente, y a DARCA el PDF del radicado, la Resolución y la constancia de la comunicación (si el estudiante firmó en la Decanatura antes de la fecha, no se le envía nada y DARCA recibe dos PDF con la Resolución firmada) | ninguno (servidor) | ninguno | `TareaNotificacionResolucion.procesar` -> `NotificacionResolucionCUImplAdaptador.procesarPendientes`; hasta 3 intentos, luego FALLIDA | `NOTIFICACION_RESOLUCION` |
+| 3 | Panel "Notificación de la Resolución" del Funcionario: reprogramar, registrar la firma (reemplaza la Resolución por la firmada, se puede repetir hasta la fecha) y reintentar si quedó FALLIDA | `CancelacionAsignaturaService.reprogramarNotificacion`, `registrarFirma`, `reintentarNotificacion` | `PUT .../funcionario/notificacion`, `POST .../notificacion/firma`, `POST .../notificacion/reintentar` | `NotificacionResolucionCUImplAdaptador` con `UPDATE` condicionales (PROGRAMADA y antes de la fecha) | `NOTIFICACION_RESOLUCION`, `RESOLUCION_ACADEMICA` (firma), `logs` |
 
-Visibilidad: el Estudiante ve solo uuid, asignatura matriculada y, en etapa final, `aprobadaPorDecano`, `observacionDecision` y `situacionCancelar` (esta última solo en las aprobadas) (`ConsultaCancelacionAsignaturaCUImplAdaptador.vistaEstudiante`). En la bandeja Respuestas del Funcionario, una CA final puede ocupar hasta dos filas (aprobadas y rechazadas) según `resultadosAsignaturas`.
+Visibilidad: el Estudiante ve solo uuid, asignatura matriculada y, en etapa final, `aprobadaPorDecano`, `observacionDecision` y `situacionCancelar` (esta última solo en las aprobadas) (`ConsultaCancelacionAsignaturaCUImplAdaptador.vistaEstudiante`). Visibilidad diferida (P58): si la solicitud pasó por el Decano, desde que el Funcionario responde hasta que se guarda la firma o llega la fecha programada (P63, desde T12.38), el Estudiante la ve "En trámite" (`etapaCodigo` `EN_REVISION_DECANO`), sin resultado por asignatura, sin Resolución ni su descarga y sin las filas de decisión y respuesta del historial; después no se vuelve a ocultar. En la bandeja Respuestas del Funcionario, una CA final puede ocupar hasta dos filas (aprobadas y rechazadas) según `resultadosAsignaturas`.
 
 ## 5. Examen Supletorio (ES) [EXTENSIÓN]
 
@@ -272,14 +278,15 @@ Caso de uso: `TramiteExamenSupletorioCUImplAdaptador`; siete de las nueve operac
 
 | # | Quién y acción | Servicio Angular | Endpoint | Transición y reglas | Tablas escritas |
 |---|---|---|---|---|---|
-| 1 | Funcionario: Rechazar (`RECHAZAR_FUNCIONARIO`), observación obligatoria, sin escaneo | `ExamenSupletorioService.rechazarPorFuncionario` | `POST /examenes-supletorios/{uuid}/funcionario/rechazar` | `RADICADA` a `RECHAZADA` | `SOLICITUD_ACADEMICA`, `HISTORIAL_SOLICITUD_ACADEMICA`, `logs` |
+| 1 | Funcionario: Rechazar (`RECHAZAR_FUNCIONARIO`), observación obligatoria, sin escaneo, documento adicional opcional | `ExamenSupletorioService.rechazarPorFuncionario` | `POST /examenes-supletorios/{uuid}/funcionario/rechazar` | `RADICADA` a `RECHAZADA` | `SOLICITUD_ACADEMICA`, `HISTORIAL_SOLICITUD_ACADEMICA`, `logs` |
 | 2 | Funcionario: Remitir al Decano (`REMITIR_DECANO`), observación opcional | `ExamenSupletorioService.remitirADecano` | `POST /examenes-supletorios/{uuid}/funcionario/remitir` | `RADICADA` a `EN_REVISION_DECANO`; no exige nada más (P49, el campo `requisitosVerificados` se ignora) | igual |
-| 3 | Decano: Aprobar o Rechazar | `ExamenSupletorioService.aprobarPorDecano` o `rechazarPorDecano` | `POST /examenes-supletorios/{uuid}/decano/aprobar` o `.../decano/rechazar` | `EN_REVISION_DECANO` a `APROBADA_POR_DECANO` o `RECHAZADA_POR_DECANO`; observación opcional | igual |
-| 4 | Funcionario: Enviar respuesta tras rechazo del Decano | `ExamenSupletorioService.enviarRespuesta` | `POST /examenes-supletorios/{uuid}/funcionario/responder` | `RECHAZADA_POR_DECANO` a `RECHAZADA`; sin escaneo | igual |
+| 3 | Decano: Aprobar o Rechazar (desde T12.35, radios y un solo botón "Enviar decisión") | `ExamenSupletorioService.aprobarPorDecano` o `rechazarPorDecano` | `POST /examenes-supletorios/{uuid}/decano/aprobar` o `.../decano/rechazar` | `EN_REVISION_DECANO` a `APROBADA_POR_DECANO` o `RECHAZADA_POR_DECANO`; observación opcional | igual |
+| 4 | Funcionario: Enviar respuesta tras rechazo del Decano (documento adicional opcional) | `ExamenSupletorioService.enviarRespuesta` | `POST /examenes-supletorios/{uuid}/funcionario/responder` | `RECHAZADA_POR_DECANO` a `RECHAZADA`; sin escaneo | igual |
 | 5 | Funcionario: Enviar recibo de pago (`ENVIAR_RECIBO`) | `SolicitudAcademicaService.adjuntarAnexo` (tipo "Recibo de pago"), luego `ExamenSupletorioService.enviarRecibo` | `POST /solicitudes-academicas/{uuid}/anexos`, luego `POST /examenes-supletorios/{uuid}/funcionario/recibo` | `APROBADA_POR_DECANO` a `PENDIENTE_PAGO`; exige el anexo "Recibo de pago" ya cargado | `ANEXO_ACADEMICO`, `SOLICITUD_ACADEMICA`, `HISTORIAL_SOLICITUD_ACADEMICA`, `logs` |
 | 6 | Estudiante: Subir comprobante de pago (`SUBIR_COMPROBANTE`) | `SolicitudAcademicaService.adjuntarAnexo` (tipo "Comprobante de pago"), luego `ExamenSupletorioService.subirComprobante` | `POST /solicitudes-academicas/{uuid}/anexos`, luego `POST /examenes-supletorios/{uuid}/estudiante/comprobante` | `PENDIENTE_PAGO` a `EN_VERIFICACION_PAGO`; exige el comprobante cargado; solo el Estudiante dueño | igual |
-| 7 | Funcionario: Aprobar comprobante (`APROBAR_COMPROBANTE`), fecha acordada opcional | `ExamenSupletorioService.aprobarComprobante` | `POST /examenes-supletorios/{uuid}/funcionario/comprobante/aprobar` | `EN_VERIFICACION_PAGO` a `APROBADA`; la fecha no puede ser anterior a `fechaExamenNoPresentado` (E4 `FECHA_ACORDADA_ANTERIOR`); si llega, `SolicitudExamenSupletorioGatewayIntPuerto.actualizarFechaAcordada` y log "Acordar fecha de examen supletorio" | además `SOLICITUD_EXAMEN_SUPLETORIO` |
-| 8 | Funcionario: Rechazar comprobante (`RECHAZAR_COMPROBANTE`), observación obligatoria | `ExamenSupletorioService.rechazarComprobante` | `POST /examenes-supletorios/{uuid}/funcionario/comprobante/rechazar` | `EN_VERIFICACION_PAGO` a `RECHAZADA`; el Estudiante debe radicar una solicitud nueva (P4) | `SOLICITUD_ACADEMICA`, `HISTORIAL_SOLICITUD_ACADEMICA`, `logs` |
+| 7 | Funcionario: Aprobar comprobante (`APROBAR_COMPROBANTE`): desde T12.28 sin fecha acordada; profesor obligatorio (buscador de usuarios con rol Docente), observación opcional para el estudiante y documento adicional opcional | `ExamenSupletorioService.buscarDocentes`, `aprobarComprobante` (`{observacion, docenteUuid}`) | `GET /examenes-supletorios/docentes`, `POST /examenes-supletorios/{uuid}/funcionario/comprobante/aprobar` | `EN_VERIFICACION_PAGO` a `APROBADA`; sin profesor E4 `DOCENTE_SUPLETORIO_REQUERIDO`; guarda `Docente_uuid`, crea la notificación interna del docente y log "Asignar profesor de examen supletorio"; correos al estudiante, a DARCA y al profesor | además `SOLICITUD_EXAMEN_SUPLETORIO`, `NOTIFICACION_DOCENTE` |
+| 7b | Docente: consulta la notificación | `NotificacionDocenteService` | `GET /notificaciones-docente`, `GET .../{uuid}`, `PATCH .../{uuid}/leida` | `NotificacionDocenteCUImplAdaptador`: solo las propias; al abrir se marca leída | `NOTIFICACION_DOCENTE` |
+| 8 | Funcionario: Rechazar comprobante (`RECHAZAR_COMPROBANTE`), observación obligatoria, documento adicional opcional | `ExamenSupletorioService.rechazarComprobante` | `POST /examenes-supletorios/{uuid}/funcionario/comprobante/rechazar` | `EN_VERIFICACION_PAGO` a `RECHAZADA`; el Estudiante debe radicar una solicitud nueva (P4) | `SOLICITUD_ACADEMICA`, `HISTORIAL_SOLICITUD_ACADEMICA`, `logs` |
 
 Ninguna acción del supletorio cambia el estado de las asignaturas matriculadas. `REMITIR_DECANO` ejecuta el mismo `cambiarEtapa` genérico que en las cancelaciones y por eso el caso `RESOLUCION_ACADEMICA` aparece como tabla alcanzable en el documento 03 (fila 121), pero el borrado solo ocurre si existe la fila, y el supletorio no sube escaneo (`ResolucionAcademicaCU.adjuntarResolucion` lo rechaza con E4 `RESOLUCION_SOLO_CANCELACIONES`).
 
@@ -287,15 +294,14 @@ La etiqueta del Funcionario en `APROBADA_POR_DECANO` para el supletorio es "Envi
 
 ## 6. Máquinas de estado
 
-Fuente única de las transiciones de los tres procesos: la constante `TRANSICIONES` de `MaquinaEtapas` (`bk/dominio/servicios/MaquinaEtapas.java`), 13 filas, y `RESPONSABLES`, 8 etapas. Las etapas se guardan en `ETAPA_SOLICITUD_ACADEMICA` (6 universales con `TipoSolicitudAcademica_uuid` nulo y 2 propias del supletorio, según el seed). El estado vigente de una solicitud es `SOLICITUD_ACADEMICA.Etapa_uuid`; el historial no guarda la etapa, se reconstruye al leer encadenando `MaquinaEtapas.etapaDestino`.
+Fuente única de las transiciones de los tres procesos: la constante `TRANSICIONES` de `MaquinaEtapas` (`bk/dominio/servicios/MaquinaEtapas.java`), 12 filas desde T12.31 (13 al corte: el rechazo directo tenía una fila para las cancelaciones con escaneo y otra para el supletorio), y `RESPONSABLES`, 8 etapas. Las etapas se guardan en `ETAPA_SOLICITUD_ACADEMICA` (6 universales con `TipoSolicitudAcademica_uuid` nulo y 2 propias del supletorio, según el seed). El estado vigente de una solicitud es `SOLICITUD_ACADEMICA.Etapa_uuid`; el historial no guarda la etapa, se reconstruye al leer encadenando `MaquinaEtapas.etapaDestino`.
 
-### 6.1 Tabla maestra de las 13 transiciones
+### 6.1 Tabla maestra de las 12 transiciones
 
 | Procesos | Origen | Acción (`AccionEtapa`) | Destino | Rol | Exige observación | Exige escaneo de Resolución | Exige recibo | Exige comprobante |
 |---|---|---|---|---|---|---|---|---|
 | CM, CA, ES | (nueva) | `RADICAR` | `RADICADA` | Estudiante | no | no | no | no |
-| CM, CA | `RADICADA` | `RECHAZAR_FUNCIONARIO` | `RECHAZADA` | Funcionario | sí | sí | no | no |
-| ES | `RADICADA` | `RECHAZAR_FUNCIONARIO` | `RECHAZADA` | Funcionario | sí | no | no | no |
+| CM, CA, ES | `RADICADA` | `RECHAZAR_FUNCIONARIO` | `RECHAZADA` | Funcionario | sí | no | no | no |
 | CM, CA, ES | `RADICADA` | `REMITIR_DECANO` | `EN_REVISION_DECANO` | Funcionario | no | no | no | no |
 | CM, CA, ES | `EN_REVISION_DECANO` | `APROBAR_DECANO` | `APROBADA_POR_DECANO` | Decano | no | no | no | no |
 | CM, CA, ES | `EN_REVISION_DECANO` | `RECHAZAR_DECANO` | `RECHAZADA_POR_DECANO` | Decano | no | no | no | no |
@@ -307,7 +313,7 @@ Fuente única de las transiciones de los tres procesos: la constante `TRANSICION
 | ES | `EN_VERIFICACION_PAGO` | `APROBAR_COMPROBANTE` | `APROBADA` | Funcionario | no | no | no | no |
 | ES | `EN_VERIFICACION_PAGO` | `RECHAZAR_COMPROBANTE` | `RECHAZADA` | Funcionario | sí | no | no | no |
 
-Responsable de cada etapa (`RESPONSABLES`): `RADICADA` Funcionario; `EN_REVISION_DECANO` Decano; `APROBADA_POR_DECANO` Funcionario; `RECHAZADA_POR_DECANO` Funcionario; `PENDIENTE_PAGO` Estudiante; `EN_VERIFICACION_PAGO` Funcionario; `APROBADA` y `RECHAZADA` Ninguno (finales). Conteo por proceso: CM 7 transiciones (4 compartidas + 3 de cancelación), CA 7, ES 10 (4 compartidas + 6 propias). 4 + 3 + 6 = 13.
+Responsable de cada etapa (`RESPONSABLES`): `RADICADA` Funcionario; `EN_REVISION_DECANO` Decano; `APROBADA_POR_DECANO` Funcionario; `RECHAZADA_POR_DECANO` Funcionario; `PENDIENTE_PAGO` Estudiante; `EN_VERIFICACION_PAGO` Funcionario; `APROBADA` y `RECHAZADA` Ninguno (finales). Conteo por proceso: CM 7 transiciones (5 compartidas + 2 de cancelación), CA 7, ES 10 (5 compartidas + 5 propias). 5 + 2 + 5 = 12.
 
 Reglas transversales que no están en la tabla: quien actúa debe ser el Estudiante dueño, el Funcionario Académico asignado al tipo en `TIPO_SOLICITUD_ACADEMICA.FuncionarioAcademico_uuid`, o un usuario con rol `Decano` (`ValidadorActorSolicitud`); una solicitud solo puede tener otra del mismo tipo si la anterior está en `APROBADA` o `RECHAZADA`; el Estudiante ve la etapa enmascarada (`APROBADA_POR_DECANO` y `RECHAZADA_POR_DECANO` se muestran como `EN_REVISION_DECANO`).
 
@@ -315,10 +321,10 @@ Reglas transversales que no están en la tabla: quien actúa debe ser el Estudia
 
 | Estado origen | Acción | Estado destino | Quién | Condición (`MaquinaEtapas` y caso de uso) |
 |---|---|---|---|---|
-| (inicio) | `RADICAR` | `RADICADA` | Estudiante | al menos una matrícula activa; motivo de hasta 255; seis anexos obligatorios presentes; sin solicitud CM en curso |
-| `RADICADA` | `RECHAZAR_FUNCIONARIO` | `RECHAZADA` | Funcionario Académico asignado | observación y escaneo de la Resolución ya subido |
-| `RADICADA` | `REMITIR_DECANO` | `EN_REVISION_DECANO` | Funcionario Académico asignado | evaluación completa de todas las asignaturas (faltas, nota, situación en la matrícula); retira el escaneo previo |
-| `EN_REVISION_DECANO` | `APROBAR_DECANO` | `APROBADA_POR_DECANO` | Decano | situación al cancelar para todas las asignaturas |
+| (inicio) | `RADICAR` | `RADICADA` | Estudiante | al menos una matrícula activa; motivo de hasta 255; el PDF único de paz y salvos (desde T12.31; antes seis anexos); sin solicitud CM en curso |
+| `RADICADA` | `RECHAZAR_FUNCIONARIO` | `RECHAZADA` | Funcionario Académico asignado | observación; sin Resolución desde T12.31 (P56) |
+| `RADICADA` | `REMITIR_DECANO` | `EN_REVISION_DECANO` | Funcionario Académico asignado | una evaluación por asignatura; faltas, nota y situaciones opcionales desde T12.28 y de listas cerradas desde T12.34; retira el escaneo previo |
+| `EN_REVISION_DECANO` | `APROBAR_DECANO` | `APROBADA_POR_DECANO` | Decano | ninguna (observación opcional); desde T12.28 ya no registra situación al cancelar (P51) |
 | `EN_REVISION_DECANO` | `RECHAZAR_DECANO` | `RECHAZADA_POR_DECANO` | Decano | ninguna (observación opcional) |
 | `APROBADA_POR_DECANO` | `ENVIAR_RESPUESTA` | `APROBADA` | Funcionario Académico asignado | escaneo de la Resolución; cancela las matrículas activas de la solicitud |
 | `RECHAZADA_POR_DECANO` | `ENVIAR_RESPUESTA` | `RECHAZADA` | Funcionario Académico asignado | escaneo de la Resolución |
@@ -326,7 +332,7 @@ Reglas transversales que no están en la tabla: quien actúa debe ser el Estudia
 ```mermaid
 stateDiagram-v2
     [*] --> RADICADA : RADICAR - Estudiante
-    RADICADA --> RECHAZADA : RECHAZAR_FUNCIONARIO - Funcionario, con escaneo
+    RADICADA --> RECHAZADA : RECHAZAR_FUNCIONARIO - Funcionario, con observacion
     RADICADA --> EN_REVISION_DECANO : REMITIR_DECANO - Funcionario
     EN_REVISION_DECANO --> APROBADA_POR_DECANO : APROBAR_DECANO - Decano
     EN_REVISION_DECANO --> RECHAZADA_POR_DECANO : RECHAZAR_DECANO - Decano
@@ -343,27 +349,27 @@ La máquina de etapas es idéntica a la de CM; cambian las condiciones de los ca
 | Estado origen | Acción | Estado destino | Quién | Condición |
 |---|---|---|---|---|
 | (inicio) | `RADICAR` | `RADICADA` | Estudiante | al menos una asignatura activa y propia, sin repetir; solo soportes libres; motivo de hasta 255; sin solicitud CA en curso |
-| `RADICADA` | `RECHAZAR_FUNCIONARIO` | `RECHAZADA` | Funcionario Académico asignado | observación y escaneo de la Resolución |
-| `RADICADA` | `REMITIR_DECANO` | `EN_REVISION_DECANO` | Funcionario Académico asignado | evaluación de todas las asignaturas con `cumpleCondiciones`; una nota numérica menor a 3.0 no puede cumplir; al menos una cumple; retira el escaneo previo |
+| `RADICADA` | `RECHAZAR_FUNCIONARIO` | `RECHAZADA` | Funcionario Académico asignado | observación; sin Resolución desde T12.31 (P56) |
+| `RADICADA` | `REMITIR_DECANO` | `EN_REVISION_DECANO` | Funcionario Académico asignado | evaluación de todas las asignaturas con `cumpleCondiciones`; una nota numérica menor a 3.0 no puede cumplir; desde T12.35 puede ser que ninguna cumpla (P62); retira el escaneo previo |
 | `EN_REVISION_DECANO` | `APROBAR_DECANO` | `APROBADA_POR_DECANO` | Decano | `aceptarEvaluacion` o `decisiones` por asignatura (una de las dos); al menos una aprobada |
 | `EN_REVISION_DECANO` | `RECHAZAR_DECANO` | `RECHAZADA_POR_DECANO` | Decano | ninguna (observación opcional) |
-| `APROBADA_POR_DECANO` | `ENVIAR_RESPUESTA` | `APROBADA` | Funcionario Académico asignado | escaneo; ajustes de situación donde la decisión cambió o falta la situación; observación obligatoria si alguna asignatura quedó rechazada; cancela solo las asignaturas con `aprobadaPorDecano = true` |
-| `RECHAZADA_POR_DECANO` | `ENVIAR_RESPUESTA` | `RECHAZADA` | Funcionario Académico asignado | escaneo; sin ajustes; observación obligatoria |
+| `APROBADA_POR_DECANO` | `ENVIAR_RESPUESTA` | `APROBADA` | Funcionario Académico asignado | Resolución sin firmar; ajustes opcionales; observación obligatoria si alguna asignatura quedó rechazada; comunicación programada obligatoria; cancela solo las asignaturas con `aprobadaPorDecano = true` |
+| `RECHAZADA_POR_DECANO` | `ENVIAR_RESPUESTA` | `RECHAZADA` | Funcionario Académico asignado | Resolución sin firmar; sin ajustes; observación obligatoria; comunicación programada obligatoria |
 
 ```mermaid
 stateDiagram-v2
     [*] --> RADICADA : RADICAR - Estudiante
-    RADICADA --> RECHAZADA : RECHAZAR_FUNCIONARIO - Funcionario, con escaneo
-    RADICADA --> EN_REVISION_DECANO : REMITIR_DECANO - Funcionario, al menos una cumple
+    RADICADA --> RECHAZADA : RECHAZAR_FUNCIONARIO - Funcionario, con observacion
+    RADICADA --> EN_REVISION_DECANO : REMITIR_DECANO - Funcionario
     EN_REVISION_DECANO --> APROBADA_POR_DECANO : APROBAR_DECANO - Decano, al menos una aprobada
     EN_REVISION_DECANO --> RECHAZADA_POR_DECANO : RECHAZAR_DECANO - Decano
-    APROBADA_POR_DECANO --> APROBADA : ENVIAR_RESPUESTA - Funcionario, cancela las aprobadas
-    RECHAZADA_POR_DECANO --> RECHAZADA : ENVIAR_RESPUESTA - Funcionario, con escaneo
+    APROBADA_POR_DECANO --> APROBADA : ENVIAR_RESPUESTA - Funcionario, cancela las aprobadas y programa la comunicacion
+    RECHAZADA_POR_DECANO --> RECHAZADA : ENVIAR_RESPUESTA - Funcionario, con escaneo y comunicacion programada
     APROBADA --> [*]
     RECHAZADA --> [*]
 ```
 
-La aprobación es por asignatura (campo `aprobadaPorDecano` de `ASIGNATURA_SOLICITUD_ACADEMICA`); el estado final de la solicitud completa es `APROBADA` aunque alguna asignatura haya sido rechazada. El estado de cada asignatura se refleja en la bandeja Respuestas mediante `resultadosAsignaturas`, no en una etapa propia.
+La comunicación programada tiene su propio ciclo de estados en `NOTIFICACION_RESOLUCION` (PROGRAMADA, EN_PROCESO, ENVIADA, FALLIDA), que no cambia la etapa de la solicitud; se explica con su diagrama en [correo-electronico.md](correo-electronico.md). La aprobación es por asignatura (campo `aprobadaPorDecano` de `ASIGNATURA_SOLICITUD_ACADEMICA`); el estado final de la solicitud completa es `APROBADA` aunque alguna asignatura haya sido rechazada. El estado de cada asignatura se refleja en la bandeja Respuestas mediante `resultadosAsignaturas`, no en una etapa propia.
 
 ### 6.4 Examen Supletorio
 
@@ -377,7 +383,7 @@ La aprobación es por asignatura (campo `aprobadaPorDecano` de `ASIGNATURA_SOLIC
 | `RECHAZADA_POR_DECANO` | `ENVIAR_RESPUESTA` | `RECHAZADA` | Funcionario Académico asignado | ninguna (mensaje opcional); sin escaneo |
 | `APROBADA_POR_DECANO` | `ENVIAR_RECIBO` | `PENDIENTE_PAGO` | Funcionario Académico asignado | anexo "Recibo de pago" cargado |
 | `PENDIENTE_PAGO` | `SUBIR_COMPROBANTE` | `EN_VERIFICACION_PAGO` | Estudiante dueño | anexo "Comprobante de pago" cargado |
-| `EN_VERIFICACION_PAGO` | `APROBAR_COMPROBANTE` | `APROBADA` | Funcionario Académico asignado | fecha acordada opcional y no anterior a la fecha del examen no presentado |
+| `EN_VERIFICACION_PAGO` | `APROBAR_COMPROBANTE` | `APROBADA` | Funcionario Académico asignado | profesor obligatorio con rol Docente y observación opcional (desde T12.28; ya no hay fecha acordada) |
 | `EN_VERIFICACION_PAGO` | `RECHAZAR_COMPROBANTE` | `RECHAZADA` | Funcionario Académico asignado | observación obligatoria |
 
 ```mermaid
@@ -390,7 +396,7 @@ stateDiagram-v2
     RECHAZADA_POR_DECANO --> RECHAZADA : ENVIAR_RESPUESTA - Funcionario
     APROBADA_POR_DECANO --> PENDIENTE_PAGO : ENVIAR_RECIBO - Funcionario, con recibo
     PENDIENTE_PAGO --> EN_VERIFICACION_PAGO : SUBIR_COMPROBANTE - Estudiante, con comprobante
-    EN_VERIFICACION_PAGO --> APROBADA : APROBAR_COMPROBANTE - Funcionario
+    EN_VERIFICACION_PAGO --> APROBADA : APROBAR_COMPROBANTE - Funcionario, con profesor
     EN_VERIFICACION_PAGO --> RECHAZADA : RECHAZAR_COMPROBANTE - Funcionario, con observacion
     APROBADA --> [*]
     RECHAZADA --> [*]
@@ -468,12 +474,13 @@ El Examen Supletorio no modifica este estado. Radicar CM, CA o ES solo exige que
 
 Hallazgos nuevos o de contraste, todos con evidencia de código, no de ejecución:
 
-1. Subir un archivo y ejecutar la acción son dos transacciones: Resolución (cancelaciones) y recibo o comprobante (supletorio) se suben con `POST solicitudes-academicas/{uuid}/resolucion|anexos` antes de la acción. Un fallo entre las dos deja el archivo guardado con la solicitud en la etapa anterior. El cliente lo compensa con `resolucionSubida` y `anexoPagoSubido`; el servidor lo permite porque `adjuntarResolucion` reemplaza la fila existente.
+1. Subir un archivo y ejecutar la acción son dos transacciones: Resolución (cancelaciones), documento adicional (Matrícula y Supletorio) y recibo o comprobante (supletorio) se suben con `POST solicitudes-academicas/{uuid}/resolucion|anexos` antes de la acción. Un fallo entre las dos deja el archivo guardado con la solicitud en la etapa anterior. El cliente lo compensa con `resolucionSubida` y `anexoPagoSubido`; el servidor lo permite porque `adjuntarResolucion` reemplaza la fila existente.
 2. En Julián, el cambio a `RESPONDIDA` se hace con dos peticiones encadenadas desde Angular (archivo y luego estado); el backend no lo hace de forma atómica (sección 1.5).
-3. `PUT /solicitudes/{uuid}`, `GET /solicitudes/exportar*` y `GET /solicitudes/anexos/download` están abiertos a cualquier autenticado por la regla `solicitudes/**`, aunque sus anotaciones digan Secretario General y Decano; sin `@EnableMethodSecurity` la anotación no se evalúa (documento 03, sección 5; `backend/CLAUDE.md`).
+3. Al corte, `PUT /solicitudes/{uuid}`, `GET /solicitudes/exportar*` y `GET /solicitudes/anexos/download` estaban abiertos a cualquier autenticado por la regla `solicitudes/**`; T12.21 y T12.23 les pusieron reglas por URL y control de dueño (documento 03, sección 5; `VERIFICACION-SEGURIDAD.md`).
 4. Una contraseña errónea en el login termina en la rama de `AuthenticationException` (403), no en E5 (sección 1.1). Lectura de código.
 5. La máquina de estados de los procesos académicos vive en una tabla en memoria (`MaquinaEtapas.TRANSICIONES`), no en base de datos; en base solo están las 8 etapas y las etiquetas por rol. Cambiar una transición exige recompilar. El estado del Consejo, por el contrario, no está modelado en ningún lado del servidor (sección 6.6).
-6. Documentación desactualizada ya señalada en 04 (D1: remisión del supletorio con "requisitos verificados" en `etapas-por-proceso.md` 3.2, que P49 deja sin efecto) sigue vigente en el árbol de trabajo.
+6. Documentación desactualizada ya señalada en 04 (D1: remisión del supletorio con "requisitos verificados" en `etapas-por-proceso.md` 3.2, que P49 deja sin efecto) sigue vigente en el árbol de trabajo, junto con D10 a D13 (tabla 3.1, fecha acordada, seis anexos y notificación a DARCA en `etapas-por-proceso.md`).
+7. Los correos no forman parte de la transacción: si fallan, la etapa queda cambiada y el error solo va al log de la aplicación; en la comunicación programada el fallo queda en `NOTIFICACION_RESOLUCION.ultimoError` y el Funcionario puede reintentar ([correo-electronico.md](correo-electronico.md)).
 
 NO VERIFICADO en este documento:
 

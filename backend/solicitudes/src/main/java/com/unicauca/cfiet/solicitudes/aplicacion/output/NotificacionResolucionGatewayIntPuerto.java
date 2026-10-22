@@ -24,7 +24,7 @@ public interface NotificacionResolucionGatewayIntPuerto {
 
     boolean actualizarProgramacion(String uuidSolicitudAcademica, ProgramacionResolucion programacion, LocalDateTime ahora);
 
-    boolean marcarFirmada(String uuidSolicitudAcademica, LocalDateTime ahora);
+    boolean marcarFirmada(String uuidSolicitudAcademica, String textoDarca, LocalDateTime ahora);
 
     boolean reintentar(String uuidSolicitudAcademica);
 

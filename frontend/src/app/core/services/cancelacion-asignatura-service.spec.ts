@@ -41,7 +41,12 @@ describe('CancelacionAsignaturaService, notificacion de la Resolucion', () => {
     const firma = http.expectOne(`${url}/notificacion/firma`);
     expect(firma.request.method).toBe('POST');
     expect((firma.request.body as FormData).get('archivo')).toEqual(archivo);
+    expect((firma.request.body as FormData).has('textoDarca')).toBeFalse();
     firma.flush({});
+    servicio.registrarFirma('s-1', archivo, 'Texto para DARCA {fecha}').subscribe();
+    const conTexto = http.expectOne(`${url}/notificacion/firma`);
+    expect((conTexto.request.body as FormData).get('textoDarca')).toBe('Texto para DARCA {fecha}');
+    conTexto.flush({});
     servicio.reintentarNotificacion('s-1').subscribe();
     const reintento = http.expectOne(`${url}/notificacion/reintentar`);
     expect(reintento.request.method).toBe('POST');

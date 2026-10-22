@@ -8,22 +8,24 @@ Convenciones de este documento:
 - [EXTENSIÓN] = aparece después de ese commit (trabajo de grado: Cancelación de Matrícula, Cancelación de Asignatura, Examen Supletorio y administración académica).
 - NO VERIFICADO = no se pudo comprobar por lectura estática (no se ejecutó build, tests ni la aplicación).
 
+Actualizado el 2026-10-21 (T12.37): cifras, rutas y servicios del Docente (T12.28), panel y diálogos de la comunicación programada de la Resolución (T12.32, T12.33), documento adicional de la respuesta (P54), selector del profesor del supletorio y componente único de decisión del Decano (T12.35). Las decisiones de diseño posteriores al corte están en `frontend/CLAUDE.md` como D-F44 a D-F50.
+
 ## 1. Cifras generales
 
 | Concepto | Total | [BASE] | [EXTENSIÓN] | Cómo se midió |
 | --- | --- | --- | --- | --- |
-| Archivos bajo `frontend/src` (sin `node_modules` ni `dist`) | 675 | 442 | 233 | `find` y `git ls-tree d3a48cc` |
-| Componentes (`@Component` en `.ts` que no son spec) | 145 | 87 | 58 | `grep -l "@Component("` en ambos árboles |
-| Servicios HTTP/aplicación en `core/services` (`.ts` sin spec) | 17 | 9 | 8 | listado de `core/services` y de `d3a48cc` |
-| Rutas en `app.routes.ts` (entradas `path:`) | 35 (34 con pantalla más la raíz `''`) | 18 | 17 | `grep -c "path:"` y `git show d3a48cc:.../app.routes.ts` |
-| Archivos `*.spec.ts` | 136 | 87 | 49 (0 eliminados) | `comm` entre listas de specs |
-| Casos de prueba (`it(`) | 524 | NO VERIFICADO por separado | NO VERIFICADO por separado | `grep -E "^\s*it\("` sobre todos los specs |
+| Archivos bajo `frontend/src` (sin `node_modules` ni `dist`) | 675 al corte | 442 | 233 | `find` y `git ls-tree d3a48cc` (no se recontó el 2026-10-21) |
+| Componentes (`@Component` en `.ts` que no son spec) | 157 (145 al corte) | 87 | 70 | `grep -l "@Component("`; los 12 nuevos se listan en 9.2 |
+| Servicios HTTP/aplicación en `core/services` (`.ts` sin spec) | 18 (17 al corte) | 9 | 9 | listado de `core/services`; el nuevo es `NotificacionDocenteService` |
+| Rutas en `app.routes.ts` (entradas `path:`) | 37 (36 con pantalla más la raíz `''`; 35 al corte) | 18 | 19 | `grep -c "path:"` y `git show d3a48cc:.../app.routes.ts` |
+| Archivos `*.spec.ts` | 149 (136 al corte) | 87 | 62 | `find -name "*.spec.ts"` |
+| Casos de prueba (`it(`) | 629 (524 al corte) | NO VERIFICADO por separado | NO VERIFICADO por separado | `grep -E "^\s*it\("` sobre todos los specs |
 | Interfaces de modelo en `core/models/**/DTO*` | 101 archivos | NO VERIFICADO | NO VERIFICADO | `ls` |
 | Plantillas `.html` / hojas `.css` en `src/app` | 144 / 97 | NO VERIFICADO | NO VERIFICADO | `find` |
 
-Nota sobre rutas [EXTENSIÓN]: 7 del Estudiante, 4 del Funcionario Académico, 5 del Decano y 1 del Secretario General (`sec-general/administracion-academica`), total 17. Coincide con 18 + 17 = 35.
+Nota sobre rutas [EXTENSIÓN]: 7 del Estudiante, 4 del Funcionario Académico, 5 del Decano, 1 del Secretario General (`sec-general/administracion-academica`) y, desde T12.28, 2 del Docente (`docente/notificaciones` y `docente/notificaciones/:uuid`), total 19. Coincide con 18 + 19 = 37.
 
-Fuente de las decisiones de diseño de la extensión: `frontend/CLAUDE.md` (decisiones D-F1 a D-F43). Todo lo que se afirma abajo se contrastó con el código; donde `CLAUDE.md` y el código difieren se señala en la sección 14.
+Fuente de las decisiones de diseño de la extensión: `frontend/CLAUDE.md` (decisiones D-F1 a D-F43 al corte; hoy llegan a D-F50). Todo lo que se afirma abajo se contrastó con el código; donde `CLAUDE.md` y el código difieren se señala en la sección 14.
 
 ## 2. Estructura de carpetas
 
@@ -105,6 +107,10 @@ Fuente: `app.routes.ts`. Todas las rutas con pantalla usan `loadComponent` (carg
 | 33 | `decano/solicitudes/:uuid` | `DecanoDetalleSolicitudComponent` | Decano | AuthGuard, RoleGuard | [EXTENSIÓN] |
 | 34 | `decano/solicitudes-consejo` | `DecanoSolicitudesConsejoComponent` | Decano | AuthGuard, RoleGuard | [EXTENSIÓN] |
 | 35 | `decano/administracion-academica` | `DecanoAdministracionAcademicaComponent` | Decano | AuthGuard, RoleGuard | [EXTENSIÓN] |
+| 36 | `docente/notificaciones` | `DocenteNotificacionesComponent` (`core/docente/pages`) | Docente | AuthGuard, RoleGuard | [EXTENSIÓN] (T12.28) |
+| 37 | `docente/notificaciones/:uuid` | `DocenteDetalleNotificacionComponent` | Docente | AuthGuard, RoleGuard | [EXTENSIÓN] (T12.28) |
+
+El Docente sigue usando las rutas de Julián de `usuario-fiet`; su barra lateral (`side-bar-usuario-fiet-component`, [BASE]) muestra la opción "Notificaciones" solo si el usuario tiene el rol Docente.
 
 Observaciones verificadas:
 
@@ -119,7 +125,7 @@ Observaciones verificadas:
 
 ### 3.3 Rutas de servidor (SSR)
 
-`app.routes.server.ts` (`serverRoutes`): `estudiante/solicitudes/:uuid`, `funcionario-academico/solicitudes/:uuid` y `decano/solicitudes/:uuid` con `RenderMode.Client`; `''` con `RenderMode.Client`; `'**'` con `RenderMode.Prerender`. El commit base solo tenía `'**'` con `Prerender`. [BASE] + [EXTENSIÓN].
+`app.routes.server.ts` (`serverRoutes`): `estudiante/solicitudes/:uuid`, `funcionario-academico/solicitudes/:uuid` y `decano/solicitudes/:uuid` con `RenderMode.Client` (T12.28 también modificó este archivo por las rutas del Docente; el detalle no se volvió a leer); `''` con `RenderMode.Client`; `'**'` con `RenderMode.Prerender`. El commit base solo tenía `'**'` con `Prerender`. [BASE] + [EXTENSIÓN].
 
 ## 4. Guards
 
@@ -148,9 +154,9 @@ Código HTTP 403 y 500 no cierran la sesión (según `SesionVencidaService`, sol
 
 ## 6. Servicios HTTP: servicio -> endpoints
 
-Base de URL: `environment.apiUrl` (= `http://localhost:8080/api/unicauca/fiet/consejo`). Todos los servicios son `providedIn: 'root'`. Los 66 endpoints [EXTENSIÓN] coinciden con la afirmación de `frontend/CLAUDE.md` ("cubren los 66 endpoints del contrato"); el cálculo es 7+8+8+7+9+12+6+9 = 66, y se verificó contando las llamadas `this.http.*` (más dos llamadas que el `grep` literal no ve en `SolicitudAcademicaService`, porque usan `.get` en la línea siguiente).
+Base de URL: `environment.apiUrl` (= `http://localhost:8080/api/unicauca/fiet/consejo`). Todos los servicios son `providedIn: 'root'`. Al corte, los 66 endpoints [EXTENSIÓN] coincidían con la afirmación de `frontend/CLAUDE.md`; hoy `frontend/CLAUDE.md` dice "Cubren los 76 endpoints del contrato": a los 66 se suman los 5 del panel de la notificación de la Resolución en `CancelacionAsignaturaService`, `buscarDocentes` en `ExamenSupletorioService` y los 4 de `NotificacionDocenteService`. El cálculo del corte era 7+8+8+7+9+12+6+9 = 66, y se verificó contando las llamadas `this.http.*` (más dos llamadas que el `grep` literal no ve en `SolicitudAcademicaService`, porque usan `.get` en la línea siguiente).
 
-### 6.1 [EXTENSIÓN]: 8 servicios, 66 endpoints
+### 6.1 [EXTENSIÓN]: 9 servicios, 78 endpoints (76 al corte T12.37; T12.38 agregó el conteo y el borrado de respuestas en `solicitud-academica-service`)
 
 | Servicio (`core/services/`) | Prefijo | Método -> endpoint |
 | --- | --- | --- |
@@ -160,8 +166,9 @@ Base de URL: `environment.apiUrl` (= `http://localhost:8080/api/unicauca/fiet/co
 | `CatalogoAcademicoService` (`catalogo-academico-service.ts`) | `/catalogos-academicos` | `getTiposSolicitud` GET `/tipos-solicitud`; `getEtapasPorTipo` GET `/tipos-solicitud/{uuidTipo}/etapas`; `getTiposAnexoPorTipo` GET `/tipos-solicitud/{uuidTipo}/tipos-anexo`; `getEtiquetasPorRol` GET `/etiquetas?rol=`; `getSituaciones` GET `/situaciones`; `getProgramas` GET `/programas`; `asignarFuncionarioAcademico` PUT `/tipos-solicitud/{uuidTipo}/funcionario` |
 | `SolicitudAcademicaService` (`solicitud-academica-service.ts`) | `/solicitudes-academicas` | `getSolicitudesEstudiante` GET `/estudiante`; `getSolicitudesFuncionario` GET `/funcionario`; `getSolicitudesDecano` GET `/decano`; `getSolicitud` GET `/{uuid}`; `getHistorial` GET `/{uuid}/historial`; `adjuntarAnexo` POST `/{uuid}/anexos` (FormData); `descargarAnexo` GET `/{uuid}/anexos/{uuidAnexo}` (blob); `adjuntarResolucion` POST `/{uuid}/resolucion` (FormData); `descargarResolucion` GET `/{uuid}/resolucion` (blob) |
 | `CancelacionMatriculaService` (`cancelacion-matricula-service.ts`) | `/cancelaciones-matricula` | `getFormulario` GET `/formulario`; `radicar` POST `/` (FormData armado en `armarFormDataRadicacion`); `getDetalle` GET `/{uuid}`; `rechazarPorFuncionario` POST `/{uuid}/funcionario/rechazar`; `remitirADecano` POST `/{uuid}/funcionario/remitir`; `enviarRespuesta` POST `/{uuid}/funcionario/responder`; `aprobarPorDecano` POST `/{uuid}/decano/aprobar`; `rechazarPorDecano` POST `/{uuid}/decano/rechazar` |
-| `CancelacionAsignaturaService` (`cancelacion-asignatura-service.ts`) | `/cancelaciones-asignatura` | Mismos ocho métodos y rutas que el anterior, con prefijo propio |
-| `ExamenSupletorioService` (`examen-supletorio-service.ts`) | `/examenes-supletorios` | `getFormulario` GET `/formulario`; `radicar` POST `/`; `getDetalle` GET `/{uuid}`; `rechazarPorFuncionario` POST `/{uuid}/funcionario/rechazar`; `remitirADecano` POST `/{uuid}/funcionario/remitir`; `enviarRespuesta` POST `/{uuid}/funcionario/responder`; `enviarRecibo` POST `/{uuid}/funcionario/recibo`; `aprobarComprobante` POST `/{uuid}/funcionario/comprobante/aprobar`; `rechazarComprobante` POST `/{uuid}/funcionario/comprobante/rechazar`; `aprobarPorDecano` POST `/{uuid}/decano/aprobar`; `rechazarPorDecano` POST `/{uuid}/decano/rechazar`; `subirComprobante` POST `/{uuid}/estudiante/comprobante` |
+| `CancelacionAsignaturaService` (`cancelacion-asignatura-service.ts`) | `/cancelaciones-asignatura` | Mismos ocho métodos y rutas que el anterior, con prefijo propio, más (T12.32) `getPlantillaNotificacion` GET `/{uuid}/funcionario/notificacion/plantilla`; `getNotificacion` GET `/{uuid}/funcionario/notificacion`; `reprogramarNotificacion` PUT `/{uuid}/funcionario/notificacion`; `registrarFirma` POST `/{uuid}/funcionario/notificacion/firma` (FormData); `reintentarNotificacion` POST `/{uuid}/funcionario/notificacion/reintentar` |
+| `ExamenSupletorioService` (`examen-supletorio-service.ts`) | `/examenes-supletorios` | `getFormulario` GET `/formulario`; `radicar` POST `/`; `getDetalle` GET `/{uuid}`; `rechazarPorFuncionario` POST `/{uuid}/funcionario/rechazar`; `remitirADecano` POST `/{uuid}/funcionario/remitir`; `enviarRespuesta` POST `/{uuid}/funcionario/responder`; `enviarRecibo` POST `/{uuid}/funcionario/recibo`; `aprobarComprobante` POST `/{uuid}/funcionario/comprobante/aprobar`; `rechazarComprobante` POST `/{uuid}/funcionario/comprobante/rechazar`; `aprobarPorDecano` POST `/{uuid}/decano/aprobar`; `rechazarPorDecano` POST `/{uuid}/decano/rechazar`; `subirComprobante` POST `/{uuid}/estudiante/comprobante`; desde T12.28 `buscarDocentes` GET `/docentes` (filtro por nombre, documento o usuario, paginado) |
+| `NotificacionDocenteService` (`notificacion-docente-service.ts`, T12.28) | `/notificaciones-docente` | `getMisNotificaciones` GET `/`; `getNotificacion` GET `/{uuid}`; `marcarLeida` PATCH `/{uuid}/leida`; `descargarAnexo` GET `/{uuid}/anexos/{uuidAnexo}` (blob) |
 
 ### 6.2 [BASE]: 7 servicios de dominio, 61 llamadas HTTP, más 2 auxiliares
 
@@ -264,7 +271,23 @@ Ambos [BASE]. `PageComponent` (`app-page-component`, `shared/pages/page-componen
 | `app-detalle-solicitud-academica-component` | in (requerida): `rol` | 3 por etiqueta | los tres `*-detalle-solicitud-content-component` | [EXTENSIÓN] |
 | `app-cancelacion-matricula-proceso-component`, `app-cancelacion-asignatura-proceso-component`, `app-examen-supletorio-proceso-component` | in (todas requeridas): `uuidSolicitud`, `solicitud`, `rol`, `recargar` | 0 por etiqueta | cargados por `ngComponentOutlet` desde `COMPONENTES_PROCESO` (`detalle-solicitud-academica-component/componentes-proceso.ts`) | [EXTENSIÓN] |
 
-Cifras: 145 componentes en total; de ellos 2 son páginas sin guard (login y público), 32 páginas con `app-page-component`, 23 envoltorios `shared/pages/*-component`, 7 barras laterales, y el resto contenidos, diálogos y piezas.
+Componentes agregados después del corte (12; se listan sin la columna de usos, que no se recalculó):
+
+| Componente | Para qué | Origen |
+| --- | --- | --- |
+| `shared/others/documento-adicional-component` | Campo opcional "Documento adicional de la respuesta" (PDF, 5 MB) en las acciones del Funcionario que cierran la solicitud, solo en Matrícula y Supletorio (D-F45, D-F48) | [EXTENSIÓN] |
+| `shared/others/selector-docente-component` | Buscador del profesor con rol Docente al aprobar el pago del supletorio (D-F44) | [EXTENSIÓN] (T12.28) |
+| `shared/others/comunicacion-respuesta-component` | Mensaje inmediato al estudiante en el diálogo "Enviar la respuesta al estudiante" de Cancelación de Asignatura; desde T12.38 siempre se envía, sin casilla, y el diálogo suma los textos editables del estudiante y de DARCA (`TextoComunicacionComponent`) (D-F47, D-F51) | [EXTENSIÓN] (T12.32, T12.38) |
+| `shared/others/texto-comunicacion-component` | Texto editable con vista "Así lo recibirá..." de la comunicación al estudiante y del correo a DARCA (D-F51) | [EXTENSIÓN] (T12.38) |
+| `shared/others/eliminacion-respuestas-component` | Borrado de respuestas por rango en "Solicitudes respondidas" del Funcionario, con conteo y confirmación (D-F51) | [EXTENSIÓN] (T12.38) |
+| `shared/others/programacion-resolucion-component` | Fecha y hora, número, año y decisión de la comunicación programada de la Resolución (D-F47) | [EXTENSIÓN] (T12.32) |
+| `shared/others/notificacion-resolucion-component` | Panel "Notificación de la Resolución" del Funcionario: estado, Resolución vigente (sin firmar o firmada), reprogramar, registrar la firma y reintentar (D-F47, D-F48) | [EXTENSIÓN] (T12.32, T12.33) |
+| `shared/others/decision-decano-component` | Decisión del Decano con un solo botón "Enviar decisión" en los tres procesos, sin preselección (D-F50) | [EXTENSIÓN] (T12.35, sin confirmar en git) |
+| `core/docente/pages/docente-notificaciones-component`, `core/docente/pages/docente-detalle-notificacion-component` | Páginas del Docente | [EXTENSIÓN] (T12.28) |
+| `shared/pages/doc-notificaciones-component`, `shared/pages/doc-detalle-notificacion-component` | Envoltorios de las páginas del Docente | [EXTENSIÓN] (T12.28) |
+| `shared/pages/content/doc-notificaciones-content-component`, `shared/pages/content/doc-detalle-notificacion-content-component` | Lista de notificaciones y detalle de solo lectura de la solicitud | [EXTENSIÓN] (T12.28) |
+
+Cifras al corte: 145 componentes en total; de ellos 2 son páginas sin guard (login y público), 32 páginas con `app-page-component`, 23 envoltorios `shared/pages/*-component`, 7 barras laterales, y el resto contenidos, diálogos y piezas. Al 2026-10-21 son 157: se suman 2 páginas, 2 envoltorios y 2 contenidos del Docente y 6 piezas en `shared/others`.
 
 ### 9.3 Punto de extensión `COMPONENTES_PROCESO`
 
@@ -342,4 +365,5 @@ Discrepancias a tener en cuenta:
 - Aplicación Angular 20 de componentes standalone, sin NgModules, con carga diferida por ruta y SSR con hidratación de eventos (`provideClientHydration(withEventReplay())` en `app.config.ts`).
 - Seguridad de acceso en el cliente: `AuthGuard` (existe token) + `RoleGuard` (rol del usuario consultado al backend en cada navegación) y `inicioGuard` para la raíz. La autorización real está en el backend; el cliente decide botones con los datos que el backend devuelve (`accionesDisponibles`, `etiqueta`, ver 08).
 - Reutilización: tres niveles (página, envoltorio, contenido), más bandeja y detalle comunes a los tres roles académicos, y un punto de extensión diferido para el componente de cada proceso.
-- La extensión agregó 58 componentes, 8 servicios, 17 rutas y 49 specs sin tocar los archivos de configuración de build ni `app.config.ts`.
+- La extensión agregó 70 componentes, 9 servicios, 19 rutas y 62 specs (cifras al 2026-10-21) sin tocar los archivos de configuración de build ni `app.config.ts`.
+- Las respuestas al estudiante salen también por correo; el frontend no envía correos, solo ofrece en los diálogos del Funcionario el documento adicional, el mensaje inmediato y la programación de la comunicación ([correo-electronico.md](correo-electronico.md)).
