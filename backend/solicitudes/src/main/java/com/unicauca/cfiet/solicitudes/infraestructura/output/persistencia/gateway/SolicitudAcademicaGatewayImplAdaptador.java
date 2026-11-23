@@ -46,7 +46,7 @@ public class SolicitudAcademicaGatewayImplAdaptador implements SolicitudAcademic
     @Override
     @Transactional(readOnly = true)
     public SolicitudAcademica getPorUuid(String uuidSolicitudAcademica) {
-        return repositorio.findById(uuidSolicitudAcademica)
+        return repositorio.buscarPorUuidConRelaciones(uuidSolicitudAcademica)
                 .map(mapper::toDominio)
                 .orElse(null);
     }

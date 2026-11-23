@@ -179,4 +179,22 @@ class SolicitudAcademicaGatewayImplAdaptadorTest {
         assertTrue(gateway.getResultadosAsignaturas(List.of()).isEmpty());
         verify(repositorio, times(1)).findResultadosAsignaturas(any());
     }
+
+    @Test
+    void getPorUuidLeeLaSolicitudConSusRelacionesEnUnaConsulta() {
+        SolicitudAcademicaEntidad entidad = new SolicitudAcademicaEntidad();
+        SolicitudAcademica esperada = solicitud();
+        when(repositorio.buscarPorUuidConRelaciones("sol-1")).thenReturn(Optional.of(entidad));
+        when(mapper.toDominio(entidad)).thenReturn(esperada);
+
+        assertSame(esperada, gateway.getPorUuid("sol-1"));
+        verify(repositorio, never()).findById(any());
+    }
+
+    @Test
+    void getPorUuidDeUnaSolicitudInexistenteDevuelveNulo() {
+        when(repositorio.buscarPorUuidConRelaciones("nada")).thenReturn(Optional.empty());
+
+        assertNull(gateway.getPorUuid("nada"));
+    }
 }

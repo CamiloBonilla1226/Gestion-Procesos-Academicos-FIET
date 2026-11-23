@@ -19,6 +19,11 @@ public interface SolicitudAcademicaRepositorio extends JpaRepository<SolicitudAc
 
     Optional<SolicitudAcademicaEntidad> findTopByRadicadoStartingWithOrderByRadicadoDesc(String prefijo);
 
+    @Query("select s from SolicitudAcademicaEntidad s join fetch s.estudiante e join fetch e.usuario join fetch e.programaAcademico " +
+            "left join fetch e.asignaturasMatriculadas m left join fetch m.asignatura a left join fetch a.programaAcademico " +
+            "join fetch s.etapa join fetch s.tipoSolicitudAcademica where s.uuidSolicitudAcademica = :uuid")
+    Optional<SolicitudAcademicaEntidad> buscarPorUuidConRelaciones(@Param("uuid") String uuidSolicitudAcademica);
+
     Optional<SolicitudAcademicaEntidad> findFirstByEstudiante_UuidUsuarioAndTipoSolicitudAcademica_UuidTipoSolicitudAcademicaAndEtapa_CodigoNotInOrderByFechaCreacionDesc(
             String uuidEstudiante, String uuidTipoSolicitudAcademica, Collection<String> etapasFinales);
 
