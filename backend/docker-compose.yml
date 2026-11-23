@@ -27,6 +27,7 @@ services:
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
       CORREO_DARCA: ${CORREO_DARCA:?Falta CORREO_DARCA en backend/.env (ver backend/.env.example)}
       JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:-}
+      SHOW_SQL: ${SHOW_SQL:-false}
     volumes:
       - ./uploads:/app/uploads
     restart: always
