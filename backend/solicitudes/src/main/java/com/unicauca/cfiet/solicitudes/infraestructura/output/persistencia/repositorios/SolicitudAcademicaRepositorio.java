@@ -2,6 +2,7 @@ package com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.repos
 
 import com.unicauca.cfiet.solicitudes.dominio.modelos.EstadoNotificacionResolucion;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.persistencia.entidades.SolicitudAcademicaEntidad;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -21,11 +22,17 @@ public interface SolicitudAcademicaRepositorio extends JpaRepository<SolicitudAc
     Optional<SolicitudAcademicaEntidad> findFirstByEstudiante_UuidUsuarioAndTipoSolicitudAcademica_UuidTipoSolicitudAcademicaAndEtapa_CodigoNotInOrderByFechaCreacionDesc(
             String uuidEstudiante, String uuidTipoSolicitudAcademica, Collection<String> etapasFinales);
 
+    @EntityGraph(type = EntityGraph.EntityGraphType.LOAD, attributePaths = {"estudiante", "estudiante.usuario", "estudiante.programaAcademico",
+            "etapa", "tipoSolicitudAcademica", "tipoSolicitudAcademica.funcionarioAcademico", "tipoSolicitudAcademica.funcionarioAcademico.usuario"})
     List<SolicitudAcademicaEntidad> findByEstudiante_UuidUsuarioOrderByFechaCreacionDescRadicadoDesc(String uuidEstudiante);
 
+    @EntityGraph(type = EntityGraph.EntityGraphType.LOAD, attributePaths = {"estudiante", "estudiante.usuario", "estudiante.programaAcademico",
+            "etapa", "tipoSolicitudAcademica", "tipoSolicitudAcademica.funcionarioAcademico", "tipoSolicitudAcademica.funcionarioAcademico.usuario"})
     List<SolicitudAcademicaEntidad> findByTipoSolicitudAcademica_FuncionarioAcademico_UuidUsuarioOrderByFechaCreacionDescRadicadoDesc(
             String uuidFuncionarioAcademico);
 
+    @EntityGraph(type = EntityGraph.EntityGraphType.LOAD, attributePaths = {"estudiante", "estudiante.usuario", "estudiante.programaAcademico",
+            "etapa", "tipoSolicitudAcademica", "tipoSolicitudAcademica.funcionarioAcademico", "tipoSolicitudAcademica.funcionarioAcademico.usuario"})
     List<SolicitudAcademicaEntidad> findAllByOrderByFechaCreacionDescRadicadoDesc();
 
     @Query("select distinct a.solicitudAcademica.uuidSolicitudAcademica from AsignaturaSolicitudAcademicaEntidad a " +
