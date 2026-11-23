@@ -54,7 +54,7 @@ class ConsultaSolicitudAcademicaCUImplAdaptadorTest {
     private ResolucionAcademicaGatewayIntPuerto resolucionGateway;
 
     @Mock
-    private SesionGatewayIntPuerto sesionGateway;
+    private UsuarioActorGatewayIntPuerto usuarioActorGateway;
 
     @Mock
     private IJwtServicio jwtServicio;
@@ -105,7 +105,7 @@ class ConsultaSolicitudAcademicaCUImplAdaptadorTest {
         for (String rol : roles)
             lista.add(Rol.builder().uuidRol("rol-" + rol).nombre(rol).estado(true).build());
         lenient().when(jwtServicio.getUsername("tok-" + uuid)).thenReturn("user-" + uuid);
-        lenient().when(sesionGateway.getUsuario("user-" + uuid)).thenReturn(Usuario.builder().uuidUsuario(uuid).roles(lista).build());
+        lenient().when(usuarioActorGateway.getUsuarioPorUsername("user-" + uuid)).thenReturn(Usuario.builder().uuidUsuario(uuid).roles(lista).build());
     }
 
     private String token(String uuid) {
@@ -116,7 +116,7 @@ class ConsultaSolicitudAcademicaCUImplAdaptadorTest {
     void setUp() {
         ExcepcionesFormateadorImplAdaptador formateador = new ExcepcionesFormateadorImplAdaptador();
         casoDeUso = new ConsultaSolicitudAcademicaCUImplAdaptador(gateway, etiquetaGateway, anexoGateway, historialGateway,
-                resolucionGateway, sesionGateway, jwtServicio, anexoCU, new MaquinaEtapas(formateador), formateador, notificacionGateway);
+                resolucionGateway, usuarioActorGateway, jwtServicio, anexoCU, new MaquinaEtapas(formateador), formateador, notificacionGateway);
         lenient().when(etiquetaGateway.getPorRol(RolEtiquetaEtapa.ESTUDIANTE)).thenReturn(etiquetas(RolEtiquetaEtapa.ESTUDIANTE));
         lenient().when(etiquetaGateway.getPorRol(RolEtiquetaEtapa.FUNCIONARIO)).thenReturn(etiquetas(RolEtiquetaEtapa.FUNCIONARIO));
         lenient().when(etiquetaGateway.getPorRol(RolEtiquetaEtapa.DECANO)).thenReturn(etiquetas(RolEtiquetaEtapa.DECANO, RADICADA));

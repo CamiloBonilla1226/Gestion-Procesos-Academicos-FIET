@@ -44,7 +44,7 @@ class ConsultaExamenSupletorioCUImplAdaptadorTest {
     private TipoAnexoAcademicoGatewayIntPuerto tipoAnexoGateway;
 
     @Mock
-    private SesionGatewayIntPuerto sesionGateway;
+    private UsuarioActorGatewayIntPuerto usuarioActorGateway;
 
     @Mock
     private IJwtServicio jwtServicio;
@@ -96,9 +96,9 @@ class ConsultaExamenSupletorioCUImplAdaptadorTest {
     @BeforeEach
     void setUp() {
         casoDeUso = new ConsultaExamenSupletorioCUImplAdaptador(gateway, estudianteGateway, tipoSolicitudGateway, tipoAnexoGateway,
-                sesionGateway, jwtServicio, consultaCU, new ExcepcionesFormateadorImplAdaptador());
+                usuarioActorGateway, jwtServicio, consultaCU, new ExcepcionesFormateadorImplAdaptador());
         lenient().when(jwtServicio.getUsername(TOKEN)).thenReturn("alumno");
-        lenient().when(sesionGateway.getUsuario("alumno")).thenReturn(usuario(ESTUDIANTE, "Estudiante"));
+        lenient().when(usuarioActorGateway.getUsuarioPorUsername("alumno")).thenReturn(usuario(ESTUDIANTE, "Estudiante"));
         lenient().when(estudianteGateway.getPorUuid(ESTUDIANTE)).thenReturn(Estudiante.builder().uuidUsuario(ESTUDIANTE).codigoEstudiantil("104618021").build());
         lenient().when(tipoSolicitudGateway.getTodos()).thenReturn(List.of(
                 TipoSolicitudAcademica.builder().uuidTipoSolicitudAcademica("tipo-cm").nombre("Cancelación de Matrícula").build(), supletorio));
@@ -108,7 +108,7 @@ class ConsultaExamenSupletorioCUImplAdaptadorTest {
     void elEstudianteAutenticadoSaleDelTokenYOtroRolSeRechaza() {
         assertEquals(ESTUDIANTE, casoDeUso.getEstudianteAutenticado(TOKEN));
 
-        when(sesionGateway.getUsuario("alumno")).thenReturn(usuario(ESTUDIANTE, "Funcionario Académico"));
+        when(usuarioActorGateway.getUsuarioPorUsername("alumno")).thenReturn(usuario(ESTUDIANTE, "Funcionario Académico"));
         assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> casoDeUso.getFormulario(TOKEN));
         verify(tipoAnexoGateway, never()).getPorTipo(any());
     }

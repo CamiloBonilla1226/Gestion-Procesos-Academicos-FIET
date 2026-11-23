@@ -29,7 +29,7 @@ public class ConsultaExamenSupletorioCUImplAdaptador implements ConsultaExamenSu
     private final EstudianteGatewayIntPuerto estudianteGateway;
     private final TipoSolicitudAcademicaGatewayIntPuerto tipoSolicitudGateway;
     private final TipoAnexoAcademicoGatewayIntPuerto tipoAnexoGateway;
-    private final SesionGatewayIntPuerto sesionGateway;
+    private final UsuarioActorGatewayIntPuerto usuarioActorGateway;
     private final IJwtServicio jwtServicio;
     private final ConsultaSolicitudAcademicaCUIntPuerto consultaCU;
     private final ExcepcionesFormateadorIntPuerto formateadorExcepciones;
@@ -38,7 +38,7 @@ public class ConsultaExamenSupletorioCUImplAdaptador implements ConsultaExamenSu
                                                    EstudianteGatewayIntPuerto estudianteGateway,
                                                    TipoSolicitudAcademicaGatewayIntPuerto tipoSolicitudGateway,
                                                    TipoAnexoAcademicoGatewayIntPuerto tipoAnexoGateway,
-                                                   SesionGatewayIntPuerto sesionGateway,
+                                                   UsuarioActorGatewayIntPuerto usuarioActorGateway,
                                                    IJwtServicio jwtServicio,
                                                    ConsultaSolicitudAcademicaCUIntPuerto consultaCU,
                                                    ExcepcionesFormateadorIntPuerto formateadorExcepciones) {
@@ -46,7 +46,7 @@ public class ConsultaExamenSupletorioCUImplAdaptador implements ConsultaExamenSu
         this.estudianteGateway = estudianteGateway;
         this.tipoSolicitudGateway = tipoSolicitudGateway;
         this.tipoAnexoGateway = tipoAnexoGateway;
-        this.sesionGateway = sesionGateway;
+        this.usuarioActorGateway = usuarioActorGateway;
         this.jwtServicio = jwtServicio;
         this.consultaCU = consultaCU;
         this.formateadorExcepciones = formateadorExcepciones;
@@ -57,7 +57,7 @@ public class ConsultaExamenSupletorioCUImplAdaptador implements ConsultaExamenSu
         String username = jwtServicio.getUsername(token);
         if (!tieneTexto(username))
             formateadorExcepciones.lanzarErrorGenerico(MensajesError.USERNAME_TOKEN);
-        Usuario usuario = sesionGateway.getUsuario(username);
+        Usuario usuario = usuarioActorGateway.getUsuarioPorUsername(username);
         if (usuario == null)
             formateadorExcepciones.lanzarEntidadNoExiste(String.format(MensajesError.ENTIDAD_NO_ENCONTRADA_FILTRO, USUARIO, USERNAME, username));
         boolean esEstudiante = usuario.getRoles() != null && usuario.getRoles().stream()

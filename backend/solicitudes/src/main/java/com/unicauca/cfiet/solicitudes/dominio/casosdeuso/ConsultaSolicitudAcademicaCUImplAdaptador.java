@@ -43,7 +43,7 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
     private final AnexoAcademicoGatewayIntPuerto anexoGateway;
     private final HistorialSolicitudAcademicaGatewayIntPuerto historialGateway;
     private final ResolucionAcademicaGatewayIntPuerto resolucionGateway;
-    private final SesionGatewayIntPuerto sesionGateway;
+    private final UsuarioActorGatewayIntPuerto usuarioActorGateway;
     private final IJwtServicio jwtServicio;
     private final AnexoAcademicoCUIntPuerto anexoCU;
     private final MaquinaEtapas maquinaEtapas;
@@ -55,7 +55,7 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
                                                      AnexoAcademicoGatewayIntPuerto anexoGateway,
                                                      HistorialSolicitudAcademicaGatewayIntPuerto historialGateway,
                                                      ResolucionAcademicaGatewayIntPuerto resolucionGateway,
-                                                     SesionGatewayIntPuerto sesionGateway,
+                                                     UsuarioActorGatewayIntPuerto usuarioActorGateway,
                                                      IJwtServicio jwtServicio,
                                                      AnexoAcademicoCUIntPuerto anexoCU,
                                                      MaquinaEtapas maquinaEtapas,
@@ -66,7 +66,7 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
         this.anexoGateway = anexoGateway;
         this.historialGateway = historialGateway;
         this.resolucionGateway = resolucionGateway;
-        this.sesionGateway = sesionGateway;
+        this.usuarioActorGateway = usuarioActorGateway;
         this.jwtServicio = jwtServicio;
         this.anexoCU = anexoCU;
         this.maquinaEtapas = maquinaEtapas;
@@ -318,7 +318,7 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
         String username = jwtServicio.getUsername(token);
         if (!tieneTexto(username))
             formateadorExcepciones.lanzarErrorGenerico(MensajesError.USERNAME_TOKEN);
-        Usuario usuario = sesionGateway.getUsuario(username);
+        Usuario usuario = usuarioActorGateway.getUsuarioPorUsername(username);
         if (usuario == null)
             formateadorExcepciones.lanzarEntidadNoExiste(String.format(MensajesError.ENTIDAD_NO_ENCONTRADA_FILTRO, USUARIO, USERNAME, username));
         return usuario;

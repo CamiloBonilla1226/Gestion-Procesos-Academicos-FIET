@@ -256,14 +256,14 @@ public class BeanConfiguracion {
                                                                                      AnexoAcademicoGatewayIntPuerto anexoGateway,
                                                                                      HistorialSolicitudAcademicaGatewayIntPuerto historialGateway,
                                                                                      ResolucionAcademicaGatewayIntPuerto resolucionGateway,
-                                                                                     SesionGatewayIntPuerto sesionGateway,
+                                                                                     UsuarioActorGatewayIntPuerto usuarioActorGateway,
                                                                                      IJwtServicio jwtServicio,
                                                                                      AnexoAcademicoCUIntPuerto anexoCU,
                                                                                      MaquinaEtapas maquinaEtapas,
                                                                                      ExcepcionesFormateadorIntPuerto formateadorExcepciones,
                                                                                      NotificacionResolucionGatewayIntPuerto notificacionGateway){
         return new ConsultaSolicitudAcademicaCUImplAdaptador(gateway, etiquetaGateway, anexoGateway, historialGateway,
-                resolucionGateway, sesionGateway, jwtServicio, anexoCU, maquinaEtapas, formateadorExcepciones, notificacionGateway);
+                resolucionGateway, usuarioActorGateway, jwtServicio, anexoCU, maquinaEtapas, formateadorExcepciones, notificacionGateway);
     }
 
     @Bean
@@ -316,13 +316,13 @@ public class BeanConfiguracion {
                                                                                          EstudianteGatewayIntPuerto estudianteGateway,
                                                                                          TipoSolicitudAcademicaGatewayIntPuerto tipoSolicitudGateway,
                                                                                          TipoAnexoAcademicoGatewayIntPuerto tipoAnexoGateway,
-                                                                                         SesionGatewayIntPuerto sesionGateway,
+                                                                                         UsuarioActorGatewayIntPuerto usuarioActorGateway,
                                                                                          IJwtServicio jwtServicio,
                                                                                          ConsultaSolicitudAcademicaCUIntPuerto consultaCU,
                                                                                          MaquinaEtapas maquinaEtapas,
                                                                                          ExcepcionesFormateadorIntPuerto formateadorExcepciones){
         return new ConsultaCancelacionMatriculaCUImplAdaptador(gateway, estudianteGateway, tipoSolicitudGateway, tipoAnexoGateway,
-                sesionGateway, jwtServicio, consultaCU, maquinaEtapas, formateadorExcepciones);
+                usuarioActorGateway, jwtServicio, consultaCU, maquinaEtapas, formateadorExcepciones);
     }
 
     @Bean
@@ -359,12 +359,12 @@ public class BeanConfiguracion {
     @Bean
     public ConsultaCancelacionAsignaturaCUImplAdaptador crearConsultaCancelacionAsignaturaCU(SolicitudCancelacionAsignaturaGatewayIntPuerto gateway,
                                                                                            EstudianteGatewayIntPuerto estudianteGateway,
-                                                                                           SesionGatewayIntPuerto sesionGateway,
+                                                                                           UsuarioActorGatewayIntPuerto usuarioActorGateway,
                                                                                            IJwtServicio jwtServicio,
                                                                                            ConsultaSolicitudAcademicaCUIntPuerto consultaCU,
                                                                                            MaquinaEtapas maquinaEtapas,
                                                                                            ExcepcionesFormateadorIntPuerto formateadorExcepciones){
-        return new ConsultaCancelacionAsignaturaCUImplAdaptador(gateway, estudianteGateway, sesionGateway, jwtServicio,
+        return new ConsultaCancelacionAsignaturaCUImplAdaptador(gateway, estudianteGateway, usuarioActorGateway, jwtServicio,
                 consultaCU, maquinaEtapas, formateadorExcepciones);
     }
 
@@ -424,12 +424,12 @@ public class BeanConfiguracion {
                                                                                  EstudianteGatewayIntPuerto estudianteGateway,
                                                                                  TipoSolicitudAcademicaGatewayIntPuerto tipoSolicitudGateway,
                                                                                  TipoAnexoAcademicoGatewayIntPuerto tipoAnexoGateway,
-                                                                                 SesionGatewayIntPuerto sesionGateway,
+                                                                                 UsuarioActorGatewayIntPuerto usuarioActorGateway,
                                                                                  IJwtServicio jwtServicio,
                                                                                  ConsultaSolicitudAcademicaCUIntPuerto consultaCU,
                                                                                  ExcepcionesFormateadorIntPuerto formateadorExcepciones){
         return new ConsultaExamenSupletorioCUImplAdaptador(gateway, estudianteGateway, tipoSolicitudGateway, tipoAnexoGateway,
-                sesionGateway, jwtServicio, consultaCU, formateadorExcepciones);
+                usuarioActorGateway, jwtServicio, consultaCU, formateadorExcepciones);
     }
 
     @Bean

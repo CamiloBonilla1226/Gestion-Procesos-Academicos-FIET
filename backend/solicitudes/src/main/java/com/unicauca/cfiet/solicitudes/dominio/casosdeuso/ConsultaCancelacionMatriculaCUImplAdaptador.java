@@ -23,7 +23,7 @@ public class ConsultaCancelacionMatriculaCUImplAdaptador implements ConsultaCanc
     private final EstudianteGatewayIntPuerto estudianteGateway;
     private final TipoSolicitudAcademicaGatewayIntPuerto tipoSolicitudGateway;
     private final TipoAnexoAcademicoGatewayIntPuerto tipoAnexoGateway;
-    private final SesionGatewayIntPuerto sesionGateway;
+    private final UsuarioActorGatewayIntPuerto usuarioActorGateway;
     private final IJwtServicio jwtServicio;
     private final ConsultaSolicitudAcademicaCUIntPuerto consultaCU;
     private final MaquinaEtapas maquinaEtapas;
@@ -33,7 +33,7 @@ public class ConsultaCancelacionMatriculaCUImplAdaptador implements ConsultaCanc
                                                        EstudianteGatewayIntPuerto estudianteGateway,
                                                        TipoSolicitudAcademicaGatewayIntPuerto tipoSolicitudGateway,
                                                        TipoAnexoAcademicoGatewayIntPuerto tipoAnexoGateway,
-                                                       SesionGatewayIntPuerto sesionGateway,
+                                                       UsuarioActorGatewayIntPuerto usuarioActorGateway,
                                                        IJwtServicio jwtServicio,
                                                        ConsultaSolicitudAcademicaCUIntPuerto consultaCU,
                                                        MaquinaEtapas maquinaEtapas,
@@ -42,7 +42,7 @@ public class ConsultaCancelacionMatriculaCUImplAdaptador implements ConsultaCanc
         this.estudianteGateway = estudianteGateway;
         this.tipoSolicitudGateway = tipoSolicitudGateway;
         this.tipoAnexoGateway = tipoAnexoGateway;
-        this.sesionGateway = sesionGateway;
+        this.usuarioActorGateway = usuarioActorGateway;
         this.jwtServicio = jwtServicio;
         this.consultaCU = consultaCU;
         this.maquinaEtapas = maquinaEtapas;
@@ -54,7 +54,7 @@ public class ConsultaCancelacionMatriculaCUImplAdaptador implements ConsultaCanc
         String username = jwtServicio.getUsername(token);
         if (!tieneTexto(username))
             formateadorExcepciones.lanzarErrorGenerico(MensajesError.USERNAME_TOKEN);
-        Usuario usuario = sesionGateway.getUsuario(username);
+        Usuario usuario = usuarioActorGateway.getUsuarioPorUsername(username);
         if (usuario == null)
             formateadorExcepciones.lanzarEntidadNoExiste(String.format(MensajesError.ENTIDAD_NO_ENCONTRADA_FILTRO, USUARIO, USERNAME, username));
         boolean esEstudiante = usuario.getRoles() != null && usuario.getRoles().stream()

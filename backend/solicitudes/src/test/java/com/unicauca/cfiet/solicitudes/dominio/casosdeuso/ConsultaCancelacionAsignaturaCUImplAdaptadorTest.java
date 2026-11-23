@@ -38,7 +38,7 @@ class ConsultaCancelacionAsignaturaCUImplAdaptadorTest {
     private EstudianteGatewayIntPuerto estudianteGateway;
 
     @Mock
-    private SesionGatewayIntPuerto sesionGateway;
+    private UsuarioActorGatewayIntPuerto usuarioActorGateway;
 
     @Mock
     private IJwtServicio jwtServicio;
@@ -108,10 +108,10 @@ class ConsultaCancelacionAsignaturaCUImplAdaptadorTest {
     @BeforeEach
     void setUp() {
         ExcepcionesFormateadorImplAdaptador formateador = new ExcepcionesFormateadorImplAdaptador();
-        casoDeUso = new ConsultaCancelacionAsignaturaCUImplAdaptador(gateway, estudianteGateway, sesionGateway, jwtServicio,
+        casoDeUso = new ConsultaCancelacionAsignaturaCUImplAdaptador(gateway, estudianteGateway, usuarioActorGateway, jwtServicio,
                 consultaCU, new MaquinaEtapas(formateador), formateador);
         lenient().when(jwtServicio.getUsername(TOKEN)).thenReturn("alumno");
-        lenient().when(sesionGateway.getUsuario("alumno")).thenReturn(usuario(ESTUDIANTE, "Estudiante"));
+        lenient().when(usuarioActorGateway.getUsuarioPorUsername("alumno")).thenReturn(usuario(ESTUDIANTE, "Estudiante"));
         lenient().when(estudianteGateway.getPorUuid(ESTUDIANTE)).thenReturn(Estudiante.builder().uuidUsuario(ESTUDIANTE).build());
     }
 
@@ -122,10 +122,10 @@ class ConsultaCancelacionAsignaturaCUImplAdaptadorTest {
 
     @Test
     void unUsuarioSinRolEstudianteOSinFilaDeEstudianteSeRechaza() {
-        when(sesionGateway.getUsuario("alumno")).thenReturn(usuario(ESTUDIANTE, "Decano"));
+        when(usuarioActorGateway.getUsuarioPorUsername("alumno")).thenReturn(usuario(ESTUDIANTE, "Decano"));
         assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> casoDeUso.getEstudianteAutenticado(TOKEN));
 
-        when(sesionGateway.getUsuario("alumno")).thenReturn(usuario(ESTUDIANTE, "Estudiante"));
+        when(usuarioActorGateway.getUsuarioPorUsername("alumno")).thenReturn(usuario(ESTUDIANTE, "Estudiante"));
         when(estudianteGateway.getPorUuid(ESTUDIANTE)).thenReturn(null);
         assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> casoDeUso.getFormulario(TOKEN));
         verify(estudianteGateway, never()).getAsignaturasMatriculadas(any());
@@ -133,7 +133,7 @@ class ConsultaCancelacionAsignaturaCUImplAdaptadorTest {
 
     @Test
     void unUsuarioQueNoExisteSeRechaza() {
-        when(sesionGateway.getUsuario("alumno")).thenReturn(null);
+        when(usuarioActorGateway.getUsuarioPorUsername("alumno")).thenReturn(null);
 
         assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso.getEstudianteAutenticado(TOKEN));
     }

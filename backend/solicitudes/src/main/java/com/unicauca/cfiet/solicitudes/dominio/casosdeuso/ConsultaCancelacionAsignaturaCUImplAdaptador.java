@@ -22,7 +22,7 @@ public class ConsultaCancelacionAsignaturaCUImplAdaptador implements ConsultaCan
 
     private final SolicitudCancelacionAsignaturaGatewayIntPuerto gateway;
     private final EstudianteGatewayIntPuerto estudianteGateway;
-    private final SesionGatewayIntPuerto sesionGateway;
+    private final UsuarioActorGatewayIntPuerto usuarioActorGateway;
     private final IJwtServicio jwtServicio;
     private final ConsultaSolicitudAcademicaCUIntPuerto consultaCU;
     private final MaquinaEtapas maquinaEtapas;
@@ -30,14 +30,14 @@ public class ConsultaCancelacionAsignaturaCUImplAdaptador implements ConsultaCan
 
     public ConsultaCancelacionAsignaturaCUImplAdaptador(SolicitudCancelacionAsignaturaGatewayIntPuerto gateway,
                                                         EstudianteGatewayIntPuerto estudianteGateway,
-                                                        SesionGatewayIntPuerto sesionGateway,
+                                                        UsuarioActorGatewayIntPuerto usuarioActorGateway,
                                                         IJwtServicio jwtServicio,
                                                         ConsultaSolicitudAcademicaCUIntPuerto consultaCU,
                                                         MaquinaEtapas maquinaEtapas,
                                                         ExcepcionesFormateadorIntPuerto formateadorExcepciones) {
         this.gateway = gateway;
         this.estudianteGateway = estudianteGateway;
-        this.sesionGateway = sesionGateway;
+        this.usuarioActorGateway = usuarioActorGateway;
         this.jwtServicio = jwtServicio;
         this.consultaCU = consultaCU;
         this.maquinaEtapas = maquinaEtapas;
@@ -49,7 +49,7 @@ public class ConsultaCancelacionAsignaturaCUImplAdaptador implements ConsultaCan
         String username = jwtServicio.getUsername(token);
         if (!tieneTexto(username))
             formateadorExcepciones.lanzarErrorGenerico(MensajesError.USERNAME_TOKEN);
-        Usuario usuario = sesionGateway.getUsuario(username);
+        Usuario usuario = usuarioActorGateway.getUsuarioPorUsername(username);
         if (usuario == null)
             formateadorExcepciones.lanzarEntidadNoExiste(String.format(MensajesError.ENTIDAD_NO_ENCONTRADA_FILTRO, USUARIO, USERNAME, username));
         boolean esEstudiante = usuario.getRoles() != null && usuario.getRoles().stream()
