@@ -21,7 +21,7 @@ const SOLICITUD = {
 function notificacion(cambios: Partial<NotificacionResolucionDTORespuesta> = {}): NotificacionResolucionDTORespuesta {
   return {
     estado: 'PROGRAMADA', fechaProgramada: '2099-01-01T08:30:00', firmada: false, numeroResolucion: '123-26', anioResolucion: 2026,
-    sufijoResolucion: '/178', decision: 'aprueba la', mensajeInicial: 'Buen día', textoComunicacion: 'Texto {numero}',
+    prefijoResolucion: '8.4.2-4.10/', decision: 'aprueba la', mensajeInicial: 'Buen día', textoComunicacion: 'Texto {numero}',
     textoDarca: 'Popayán, Cauca, {fecha}\n\nSe comunicó.', textoDarcaFirma: 'Popayán, Cauca, {fecha}\n\nFirmó.',
     fechaEnvioEstudiante: null, fechaEnvioDarca: null,
     intentos: 0, ultimoError: null, fechaEnvio: null, fechaLiberacion: null, editable: true, ...cambios
@@ -76,7 +76,7 @@ describe('NotificacionResolucionComponent', () => {
     const fixture = crear(notificacion());
     const panel = fixture.nativeElement.querySelector('[data-panel-notificacion]');
     expect(panel.querySelector('[data-estado]').textContent.trim()).toBe('Programada');
-    expect(panel.querySelector('[data-resolucion]').textContent.trim()).toBe('No. 123-26/178 de 2026');
+    expect(panel.querySelector('[data-resolucion]').textContent.trim()).toBe('No. 8.4.2-4.10/123-26 de 2026');
     expect(panel.querySelector('[data-fecha-programada]').textContent).toContain('1 de enero de 2099');
     expect(panel.querySelector('[data-mensaje-inicial]').textContent).toContain('Buen día');
     expect(acciones(fixture)).toEqual(['REPROGRAMAR', 'FIRMA']);

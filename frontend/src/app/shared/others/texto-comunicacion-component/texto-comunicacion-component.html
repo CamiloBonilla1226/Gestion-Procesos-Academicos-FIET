@@ -1,0 +1,23 @@
+<div class="d-flex flex-column gap-1" data-texto-comunicacion>
+  <label class="campo-etiqueta" [for]="id">{{ etiqueta }} <span class="text-danger">*</span></label>
+  <textarea class="form-control texto-completo" [id]="id" [rows]="filas" [value]="texto" [class.is-invalid]="!!error"
+    data-campo-texto (input)="cambiar($event)"></textarea>
+  <div class="fila-ayuda">
+    <small class="texto-error" data-error-texto>{{ error }}</small>
+    <small class="contador" [class.excedido]="texto.length > maximo" data-contador-texto>{{ texto.length }}/{{ maximo }}</small>
+  </div>
+  @if (ayuda) {
+  <small class="nota-gris d-block" data-ayuda-texto>{{ ayuda }}</small>
+  }
+  @if (puedeRestablecer) {
+  <button type="button" class="btn btn-link btn-sm p-0 align-self-start" data-restablecer (click)="restablecer()">Volver al texto sugerido</button>
+  }
+  @if (conVista) {
+  <div class="vista-previa" data-vista-texto>
+    <span class="campo-etiqueta d-block mb-1">{{ tituloVista }}</span>
+    @for (parrafo of vista; track $index) {
+    <p class="parrafo-vista">@for (fragmento of parrafo; track $index) {@if (fragmento.resaltado) {<strong>{{ fragmento.texto }}</strong>} @else {<span>{{ fragmento.texto }}</span>}}</p>
+    }
+  </div>
+  }
+</div>

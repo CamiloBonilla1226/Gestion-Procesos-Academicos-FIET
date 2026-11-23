@@ -42,6 +42,7 @@ import { ResumenSolicitudComponent } from '../../../others/resumen-solicitud-com
 import { SelectorDocenteComponent } from '../../../others/selector-docente-component/selector-docente-component';
 import { DocumentoAdicionalComponent } from '../../../others/documento-adicional-component/documento-adicional-component';
 import { DecisionDecanoComponent } from '../../../others/decision-decano-component/decision-decano-component';
+import { TarjetaPlegableDirective } from '../../../others/tarjeta-plegable-directive/tarjeta-plegable-directive';
 import { DecisionDecano, ETIQUETA_ENVIAR_DECISION, accionDeDecision, esAccionDecisionDecano } from '../../../../core/utils/decision-decano';
 import {
   TITULO_FALLA_DOCUMENTO_ADICIONAL,
@@ -141,7 +142,8 @@ function mismoNombre(a: string | null | undefined, b: string): boolean {
     ResumenSolicitudComponent,
     SelectorDocenteComponent,
     DocumentoAdicionalComponent,
-    DecisionDecanoComponent
+    DecisionDecanoComponent,
+    TarjetaPlegableDirective
   ],
   templateUrl: './examen-supletorio-proceso-component.html',
   styleUrl: '../estilos-academicos.css'
@@ -217,6 +219,10 @@ export class ExamenSupletorioProcesoComponent implements OnChanges {
 
   get textoBotonDialogo(): string {
     return this.accionActiva ? TEXTOS_BOTON_DIALOGO[this.accionActiva] ?? 'Confirmar' : 'Confirmar';
+  }
+
+  get esFuncionario(): boolean {
+    return this.rol === ROLES_ETIQUETA.FUNCIONARIO;
   }
 
   get esEstudiante(): boolean {

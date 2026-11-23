@@ -46,6 +46,49 @@
   padding: 16px 18px;
 }
 
+.tarjeta.plegable > .tarjeta-head {
+  cursor: pointer;
+  user-select: none;
+}
+
+.tarjeta.plegable > .tarjeta-head:hover {
+  background: var(--panel);
+}
+
+.tarjeta.plegable > .tarjeta-head:focus-visible {
+  outline: 2px solid var(--navy-700);
+  outline-offset: -2px;
+}
+
+.tarjeta.plegable > .tarjeta-head::after {
+  content: '';
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  margin-right: 4px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform .15s ease;
+}
+
+.tarjeta.plegable > .tarjeta-head:has(.contador-pill)::after {
+  margin-left: 6px;
+}
+
+.tarjeta.plegada > .tarjeta-head {
+  border-bottom: 0;
+}
+
+.tarjeta.plegada > .tarjeta-head::after {
+  transform: rotate(-45deg);
+}
+
+.tarjeta.plegada > .tarjeta-body {
+  display: none !important;
+}
+
 .tarjeta-acciones {
   display: flex;
   flex-wrap: wrap;

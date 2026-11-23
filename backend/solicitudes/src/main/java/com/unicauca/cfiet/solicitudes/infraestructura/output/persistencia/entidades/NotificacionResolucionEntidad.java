@@ -39,7 +39,7 @@ public class NotificacionResolucionEntidad implements Persistable<String> {
     private String numeroResolucion;
     @Column(name = "anioResolucion", nullable = false)
     private Integer anioResolucion;
-    @Column(name = "decision", length = 60, nullable = false)
+    @Column(name = "decision", length = 500, nullable = false)
     private String decision;
     @Column(name = "mensajeInicial", length = 2000)
     private String mensajeInicial;

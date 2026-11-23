@@ -95,12 +95,12 @@ class NotificacionResolucionCUImplAdaptadorTest {
     @BeforeEach
     void setUp() {
         ExcepcionesFormateadorImplAdaptador formateador = new ExcepcionesFormateadorImplAdaptador();
-        NotificadorRespuestaFinal notificador = new NotificadorRespuestaFinal(cancelacionGateway, mock(SolicitudExamenSupletorioGatewayIntPuerto.class),
+        NotificadorRespuestaFinal notificador = new NotificadorRespuestaFinal(cancelacionGateway, mock(SolicitudCancelacionMatriculaGatewayIntPuerto.class), mock(SolicitudExamenSupletorioGatewayIntPuerto.class),
                 resolucionGateway, anexoGateway, mock(UsuarioGatewayIntPuerto.class), generador, new PreparacionCorreoImplAdaptador(), correo, DARCA);
         FirmaCorreo firma = FirmaCorreo.builder().nombre("CRISTIAN ESTIBEN ILLERA OSPITIA").cargo("Apoyo Administrativo")
                 .dependencia("Decanatura").facultad("Facultad de Ingeniería Electrónica y Telecomunicaciones").build();
         casoDeUso = new NotificacionResolucionCUImplAdaptador(gateway, solicitudGateway, cancelacionGateway, sesionGateway, jwtServicio,
-                resolucionCU, notificador, generador, correo, new ComunicacionResolucion(firma, "/178"), formateador, log,
+                resolucionCU, notificador, generador, correo, new ComunicacionResolucion(firma, "8.4.2-4.10/"), formateador, log,
                 Clock.fixed(Instant.parse("2026-10-20T15:00:00Z"), ZoneId.of("America/Bogota")), (descripcion, tarea) -> diferidas.add(tarea));
         sesion(FUNCIONARIO, "Funcionario Académico");
         sesion(OTRO_FUNCIONARIO, "Funcionario Académico");
@@ -252,7 +252,7 @@ class NotificacionResolucionCUImplAdaptadorTest {
         assertFalse(creada.isFirmada());
         assertNull(creada.getFechaLiberacion());
         assertTrue(creada.isEditable());
-        assertTrue(creada.getTextoComunicacion().contains("RESOLUCIÓN No. {numero}/178 de {anio}"));
+        assertTrue(creada.getTextoComunicacion().contains("RESOLUCIÓN No. 8.4.2-4.10/{numero} de {anio}"));
         assertTrue(creada.getTextoComunicacion().contains("Se comunica al estudiante, {nombre}, del texto"));
         assertTrue(creada.getTextoComunicacion().endsWith("Cordialmente,\n\nCRISTIAN ESTIBEN ILLERA OSPITIA\nApoyo Administrativo\nDecanatura\n"
                 + "Facultad de Ingeniería Electrónica y Telecomunicaciones"));
@@ -262,7 +262,7 @@ class NotificacionResolucionCUImplAdaptadorTest {
         assertTrue(creada.getTextoDarca().endsWith("La información de la respuesta está en el PDF adjunto."));
         verify(correo).enviar(CORREO_ESTUDIANTE, "Respuesta a su solicitud de cancelación de asignatura - Radicado " + RADICADO,
                 "Buen día,\n<b>venga</b> a la Decanatura", List.of());
-        verify(log).crearLog(eq("Programar comunicación de la Resolución"), contains("123-26/178 de 2026"), eq("token"));
+        verify(log).crearLog(eq("Programar comunicación de la Resolución"), contains("8.4.2-4.10/123-26 de 2026"), eq("token"));
     }
 
     @Test
@@ -297,10 +297,11 @@ class NotificacionResolucionCUImplAdaptadorTest {
         assertTrue(plantilla.getMensajeInicial().endsWith("Cordialmente,\n\nCRISTIAN ESTIBEN ILLERA OSPITIA\nApoyo Administrativo\nDecanatura\n"
                 + "Facultad de Ingeniería Electrónica y Telecomunicaciones"));
         assertFalse(plantilla.getMensajeInicial().contains("[FIRMA]"));
-        assertEquals("aprueba parcialmente la", plantilla.getDecisionPropuesta());
+        assertEquals("aprueba la cancelación de la asignatura Asignatura ISI-001 y niega la cancelación de la asignatura Asignatura ISI-002, "
+                + "en la solicitud de", plantilla.getDecisionPropuesta());
         assertEquals(2026, plantilla.getAnioResolucion());
-        assertEquals("/178", plantilla.getSufijoResolucion());
-        assertTrue(plantilla.getTextoComunicacion().contains("RESOLUCIÓN No. {numero}/178 de {anio}"));
+        assertEquals("8.4.2-4.10/", plantilla.getPrefijoResolucion());
+        assertTrue(plantilla.getTextoComunicacion().contains("RESOLUCIÓN No. 8.4.2-4.10/{numero} de {anio}"));
         assertFalse(plantilla.getTextoComunicacion().contains("{firma}"));
         assertEquals("Ana María Muñoz Peña", plantilla.getNombreEstudiante());
         assertTrue(plantilla.getTextoDarca().startsWith("Popayán, Cauca, {fecha}"));
@@ -348,7 +349,7 @@ class NotificacionResolucionCUImplAdaptadorTest {
         futura.setFirmada(false);
         futura.setFechaProgramada(AHORA.minusMinutes(1));
         assertFalse(casoDeUso.getNotificacion(SOLICITUD, token(FUNCIONARIO)).isEditable());
-        assertEquals("/178", casoDeUso.getNotificacion(SOLICITUD, token(FUNCIONARIO)).getSufijoResolucion());
+        assertEquals("8.4.2-4.10/", casoDeUso.getNotificacion(SOLICITUD, token(FUNCIONARIO)).getPrefijoResolucion());
     }
 
     @Test
@@ -494,10 +495,10 @@ class NotificacionResolucionCUImplAdaptadorTest {
         CorreoPreparado alEstudiante = enviados.getAllValues().get(0);
         assertEquals(CORREO_ESTUDIANTE, alEstudiante.getDestinatario());
         assertEquals("Notificación de Cancelación de asignatura", alEstudiante.getAsunto());
-        assertTrue(alEstudiante.getTexto().contains("COMUNICACIÓN ELECTRÓNICA - RESOLUCIÓN No. 123-26/178 de 2026"));
+        assertTrue(alEstudiante.getTexto().contains("COMUNICACIÓN ELECTRÓNICA - RESOLUCIÓN No. 8.4.2-4.10/123-26 de 2026"));
         assertTrue(alEstudiante.getTexto().contains("Se comunica al estudiante, Ana María Muñoz Peña, del texto"));
         assertTrue(alEstudiante.getTexto().contains("la misma por la cual se aprueba parcialmente la cancelación de asignatura"));
-        assertTrue(alEstudiante.getHtml().contains("No. <strong>123-26</strong>/178 de <strong>2026</strong>"));
+        assertTrue(alEstudiante.getHtml().contains("No. 8.4.2-4.10/<strong>123-26</strong> de <strong>2026</strong>"));
         assertTrue(alEstudiante.getHtml().contains("<strong>Ana María Muñoz Peña</strong>"));
         assertTrue(alEstudiante.getHtml().contains("se <strong>aprueba parcialmente la</strong> cancelación"));
         assertEquals(List.of("Radicado-" + RADICADO + ".pdf", "Resolucion-" + RADICADO + ".pdf"),

@@ -9,6 +9,7 @@ import { ResolucionAcademicaDTORespuesta } from '../models/SolicitudAcademica/DT
 import { SolicitudAcademicaDetalleDTORespuesta } from '../models/SolicitudAcademica/DTOResponse/SolicitudAcademicaDetalleDTORespuesta';
 import { SolicitudAcademicaResumenDTORespuesta } from '../models/SolicitudAcademica/DTOResponse/SolicitudAcademicaResumenDTORespuesta';
 import { EliminacionRespuestasDTORespuesta } from '../models/SolicitudAcademica/DTOResponse/EliminacionRespuestasDTORespuesta';
+import { CorreosPendientesDTORespuesta } from '../models/SolicitudAcademica/DTOResponse/CorreosPendientesDTORespuesta';
 import { parsearErrorBlob } from '../utils/descargas';
 import { armarParametros } from '../utils/parametros-http';
 
@@ -26,6 +27,10 @@ export class SolicitudAcademicaService {
 
   getSolicitudesFuncionario(): Observable<SolicitudAcademicaResumenDTORespuesta[]> {
     return this.http.get<SolicitudAcademicaResumenDTORespuesta[]>(`${this.url}/funcionario`);
+  }
+
+  getCorreosPendientes(): Observable<CorreosPendientesDTORespuesta> {
+    return this.http.get<CorreosPendientesDTORespuesta>(`${this.url}/funcionario/correos-pendientes`);
   }
 
   contarRespuestasEliminables(desde: string, hasta: string): Observable<EliminacionRespuestasDTORespuesta> {

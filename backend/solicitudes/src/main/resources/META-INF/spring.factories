@@ -1,0 +1,1 @@
+org.springframework.boot.env.EnvironmentPostProcessor=com.unicauca.cfiet.solicitudes.infraestructura.configuracion.VariablesEntornoObligatorias

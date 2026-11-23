@@ -4,7 +4,7 @@ export interface NotificacionResolucionDTORespuesta {
   firmada: boolean;
   numeroResolucion: string;
   anioResolucion: number;
-  sufijoResolucion: string;
+  prefijoResolucion: string;
   decision: string;
   mensajeInicial: string | null;
   textoComunicacion: string | null;

@@ -1,0 +1,38 @@
+<section class="bloque-edicion d-flex flex-column gap-2 mb-3" data-eliminacion-respuestas>
+  <strong>Eliminar respuestas por fecha</strong>
+  <p class="nota-gris mb-0">
+    Borra las solicitudes ya respondidas (aprobadas o rechazadas) cuya respuesta se dio entre las dos fechas, con sus anexos,
+    historial y notificaciones. No toca las que están en trámite ni las que tienen la comunicación de la Resolución pendiente.
+  </p>
+  <div class="d-flex flex-wrap align-items-end gap-3">
+    <div class="d-flex flex-column">
+      <label class="campo-etiqueta" for="eliminar-desde">Fecha inicial</label>
+      <input id="eliminar-desde" type="date" class="form-control" lang="es-CO" [max]="hoy" [value]="desde" data-campo="desde"
+        [disabled]="contando || enviando" (input)="desde = valorDe($event)">
+      <small class="texto-error" data-error="desde">{{ errores['desde'] || '' }}</small>
+    </div>
+    <div class="d-flex flex-column">
+      <label class="campo-etiqueta" for="eliminar-hasta">Fecha final</label>
+      <input id="eliminar-hasta" type="date" class="form-control" lang="es-CO" [max]="hoy" [value]="hasta" data-campo="hasta"
+        [disabled]="contando || enviando" (input)="hasta = valorDe($event)">
+      <small class="texto-error" data-error="hasta">{{ errores['hasta'] || '' }}</small>
+    </div>
+    <div class="d-flex flex-column">
+      <button type="button" class="btn btn-outline-danger" data-accion="ELIMINAR_RESPUESTAS" [disabled]="contando || enviando"
+        (click)="revisar()">{{ contando ? 'Contando...' : 'Eliminar respuestas' }}</button>
+    </div>
+  </div>
+</section>
+
+<app-generic-dialog-form-component [visible]="dialogoVisible" title="Eliminar respuestas" textoBoton="Aceptar" textoCancelar="Cancelar"
+  [cerrarConEscape]="true" (visibleChange)="cerrar($event)" (save)="confirmar()">
+  <div class="d-flex flex-column gap-2" data-dialogo-eliminacion>
+    <p class="mb-0" data-mensaje-confirmacion>{{ mensajeConfirmacion }}</p>
+    @if (enviando) {
+    <div class="cargando" data-estado="eliminando">
+      <div class="spinner-border spinner-border-sm" role="status"></div>
+      <span>Eliminando...</span>
+    </div>
+    }
+  </div>
+</app-generic-dialog-form-component>

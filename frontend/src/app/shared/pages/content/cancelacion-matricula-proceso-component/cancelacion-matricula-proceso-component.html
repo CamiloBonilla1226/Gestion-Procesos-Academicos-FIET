@@ -11,7 +11,7 @@
     </app-simple-button-component>
   </div>
   } @else if (detalle) {
-  <section class="tarjeta">
+  <section class="tarjeta" data-tarjeta-motivo [appTarjetaPlegable]="esFuncionario" plegadaAlInicio>
     <header class="tarjeta-head">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
       <h3>Motivo de cancelación</h3>
@@ -21,7 +21,7 @@
     </div>
   </section>
 
-  <section class="tarjeta">
+  <section class="tarjeta" [appTarjetaPlegable]="esFuncionario">
     <header class="tarjeta-head">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
       <h3>Asignaturas matriculadas</h3>

@@ -22,6 +22,8 @@ public class AsignaturaSolicitudAcademicaOwnMapper implements OwnMapper<Asignatu
                 .nota(source.getNota())
                 .situacionMatricula(source.getSituacionMatricula() == null ? null : situacionMapper.toDominio(source.getSituacionMatricula()))
                 .situacionCancelar(source.getSituacionCancelar() == null ? null : situacionMapper.toDominio(source.getSituacionCancelar()))
+                .situacionNuevaMatricula(source.getSituacionNuevaMatricula() == null ? null
+                        : situacionMapper.toDominio(source.getSituacionNuevaMatricula()))
                 .cumpleCondiciones(source.getCumpleCondiciones())
                 .observacionEvaluacion(source.getObservacionEvaluacion())
                 .aprobadaPorDecano(source.getAprobadaPorDecano())

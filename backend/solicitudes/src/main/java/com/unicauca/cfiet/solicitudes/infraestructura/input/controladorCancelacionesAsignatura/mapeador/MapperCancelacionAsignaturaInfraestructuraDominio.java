@@ -52,7 +52,6 @@ public class MapperCancelacionAsignaturaInfraestructuraDominio {
                         .nota(evaluacion.getNota())
                         .uuidSituacionMatricula(evaluacion.getSituacionMatriculaUuid())
                         .uuidSituacionCancelar(evaluacion.getSituacionCancelarUuid())
-                        .cumpleCondiciones(evaluacion.getCumpleCondiciones())
                         .observacionEvaluacion(evaluacion.getObservacionEvaluacion())
                         .build())
                 .toList();
@@ -73,7 +72,9 @@ public class MapperCancelacionAsignaturaInfraestructuraDominio {
         return ajustes.stream()
                 .map(ajuste -> ajuste == null ? null : AjusteAsignatura.builder()
                         .uuidAsignaturaSolicitud(ajuste.getAsignaturaSolicitudUuid())
+                        .uuidSituacionMatricula(ajuste.getSituacionMatriculaUuid())
                         .uuidSituacionCancelar(ajuste.getSituacionCancelarUuid())
+                        .uuidSituacionNuevaMatricula(ajuste.getSituacionNuevaMatriculaUuid())
                         .observacionDecision(ajuste.getObservacionDecision())
                         .build())
                 .toList();
@@ -111,7 +112,7 @@ public class MapperCancelacionAsignaturaInfraestructuraDominio {
                 .firmada(notificacion.isFirmada())
                 .numeroResolucion(notificacion.getNumeroResolucion())
                 .anioResolucion(notificacion.getAnioResolucion())
-                .sufijoResolucion(notificacion.getSufijoResolucion())
+                .prefijoResolucion(notificacion.getPrefijoResolucion())
                 .decision(notificacion.getDecision())
                 .mensajeInicial(notificacion.getMensajeInicial())
                 .textoComunicacion(notificacion.getTextoComunicacion())
@@ -133,7 +134,7 @@ public class MapperCancelacionAsignaturaInfraestructuraDominio {
                 .maximoMensaje(ComunicacionResolucion.MAXIMO_MENSAJE)
                 .decisionPropuesta(plantilla.getDecisionPropuesta())
                 .anioResolucion(plantilla.getAnioResolucion())
-                .sufijoResolucion(plantilla.getSufijoResolucion())
+                .prefijoResolucion(plantilla.getPrefijoResolucion())
                 .textoComunicacion(plantilla.getTextoComunicacion())
                 .textoDarca(plantilla.getTextoDarca())
                 .maximoTexto(ComunicacionResolucion.MAXIMO_TEXTO)
@@ -201,6 +202,7 @@ public class MapperCancelacionAsignaturaInfraestructuraDominio {
                 .observacionDecision(asignatura.getObservacionDecision())
                 .decisionCambiadaPorDecano(asignatura.decisionCambiadaPorDecano())
                 .situacionCancelar(mapearSituacionARespuesta(asignatura.getSituacionCancelar()))
+                .situacionNuevaMatricula(mapearSituacionARespuesta(asignatura.getSituacionNuevaMatricula()))
                 .build();
         AsignaturaMatriculada matriculada = asignatura.getAsignaturaMatriculada();
         if (matriculada != null && matriculada.getAsignatura() != null) {

@@ -1,0 +1,3 @@
+[data-campo-programacion="fecha"] ::ng-deep input[type="datetime-local"]::-webkit-datetime-edit-hour-field {
+  margin-left: 2rem;
+}

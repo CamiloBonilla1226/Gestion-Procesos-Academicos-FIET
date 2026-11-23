@@ -29,6 +29,6 @@ public class NotificacionResolucion {
     private LocalDateTime fechaLiberacion;
     private LocalDateTime fechaCreacion;
     private boolean editable;
-    private String sufijoResolucion;
+    private String prefijoResolucion;
     private String textoDarcaFirma;
 }

@@ -14,7 +14,7 @@ misma base de datos:
 - `docs/database/` — script de extensión del esquema, diccionario de datos
   de las tablas nuevas (no tocan las tablas de Julián), reglas por proceso
   (`etapas-por-proceso.md`) y scripts de siembra.
-- `docs/api/contrato-api-procesos-academicos.md` — contrato de los 76
+- `docs/api/contrato-api-procesos-academicos.md` — contrato de los 78
   endpoints académicos para quien construya el frontend.
 
 ## Regla de estilo, válida para todo el repositorio
@@ -81,18 +81,20 @@ revierten están en la sección siguiente.
   exige, como antes (P56, desde T12.31).
 - Cancelación de Asignatura que pasó por el Decano (P58, desde T12.32): al
   enviar la respuesta final no salen los correos inmediatos al estudiante con
-  la Resolución ni a DARCA. Sale, si el Funcionario lo deja marcado, un mensaje
+  la Resolución ni a DARCA. Sale siempre (P63, desde T12.38) un mensaje
   inmediato sin adjuntos ni resultado, y la comunicación de la Resolución es
   obligatoria y programada (fecha y hora futuras en hora de Colombia, número,
-  año y decisión; sufijo `/178` y firma desde propiedades). Una tarea
+  año y decisión; prefijo `8.4.2-4.10/` antes del número, P65, y firma desde
+  propiedades). Una tarea
   programada la envía en la fecha: al estudiante con la Resolución y a DARCA
   con tres PDF (respuesta, Resolución y constancia de la comunicación); si el
   estudiante firmó en la Decanatura antes de la fecha, no se le envía nada y
-  DARCA recibe dos PDF con la Resolución firmada. Correos independientes, hasta
+  DARCA recibe dos PDF con la Resolución firmada, de inmediato al guardar la
+  firma (P63). Correos independientes, hasta
   3 intentos y luego FALLIDA con reintento manual. Matrícula, Supletorio y el
   rechazo directo siguen como antes.
-- Visibilidad diferida (P58): en ese caso, hasta que la tarea toma la
-  comunicación por primera vez, el Estudiante ve la solicitud "En trámite" y el
+- Visibilidad diferida (P58, P63): en ese caso, hasta que se guarda la firma o
+  llega la fecha programada, el Estudiante ve la solicitud "En trámite" y el
   backend no le devuelve la respuesta, el resultado por asignatura, la
   Resolución ni su descarga, el documento adicional ni las filas de decisión y
   respuesta del historial. Después no se vuelve a ocultar. Funcionario y Decano
@@ -101,20 +103,88 @@ revierten están en la sección siguiente.
   T12.33): al enviar la respuesta después del Decano el Funcionario sube la
   Resolución sin firmar por el estudiante, que es la que va en la comunicación
   programada. Si el estudiante firma antes de la fecha, el Funcionario la
-  reemplaza por la firmada desde el panel "Notificación de la Resolución" (y
-  puede volver a subirla hasta esa fecha); el panel dice cuál está vigente. El
+  reemplaza por la firmada desde el panel "Notificación de la Resolución"; desde
+  T12.38 (P63) eso cierra la comunicación y ya no se puede volver a subir otra
+  firmada ni editar. El panel dice cuál está vigente. El
   "Documento adicional de la respuesta" ya no existe en este proceso: no se
   ofrece, no se recibe ni se adjunta a ningún correo, y su tipo queda con
   `vigente = 0` (no se borra). Matrícula y Supletorio lo conservan.
+- Respuesta al estudiante en Cancelación de Asignatura (P63, desde T12.38):
+  el diálogo va en este orden: mensaje inmediato (siempre sale, sin casilla, editable y visible
+  completo), Resolución sin firmar y comunicación programada con el texto que
+  recibirá el estudiante y el que recibirá DARCA, tal como saldrán y editables
+  ahí mismo. Los dos textos se guardan en `NOTIFICACION_RESOLUCION`
+  (`textoComunicacion`, `textoDarca`). Al guardar la firma, DARCA recibe de
+  inmediato el radicado y la Resolución firmada con su texto, al estudiante no
+  se le envía la comunicación y la comunicación queda cerrada; siguen los 3
+  intentos y el reintento manual, y no hay firma tardía.
+- Borrado de respuestas por rango (P63): el Funcionario Académico, en
+  "Solicitudes respondidas" (un solo panel para los tres procesos), elige dos
+  fechas y, tras confirmar la cantidad, borra las solicitudes de sus procesos
+  ya cerradas (aprobadas o rechazadas) respondidas en ese rango, con todo lo
+  que depende de ellas. Nunca las que están en trámite ni las que tienen la
+  comunicación PROGRAMADA, EN_PROCESO o FALLIDA, ni datos predefinidos,
+  programas, asignaturas o estudiantes.
 - Situaciones en las dos cancelaciones (P60, desde T12.34): "situación de la
-  asignatura" es una lista cerrada (Cursada por primera vez, Recursada por
-  primera vez, Cursada por segunda vez, Cursada por tercera vez) y "situación
-  al cancelar" otra (No vista, Perdida). Siguen siendo opcionales; el backend
-  rechaza cualquier otro valor con código 6 y el frontend solo ofrece esas
-  opciones.
+  asignatura" es una lista cerrada (Cursada por primera vez, Cursada por
+  primera vez (R1), (R2) Cursada por segunda vez, (R3) Cursada por tercera vez)
+  y "situación al cancelar" otra (No cursada, Como perdida); nombres desde
+  P64, con el R# al inicio desde P71. Siguen siendo opcionales; el backend rechaza cualquier otro valor con
+  código 6 y el frontend solo ofrece esas opciones.
+- Motivo y soportes a DARCA (P64): el PDF del radicado que recibe DARCA lleva
+  siempre el motivo de la solicitud (en el supletorio, la causa), y su correo
+  adjunta los soportes que subió el estudiante (soportes libres en las
+  cancelaciones, soporte de la justificación en el supletorio), también en la
+  comunicación programada de la Resolución.
+- Estado académico de la asignatura cuando la matricule de nuevo (P66): en
+  Cancelación de Asignatura, al enviar la respuesta después del Decano, el
+  Funcionario elige para cada asignatura aprobada (las que se cancelan) un
+  valor de la lista de la situación de la asignatura; es obligatorio, las
+  rechazadas no lo llevan, va en el PDF del radicado a DARCA y lo ve el
+  Estudiante.
+- Situaciones de la respuesta en la tabla (P69): con la solicitud aprobada por
+  el Decano, el Funcionario elige en la tabla de asignaturas, en cada aprobada,
+  la situación en la matrícula, al cancelar y al matricularla de nuevo; el
+  diálogo de respuesta ya no las pide y "Enviar respuesta" queda deshabilitado
+  hasta que todas las aprobadas tengan las tres.
+- Sin evaluación de condiciones del Funcionario (P67): en Cancelación de
+  Asignatura el Funcionario ya no marca "Cumple condiciones"; la tabla del
+  detalle muestra en su lugar "Al matricularla de nuevo", el Decano decide
+  siempre por asignatura (sin `aceptarEvaluacion`) y no hay marca ni aviso
+  de "Cambiada por el Decano". Al enviar la respuesta, cada aprobada exige
+  situación en la matrícula, al cancelar y al matricularla de nuevo.
+- La decisión negativa de la comunicación de la Resolución se escribe "niega
+  la", no "rechaza la" (P64).
+- En el detalle de la solicitud del Funcionario Académico cada tarjeta se
+  pliega y despliega con clic en su título; motivo, observación para el
+  Decano, decisión del Decano, mensaje para el estudiante e historial llegan
+  plegados (P64); desde P72 también los anexos, así que solo llegan abiertos
+  Datos generales y la tabla de asignaturas a cancelar.
 - Cancelación de Asignatura tiene aprobación parcial: el Decano aprueba o
   rechaza cada asignatura por separado y solo se cancelan las aprobadas
   (decisión P14 de `docs/database/etapas-por-proceso.md`).
+- Remitir al Decano sin aprobación del Funcionario (P62, desde T12.35; desde
+  P67 ya no hay "Cumple condiciones"): en Cancelación de Asignatura el
+  Funcionario remite sin aprobar ni negar ninguna asignatura. La
+  Resolución se sigue pidiendo solo en la respuesta final después del Decano.
+- Pantalla del Decano (P62, desde T12.35): en los tres procesos hay un solo
+  botón, "Enviar decisión", deshabilitado hasta que la decisión esté completa
+  y sin ninguna opción preseleccionada. En Matrícula y Supletorio se elige
+  aprobar o rechazar la solicitud; en Asignatura se elige por asignatura, y si
+  todas quedan en Rechazar se usa el rechazo de la solicitud completa. No hay
+  botón "Aceptar tal como está". El contrato de la API no cambia.
+- Decano en Cancelación de Asignatura (P68): ve la tabla completa que llenó el
+  Funcionario (faltas, nota, situación en la matrícula y al cancelar), de solo
+  lectura. Junto a "Enviar decisión" hay "Aprobar" (aprueba todas las
+  asignaturas) y "Rechazar" (rechaza todas). Rechazar la solicitud completa,
+  por cualquiera de los dos caminos, exige un comentario para el Funcionario
+  Académico; el backend lo rechaza vacío con código 4. Desde P70 también lo
+  exige la aprobación con alguna asignatura rechazada.
+- Decisión parcial en la comunicación de la Resolución (P70): si el Decano
+  aprobó unas asignaturas y rechazó otras, la decisión propuesta ya no es
+  "aprueba parcialmente la" sino "aprueba la cancelación de la(s)
+  asignatura(s) ... y niega la cancelación de la(s) asignatura(s) ..., en la
+  solicitud de", con los nombres. La decisión admite 500 caracteres.
 - Examen Supletorio no produce Resolución y tiene un plazo de tres días
   hábiles. Tras la aprobación del Decano, el Funcionario sube el recibo de
   pago y el Estudiante el comprobante; el Funcionario lo aprueba o lo rechaza.

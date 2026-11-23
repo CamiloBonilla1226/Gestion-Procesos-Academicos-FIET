@@ -681,10 +681,10 @@ class AnexoAcademicoCUImplAdaptadorTest {
     }
 
     @Test
-    void supletorioPorCruceExigeElFor23YElFormatoDelDocenteDelCruce() {
+    void supletorioPorCruceExigeSoloElFor23() {
         when(tipoSolicitudGateway.getPorUuid(TIPO_ES)).thenReturn(supletorio);
 
-        assertEquals(List.of(FOR_23, CRUCE).stream().sorted().toList(),
+        assertEquals(List.of(FOR_23),
                 nombres(casoDeUso.getAnexosObligatorios(TIPO_ES, CausaSupletorio.CRUCE)));
     }
 

@@ -1,0 +1,7 @@
+@if (cantidad > 0) {
+<p class="nota-aviso" role="status" data-aviso-correos-pendientes>
+  <b>{{ cantidad === 1 ? 'Hay 1 correo pendiente de envío.' : 'Hay ' + cantidad + ' correos pendientes de envío.' }}</b>
+  La respuesta quedó guardada, pero no se pudo enviar por un problema de conexión. El sistema lo reintenta solo cada minuto y
+  lo enviará cuando se recupere la conexión a internet.
+</p>
+}

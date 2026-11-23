@@ -162,8 +162,7 @@ public class AnexoAcademicoCUImplAdaptador implements AnexoAcademicoCUIntPuerto 
         return tipoAnexoGateway.getPorTipo(tipo.getUuidTipoSolicitudAcademica()).stream()
                 .filter(TipoAnexoAcademico::estaVigente)
                 .filter(tipoAnexo -> Boolean.TRUE.equals(tipoAnexo.getObligatorio())
-                        || (supletorio && causa == CausaSupletorio.OTRA && SOPORTE_JUSTIFICACION.equals(tipoAnexo.getNombre()))
-                        || (supletorio && causa == CausaSupletorio.CRUCE && FORMATO_DOCENTE_CRUCE.equals(tipoAnexo.getNombre())))
+                        || (supletorio && causa == CausaSupletorio.OTRA && SOPORTE_JUSTIFICACION.equals(tipoAnexo.getNombre())))
                 .toList();
     }
 

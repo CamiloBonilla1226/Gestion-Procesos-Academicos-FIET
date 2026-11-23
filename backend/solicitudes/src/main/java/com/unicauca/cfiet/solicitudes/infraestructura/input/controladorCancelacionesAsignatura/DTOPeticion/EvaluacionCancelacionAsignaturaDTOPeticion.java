@@ -15,6 +15,5 @@ public class EvaluacionCancelacionAsignaturaDTOPeticion {
     private String nota;
     private String situacionMatriculaUuid;
     private String situacionCancelarUuid;
-    private Boolean cumpleCondiciones;
     private String observacionEvaluacion;
 }

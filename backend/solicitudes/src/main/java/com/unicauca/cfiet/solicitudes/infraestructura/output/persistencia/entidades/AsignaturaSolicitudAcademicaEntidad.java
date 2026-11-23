@@ -48,6 +48,13 @@ public class AsignaturaSolicitudAcademicaEntidad {
             foreignKey = @ForeignKey(name = "fk_asigsol_situcancelar")
     )
     private SituacionAcademicaAsignaturaEntidad situacionCancelar;
+    @ManyToOne
+    @JoinColumn(
+            name = "SituacionNuevaMatricula_uuid",
+            columnDefinition = "varchar(100)",
+            foreignKey = @ForeignKey(name = "fk_asigsol_situnuevamat")
+    )
+    private SituacionAcademicaAsignaturaEntidad situacionNuevaMatricula;
     @Column(name = "cumpleCondiciones", columnDefinition = "tinyint(1)")
     private Boolean cumpleCondiciones;
     @Column(name = "observacionEvaluacion", length = 255)

@@ -121,7 +121,7 @@ class ExamenSupletorioCUImplAdaptadorTest {
     }
 
     private List<AnexoRadicacion> anexosCruce() {
-        return List.of(anexo(FOR_23), anexo(DOCENTE_CRUCE));
+        return List.of(anexo(FOR_23));
     }
 
     private List<AnexoRadicacion> anexosOtra() {
@@ -199,7 +199,6 @@ class ExamenSupletorioCUImplAdaptadorTest {
         orden.verify(gateway).guardar(any());
         orden.verify(anexoCU).adjuntarAnexo(eq(SOLICITUD), eq(FOR_23), any(), argThat(actor ->
                 ESTUDIANTE.equals(actor.getUuidUsuario()) && actor.getRol() == RolEtiquetaEtapa.ESTUDIANTE), eq(TOKEN));
-        orden.verify(anexoCU).adjuntarAnexo(eq(SOLICITUD), eq(DOCENTE_CRUCE), any(), any(), eq(TOKEN));
         orden.verify(log).crearLog(eq("Radicar examen supletorio"), contains("2026-ES-0001"), eq(TOKEN));
 
         SolicitudExamenSupletorio guardada = guardada();
@@ -424,16 +423,16 @@ class ExamenSupletorioCUImplAdaptadorTest {
     void elFor23EsObligatorioConCualquierCausa() {
         String nombreFor23 = "Formato firmado por el docente que orienta la asignatura";
         assertEquals(String.format(MensajesError.ANEXOS_OBLIGATORIOS_FALTANTES, nombreFor23),
-                reglaViolada(() -> radicarCruce("am-2", LUNES, "08:00", List.of(anexo(DOCENTE_CRUCE)))));
+                reglaViolada(() -> radicarCruce("am-2", LUNES, "08:00", List.of())));
         assertEquals(String.format(MensajesError.ANEXOS_OBLIGATORIOS_FALTANTES, nombreFor23),
                 reglaViolada(() -> casoDeUso.radicarExamenSupletorio(ESTUDIANTE, "am-1", LUNES, "otra", null, null, null,
                         List.of(anexo(JUSTIFICACION)), TOKEN)));
     }
 
     @Test
-    void conCausaCruceFaltaElFormatoDelDocenteDeLaAsignaturaCruzada() {
-        assertEquals(String.format(MensajesError.ANEXOS_OBLIGATORIOS_FALTANTES, "Formato firmado por el docente de la asignatura con la que se cruza"),
-                reglaViolada(() -> radicarCruce("am-2", LUNES, "08:00", List.of(anexo(FOR_23)))));
+    void conCausaCruceYaNoSeAceptaElFormatoDelDocenteDeLaAsignaturaCruzada() {
+        assertEquals(String.format(MensajesError.ANEXO_NO_CORRESPONDE_CAUSA, "Formato firmado por el docente de la asignatura con la que se cruza", "cruce"),
+                reglaViolada(() -> radicarCruce("am-2", LUNES, "08:00", List.of(anexo(FOR_23), anexo(DOCENTE_CRUCE)))));
     }
 
     @Test
@@ -449,7 +448,7 @@ class ExamenSupletorioCUImplAdaptadorTest {
     @Test
     void conCausaCruceNoSeAceptaElSoporteDeJustificacion() {
         assertEquals(String.format(MensajesError.ANEXO_NO_CORRESPONDE_CAUSA, "Soporte de la justificación de la no presentación", "cruce"),
-                reglaViolada(() -> radicarCruce("am-2", LUNES, "08:00", List.of(anexo(FOR_23), anexo(DOCENTE_CRUCE), anexo(JUSTIFICACION)))));
+                reglaViolada(() -> radicarCruce("am-2", LUNES, "08:00", List.of(anexo(FOR_23), anexo(JUSTIFICACION)))));
     }
 
     @Test
@@ -511,18 +510,19 @@ class ExamenSupletorioCUImplAdaptadorTest {
 
     @Test
     void unArchivoVacioMuyGrandeOConContenidoFalsoSeRechaza() {
-        malFormato(() -> radicarCruce("am-2", LUNES, "08:00", List.of(anexo(FOR_23, "for23.pdf", new byte[0]), anexo(DOCENTE_CRUCE))));
+        malFormato(() -> radicarCruce("am-2", LUNES, "08:00", List.of(anexo(FOR_23, "for23.pdf", new byte[0]))));
         byte[] grande = Arrays.copyOf(pdf(), 5 * 1024 * 1024 + 1);
-        malFormato(() -> radicarCruce("am-2", LUNES, "08:00", List.of(anexo(FOR_23), anexo(DOCENTE_CRUCE, "docente.pdf", grande))));
+        malFormato(() -> radicarCruce("am-2", LUNES, "08:00", List.of(anexo(FOR_23, "for23.pdf", grande))));
         assertEquals(String.format(MensajesError.CONTENIDO_ANEXO_NO_COINCIDE, "png"),
-                malFormato(() -> radicarCruce("am-2", LUNES, "08:00", List.of(anexo(FOR_23), anexo(DOCENTE_CRUCE, "docente.png", pdf())))));
+                malFormato(() -> casoDeUso.radicarExamenSupletorio(ESTUDIANTE, "am-1", LUNES, "otra", null, null, null,
+                        List.of(anexo(FOR_23), anexo(JUSTIFICACION, "justificacion.png", pdf())), TOKEN)));
     }
 
     @Test
     void siFallaElSegundoAnexoElErrorSePropagaSinEscribirElLog() {
-        lenient().when(anexoCU.adjuntarAnexo(eq(SOLICITUD), eq(DOCENTE_CRUCE), any(), any(), eq(TOKEN))).thenThrow(new RuntimeException("disco lleno"));
+        lenient().when(anexoCU.adjuntarAnexo(eq(SOLICITUD), eq(JUSTIFICACION), any(), any(), eq(TOKEN))).thenThrow(new RuntimeException("disco lleno"));
 
-        RuntimeException error = assertThrows(RuntimeException.class, () -> radicarCruce("am-2", LUNES, "08:00", anexosCruce()));
+        RuntimeException error = assertThrows(RuntimeException.class, () -> radicarOtra(LUNES));
 
         assertEquals("disco lleno", error.getMessage());
         verify(anexoCU).adjuntarAnexo(eq(SOLICITUD), eq(FOR_23), any(), any(), eq(TOKEN));

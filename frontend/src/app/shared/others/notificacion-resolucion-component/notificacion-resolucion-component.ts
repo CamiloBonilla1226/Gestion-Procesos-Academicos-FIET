@@ -6,6 +6,7 @@ import { InputAnexoUploadComponent } from '../../inputs/input-anexo-upload-compo
 import { ResumenSolicitudComponent } from '../resumen-solicitud-component/resumen-solicitud-component';
 import { ProgramacionResolucionComponent } from '../programacion-resolucion-component/programacion-resolucion-component';
 import { TextoComunicacionComponent } from '../texto-comunicacion-component/texto-comunicacion-component';
+import { TarjetaPlegableDirective } from '../tarjeta-plegable-directive/tarjeta-plegable-directive';
 import { CancelacionAsignaturaService } from '../../../core/services/cancelacion-asignatura-service';
 import { ErrorHandlerService } from '../../../core/services/error-handler-service';
 import { ToastService } from '../../../core/services/toast-service';
@@ -57,7 +58,8 @@ const EXITOS: Record<DialogoNotificacion, string> = {
     InputAnexoUploadComponent,
     ResumenSolicitudComponent,
     ProgramacionResolucionComponent,
-    TextoComunicacionComponent
+    TextoComunicacionComponent,
+    TarjetaPlegableDirective
   ],
   templateUrl: './notificacion-resolucion-component.html',
   styleUrl: '../../pages/content/estilos-academicos.css'
@@ -102,7 +104,7 @@ export class NotificacionResolucionComponent implements OnChanges {
 
   get resolucion(): string {
     const n = this.notificacion;
-    return n ? `No. ${n.numeroResolucion}${n.sufijoResolucion ?? ''} de ${n.anioResolucion}` : '';
+    return n ? `No. ${n.prefijoResolucion ?? ''}${n.numeroResolucion} de ${n.anioResolucion}` : '';
   }
 
   get resolucionVigente(): string {

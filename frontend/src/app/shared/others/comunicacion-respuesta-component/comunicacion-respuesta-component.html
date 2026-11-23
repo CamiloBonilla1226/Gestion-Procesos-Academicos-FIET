@@ -16,7 +16,7 @@
       notificación con sus soportes. Si el estudiante firma antes en la Decanatura, regístralo en el detalle: DARCA recibe de
       inmediato la Resolución firmada y al estudiante no se le envía la comunicación.
     </p>
-    <app-programacion-resolucion-component [programacion]="comunicacion.programacion" [sufijo]="sufijo" [errores]="errores">
+    <app-programacion-resolucion-component [programacion]="comunicacion.programacion" [prefijo]="prefijo" [errores]="errores">
     </app-programacion-resolucion-component>
     <app-texto-comunicacion-component etiqueta="Mensaje que recibirá el estudiante" [(texto)]="comunicacion.textoComunicacion"
       [valores]="valoresEstudiante" [maximo]="maximoTexto" [error]="errores['textoComunicacion'] || ''" [ayuda]="ayudaEstudiante"

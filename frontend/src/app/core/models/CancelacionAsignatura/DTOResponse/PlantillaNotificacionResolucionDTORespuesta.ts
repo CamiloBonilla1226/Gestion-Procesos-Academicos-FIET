@@ -3,7 +3,7 @@ export interface PlantillaNotificacionResolucionDTORespuesta {
   maximoMensaje: number;
   decisionPropuesta: string;
   anioResolucion: number;
-  sufijoResolucion: string;
+  prefijoResolucion: string;
   textoComunicacion: string;
   textoDarca: string;
   maximoTexto: number;

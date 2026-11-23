@@ -58,7 +58,7 @@ class GeneradorPdfRespuestaTest {
         ResumenRespuesta resumen = base("Cancelación de Asignatura", "Aprobada")
                 .asignaturas(new ArrayList<>(List.of(
                         AsignaturaResumenRespuesta.builder().codigo("IET-001").nombre("Cálculo Diferencial").decision("Aprobada")
-                                .situacionAlCancelar("Bajo rendimiento académico").build(),
+                                .situacionAlCancelar("Bajo rendimiento académico").situacionNuevaMatricula("Cursada por segunda vez (R2)").build(),
                         AsignaturaResumenRespuesta.builder().codigo("IET-002").nombre("Diseño Lógico").decision("Rechazada")
                                 .situacionAlCancelar("No aplica").build())))
                 .build();
@@ -69,7 +69,8 @@ class GeneradorPdfRespuestaTest {
         contiene(texto(pdf), "Respuesta de solicitud académica", "Radicado", "2026-CA-0007", "Tipo de solicitud",
                 "Cancelación de Asignatura", "Fecha de la respuesta", "15 de octubre de 2026", "Ana María Muñoz Peña", "Código estudiantil",
                 "104618021", "Ingeniería Electrónica y Telecomunicaciones", "Estado final", "Aprobada", "Asignaturas", "Situación académica al cancelar",
-                "IET-001", "Cálculo Diferencial", "Bajo rendimiento académico", "IET-002", "Diseño Lógico", "Rechazada", "No aplica");
+                "IET-001", "Cálculo Diferencial", "Bajo rendimiento académico", "IET-002", "Diseño Lógico", "Rechazada", "No aplica",
+                "Estado académico de la asignatura cuando la matricule de nuevo", "Cursada por segunda vez (R2)");
     }
 
     @Test

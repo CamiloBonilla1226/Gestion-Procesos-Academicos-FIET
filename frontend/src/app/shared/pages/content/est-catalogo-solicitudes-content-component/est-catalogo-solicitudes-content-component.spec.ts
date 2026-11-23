@@ -39,18 +39,19 @@ describe('EstCatalogoSolicitudesContentComponent', () => {
       .toBe('Paz y salvo de Bibliotecas, Deportes y Recreación, Salud Integral y División Financiera.');
   });
 
-  it('la ficha del Examen Supletorio tiene Descargar formato al final de sus dos lineas de anexos', async () => {
+  it('la ficha del Examen Supletorio tiene un solo Descargar formato, en la linea del docente que orienta la asignatura', async () => {
     const harness = await abrir();
     const lineas: HTMLElement[] = Array.from(harness.routeNativeElement!.querySelectorAll('[data-tramite="/estudiante/examen-supletorio"] [data-lista="anexos"] li'));
     expect(lineas.length).toBe(2);
-    const enlaces = lineas.map(li => li.querySelector('[data-descargar-formato]') as HTMLAnchorElement);
-    expect(enlaces.map(a => a.textContent!.trim())).toEqual(['Descargar formato', 'Descargar formato']);
-    expect(enlaces.map(a => a.getAttribute('href'))).toEqual(['formatos/formato-firma-docente.doc', 'formatos/formato-firma-docente-cruce.doc']);
-    expect(enlaces.map(a => a.getAttribute('download'))).toEqual(['formato-firma-docente.doc', 'formato-firma-docente-cruce.doc']);
+    const enlace = lineas[0].querySelector('[data-descargar-formato]') as HTMLAnchorElement;
+    expect(enlace.textContent!.trim()).toBe('Descargar formato');
+    expect(enlace.getAttribute('href')).toBe('formatos/supletorio.docx');
+    expect(enlace.getAttribute('download')).toBe('supletorio.docx');
+    expect(enlace.getAttribute('target')).toBeNull();
     expect(lineas[0].textContent).toContain('Formato firmado por el docente que orienta la asignatura');
-    expect(lineas[1].textContent).toContain('docente de la asignatura con la que se presenta el cruce');
-    expect(lineas.every(li => li.lastElementChild?.tagName.toLowerCase() === 'app-enlace-formato-component')).toBeTrue();
-    expect(enlaces.every(a => a.getAttribute('target') === null)).toBeTrue();
+    expect(lineas[0].lastElementChild?.tagName.toLowerCase()).toBe('app-enlace-formato-component');
+    expect(lineas[1].textContent).toContain('Con cruce se sube únicamente el formato');
+    expect(lineas[1].querySelector('[data-descargar-formato]')).toBeNull();
     const otras = harness.routeNativeElement!.querySelectorAll('[data-tramite="/estudiante/cancelacion-matricula"] [data-descargar-formato], [data-tramite="/estudiante/cancelacion-asignatura"] [data-descargar-formato]');
     expect(otras.length).toBe(0);
   });

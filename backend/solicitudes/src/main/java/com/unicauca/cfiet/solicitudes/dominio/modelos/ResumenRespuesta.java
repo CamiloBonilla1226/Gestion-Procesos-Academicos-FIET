@@ -19,6 +19,7 @@ public class ResumenRespuesta {
     private String codigoEstudiantil;
     private String programa;
     private String estadoFinal;
+    private String motivo;
     @Builder.Default
     private List<DatoResumenRespuesta> detalles = new ArrayList<>();
     @Builder.Default

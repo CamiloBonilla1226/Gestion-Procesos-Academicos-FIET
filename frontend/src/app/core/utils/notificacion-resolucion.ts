@@ -23,7 +23,7 @@ export interface FragmentoVista {
 export type ParrafoVista = FragmentoVista[];
 
 export const MAXIMO_NUMERO_RESOLUCION = 20;
-export const MAXIMO_DECISION_RESOLUCION = 60;
+export const MAXIMO_DECISION_RESOLUCION = 500;
 export const MAXIMO_MENSAJE_INICIAL = 2000;
 export const MAXIMO_TEXTO_COMUNICACION = 4000;
 export const MARCAS_COMUNICACION_ESTUDIANTE = ['numero', 'anio', 'nombre', 'decision'];
@@ -32,7 +32,6 @@ export const ANIO_MINIMO_RESOLUCION = 2000;
 export const ANIO_MAXIMO_RESOLUCION = 2100;
 export const ZONA_COLOMBIA = 'America/Bogota';
 
-export const DECISIONES_RESOLUCION = ['aprueba la', 'aprueba parcialmente la', 'rechaza la'];
 
 export const ESTADOS_NOTIFICACION: Record<NotificacionResolucionDTORespuesta['estado'], string> = {
   PROGRAMADA: 'Programada',

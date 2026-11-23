@@ -14,7 +14,7 @@ public class PlantillaNotificacionResolucionDTORespuesta {
     private Integer maximoMensaje;
     private String decisionPropuesta;
     private Integer anioResolucion;
-    private String sufijoResolucion;
+    private String prefijoResolucion;
     private String textoComunicacion;
     private String textoDarca;
     private Integer maximoTexto;

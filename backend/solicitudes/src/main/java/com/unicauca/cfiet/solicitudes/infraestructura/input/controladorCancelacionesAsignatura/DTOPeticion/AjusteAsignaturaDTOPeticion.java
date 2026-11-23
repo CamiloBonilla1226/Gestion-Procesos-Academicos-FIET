@@ -11,6 +11,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AjusteAsignaturaDTOPeticion {
     private String asignaturaSolicitudUuid;
+    private String situacionMatriculaUuid;
     private String situacionCancelarUuid;
+    private String situacionNuevaMatriculaUuid;
     private String observacionDecision;
 }

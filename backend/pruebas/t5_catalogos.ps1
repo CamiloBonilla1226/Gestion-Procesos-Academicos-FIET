@@ -114,11 +114,11 @@ try {
     $Situaciones = [ordered]@{
         R0 = @{ Nombre = "No cursada"; Ambito = $null }
         R1 = @{ Nombre = "Cursada por primera vez"; Ambito = "MATRICULA" }
-        R1R = @{ Nombre = "Recursada por primera vez"; Ambito = "MATRICULA" }
-        R2 = @{ Nombre = "Cursada por segunda vez"; Ambito = "MATRICULA" }
-        R3 = @{ Nombre = "Cursada por tercera vez"; Ambito = "MATRICULA" }
-        C1 = @{ Nombre = "No vista"; Ambito = "CANCELACION" }
-        C2 = @{ Nombre = "Perdida"; Ambito = "CANCELACION" }
+        R1R = @{ Nombre = "(R1) Cursada por primera vez"; Ambito = "MATRICULA" }
+        R2 = @{ Nombre = "(R2) Cursada por segunda vez"; Ambito = "MATRICULA" }
+        R3 = @{ Nombre = "(R3) Cursada por tercera vez"; Ambito = "MATRICULA" }
+        C1 = @{ Nombre = "No cursada"; Ambito = "CANCELACION" }
+        C2 = @{ Nombre = "Como perdida"; Ambito = "CANCELACION" }
     }
 
     $r = Invoke-Api -Metodo GET -Ruta "catalogos-academicos/tipos-solicitud" -Token $tokenRoot

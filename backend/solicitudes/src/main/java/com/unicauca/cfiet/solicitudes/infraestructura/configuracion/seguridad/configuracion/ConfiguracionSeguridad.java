@@ -118,6 +118,7 @@ public class ConfiguracionSeguridad {
                         .requestMatchers(baseUrl + "catalogos-academicos/**").denyAll()
                         .requestMatchers(HttpMethod.GET, baseUrl + "solicitudes-academicas/estudiante").hasAnyAuthority(ApplicationConstantes.ESTUDIANTE_ROL)
                         .requestMatchers(HttpMethod.GET, baseUrl + "solicitudes-academicas/funcionario").hasAnyAuthority(ApplicationConstantes.FUNCIONARIO_ACADEMICO_ROL)
+                        .requestMatchers(HttpMethod.GET, baseUrl + "solicitudes-academicas/funcionario/correos-pendientes").hasAnyAuthority(ApplicationConstantes.FUNCIONARIO_ACADEMICO_ROL)
                         .requestMatchers(HttpMethod.GET, baseUrl + "solicitudes-academicas/funcionario/respuestas/conteo").hasAnyAuthority(ApplicationConstantes.FUNCIONARIO_ACADEMICO_ROL)
                         .requestMatchers(HttpMethod.DELETE, baseUrl + "solicitudes-academicas/funcionario/respuestas").hasAnyAuthority(ApplicationConstantes.FUNCIONARIO_ACADEMICO_ROL)
                         .requestMatchers(HttpMethod.GET, baseUrl + "solicitudes-academicas/decano").hasAnyAuthority(ApplicationConstantes.DECANO)

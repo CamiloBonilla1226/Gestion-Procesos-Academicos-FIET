@@ -20,11 +20,10 @@ public class ConsultaExamenSupletorioCUImplAdaptador implements ConsultaExamenSu
     private static final String USUARIO = "Usuario";
     private static final String USERNAME = "username";
     private static final String NOMBRE = "nombre";
-    private static final List<String> ORDEN_ANEXOS = List.of(FORMATO_FOR_23, SOPORTE_JUSTIFICACION, FORMATO_DOCENTE_CRUCE);
+    private static final List<String> ORDEN_ANEXOS = List.of(FORMATO_FOR_23, SOPORTE_JUSTIFICACION);
     private static final Map<String, List<CausaSupletorio>> CAUSAS_POR_ANEXO = Map.of(
             FORMATO_FOR_23, List.of(CausaSupletorio.CRUCE, CausaSupletorio.OTRA),
-            SOPORTE_JUSTIFICACION, List.of(CausaSupletorio.OTRA),
-            FORMATO_DOCENTE_CRUCE, List.of(CausaSupletorio.CRUCE));
+            SOPORTE_JUSTIFICACION, List.of(CausaSupletorio.OTRA));
 
     private final SolicitudExamenSupletorioGatewayIntPuerto gateway;
     private final EstudianteGatewayIntPuerto estudianteGateway;

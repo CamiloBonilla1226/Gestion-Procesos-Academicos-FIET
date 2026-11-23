@@ -12,4 +12,5 @@ public class AsignaturaResumenRespuesta {
     private String nombre;
     private String decision;
     private String situacionAlCancelar;
+    private String situacionNuevaMatricula;
 }

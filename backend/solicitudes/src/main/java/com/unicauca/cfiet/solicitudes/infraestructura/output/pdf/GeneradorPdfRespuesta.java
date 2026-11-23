@@ -56,6 +56,12 @@ public class GeneradorPdfRespuesta implements GeneradorPdfRespuestaIntPuerto {
             documento.add(new Paragraph(FACULTAD, FUENTE_NOTA));
             documento.add(espacio());
             documento.add(tablaDatos(datosGenerales(resumen)));
+            if (resumen.getMotivo() != null && !resumen.getMotivo().isBlank()) {
+                documento.add(espacio());
+                documento.add(new Paragraph("Motivo de la solicitud", FUENTE_SUBTITULO));
+                documento.add(espacio());
+                documento.add(new Paragraph(resumen.getMotivo().trim(), FUENTE_TEXTO));
+            }
             if (!resumen.getAsignaturas().isEmpty()) {
                 documento.add(espacio());
                 documento.add(new Paragraph("Asignaturas", FUENTE_SUBTITULO));
@@ -126,17 +132,19 @@ public class GeneradorPdfRespuesta implements GeneradorPdfRespuestaIntPuerto {
     }
 
     private PdfPTable tablaAsignaturas(List<AsignaturaResumenRespuesta> asignaturas) throws DocumentException {
-        PdfPTable tabla = new PdfPTable(4);
+        PdfPTable tabla = new PdfPTable(5);
         tabla.setWidthPercentage(100);
-        tabla.setWidths(new float[]{1f, 2.4f, 1f, 1.8f});
+        tabla.setWidths(new float[]{1f, 2.1f, 1f, 1.5f, 1.8f});
         tabla.setHeaderRows(1);
-        for (String encabezado : List.of("Código", "Asignatura", "Decisión", "Situación académica al cancelar"))
+        for (String encabezado : List.of("Código", "Asignatura", "Decisión", "Situación académica al cancelar",
+                "Estado académico de la asignatura cuando la matricule de nuevo"))
             tabla.addCell(celda(encabezado, FUENTE_ETIQUETA, true));
         for (AsignaturaResumenRespuesta asignatura : asignaturas) {
             tabla.addCell(celda(asignatura.getCodigo(), FUENTE_TEXTO, false));
             tabla.addCell(celda(asignatura.getNombre(), FUENTE_TEXTO, false));
             tabla.addCell(celda(asignatura.getDecision(), FUENTE_TEXTO, false));
             tabla.addCell(celda(asignatura.getSituacionAlCancelar(), FUENTE_TEXTO, false));
+            tabla.addCell(celda(asignatura.getSituacionNuevaMatricula(), FUENTE_TEXTO, false));
         }
         return tabla;
     }

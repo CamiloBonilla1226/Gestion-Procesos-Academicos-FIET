@@ -3,17 +3,25 @@ package com.unicauca.cfiet.solicitudes.infraestructura.output.correo;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.AlmacenamientoAnexosIntPuerto;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.AdjuntoCorreo;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.CorreoPreparado;
+import com.unicauca.cfiet.solicitudes.aplicacion.output.FallaTransitoriaCorreoException;
+import jakarta.mail.AuthenticationFailedException;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.mail.MailAuthenticationException;
+import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import javax.net.ssl.SSLException;
+import java.io.InterruptedIOException;
 import java.io.UnsupportedEncodingException;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -57,7 +65,22 @@ public class ServicioCorreo {
             enviador.send(mensaje(correo.getDestinatario(), correo.getAsunto(), correo.getTexto(), html, correo.getAdjuntos()));
         } catch (MessagingException | UnsupportedEncodingException error) {
             throw new IllegalStateException(error.getMessage(), error);
+        } catch (MailException error) {
+            if (esTransitoria(error))
+                throw new FallaTransitoriaCorreoException(error.getMessage(), error);
+            throw error;
         }
+    }
+
+    static boolean esTransitoria(Throwable error) {
+        for (Throwable actual = error; actual != null; actual = actual.getCause() == actual ? null : actual.getCause()) {
+            if (actual instanceof MailAuthenticationException || actual instanceof AuthenticationFailedException
+                    || actual instanceof SocketException || actual instanceof UnknownHostException
+                    || actual instanceof InterruptedIOException || actual instanceof SSLException
+                    || actual.getClass().getSimpleName().equals("MailConnectException"))
+                return true;
+        }
+        return false;
     }
 
     private MimeMessage mensaje(String destinatario, String asunto, String texto, String html, List<AdjuntoCorreo> adjuntos)

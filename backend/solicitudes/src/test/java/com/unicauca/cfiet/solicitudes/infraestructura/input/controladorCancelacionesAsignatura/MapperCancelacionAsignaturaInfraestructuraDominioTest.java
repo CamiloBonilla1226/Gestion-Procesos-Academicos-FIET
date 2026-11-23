@@ -52,23 +52,23 @@ class MapperCancelacionAsignaturaInfraestructuraDominioTest {
     void lasEvaluacionesYDecisionesPasanTalCualAlDominio() {
         List<EvaluacionAsignatura> evaluaciones = mapper.mapearEvaluaciones(List.of(EvaluacionCancelacionAsignaturaDTOPeticion.builder()
                 .asignaturaSolicitudUuid("as-1").numeroFaltas("3").nota("2.5").situacionMatriculaUuid("sit-1")
-                .cumpleCondiciones(false).observacionEvaluacion("Nota baja").build()));
+                .observacionEvaluacion("Nota baja").build()));
         List<DecisionAsignatura> decisiones = mapper.mapearDecisiones(List.of(DecisionAsignaturaDTOPeticion.builder()
                 .asignaturaSolicitudUuid("as-1").aprobada(false).build()));
         List<AjusteAsignatura> ajustes = mapper.mapearAjustes(List.of(AjusteAsignaturaDTOPeticion.builder()
-                .asignaturaSolicitudUuid("as-1").situacionCancelarUuid("sit-2").observacionDecision("No procede").build()));
+                .asignaturaSolicitudUuid("as-1").situacionMatriculaUuid("sit-1").situacionCancelarUuid("sit-2").observacionDecision("No procede").build()));
 
         EvaluacionAsignatura evaluacion = evaluaciones.get(0);
         assertEquals("as-1", evaluacion.getUuidAsignaturaSolicitud());
         assertEquals("3", evaluacion.getNumeroFaltas());
         assertEquals("2.5", evaluacion.getNota());
         assertEquals("sit-1", evaluacion.getUuidSituacionMatricula());
-        assertFalse(evaluacion.getCumpleCondiciones());
         assertEquals("Nota baja", evaluacion.getObservacionEvaluacion());
         DecisionAsignatura decision = decisiones.get(0);
         assertEquals("as-1", decision.getUuidAsignaturaSolicitud());
         assertFalse(decision.getAprobada());
         assertEquals("as-1", ajustes.get(0).getUuidAsignaturaSolicitud());
+        assertEquals("sit-1", ajustes.get(0).getUuidSituacionMatricula());
         assertEquals("sit-2", ajustes.get(0).getUuidSituacionCancelar());
         assertEquals("No procede", ajustes.get(0).getObservacionDecision());
         assertNull(mapper.mapearEvaluaciones(null));

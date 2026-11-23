@@ -78,19 +78,6 @@ select.celda-campo {
   line-height: 1.55;
 }
 
-.etiqueta-cambiada {
-  display: inline-block;
-  margin-top: 4px;
-  padding: 1px 7px;
-  border: 1px solid #F0DEB4;
-  border-radius: 10px;
-  background: #FFF8E9;
-  color: #6B551F;
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
 .tabla-asignaturas tr.fila-resaltada td {
   background: #F3F6FD;
 }

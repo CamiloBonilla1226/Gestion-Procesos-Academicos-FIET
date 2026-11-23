@@ -23,4 +23,5 @@ public class AsignaturaSolicitadaDTORespuesta {
     private String observacionDecision;
     private Boolean decisionCambiadaPorDecano;
     private SituacionAsignaturaDTORespuesta situacionCancelar;
+    private SituacionAsignaturaDTORespuesta situacionNuevaMatricula;
 }

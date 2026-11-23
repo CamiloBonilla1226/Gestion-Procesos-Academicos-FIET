@@ -9,7 +9,7 @@
   <app-simple-button-component label="Reintentar" width="100px" height="30px" (clicked)="cargar()"></app-simple-button-component>
 </div>
 } @else if (notificacion; as n) {
-<section class="tarjeta" data-panel-notificacion [attr.data-estado-notificacion]="n.estado">
+<section class="tarjeta" data-panel-notificacion [attr.data-estado-notificacion]="n.estado" appTarjetaPlegable>
   <header class="tarjeta-head">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/></svg>
     <h3>Notificación de la Resolución</h3>
@@ -113,7 +113,7 @@
     <app-resumen-solicitud-component [solicitud]="solicitud"></app-resumen-solicitud-component>
     @switch (dialogo) {
     @case ('reprogramar') {
-    <app-programacion-resolucion-component [programacion]="programacion" [sufijo]="notificacion?.sufijoResolucion ?? ''" [errores]="errores">
+    <app-programacion-resolucion-component [programacion]="programacion" [prefijo]="notificacion?.prefijoResolucion ?? ''" [errores]="errores">
     </app-programacion-resolucion-component>
     }
     @case ('firma') {

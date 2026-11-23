@@ -188,6 +188,7 @@ public class BeanConfiguracion {
 
     @Bean
     public NotificadorRespuestaFinal crearNotificadorRespuestaFinal(SolicitudCancelacionAsignaturaGatewayIntPuerto cancelacionAsignaturaGateway,
+                                                                    SolicitudCancelacionMatriculaGatewayIntPuerto cancelacionMatriculaGateway,
                                                                     SolicitudExamenSupletorioGatewayIntPuerto supletorioGateway,
                                                                     ResolucionAcademicaGatewayIntPuerto resolucionGateway,
                                                                     AnexoAcademicoGatewayIntPuerto anexoGateway,
@@ -196,7 +197,7 @@ public class BeanConfiguracion {
                                                                     PreparacionCorreoIntPuerto preparacion,
                                                                     CorreoIntPuerto correo,
                                                                     @Value("${correo.darca.destinatario:}") String destinatarioDarca){
-        return new NotificadorRespuestaFinal(cancelacionAsignaturaGateway, supletorioGateway, resolucionGateway, anexoGateway, usuarioGateway,
+        return new NotificadorRespuestaFinal(cancelacionAsignaturaGateway, cancelacionMatriculaGateway, supletorioGateway, resolucionGateway, anexoGateway, usuarioGateway,
                 generadorPdf, preparacion, correo, destinatarioDarca);
     }
 
@@ -242,10 +243,10 @@ public class BeanConfiguracion {
                                                                              @Value("${correo.firma.cargo:}") String firmaCargo,
                                                                              @Value("${correo.firma.dependencia:}") String firmaDependencia,
                                                                              @Value("${correo.firma.facultad:}") String firmaFacultad,
-                                                                             @Value("${correo.resolucion.sufijo:}") String sufijo){
+                                                                             @Value("${correo.resolucion.prefijo:}") String prefijo){
         FirmaCorreo firma = FirmaCorreo.builder().nombre(firmaNombre).cargo(firmaCargo).dependencia(firmaDependencia).facultad(firmaFacultad).build();
         return new NotificacionResolucionCUImplAdaptador(gateway, solicitudGateway, cancelacionGateway, sesionGateway, jwtServicio, resolucionCU,
-                notificador, generadorPdf, correo, new ComunicacionResolucion(firma, sufijo), formateadorExcepciones, log,
+                notificador, generadorPdf, correo, new ComunicacionResolucion(firma, prefijo), formateadorExcepciones, log,
                 Clock.system(ZoneId.of("America/Bogota")), ejecucionDiferida);
     }
 
@@ -274,6 +275,11 @@ public class BeanConfiguracion {
                                                                            LogCUIntPuerto log){
         return new EliminacionRespuestasCUImplAdaptador(gateway, sesionGateway, jwtServicio, almacenamiento, formateadorExcepciones, log,
                 Clock.system(ZoneId.of("America/Bogota")));
+    }
+
+    @Bean
+    public CorreosPendientesCUImplAdaptador crearCorreosPendientesCU(CorreoIntPuerto correo){
+        return new CorreosPendientesCUImplAdaptador(correo);
     }
 
     @Bean

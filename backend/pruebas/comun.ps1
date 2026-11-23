@@ -209,6 +209,15 @@ function Consultar-Base {
     return $salida
 }
 
+function Sentencia-CorreosPrueba {
+    param([string]$Desde, [string]$Solicitudes, [string]$Usuarios)
+    $filtros = @()
+    if ($Usuarios) { $filtros += "destinatario in (select correoElectronico from usuarios where uuidUsuario in ($Usuarios))" }
+    if ($Solicitudes) { $filtros += "exists (select 1 from SOLICITUD_ACADEMICA s where s.uuidSolicitudAcademica in ($Solicitudes) and CORREO_PENDIENTE.asunto like concat('%Radicado ', s.radicado))" }
+    if (-not $Desde -or $filtros.Count -eq 0) { return $null }
+    return "delete from CORREO_PENDIENTE where fechaCreacion >= '$Desde' and (" + ($filtros -join " or ") + ")"
+}
+
 function Valores-Sql {
     param([string[]]$Valores)
     return (@($Valores | Where-Object { $_ } | Select-Object -Unique | ForEach-Object { "'" + $_.Replace("'", "''") + "'" }) -join ",")

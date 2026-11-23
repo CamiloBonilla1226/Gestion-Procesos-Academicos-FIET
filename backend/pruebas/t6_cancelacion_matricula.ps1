@@ -209,6 +209,7 @@ function Estados-Matricula {
 }
 
 $tokenRoot = Iniciar-Sesion -Usuario "rootfiet" -Clave "rootfiet1234"
+$inicioCorreos = Consultar-Base "select now()"
 $tipoCm = Ejecutar-Sql "select uuidTipoSolicitudAcademica from TIPO_SOLICITUD_ACADEMICA where nombre like 'Cancelaci%n de Matr%cula'"
 $tipoCa = Ejecutar-Sql "select uuidTipoSolicitudAcademica from TIPO_SOLICITUD_ACADEMICA where nombre like 'Cancelaci%n de Asignatura'"
 $situaciones = @((Ejecutar-Sql "select uuidSituacionAcademica from SITUACION_ACADEMICA_ASIGNATURA where ambito = 'MATRICULA' order by codigo limit 1"), (Ejecutar-Sql "select uuidSituacionAcademica from SITUACION_ACADEMICA_ASIGNATURA where ambito = 'CANCELACION' order by codigo limit 1"))
@@ -481,6 +482,8 @@ finally {
         $sentencias += "delete from usuarios where uuidUsuario in ($usu)"
         $sentencias += "delete from usuariosLivianos where uuidUsuario in ($usu)"
     }
+    $correosPrueba = Sentencia-CorreosPrueba $inicioCorreos $sol $usu
+    if ($correosPrueba) { $sentencias = @($correosPrueba) + $sentencias }
     if ($sentencias.Count -gt 0) { Ejecutar-Sql (($sentencias -join "; ") + ";") | Out-Null }
 
     foreach ($uuid in $solicitudes) {

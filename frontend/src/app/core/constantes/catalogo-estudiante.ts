@@ -1,4 +1,4 @@
-import { FORMATO_FIRMA_DOCENTE, FORMATO_FIRMA_DOCENTE_CRUCE } from './formatos-supletorio';
+import { FORMATO_SUPLETORIO } from './formatos-supletorio';
 
 export interface AnexoCatalogo {
   texto: string;
@@ -56,11 +56,8 @@ export const TRAMITES_ESTUDIANTE: TramiteCatalogo[] = [
       'Contar con la firma del docente que orienta la asignatura.'
     ],
     anexos: [
-      { texto: 'Formato firmado por el docente que orienta la asignatura, siempre obligatorio.', formato: FORMATO_FIRMA_DOCENTE },
-      {
-        texto: 'Soporte de la justificación, opcional, o formato firmado por el docente de la asignatura con la que se presenta el cruce si esa es la causa.',
-        formato: FORMATO_FIRMA_DOCENTE_CRUCE
-      }
+      { texto: 'Formato firmado por el docente que orienta la asignatura, siempre obligatorio.', formato: FORMATO_SUPLETORIO },
+      { texto: 'Soporte de la justificación, solo si la causa no es un cruce de exámenes. Con cruce se sube únicamente el formato.' }
     ]
   }
 ];

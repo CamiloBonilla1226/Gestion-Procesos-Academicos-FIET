@@ -232,6 +232,7 @@ function Quitar-Trigger {
 }
 
 $tokenRoot = Iniciar-Sesion -Usuario "rootfiet" -Clave "rootfiet1234"
+$inicioCorreos = Consultar-Base "select now()"
 $tipoEs = Ejecutar-Sql "select uuidTipoSolicitudAcademica from TIPO_SOLICITUD_ACADEMICA where nombre like 'Examen Supletorio'"
 $tipoCm = Ejecutar-Sql "select uuidTipoSolicitudAcademica from TIPO_SOLICITUD_ACADEMICA where nombre like 'Cancelaci%n de Matr%cula'"
 $for23 = Tipo-Anexo "Formato firmado por el docente que orienta la asignatura"
@@ -322,8 +323,8 @@ try {
     $anexosForm = @($formulario.anexos)
     $porTipo = @{}
     foreach ($anexo in $anexosForm) { $porTipo[$anexo.uuidTipoAnexoAcademico] = $anexo }
-    Escribir-Resultado "el formulario trae los tres anexos de radicacion con formatos y 5 MB (obtuvo $($anexosForm.Count))" (($anexosForm.Count -eq 3) -and $porTipo[$for23] -and $porTipo[$justificacion] -and $porTipo[$docente] -and (@($anexosForm | Where-Object { $_.formatosPermitidos -and $_.tamanioMaximoBytes -eq 5242880 -and $_.nombre }).Count -eq 3))
-    Escribir-Resultado "cada anexo dice con que causa se exige (FOR-23 ambas, justificacion otra, docente cruce)" (((@($porTipo[$for23].causas) -join ',') -eq "cruce,otra") -and ((@($porTipo[$justificacion].causas) -join ',') -eq "otra") -and ((@($porTipo[$docente].causas) -join ',') -eq "cruce"))
+    Escribir-Resultado "el formulario trae los dos anexos de radicacion con formatos y 5 MB, sin el formato del docente cruzado (obtuvo $($anexosForm.Count))" (($anexosForm.Count -eq 2) -and $porTipo[$for23] -and $porTipo[$justificacion] -and (-not $porTipo[$docente]) -and (@($anexosForm | Where-Object { $_.formatosPermitidos -and $_.tamanioMaximoBytes -eq 5242880 -and $_.nombre }).Count -eq 2))
+    Escribir-Resultado "cada anexo dice con que causa se exige (FOR-23 ambas, justificacion otra)" (((@($porTipo[$for23].causas) -join ',') -eq "cruce,otra") -and ((@($porTipo[$justificacion].causas) -join ',') -eq "otra"))
     Escribir-Resultado "el formulario no trae recibo ni comprobante, ni rol ni tipo de usuario" (($r.Body -notmatch $recibo) -and ($r.Body -notmatch $comprobante) -and ($r.Body -notmatch '"rol') -and ($r.Body -notmatch 'tipoUsuario'))
     $a1 = $materias[0].uuidAsignaturaMatriculada; $a2 = $materias[1].uuidAsignaturaMatriculada
     $ajena = @(Activas $est2)[0]
@@ -347,34 +348,36 @@ try {
     Escribir-Resultado "una causa distinta de cruce u otra se rechaza (obtuvo $($r.Status))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "*debe ser cruce u otra*"))
     $r = Radicar -Token $est1.Token -Asignatura $a1 -Fecha $hoy -Causa "otra" -Tipos @($for23) -Pdf $pdf
     Escribir-Resultado "con causa otra falta el soporte de justificacion (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "Falta el anexo obligatorio: Soporte de la justificaci*"))
-    $r = Radicar -Token $est1.Token -Asignatura $a1 -Fecha $hoy -Causa "cruce" -Cruzada $a2 -FechaCruzada $hoy -Hora "10:30" -Tipos @($docente) -Pdf $pdf
+    $r = Radicar -Token $est1.Token -Asignatura $a1 -Fecha $hoy -Causa "cruce" -Cruzada $a2 -FechaCruzada $hoy -Hora "10:30" -Tipos @() -Pdf $pdf
     Escribir-Resultado "con causa cruce falta el FOR-23 (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "Falta el anexo obligatorio: Formato firmado por el docente que orienta la asignatura*"))
     $r = Radicar -Token $est1.Token -Asignatura $a1 -Fecha $hoy -Causa "otra" -Tipos @($for23, $justificacion, $docente) -Pdf $pdf
     Escribir-Resultado "con causa otra el formato del docente cruzado se rechaza (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "*no corresponde a la causa otra*"))
-    $r = Radicar -Token $est1.Token -Asignatura $a1 -Fecha $hoy -Causa "cruce" -Cruzada $a2 -FechaCruzada $hoy -Hora "10:30" -Tipos @($for23, $docente, $justificacion) -Pdf $pdf
+    $r = Radicar -Token $est1.Token -Asignatura $a1 -Fecha $hoy -Causa "cruce" -Cruzada $a2 -FechaCruzada $hoy -Hora "10:30" -Tipos @($for23, $docente) -Pdf $pdf
+    Escribir-Resultado "con causa cruce el formato del docente cruzado ya no se acepta (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "*no corresponde a la causa cruce*"))
+    $r = Radicar -Token $est1.Token -Asignatura $a1 -Fecha $hoy -Causa "cruce" -Cruzada $a2 -FechaCruzada $hoy -Hora "10:30" -Tipos @($for23, $justificacion) -Pdf $pdf
     Escribir-Resultado "con causa cruce el soporte de justificacion se rechaza (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "*no corresponde a la causa cruce*"))
     $r = Radicar -Token $est1.Token -Asignatura $a1 -Fecha $hoy -Causa "otra" -Tipos @($for23, $justificacion, $recibo) -Pdf $pdf
     Escribir-Resultado "el recibo de pago no se acepta al radicar (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "*no se entrega al radicar*"))
-    $r = Radicar -Token $est1.Token -Asignatura $a1 -Fecha $hoy -Causa "cruce" -Cruzada $a1 -FechaCruzada $hoy -Hora "10:30" -Tipos @($for23, $docente) -Pdf $pdf
+    $r = Radicar -Token $est1.Token -Asignatura $a1 -Fecha $hoy -Causa "cruce" -Cruzada $a1 -FechaCruzada $hoy -Hora "10:30" -Tipos @($for23) -Pdf $pdf
     Escribir-Resultado "la asignatura cruzada no puede ser la misma del examen (obtuvo $($r.Status))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "*debe ser distinta*"))
-    $r = Radicar -Token $est1.Token -Asignatura $a1 -Fecha $hoy -Causa "cruce" -Cruzada $a2 -FechaCruzada $hoy -Hora "7:30" -Tipos @($for23, $docente) -Pdf $pdf
+    $r = Radicar -Token $est1.Token -Asignatura $a1 -Fecha $hoy -Causa "cruce" -Cruzada $a2 -FechaCruzada $hoy -Hora "7:30" -Tipos @($for23) -Pdf $pdf
     Escribir-Resultado "una hora del cruce sin formato HH:mm se rechaza (obtuvo $($r.Status))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "*HH:mm*"))
     Escribir-Resultado "ningun intento fallido dejo solicitud, historial, especializacion, cruce, anexos ni archivos ($(Conteos $est1.Uuid))" ((Conteos $est1.Uuid) -eq $antes)
 
     $ultimo = Ejecutar-Sql "select coalesce(max(radicado), '') from SOLICITUD_ACADEMICA where radicado like '$anio-ES-%'"
     $consecutivo = if ($ultimo) { [int]$ultimo.Substring(8) + 1 } else { 1 }
     $esperado = "$anio-ES-" + $consecutivo.ToString("0000")
-    $r = Radicar -Token $est1.Token -Asignatura $a1 -Fecha $hoy -Causa "cruce" -Cruzada $a2 -FechaCruzada $hoy -Hora "10:30" -Tipos @($for23, $docente) -Pdf $pdf
+    $r = Radicar -Token $est1.Token -Asignatura $a1 -Fecha $hoy -Causa "cruce" -Cruzada $a2 -FechaCruzada $hoy -Hora "10:30" -Tipos @($for23) -Pdf $pdf
     $radicada = if ($r.Status -eq 200) { Leer-Json $r } else { $null }
     $sol1 = $radicada.uuidSolicitudAcademica
     Escribir-Resultado "la radicacion por cruce responde uuid y radicado $esperado (obtuvo $($r.Status) $($radicada.radicado) $(Mensaje-De $r))" (($r.Status -eq 200) -and $sol1 -and ($radicada.radicado -eq $esperado))
     Escribir-Resultado "la solicitud queda RADICADA con su cruce en MySQL (obtuvo $(Etapa-De $sol1))" (((Etapa-De $sol1) -eq "RADICADA") -and ((Ejecutar-Sql "select concat(c.AsignaturaMatriculadaCruzada_uuid, '|', c.horaExamenCruzada, '|', s.tipoCausa, '|', coalesce(s.Docente_uuid, '-')) from SOLICITUD_EXAMEN_SUPLETORIO s join SOLICITUD_SUPLETORIO_CRUCE_ASIGNATURA c on c.SolicitudAcademica_uuid = s.SolicitudAcademica_uuid where s.SolicitudAcademica_uuid = '$sol1'") -eq "$a2|10:30|cruce|-"))
     Verificar-EtapaHttp -Solicitud $sol1 -Esperada "RADICADA" -Estudiante $est1.Token -Funcionario $fa1.Token -Decano $decano.Token
-    Escribir-Resultado "quedaron los dos anexos y sus archivos (obtuvo $(@(Get-ChildItem (Join-Path $Global:CarpetaAnexos $sol1) -File).Count))" (((Ejecutar-Sql "select count(*) from ANEXO_ACADEMICO where SolicitudAcademica_uuid = '$sol1'") -eq "2") -and (@(Get-ChildItem (Join-Path $Global:CarpetaAnexos $sol1) -File).Count -eq 2))
+    Escribir-Resultado "quedo el FOR-23 y su archivo, el unico anexo con cruce (obtuvo $(@(Get-ChildItem (Join-Path $Global:CarpetaAnexos $sol1) -File).Count))" (((Ejecutar-Sql "select count(*) from ANEXO_ACADEMICO where SolicitudAcademica_uuid = '$sol1'") -eq "1") -and (@(Get-ChildItem (Join-Path $Global:CarpetaAnexos $sol1) -File).Count -eq 1))
     $r = Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$sol1" -Token $est1.Token
     $detalle = Leer-Json $r
     Escribir-Resultado "el detalle del estudiante trae radicado, etiqueta, asignatura, causa, fecha y cruce (obtuvo $($r.Status))" (($r.Status -eq 200) -and ($detalle.solicitud.radicado -eq $esperado) -and ($detalle.solicitud.etiqueta -eq "En tr$([char]0x00E1)mite") -and ($detalle.asignatura.uuidAsignaturaMatriculada -eq $a1) -and ($detalle.tipoCausa -eq "cruce") -and ($detalle.fechaExamenNoPresentado -eq $hoy) -and ($detalle.cruce.asignatura.uuidAsignaturaMatriculada -eq $a2) -and ($detalle.cruce.fechaExamenCruzada -eq $hoy) -and ($detalle.cruce.horaExamenCruzada -eq "10:30") -and ($null -eq $detalle.docente) -and ($r.Body -notmatch "fechaAcordadaExamen"))
-    Escribir-Resultado "el detalle lista los anexos con su tipo y sin contenido ni ruta" ((@($detalle.solicitud.anexos).Count -eq 2) -and (Anexo-De $detalle $for23).tipoAnexo -and (Anexo-De $detalle $docente).tipoAnexo -and ($r.Body -notmatch 'urlArchivo') -and ($r.Body -notmatch 'contenido'))
+    Escribir-Resultado "el detalle lista los anexos con su tipo y sin contenido ni ruta" ((@($detalle.solicitud.anexos).Count -eq 1) -and (Anexo-De $detalle $for23).tipoAnexo -and ($r.Body -notmatch 'urlArchivo') -and ($r.Body -notmatch 'contenido'))
     $r = Radicar -Token $est1.Token -Asignatura $a2 -Fecha $hoy -Causa "otra" -Tipos @($for23, $justificacion) -Pdf $pdf
     Escribir-Resultado "una segunda solicitud en curso se rechaza (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "*en curso*") -and ((Ejecutar-Sql "select count(*) from SOLICITUD_ACADEMICA where Estudiante_uuid = '$($est1.Uuid)'") -eq "1"))
 
@@ -459,7 +462,7 @@ try {
     Escribir-Resultado "el profesor quedo en MySQL y en el detalle, con una notificacion sin leer (obtuvo $notificaciones)" (($docenteBase -eq $docente1.Uuid) -and ($detalle.docente.uuidUsuario -eq $docente1.Uuid) -and ($notificaciones -eq "1"))
     $detalle = Leer-Json (Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$sol1" -Token $est1.Token)
     $mensaje = (@(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol1/historial" -Token $est1.Token)) | Where-Object { $_.accion -eq "APROBAR_COMPROBANTE" }).observaciones
-    Escribir-Resultado "el estudiante ve Aprobada, cuatro anexos y la observacion de la respuesta (obtuvo $mensaje)" (($detalle.solicitud.etiqueta -eq "Aprobada") -and (@($detalle.solicitud.anexos).Count -eq 4) -and ($mensaje -eq "Presentarse el lunes"))
+    Escribir-Resultado "el estudiante ve Aprobada, tres anexos (FOR-23, recibo y comprobante) y la observacion de la respuesta (obtuvo $mensaje)" (($detalle.solicitud.etiqueta -eq "Aprobada") -and (@($detalle.solicitud.anexos).Count -eq 3) -and ($mensaje -eq "Presentarse el lunes"))
     $r = Invoke-Api -Metodo GET -Ruta "notificaciones-docente" -Token $docente1.Token
     $notificacion = @(Leer-Json $r | Where-Object { $_.uuidSolicitudAcademica -eq $sol1 })
     Escribir-Resultado "el profesor ve su notificacion con radicado, estudiante, asignatura y resultado (obtuvo $($r.Status))" (($r.Status -eq 200) -and ($notificacion.Count -eq 1) -and $notificacion[0].radicado -and $notificacion[0].estudiante -and $notificacion[0].asignatura -and ($notificacion[0].resultado -eq "Aprobada") -and (-not $notificacion[0].leida))
@@ -467,7 +470,7 @@ try {
     $r2 = Invoke-Api -Metodo GET -Ruta "notificaciones-docente" -Token $docente2.Token
     Escribir-Resultado "otro docente no ve la notificacion ajena (obtuvo $($r.Status), codigo $((Leer-Json $r).codigoError))" (($r.Status -ne 200) -and ((Leer-Json $r).codigoError -eq "3") -and (@(Leer-Json $r2 | Where-Object { $_.uuidSolicitudAcademica -eq $sol1 }).Count -eq 0))
     $r = Invoke-Api -Metodo PATCH -Ruta "notificaciones-docente/$($notificacion[0].uuidNotificacion)/leida" -Token $docente1.Token
-    Escribir-Resultado "el profesor abre la notificacion, ve la solicitud sin la observacion y queda leida (obtuvo $($r.Status))" (($r.Status -eq 200) -and (Leer-Json $r).notificacion.leida -and (@((Leer-Json $r).anexos).Count -eq 4) -and ($r.Body -notmatch "Presentarse el lunes"))
+    Escribir-Resultado "el profesor abre la notificacion, ve la solicitud sin la observacion y queda leida (obtuvo $($r.Status))" (($r.Status -eq 200) -and (Leer-Json $r).notificacion.leida -and (@((Leer-Json $r).anexos).Count -eq 3) -and ($r.Body -notmatch "Presentarse el lunes"))
     $d = Descargar -Ruta "solicitudes-academicas/$sol1/anexos/$anexoRecibo" -Token $est1.Token
     Escribir-Resultado "en APROBADA el estudiante sigue descargando el recibo (200, obtuvo $($d.Status))" (($d.Status -eq 200) -and (Mismos-Bytes $pdfRecibo $d.Bytes))
     $historial = Historial-De $sol1 $est1.Token
@@ -584,6 +587,8 @@ finally {
         $sentencias += "delete from usuarios where uuidUsuario in ($usu)"
         $sentencias += "delete from usuariosLivianos where uuidUsuario in ($usu)"
     }
+    $correosPrueba = Sentencia-CorreosPrueba $inicioCorreos $sol $usu
+    if ($correosPrueba) { $sentencias = @($correosPrueba) + $sentencias }
     if ($sentencias.Count -gt 0) { Ejecutar-Sql (($sentencias -join "; ") + ";") | Out-Null }
 
     foreach ($uuid in $solicitudes) {

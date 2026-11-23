@@ -14,6 +14,7 @@ public class AsignaturaSolicitudAcademica {
     private String nota;
     private SituacionAcademicaAsignatura situacionMatricula;
     private SituacionAcademicaAsignatura situacionCancelar;
+    private SituacionAcademicaAsignatura situacionNuevaMatricula;
     private Boolean cumpleCondiciones;
     private String observacionEvaluacion;
     private Boolean aprobadaPorDecano;

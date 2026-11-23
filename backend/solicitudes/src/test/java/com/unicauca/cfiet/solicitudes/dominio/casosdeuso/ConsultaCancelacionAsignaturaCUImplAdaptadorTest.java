@@ -80,6 +80,7 @@ class ConsultaCancelacionAsignaturaCUImplAdaptadorTest {
                 .aprobadaPorDecano(aprobada)
                 .observacionDecision(aprobada ? null : "No procede")
                 .situacionCancelar(aprobada ? situacion("sit-r1") : null)
+                .situacionNuevaMatricula(aprobada ? situacion("sit-r2") : null)
                 .build();
     }
 
@@ -202,6 +203,7 @@ class ConsultaCancelacionAsignaturaCUImplAdaptadorTest {
             assertNull(asignatura.getAprobadaPorDecano());
             assertNull(asignatura.getObservacionDecision());
             assertNull(asignatura.getSituacionCancelar());
+            assertNull(asignatura.getSituacionNuevaMatricula());
         }
     }
 
@@ -221,8 +223,10 @@ class ConsultaCancelacionAsignaturaCUImplAdaptadorTest {
         assertNull(asignaturas.get(1).decisionCambiadaPorDecano());
         assertNull(asignaturas.get(0).getNota());
         assertEquals("sit-r1", asignaturas.get(0).getSituacionCancelar().getUuidSituacionAcademica());
+        assertEquals("sit-r2", asignaturas.get(0).getSituacionNuevaMatricula().getUuidSituacionAcademica());
         assertNull(asignaturas.get(0).getSituacionMatricula());
         assertNull(asignaturas.get(1).getSituacionCancelar());
+        assertNull(asignaturas.get(1).getSituacionNuevaMatricula());
     }
 
     @Test

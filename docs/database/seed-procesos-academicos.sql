@@ -74,11 +74,11 @@ INSERT IGNORE INTO TIPO_ANEXO_ACADEMICO (uuidTipoAnexoAcademico, TipoSolicitudAc
 INSERT IGNORE INTO SITUACION_ACADEMICA_ASIGNATURA (uuidSituacionAcademica, codigo, nombre, ambito) VALUES
 ('6eec86b1-53da-4c65-baa9-96bf67669c13', 'R0', 'No cursada', NULL),
 ('62aa0705-f878-408e-8111-78691c1a871a', 'R1', 'Cursada por primera vez', 'MATRICULA'),
-('01e928be-eaa1-49f2-9361-c01474105a33', 'R1R', 'Recursada por primera vez', 'MATRICULA'),
-('fa14cee3-6e4f-4178-955c-ba73312e08cb', 'R2', 'Cursada por segunda vez', 'MATRICULA'),
-('a6077d43-d5fc-4e8d-9424-18c549515c24', 'R3', 'Cursada por tercera vez', 'MATRICULA'),
-('73e1a062-b426-4f52-9cd9-e884f9f65df3', 'C1', 'No vista', 'CANCELACION'),
-('a36ac5d2-2c4f-4a23-a212-e1cb2e54fc1b', 'C2', 'Perdida', 'CANCELACION');
+('01e928be-eaa1-49f2-9361-c01474105a33', 'R1R', '(R1) Cursada por primera vez', 'MATRICULA'),
+('fa14cee3-6e4f-4178-955c-ba73312e08cb', 'R2', '(R2) Cursada por segunda vez', 'MATRICULA'),
+('a6077d43-d5fc-4e8d-9424-18c549515c24', 'R3', '(R3) Cursada por tercera vez', 'MATRICULA'),
+('73e1a062-b426-4f52-9cd9-e884f9f65df3', 'C1', 'No cursada', 'CANCELACION'),
+('a36ac5d2-2c4f-4a23-a212-e1cb2e54fc1b', 'C2', 'Como perdida', 'CANCELACION');
 
 UPDATE ETAPA_ETIQUETA_ROL SET etiqueta = 'Pendiente Notificar' WHERE rol = 'FUNCIONARIO' AND Etapa_uuid IN ('1dfc0089-f1b0-486d-bfc5-2025081d800f', 'fa3c502f-dc81-46eb-bace-88deb194564b');
 UPDATE ETAPA_ETIQUETA_ROL SET etiqueta = 'Recibo Pagado' WHERE rol = 'FUNCIONARIO' AND Etapa_uuid = 'ac289652-cf4e-4142-bec4-8809cbcb74fc';
@@ -92,3 +92,8 @@ UPDATE PROGRAMA_ACADEMICO SET sigla = 'PIS' WHERE uuidProgramaAcademico = '5d73d
 UPDATE PROGRAMA_ACADEMICO SET sigla = 'PIAI' WHERE uuidProgramaAcademico = '8606cf01-c111-4aef-92cd-a111cb7b7a38';
 UPDATE PROGRAMA_ACADEMICO SET sigla = 'TTM' WHERE uuidProgramaAcademico = '7ebedec6-aeab-403b-8a97-9312061bd4b7';
 UPDATE PROGRAMA_ACADEMICO SET sigla = 'PIAC' WHERE uuidProgramaAcademico = 'd21ec0bf-cee1-4a06-8ae7-00477e88cfe6';
+UPDATE SITUACION_ACADEMICA_ASIGNATURA SET nombre = '(R1) Cursada por primera vez' WHERE uuidSituacionAcademica = '01e928be-eaa1-49f2-9361-c01474105a33';
+UPDATE SITUACION_ACADEMICA_ASIGNATURA SET nombre = '(R2) Cursada por segunda vez' WHERE uuidSituacionAcademica = 'fa14cee3-6e4f-4178-955c-ba73312e08cb';
+UPDATE SITUACION_ACADEMICA_ASIGNATURA SET nombre = '(R3) Cursada por tercera vez' WHERE uuidSituacionAcademica = 'a6077d43-d5fc-4e8d-9424-18c549515c24';
+UPDATE SITUACION_ACADEMICA_ASIGNATURA SET nombre = 'No cursada' WHERE uuidSituacionAcademica = '73e1a062-b426-4f52-9cd9-e884f9f65df3';
+UPDATE SITUACION_ACADEMICA_ASIGNATURA SET nombre = 'Como perdida' WHERE uuidSituacionAcademica = 'a36ac5d2-2c4f-4a23-a212-e1cb2e54fc1b';

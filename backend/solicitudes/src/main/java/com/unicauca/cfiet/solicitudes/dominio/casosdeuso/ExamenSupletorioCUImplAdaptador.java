@@ -217,8 +217,7 @@ public class ExamenSupletorioCUImplAdaptador implements ExamenSupletorioCUIntPue
         Map<String, TipoAnexoAcademico> catalogo = new HashMap<>();
         for (TipoAnexoAcademico tipoAnexo : tipoAnexoGateway.getPorTipo(tipo.getUuidTipoSolicitudAcademica()))
             catalogo.put(tipoAnexo.getUuidTipoAnexoAcademico(), tipoAnexo);
-        String propioDeLaCausa = causa == CausaSupletorio.CRUCE ? FORMATO_DOCENTE_CRUCE : SOPORTE_JUSTIFICACION;
-        String ajenoALaCausa = causa == CausaSupletorio.CRUCE ? SOPORTE_JUSTIFICACION : FORMATO_DOCENTE_CRUCE;
+        List<String> obligatorios = causa == CausaSupletorio.CRUCE ? List.of(FORMATO_FOR_23) : List.of(FORMATO_FOR_23, SOPORTE_JUSTIFICACION);
 
         Set<String> presentes = new HashSet<>();
         List<TipoAnexoAcademico> tipos = new ArrayList<>();
@@ -232,13 +231,13 @@ public class ExamenSupletorioCUImplAdaptador implements ExamenSupletorioCUIntPue
             String nombre = tipoAnexo.getNombre();
             if (RECIBO_PAGO.equals(nombre) || COMPROBANTE_PAGO.equals(nombre) || DOCUMENTO_ADICIONAL.equals(nombre))
                 formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.ANEXO_NO_PERMITIDO_AL_RADICAR, nombre));
-            if (ajenoALaCausa.equals(nombre))
+            if (FORMATO_DOCENTE_CRUCE.equals(nombre) || (causa == CausaSupletorio.CRUCE && SOPORTE_JUSTIFICACION.equals(nombre)))
                 formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.ANEXO_NO_CORRESPONDE_CAUSA, nombre, nombreCausa(causa)));
             if (!presentes.add(nombre))
                 formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.ANEXO_REPETIDO, nombre));
             tipos.add(tipoAnexo);
         }
-        List<String> faltantes = List.of(FORMATO_FOR_23, propioDeLaCausa).stream().filter(nombre -> !presentes.contains(nombre)).toList();
+        List<String> faltantes = obligatorios.stream().filter(nombre -> !presentes.contains(nombre)).toList();
         if (!faltantes.isEmpty())
             formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.ANEXOS_OBLIGATORIOS_FALTANTES, String.join("; ", faltantes)));
 

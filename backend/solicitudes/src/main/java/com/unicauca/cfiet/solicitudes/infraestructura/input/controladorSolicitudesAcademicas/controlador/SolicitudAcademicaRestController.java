@@ -2,6 +2,7 @@ package com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitu
 
 import com.unicauca.cfiet.solicitudes.aplicacion.input.AnexoAcademicoCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.ConsultaSolicitudAcademicaCUIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.input.CorreosPendientesCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.EliminacionRespuestasCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.ResolucionAcademicaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.dominio.helper.constantes.ApplicationConstantes;
@@ -10,6 +11,7 @@ import com.unicauca.cfiet.solicitudes.dominio.modelos.AnexoAcademico;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.ArchivoAdjunto;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.ResolucionAcademica;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudesAcademicas.DTORespuesta.AnexoAcademicoDTORespuesta;
+import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudesAcademicas.DTORespuesta.CorreosPendientesDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudesAcademicas.DTORespuesta.EliminacionRespuestasDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudesAcademicas.DTORespuesta.HistorialSolicitudAcademicaDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudesAcademicas.DTORespuesta.ResolucionAcademicaDTORespuesta;
@@ -54,6 +56,7 @@ public class SolicitudAcademicaRestController {
     private final MapperSolicitudAcademicaInfraestructuraDominio mapper;
     private final EliminacionRespuestasCUIntPuerto eliminacionCU;
     private final MapperEliminacionRespuestasInfraestructuraDominio mapperEliminacion;
+    private final CorreosPendientesCUIntPuerto correosPendientesCU;
 
     @PreAuthorize(ApplicationConstantes.ESTUDIANTE_ACCESO)
     @Transactional(readOnly = true)
@@ -67,6 +70,12 @@ public class SolicitudAcademicaRestController {
     @GetMapping("/funcionario")
     public ResponseEntity<List<SolicitudAcademicaResumenDTORespuesta>> getBandejaFuncionario(@RequestHeader("Authorization") String token) {
         return new ResponseEntity<>(mapper.mapearBandejaARespuesta(consultaCU.getBandejaFuncionario(token.substring(7))), HttpStatus.OK);
+    }
+
+    @PreAuthorize(ApplicationConstantes.FUNCIONARIO_ACADEMICO_ACCESO)
+    @GetMapping("/funcionario/correos-pendientes")
+    public ResponseEntity<CorreosPendientesDTORespuesta> getCorreosPendientes() {
+        return new ResponseEntity<>(new CorreosPendientesDTORespuesta(correosPendientesCU.contarPendientes()), HttpStatus.OK);
     }
 
     @PreAuthorize(ApplicationConstantes.FUNCIONARIO_ACADEMICO_ACCESO)

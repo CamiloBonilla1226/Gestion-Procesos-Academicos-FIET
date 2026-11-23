@@ -5,6 +5,7 @@ import com.unicauca.cfiet.solicitudes.aplicacion.output.CorreoIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.GeneradorPdfRespuestaIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.ResolucionAcademicaGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.SolicitudCancelacionAsignaturaGatewayIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.output.SolicitudCancelacionMatriculaGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.SolicitudExamenSupletorioGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.UsuarioGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
@@ -35,6 +36,7 @@ class NotificadorRespuestaFinalTest {
     private static final String SALTO = System.lineSeparator();
 
     private final SolicitudCancelacionAsignaturaGatewayIntPuerto cancelacionGateway = mock(SolicitudCancelacionAsignaturaGatewayIntPuerto.class);
+    private final SolicitudCancelacionMatriculaGatewayIntPuerto matriculaGateway = mock(SolicitudCancelacionMatriculaGatewayIntPuerto.class);
     private final SolicitudExamenSupletorioGatewayIntPuerto supletorioGateway = mock(SolicitudExamenSupletorioGatewayIntPuerto.class);
     private final ResolucionAcademicaGatewayIntPuerto resolucionGateway = mock(ResolucionAcademicaGatewayIntPuerto.class);
     private final AnexoAcademicoGatewayIntPuerto anexoGateway = mock(AnexoAcademicoGatewayIntPuerto.class);
@@ -58,7 +60,7 @@ class NotificadorRespuestaFinalTest {
 
     @BeforeEach
     void setUp() {
-        notificador = new NotificadorRespuestaFinal(cancelacionGateway, supletorioGateway, resolucionGateway, anexoGateway, usuarioGateway,
+        notificador = new NotificadorRespuestaFinal(cancelacionGateway, matriculaGateway, supletorioGateway, resolucionGateway, anexoGateway, usuarioGateway,
                 generador, new PreparacionCorreoImplAdaptador(), correo, DARCA);
         when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of());
     }
@@ -85,6 +87,8 @@ class NotificadorRespuestaFinalTest {
                         .asignatura(Asignatura.builder().codigoAsignatura(codigo).nombreAsignatura(nombre).build()).build())
                 .aprobadaPorDecano(aprobadaPorDecano)
                 .situacionCancelar(situacion == null ? null : SituacionAcademicaAsignatura.builder().nombre(situacion).build())
+                .situacionNuevaMatricula(Boolean.TRUE.equals(aprobadaPorDecano)
+                        ? SituacionAcademicaAsignatura.builder().nombre("Cursada por primera vez (R1)").build() : null)
                 .build();
     }
 
@@ -166,6 +170,8 @@ class NotificadorRespuestaFinalTest {
         assertEquals(List.of("Aprobada", "Rechazada", "Aprobada"), asignaturas.stream().map(AsignaturaResumenRespuesta::getDecision).toList());
         assertEquals(List.of("Bajo rendimiento", "No aplica", "Calamidad"),
                 asignaturas.stream().map(AsignaturaResumenRespuesta::getSituacionAlCancelar).toList());
+        assertEquals(List.of("Cursada por primera vez (R1)", "No aplica", "Cursada por primera vez (R1)"),
+                asignaturas.stream().map(AsignaturaResumenRespuesta::getSituacionNuevaMatricula).toList());
     }
 
     @Test
@@ -225,7 +231,6 @@ class NotificadorRespuestaFinalTest {
         ArgumentCaptor<List<AdjuntoCorreo>> adjuntos = capturaAdjuntos();
         verify(correo).enviar(eq(DARCA), any(), any(), adjuntos.capture());
         assertEquals(List.of("Radicado-2026-CA-0009.pdf"), adjuntos.getValue().stream().map(AdjuntoCorreo::getNombre).toList());
-        verify(anexoGateway, never()).getPorSolicitud(any());
     }
 
     @Test
@@ -329,7 +334,7 @@ class NotificadorRespuestaFinalTest {
     void siFallaElPdfDeDarcaElDelProfesorSaleIgual() {
         GeneradorPdfRespuestaIntPuerto falla = mock(GeneradorPdfRespuestaIntPuerto.class);
         when(falla.generar(any())).thenThrow(new IllegalStateException("pdf roto")).thenReturn(PDF);
-        NotificadorRespuestaFinal conFalla = new NotificadorRespuestaFinal(cancelacionGateway, supletorioGateway, resolucionGateway, anexoGateway,
+        NotificadorRespuestaFinal conFalla = new NotificadorRespuestaFinal(cancelacionGateway, matriculaGateway, supletorioGateway, resolucionGateway, anexoGateway,
                 usuarioGateway, falla, new PreparacionCorreoImplAdaptador(), correo, DARCA);
         supletorioCon(docente());
         when(usuarioGateway.getUsuario("doc-1")).thenReturn(Usuario.builder().correoElectronico("lordonez@unicauca.edu.co").build());
@@ -397,7 +402,6 @@ class NotificadorRespuestaFinalTest {
                 correoDarca.getAdjuntos().stream().map(AdjuntoCorreo::getNombre).toList());
         assertTrue(correoDarca.getTexto().contains("El estudiante firmó la Resolución"));
         assertFalse(correoDarca.getTexto().contains("Observ"));
-        verify(anexoGateway, never()).getPorSolicitud(any());
     }
 
     @Test
@@ -434,5 +438,85 @@ class NotificadorRespuestaFinalTest {
 
         assertEquals(3, notificador.correoDarcaResolucion(solicitud("2026-CA-0003", APROBADA), FECHA, false, List.of(constancia())).getAdjuntos().size());
         assertEquals(2, notificador.correoDarcaResolucion(solicitud("2026-CA-0003", APROBADA), FECHA, true, List.of(constancia())).getAdjuntos().size());
+    }
+
+    private AnexoAcademico soporteLibre(String nombre) {
+        return AnexoAcademico.builder().nombreArchivo(nombre).tipoArchivo("application/pdf").urlArchivo("/api/anexos/sol-1/" + nombre).build();
+    }
+
+    @Test
+    void elPdfDeLaCancelacionDeAsignaturaLlevaElMotivoYDarcaRecibeLosSoportesDelEstudiante() {
+        when(cancelacionGateway.getPorSolicitud(SOLICITUD)).thenReturn(SolicitudCancelacionAsignatura.builder()
+                .motivoCancelacion("Problemas de salud").asignaturas(new ArrayList<>(List.of(asignatura("ISI-001", "Cálculo I", null, null)))).build());
+        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(soporteLibre("incapacidad.pdf"),
+                AnexoAcademico.builder().nombreArchivo("acta.pdf").tipoAnexoAcademico(TipoAnexoAcademico.builder().nombre("Documento adicional de la respuesta").build()).build()));
+
+        notificador.avisarDarca(solicitud("2026-CA-0010", RECHAZADA), TipoProcesoAcademico.CANCELACION_ASIGNATURA, AccionEtapa.RECHAZAR_FUNCIONARIO, FECHA);
+
+        ArgumentCaptor<List<AdjuntoCorreo>> adjuntos = capturaAdjuntos();
+        verify(correo).enviar(eq(DARCA), any(), any(), adjuntos.capture());
+        assertEquals(List.of("Radicado-2026-CA-0010.pdf", "incapacidad.pdf"), adjuntos.getValue().stream().map(AdjuntoCorreo::getNombre).toList());
+        assertEquals("/api/anexos/sol-1/incapacidad.pdf", adjuntos.getValue().get(1).getUrlArchivo());
+        assertEquals("Problemas de salud", generados.get(0).getMotivo());
+    }
+
+    @Test
+    void sinSoportesElMotivoDeLaMatriculaVaEnElPdf() {
+        when(matriculaGateway.getPorSolicitud(SOLICITUD)).thenReturn(SolicitudCancelacionMatricula.builder().motivoCancelacion("Viaje al exterior").build());
+
+        notificador.avisarDarca(solicitud("2026-CM-0011", APROBADA), TipoProcesoAcademico.CANCELACION_MATRICULA, AccionEtapa.ENVIAR_RESPUESTA, FECHA);
+
+        ArgumentCaptor<List<AdjuntoCorreo>> adjuntos = capturaAdjuntos();
+        verify(correo).enviar(eq(DARCA), any(), any(), adjuntos.capture());
+        assertEquals(List.of("Radicado-2026-CM-0011.pdf"), adjuntos.getValue().stream().map(AdjuntoCorreo::getNombre).toList());
+        assertEquals("Viaje al exterior", generados.get(0).getMotivo());
+    }
+
+    @Test
+    void enElSupletorioElMotivoEsLaCausaYDarcaRecibeElSoporteDeLaJustificacion() {
+        when(supletorioGateway.getPorSolicitud(SOLICITUD)).thenReturn(SolicitudExamenSupletorio.builder().tipoCausa(CausaSupletorio.OTRA)
+                .asignaturaMatriculada(AsignaturaMatriculada.builder()
+                        .asignatura(Asignatura.builder().codigoAsignatura("ISI-004").nombreAsignatura("Señales y Sistemas").build()).build())
+                .build());
+        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(soporteLibre("libre.pdf"),
+                AnexoAcademico.builder().nombreArchivo("justificacion.pdf").urlArchivo("/api/anexos/sol-1/justificacion.pdf")
+                        .tipoAnexoAcademico(TipoAnexoAcademico.builder().nombre("Soporte de la justificación de la no presentación").build()).build()));
+
+        notificador.avisarDarca(solicitud("2026-ES-0012", RECHAZADA), TipoProcesoAcademico.EXAMEN_SUPLETORIO, AccionEtapa.RECHAZAR_FUNCIONARIO, FECHA);
+
+        ArgumentCaptor<List<AdjuntoCorreo>> adjuntos = capturaAdjuntos();
+        verify(correo).enviar(eq(DARCA), any(), any(), adjuntos.capture());
+        assertEquals(List.of("Radicado-2026-ES-0012.pdf", "justificacion.pdf"), adjuntos.getValue().stream().map(AdjuntoCorreo::getNombre).toList());
+        assertEquals("Otra causa, con soporte de la justificación", generados.get(0).getMotivo());
+    }
+
+    @Test
+    void enElSupletorioPorCruceElMotivoNombraLaAsignaturaCruzada() {
+        when(supletorioGateway.getPorSolicitud(SOLICITUD)).thenReturn(SolicitudExamenSupletorio.builder().tipoCausa(CausaSupletorio.CRUCE)
+                .cruce(CruceSupletorio.builder().asignaturaMatriculadaCruzada(AsignaturaMatriculada.builder()
+                        .asignatura(Asignatura.builder().codigoAsignatura("PIS-010").nombreAsignatura("Redes").build()).build()).build())
+                .build());
+
+        ResumenRespuesta resumen = notificador.resumen(solicitud("2026-ES-0013", APROBADA), TipoProcesoAcademico.EXAMEN_SUPLETORIO,
+                AccionEtapa.APROBAR_COMPROBANTE, FECHA);
+
+        assertEquals("Cruce de exámenes con la asignatura PIS-010 - Redes", resumen.getMotivo());
+    }
+
+    @Test
+    void laComunicacionProgramadaADarcaAdjuntaLosSoportesAntesDeLaConstancia() {
+        when(cancelacionGateway.getPorSolicitud(SOLICITUD)).thenReturn(SolicitudCancelacionAsignatura.builder()
+                .motivoCancelacion("Calamidad").asignaturas(new ArrayList<>(List.of(asignatura("ISI-001", "Cálculo I", true, null)))).build());
+        when(resolucionGateway.getPorSolicitud(SOLICITUD)).thenReturn(ResolucionAcademica.builder().urlArchivo("/api/anexos/sol-1/res.pdf").build());
+        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(soporteLibre("evidencia.pdf")));
+
+        CorreoPreparado sinFirma = notificador.correoDarcaResolucion(solicitud("2026-CA-0003", APROBADA), FECHA, false, List.of(constancia()));
+        CorreoPreparado conFirma = notificador.correoDarcaResolucion(solicitud("2026-CA-0003", APROBADA), FECHA, true, List.of(constancia()));
+
+        assertEquals(List.of("Radicado-2026-CA-0003.pdf", "Resolucion-2026-CA-0003.pdf", "evidencia.pdf", "Comunicacion-Estudiante-2026-CA-0003.pdf"),
+                sinFirma.getAdjuntos().stream().map(AdjuntoCorreo::getNombre).toList());
+        assertEquals(List.of("Radicado-2026-CA-0003.pdf", "Resolucion-2026-CA-0003.pdf", "evidencia.pdf"),
+                conFirma.getAdjuntos().stream().map(AdjuntoCorreo::getNombre).toList());
+        assertEquals("Calamidad", generados.get(0).getMotivo());
     }
 }

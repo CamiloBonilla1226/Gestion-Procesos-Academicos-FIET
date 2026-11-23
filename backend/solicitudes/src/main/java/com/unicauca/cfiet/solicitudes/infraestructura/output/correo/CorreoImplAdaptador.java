@@ -16,17 +16,25 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CorreoImplAdaptador implements CorreoIntPuerto {
     private final ServicioCorreo servicioCorreo;
+    private final ColaCorreos colaCorreos;
 
     @Override
     public void enviar(String destinatario, String asunto, String texto, List<AdjuntoCorreo> adjuntos) {
+        if (destinatario == null || destinatario.isBlank()) {
+            log.warn("No se envió el correo \"{}\": el destinatario no tiene correo registrado", asunto);
+            return;
+        }
+        Long id = guardar(destinatario, asunto, texto, adjuntos);
+        if (id == null)
+            return;
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            enviarSinFallar(destinatario, asunto, texto, adjuntos);
+            enviarSinFallar(id, asunto, destinatario);
             return;
         }
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                enviarSinFallar(destinatario, asunto, texto, adjuntos);
+                enviarSinFallar(id, asunto, destinatario);
             }
         });
     }
@@ -36,9 +44,23 @@ public class CorreoImplAdaptador implements CorreoIntPuerto {
         servicioCorreo.enviarAhora(correo);
     }
 
-    private void enviarSinFallar(String destinatario, String asunto, String texto, List<AdjuntoCorreo> adjuntos) {
+    @Override
+    public int contarPendientes() {
+        return colaCorreos.contarPendientes();
+    }
+
+    private Long guardar(String destinatario, String asunto, String texto, List<AdjuntoCorreo> adjuntos) {
         try {
-            servicioCorreo.enviar(destinatario, asunto, texto, adjuntos);
+            return colaCorreos.guardar(destinatario, asunto, texto, adjuntos);
+        } catch (RuntimeException error) {
+            log.error("No se pudo guardar el correo \"{}\" a {}: {}", asunto, destinatario, error.getMessage());
+            return null;
+        }
+    }
+
+    private void enviarSinFallar(Long id, String asunto, String destinatario) {
+        try {
+            colaCorreos.enviarEnSegundoPlano(id);
         } catch (RuntimeException error) {
             log.error("No se pudo programar el correo \"{}\" a {}: {}", asunto, destinatario, error.getMessage());
         }

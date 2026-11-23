@@ -5,6 +5,11 @@
   </header>
 
   <div class="tarjeta-body">
+    @if (esFuncionario) {
+    @defer (on immediate) {
+    <app-aviso-correos-pendientes-component></app-aviso-correos-pendientes-component>
+    }
+    }
     @if (esRespuestas) {
     @defer (on immediate) {
     <app-eliminacion-respuestas-component (eliminadas)="cargarSolicitudes()"></app-eliminacion-respuestas-component>

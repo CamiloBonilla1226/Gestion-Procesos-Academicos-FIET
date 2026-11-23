@@ -5,6 +5,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize, forkJoin } from 'rxjs';
 import { SimpleButtonComponent } from '../../../buttons/simple-button-component/simple-button-component';
 import { AnexosAcademicosComponent } from '../../../others/anexos-academicos-component/anexos-academicos-component';
+import { AvisoCorreosPendientesComponent } from '../../../others/aviso-correos-pendientes-component/aviso-correos-pendientes-component';
+import { TarjetaPlegableDirective } from '../../../others/tarjeta-plegable-directive/tarjeta-plegable-directive';
 import { SolicitudAcademicaService } from '../../../../core/services/solicitud-academica-service';
 import { ErrorHandlerService } from '../../../../core/services/error-handler-service';
 import { SolicitudAcademicaDetalleDTORespuesta } from '../../../../core/models/SolicitudAcademica/DTOResponse/SolicitudAcademicaDetalleDTORespuesta';
@@ -59,7 +61,7 @@ import { COMPONENTES_PROCESO, EntradasComponenteProceso } from './componentes-pr
 
 @Component({
   selector: 'app-detalle-solicitud-academica-component',
-  imports: [NgClass, NgComponentOutlet, SimpleButtonComponent, AnexosAcademicosComponent],
+  imports: [NgClass, NgComponentOutlet, SimpleButtonComponent, AnexosAcademicosComponent, AvisoCorreosPendientesComponent, TarjetaPlegableDirective],
   templateUrl: './detalle-solicitud-academica-component.html',
   styleUrls: ['../estilos-academicos.css', './detalle-solicitud-academica-component.css']
 })
@@ -102,6 +104,10 @@ export class DetalleSolicitudAcademicaComponent implements OnInit {
     const respondida = !!this.solicitud && ETAPAS_FINALES.includes(this.solicitud.etapaCodigo);
     if (this.rol === ROLES_ETIQUETA.FUNCIONARIO && respondida) return RUTA_RESPUESTAS_FUNCIONARIO;
     return RUTAS_SOLICITUDES_POR_ROL[this.rol];
+  }
+
+  get esFuncionario(): boolean {
+    return this.rol === ROLES_ETIQUETA.FUNCIONARIO;
   }
 
   get esEstudiante(): boolean {

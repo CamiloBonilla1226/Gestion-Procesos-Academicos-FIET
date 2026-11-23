@@ -4,6 +4,5 @@ export interface EvaluacionCancelacionAsignaturaDTOPeticion {
   nota: string | null;
   situacionMatriculaUuid: string | null;
   situacionCancelarUuid: string | null;
-  cumpleCondiciones: boolean;
   observacionEvaluacion: string | null;
 }

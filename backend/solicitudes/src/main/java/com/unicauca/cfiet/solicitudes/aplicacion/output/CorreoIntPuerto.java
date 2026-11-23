@@ -9,4 +9,6 @@ public interface CorreoIntPuerto {
     void enviar(String destinatario, String asunto, String texto, List<AdjuntoCorreo> adjuntos);
 
     void enviarAhora(CorreoPreparado correo);
+
+    int contarPendientes();
 }

@@ -59,8 +59,9 @@ describe('DetalleSolicitudAcademicaComponent', () => {
 
   beforeEach(() => {
     servicio = jasmine.createSpyObj<SolicitudAcademicaService>('SolicitudAcademicaService', [
-      'getSolicitud', 'getHistorial', 'descargarAnexo', 'descargarResolucion'
+      'getSolicitud', 'getHistorial', 'descargarAnexo', 'descargarResolucion', 'getCorreosPendientes'
     ]);
+    servicio.getCorreosPendientes.and.returnValue(of({ cantidad: 0 }));
     errores = jasmine.createSpyObj<ErrorHandlerService>('ErrorHandlerService', ['handleError']);
     TestBed.configureTestingModule({
       imports: [DetalleSolicitudAcademicaComponent],
@@ -172,6 +173,20 @@ describe('DetalleSolicitudAcademicaComponent', () => {
     }
   });
 
+  it('al Funcionario le llegan abiertos solo los datos generales; los anexos y el historial llegan plegados', () => {
+    for (const etapa of ['RADICADA', 'APROBADA_POR_DECANO', 'RECHAZADA_POR_DECANO']) {
+      const fixture = crear({ ...detalle(false, false), etapaCodigo: etapa }, 'FUNCIONARIO');
+      const tarjeta = (selector: string) => fixture.nativeElement.querySelector(selector) as HTMLElement;
+      expect(tarjeta('[data-datos-generales]').classList).withContext(etapa).not.toContain('plegada');
+      expect(tarjeta('[data-tarjeta-anexos]').classList).withContext(etapa).toContain('plegada');
+      expect(tarjeta('[data-historial-tarjeta]').classList).withContext(etapa).toContain('plegada');
+      expect(getComputedStyle(tarjeta('[data-tarjeta-anexos] > .tarjeta-body')).display).withContext(etapa).toBe('none');
+      fixture.destroy();
+    }
+    const estudiante = crear(detalle(false, false));
+    expect((estudiante.nativeElement.querySelector('[data-tarjeta-anexos]') as HTMLElement).classList).not.toContain('plegada');
+  });
+
   it('el titulo de los anexos depende del proceso y muestra cuantos hay', () => {
     const matricula = crear(detalle(false, false));
     expect(texto(matricula, '[data-tarjeta-anexos] h3')).toEqual(['Documentación requerida']);
@@ -236,6 +251,11 @@ describe('DetalleSolicitudAcademicaComponent', () => {
     const bloque = funcionario.nativeElement.querySelector('[data-decision-decano]');
     expect(bloque.querySelector('[data-decision]').textContent.trim()).toBe('Aprobada por el Decano');
     expect(bloque.querySelector('[data-sin-observacion-decano]')).toBeTruthy();
+    expect(bloque.classList).toContain('plegada');
+    expect(getComputedStyle(bloque.querySelector('.tarjeta-body')).display).toBe('none');
+    (bloque.querySelector('.tarjeta-head') as HTMLElement).click();
+    funcionario.detectChanges();
+    expect(getComputedStyle(bloque.querySelector('.tarjeta-body')).display).not.toBe('none');
     const decano = TestBed.createComponent(DetalleSolicitudAcademicaComponent);
     decano.componentRef.setInput('rol', 'DECANO');
     decano.detectChanges();

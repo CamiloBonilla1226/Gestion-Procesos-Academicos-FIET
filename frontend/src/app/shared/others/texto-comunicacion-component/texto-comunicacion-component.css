@@ -1,0 +1,23 @@
+.texto-completo {
+  resize: vertical;
+  overflow: hidden;
+  field-sizing: content;
+  min-height: 9rem;
+  line-height: 1.45;
+}
+
+.vista-previa {
+  border: 1px solid #dfe3ea;
+  border-radius: 8px;
+  background: #f7f8fa;
+  padding: 12px 14px;
+}
+
+.parrafo-vista {
+  margin: 0 0 10px 0;
+  white-space: pre-line;
+}
+
+.parrafo-vista:last-child {
+  margin-bottom: 0;
+}

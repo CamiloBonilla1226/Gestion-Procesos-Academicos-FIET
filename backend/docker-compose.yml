@@ -26,9 +26,12 @@ services:
       MAIL_USER: ${MAIL_USER:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
       CORREO_DARCA: ${CORREO_DARCA:?Falta CORREO_DARCA en backend/.env (ver backend/.env.example)}
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:-}
     volumes:
       - ./uploads:/app/uploads
     restart: always
+    networks:
+      - cfiet_red
     depends_on:
       cfiet_database:
         condition: service_healthy
@@ -43,7 +46,16 @@ services:
       MYSQL_DATABASE: cfiet_database
       TZ: America/Bogota
     restart: always
+    networks:
+      - cfiet_red
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 10s
-      retries: 10
+      retries: 10
+
+networks:
+  cfiet_red:
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: fd00:cf1e::/64

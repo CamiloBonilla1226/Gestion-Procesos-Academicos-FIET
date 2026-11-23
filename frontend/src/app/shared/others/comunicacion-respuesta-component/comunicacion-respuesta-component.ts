@@ -18,7 +18,7 @@ import {
 })
 export class ComunicacionRespuestaComponent {
   @Input({ required: true }) comunicacion!: ComunicacionEnEdicion;
-  @Input() sufijo = '';
+  @Input() prefijo = '';
   @Input() maximoMensaje = MAXIMO_MENSAJE_INICIAL;
   @Input() maximoTexto = MAXIMO_TEXTO_COMUNICACION;
   @Input() errores: Record<string, string> = {};

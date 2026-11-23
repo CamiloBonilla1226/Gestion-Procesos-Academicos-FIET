@@ -30,7 +30,7 @@ describe('notificacion-resolucion', () => {
     const vacia = erroresDeProgramacion({ fecha: '2099-01-01T00:00', numero: ' ', anio: '26', decision: '' }, '2026-10-20T00:00');
     expect(Object.keys(vacia).sort()).toEqual(['anio', 'decision', 'numero']);
     expect(erroresDeProgramacion({ ...valida, numero: '1'.repeat(21) }, '2026-01-01T00:00')['numero']).toContain('20');
-    expect(erroresDeProgramacion({ ...valida, decision: 'd'.repeat(61) }, '2026-01-01T00:00')['decision']).toContain('60');
+    expect(erroresDeProgramacion({ ...valida, decision: 'd'.repeat(501) }, '2026-01-01T00:00')['decision']).toContain('500');
     expect(erroresDeProgramacion({ ...valida, anio: '1999' }, '2026-01-01T00:00')['anio']).toContain('2000');
   });
 
@@ -71,8 +71,8 @@ describe('notificacion-resolucion', () => {
     expect(programacionAPeticion({ fecha: '2026-10-21T08:30', numero: ' 123-26 ', anio: ' 2026 ', decision: ' aprueba la ' })).toEqual({
       fechaProgramada: '2026-10-21T08:30', numeroResolucion: '123-26', anioResolucion: 2026, decision: 'aprueba la'
     });
-    const guardada = { fechaProgramada: '2026-10-21T08:30:00', numeroResolucion: '7', anioResolucion: 2026, decision: 'rechaza la' } as NotificacionResolucionDTORespuesta;
-    expect(programacionDesde(guardada)).toEqual({ fecha: '2026-10-21T08:30', numero: '7', anio: '2026', decision: 'rechaza la' });
+    const guardada = { fechaProgramada: '2026-10-21T08:30:00', numeroResolucion: '7', anioResolucion: 2026, decision: 'niega la' } as NotificacionResolucionDTORespuesta;
+    expect(programacionDesde(guardada)).toEqual({ fecha: '2026-10-21T08:30', numero: '7', anio: '2026', decision: 'niega la' });
     expect(fechaHoraLocal('basura')).toBe('');
   });
 

@@ -132,11 +132,10 @@ class ConsultaExamenSupletorioCUImplAdaptadorTest {
         assertEquals(List.of("am-1", "am-3"), formulario.getAsignaturas().stream().map(AsignaturaMatriculada::getUuidAsignaturaMatriculada).toList());
         assertEquals(List.of(CausaSupletorio.CRUCE, CausaSupletorio.OTRA), formulario.getCausas());
         assertEquals(3, formulario.getPlazoDiasHabiles());
-        assertEquals(List.of("an-for23", "an-just", "an-doc"),
+        assertEquals(List.of("an-for23", "an-just"),
                 formulario.getAnexos().stream().map(anexo -> anexo.getTipoAnexo().getUuidTipoAnexoAcademico()).toList());
         assertEquals(List.of(CausaSupletorio.CRUCE, CausaSupletorio.OTRA), formulario.getAnexos().get(0).getCausas());
         assertEquals(List.of(CausaSupletorio.OTRA), formulario.getAnexos().get(1).getCausas());
-        assertEquals(List.of(CausaSupletorio.CRUCE), formulario.getAnexos().get(2).getCausas());
         assertTrue(formulario.getAnexos().stream().allMatch(anexo -> anexo.getTamanioMaximoBytes() == 5L * 1024 * 1024));
         assertEquals("pdf,jpg,png", formulario.getAnexos().get(0).getTipoAnexo().getFormatosPermitidos());
     }

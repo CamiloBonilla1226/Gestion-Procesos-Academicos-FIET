@@ -76,6 +76,14 @@ Antes del primer arranque se crea `backend/.env` a partir de
 | `JWT_SECRET` | Sí | Clave de firma de los tokens (Base64 o hexadecimal de al menos 64 caracteres; se puede generar con `python -c "import secrets;print(secrets.token_hex(32))"`) |
 | `CORREO_DARCA` | Sí | Buzón de DARCA que recibe las respuestas finales |
 | `MAIL_USER`, `MAIL_PASSWORD` | No | Cuenta de Gmail que envía los correos y su contraseña de aplicación; sin ellas el envío solo deja el error en el log |
+| `MAIL_EHLO` | No | Nombre con que el backend se presenta al servidor de correo; por defecto `fiet-unicauca.local` |
+| `JAVA_TOOL_OPTIONS` | No | Con `-Djava.net.preferIPv6Addresses=true`, el backend sale a Gmail por IPv6; solo para redes que bloquean el correo por IPv4 |
+
+Si los correos quedan pendientes con `Couldn't connect to host, port: smtp.gmail.com, 587`
+y el equipo tiene internet, la red puede estar bloqueando el correo por IPv4. La red de
+`docker-compose.yml` (`cfiet_red`) ya tiene IPv6; basta con agregar
+`JAVA_TOOL_OPTIONS=-Djava.net.preferIPv6Addresses=true` a `backend/.env` y correr
+`docker compose up -d`. Los correos pendientes salen solos en el minuto siguiente.
 
 Ninguna tiene valor por defecto en los archivos versionados. Si falta
 `JWT_SECRET` o `CORREO_DARCA`, `docker compose` se detiene con el mensaje

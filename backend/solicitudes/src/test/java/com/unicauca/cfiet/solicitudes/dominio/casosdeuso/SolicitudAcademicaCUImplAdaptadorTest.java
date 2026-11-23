@@ -10,6 +10,7 @@ import com.unicauca.cfiet.solicitudes.aplicacion.output.GeneradorPdfRespuestaInt
 import com.unicauca.cfiet.solicitudes.aplicacion.output.ResolucionAcademicaGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.SolicitudAcademicaGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.SolicitudCancelacionAsignaturaGatewayIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.output.SolicitudCancelacionMatriculaGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.SolicitudExamenSupletorioGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.TipoSolicitudAcademicaGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.UsuarioGatewayIntPuerto;
@@ -868,7 +869,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
     void siFallaElArmadoDelCorreoADarcaElEstudianteRecibeElSuyoYLaEtapaQuedaGuardada() {
         GeneradorPdfRespuestaIntPuerto generadorRoto = mock(GeneradorPdfRespuestaIntPuerto.class);
         when(generadorRoto.generar(any())).thenThrow(new IllegalStateException("fuente dañada"));
-        NotificadorRespuestaFinal real = new NotificadorRespuestaFinal(mock(SolicitudCancelacionAsignaturaGatewayIntPuerto.class),
+        NotificadorRespuestaFinal real = new NotificadorRespuestaFinal(mock(SolicitudCancelacionAsignaturaGatewayIntPuerto.class), mock(SolicitudCancelacionMatriculaGatewayIntPuerto.class),
                 mock(SolicitudExamenSupletorioGatewayIntPuerto.class), resolucionGateway, anexoGateway, usuarioGateway, generadorRoto,
                 new PreparacionCorreoImplAdaptador(), correo, "darca@unicauca.edu.co");
         ExcepcionesFormateadorImplAdaptador formateador = new ExcepcionesFormateadorImplAdaptador();

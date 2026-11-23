@@ -6,6 +6,7 @@ import com.unicauca.cfiet.solicitudes.aplicacion.output.GeneradorPdfRespuestaInt
 import com.unicauca.cfiet.solicitudes.aplicacion.output.PreparacionCorreoIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.ResolucionAcademicaGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.SolicitudCancelacionAsignaturaGatewayIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.output.SolicitudCancelacionMatriculaGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.SolicitudExamenSupletorioGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.UsuarioGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
@@ -19,6 +20,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.DOCUMENTO_ADICIONAL;
+import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.SOPORTE_JUSTIFICACION;
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.APROBADA;
 
 public class NotificadorRespuestaFinal {
@@ -42,8 +44,11 @@ public class NotificadorRespuestaFinal {
     private static final String RECHAZADA_TEXTO = "Rechazada";
     private static final String NO_APLICA = "No aplica";
     private static final String ASIGNATURA_EXAMEN = "Asignatura del examen";
+    private static final String CAUSA_CRUCE = "Cruce de exámenes con la asignatura %s";
+    private static final String CAUSA_OTRA = "Otra causa, con soporte de la justificación";
 
     private final SolicitudCancelacionAsignaturaGatewayIntPuerto cancelacionAsignaturaGateway;
+    private final SolicitudCancelacionMatriculaGatewayIntPuerto cancelacionMatriculaGateway;
     private final SolicitudExamenSupletorioGatewayIntPuerto supletorioGateway;
     private final ResolucionAcademicaGatewayIntPuerto resolucionGateway;
     private final AnexoAcademicoGatewayIntPuerto anexoGateway;
@@ -54,6 +59,7 @@ public class NotificadorRespuestaFinal {
     private final String destinatarioDarca;
 
     public NotificadorRespuestaFinal(SolicitudCancelacionAsignaturaGatewayIntPuerto cancelacionAsignaturaGateway,
+                                     SolicitudCancelacionMatriculaGatewayIntPuerto cancelacionMatriculaGateway,
                                      SolicitudExamenSupletorioGatewayIntPuerto supletorioGateway,
                                      ResolucionAcademicaGatewayIntPuerto resolucionGateway,
                                      AnexoAcademicoGatewayIntPuerto anexoGateway,
@@ -63,6 +69,7 @@ public class NotificadorRespuestaFinal {
                                      CorreoIntPuerto correo,
                                      String destinatarioDarca) {
         this.cancelacionAsignaturaGateway = cancelacionAsignaturaGateway;
+        this.cancelacionMatriculaGateway = cancelacionMatriculaGateway;
         this.supletorioGateway = supletorioGateway;
         this.resolucionGateway = resolucionGateway;
         this.anexoGateway = anexoGateway;
@@ -83,6 +90,7 @@ public class NotificadorRespuestaFinal {
                 adjuntos.addAll(resolucionDe(solicitud));
             if (proceso.admiteDocumentoAdicional())
                 adjuntos.addAll(adicionalesDe(solicitud));
+            adjuntos.addAll(soportesDe(solicitud, proceso));
             String texto = String.format(ENCABEZADO, fecha.format(FECHA_CARTA)) + frase(resumen, proceso) + String.format(PIE_DARCA);
             correo.enviar(destinatarioDarca, String.format(ASUNTOS_DARCA.get(proceso), solicitud.getRadicado()), texto, adjuntos);
         });
@@ -99,6 +107,7 @@ public class NotificadorRespuestaFinal {
         List<AdjuntoCorreo> adjuntos = new ArrayList<>();
         adjuntos.add(pdf(resumen));
         adjuntos.addAll(resolucionDe(solicitud));
+        adjuntos.addAll(soportesDe(solicitud, proceso));
         if (!firmada && constancia != null)
             adjuntos.addAll(constancia);
         String texto = plantillaTexto != null && !plantillaTexto.isBlank()
@@ -155,16 +164,28 @@ public class NotificadorRespuestaFinal {
                 .programa(estudiante == null || estudiante.getProgramaAcademico() == null ? null : estudiante.getProgramaAcademico().getNombre())
                 .estadoFinal(aprobada ? APROBADA_TEXTO : RECHAZADA_TEXTO)
                 .build();
+        String uuidSolicitud = solicitud.getUuidSolicitudAcademica();
         switch (proceso) {
-            case CANCELACION_ASIGNATURA -> resumen.setAsignaturas(asignaturasCanceladas(solicitud.getUuidSolicitudAcademica(), aprobada));
-            case CANCELACION_MATRICULA -> resumen.getDetalles().add(dato("Decisión de la solicitud", resumen.getEstadoFinal()));
-            case EXAMEN_SUPLETORIO -> resumen.getDetalles().addAll(detallesSupletorio(solicitud.getUuidSolicitudAcademica(), accion));
+            case CANCELACION_ASIGNATURA -> {
+                SolicitudCancelacionAsignatura cancelacion = cancelacionAsignaturaGateway.getPorSolicitud(uuidSolicitud);
+                resumen.setMotivo(cancelacion == null ? null : cancelacion.getMotivoCancelacion());
+                resumen.setAsignaturas(asignaturasCanceladas(cancelacion, aprobada));
+            }
+            case CANCELACION_MATRICULA -> {
+                SolicitudCancelacionMatricula cancelacion = cancelacionMatriculaGateway.getPorSolicitud(uuidSolicitud);
+                resumen.setMotivo(cancelacion == null ? null : cancelacion.getMotivoCancelacion());
+                resumen.getDetalles().add(dato("Decisión de la solicitud", resumen.getEstadoFinal()));
+            }
+            case EXAMEN_SUPLETORIO -> {
+                SolicitudExamenSupletorio supletorio = supletorioGateway.getPorSolicitud(uuidSolicitud);
+                resumen.setMotivo(causaSupletorio(supletorio));
+                resumen.getDetalles().addAll(detallesSupletorio(supletorio, accion));
+            }
         }
         return resumen;
     }
 
-    private List<AsignaturaResumenRespuesta> asignaturasCanceladas(String uuidSolicitud, boolean solicitudAprobada) {
-        SolicitudCancelacionAsignatura cancelacion = cancelacionAsignaturaGateway.getPorSolicitud(uuidSolicitud);
+    private List<AsignaturaResumenRespuesta> asignaturasCanceladas(SolicitudCancelacionAsignatura cancelacion, boolean solicitudAprobada) {
         if (cancelacion == null) return new ArrayList<>();
         return cancelacion.getAsignaturas().stream()
                 .map(asignatura -> {
@@ -176,13 +197,21 @@ public class NotificadorRespuestaFinal {
                             .decision(aprobada ? APROBADA_TEXTO : RECHAZADA_TEXTO)
                             .situacionAlCancelar(!aprobada ? NO_APLICA
                                     : asignatura.getSituacionCancelar() == null ? null : asignatura.getSituacionCancelar().getNombre())
+                            .situacionNuevaMatricula(!aprobada ? NO_APLICA
+                                    : asignatura.getSituacionNuevaMatricula() == null ? null : asignatura.getSituacionNuevaMatricula().getNombre())
                             .build();
                 })
                 .collect(Collectors.toCollection(ArrayList::new));
     }
 
-    private List<DatoResumenRespuesta> detallesSupletorio(String uuidSolicitud, AccionEtapa accion) {
-        SolicitudExamenSupletorio supletorio = supletorioGateway.getPorSolicitud(uuidSolicitud);
+    private String causaSupletorio(SolicitudExamenSupletorio supletorio) {
+        if (supletorio == null || supletorio.getTipoCausa() == null) return null;
+        if (supletorio.getTipoCausa() == CausaSupletorio.OTRA) return CAUSA_OTRA;
+        Asignatura cruzada = supletorio.getCruce() == null ? null : asignaturaDe(supletorio.getCruce().getAsignaturaMatriculadaCruzada());
+        return String.format(CAUSA_CRUCE, cruzada == null ? "sin registrar" : unir(cruzada.getCodigoAsignatura(), "-", cruzada.getNombreAsignatura()));
+    }
+
+    private List<DatoResumenRespuesta> detallesSupletorio(SolicitudExamenSupletorio supletorio, AccionEtapa accion) {
         Asignatura asignatura = supletorio == null ? null : asignaturaDe(supletorio.getAsignaturaMatriculada());
         Docente docente = supletorio == null ? null : supletorio.getDocente();
         return List.of(
@@ -255,6 +284,23 @@ public class NotificadorRespuestaFinal {
                         .urlArchivo(adicional.getUrlArchivo())
                         .build())
                 .toList();
+    }
+
+    public List<AdjuntoCorreo> soportesDe(SolicitudAcademica solicitud, TipoProcesoAcademico proceso) {
+        return anexoGateway.getPorSolicitud(solicitud.getUuidSolicitudAcademica()).stream()
+                .filter(anexo -> esSoporteDelEstudiante(anexo, proceso))
+                .map(soporte -> AdjuntoCorreo.builder()
+                        .nombre(soporte.getNombreArchivo())
+                        .tipoContenido(soporte.getTipoArchivo())
+                        .urlArchivo(soporte.getUrlArchivo())
+                        .build())
+                .toList();
+    }
+
+    private boolean esSoporteDelEstudiante(AnexoAcademico anexo, TipoProcesoAcademico proceso) {
+        if (proceso == TipoProcesoAcademico.EXAMEN_SUPLETORIO)
+            return anexo.getTipoAnexoAcademico() != null && SOPORTE_JUSTIFICACION.equals(anexo.getTipoAnexoAcademico().getNombre());
+        return anexo.getTipoAnexoAcademico() == null;
     }
 
     private AdjuntoCorreo pdf(ResumenRespuesta resumen) {

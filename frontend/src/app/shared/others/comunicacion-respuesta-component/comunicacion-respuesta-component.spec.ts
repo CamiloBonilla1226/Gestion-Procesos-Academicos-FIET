@@ -6,7 +6,7 @@ import { ComunicacionEnEdicion } from '../../../core/utils/notificacion-resoluci
 @Component({
   imports: [ComunicacionRespuestaComponent],
   template: `
-    <app-comunicacion-respuesta-component [comunicacion]="comunicacion" sufijo="/178" nombreEstudiante="Ana Muñoz" [errores]="errores"
+    <app-comunicacion-respuesta-component [comunicacion]="comunicacion" prefijo="8.4.2-4.10/" nombreEstudiante="Ana Muñoz" [errores]="errores"
       [sugeridoComunicacion]="sugeridoComunicacion" [sugeridoDarca]="sugeridoDarca">
       <div data-proyectado>Resolución</div>
     </app-comunicacion-respuesta-component>

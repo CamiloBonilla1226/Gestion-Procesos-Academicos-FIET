@@ -32,6 +32,7 @@ import { CeldaEncabezado, agruparEncabezados } from '../../../../core/utils/enca
 import { ResumenSolicitudComponent } from '../../../others/resumen-solicitud-component/resumen-solicitud-component';
 import { DocumentoAdicionalComponent } from '../../../others/documento-adicional-component/documento-adicional-component';
 import { DecisionDecanoComponent } from '../../../others/decision-decano-component/decision-decano-component';
+import { TarjetaPlegableDirective } from '../../../others/tarjeta-plegable-directive/tarjeta-plegable-directive';
 import { DecisionDecano, ETIQUETA_ENVIAR_DECISION, accionDeDecision, esAccionDecisionDecano } from '../../../../core/utils/decision-decano';
 import {
   TITULO_FALLA_DOCUMENTO_ADICIONAL,
@@ -127,7 +128,8 @@ const COLUMNAS_FIJAS = ['Código', 'Asignatura'];
     InputAnexoUploadComponent,
     ResumenSolicitudComponent,
     DocumentoAdicionalComponent,
-    DecisionDecanoComponent
+    DecisionDecanoComponent,
+    TarjetaPlegableDirective
   ],
   templateUrl: './cancelacion-matricula-proceso-component.html',
   styleUrls: ['../estilos-academicos.css', '../tabla-asignaturas.css']
@@ -200,6 +202,10 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
 
   get decide(): boolean {
     return this.accionesVisibles.some(accion => esAccionDecisionDecano(accion));
+  }
+
+  get esFuncionario(): boolean {
+    return this.rol === ROLES_ETIQUETA.FUNCIONARIO;
   }
 
   get muestraNotaSimca(): boolean {

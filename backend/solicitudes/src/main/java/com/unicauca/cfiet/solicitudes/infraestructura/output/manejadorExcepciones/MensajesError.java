@@ -88,12 +88,15 @@ public class MensajesError {
     public static final String ASIGNATURA_NO_MATRICULADA = "La asignatura %s no es una asignatura matriculada del estudiante %s...";
     public static final String ASIGNATURA_NO_ACTIVA = "La asignatura %s está %s y solo se pueden cancelar asignaturas activas...";
     public static final String SOLO_SOPORTES_LIBRES = "La cancelación de asignatura solo admite soportes libres, sin tipo de anexo, y llegó uno de tipo %s...";
-    public static final String NOTA_INSUFICIENTE_CUMPLE = "La asignatura %s tiene nota %s, menor a 3.0, y no puede marcarse como que cumple las condiciones...";
     public static final String NINGUNA_ASIGNATURA_APROBADA = "No se aprobó ninguna asignatura: para negar la solicitud completa use el rechazo del Decano...";
-    public static final String FORMA_APROBACION_DECANO = "Debe aceptar la evaluación del funcionario (aceptarEvaluacion) o enviar la decisión de cada asignatura (decisiones), una de las dos...";
+    public static final String FORMA_APROBACION_DECANO = "Debe enviar la decisión de cada asignatura (decisiones); el Funcionario ya no evalúa si cumple las condiciones y no hay evaluación que aceptar (aceptarEvaluacion)...";
     public static final String SITUACION_NO_PERMITIDA = "%s no admite el valor %s: las opciones son %s...";
+    public static final String SITUACION_MATRICULA_RECHAZADA = "La asignatura %s fue rechazada por el Decano y no lleva situación en la matrícula en la respuesta...";
     public static final String SITUACION_CANCELAR_RECHAZADA = "La asignatura %s fue rechazada por el Decano y no lleva situación al cancelar...";
+    public static final String SITUACION_NUEVA_MATRICULA_RECHAZADA = "La asignatura %s fue rechazada por el Decano y no lleva estado académico para cuando la matricule de nuevo...";
     public static final String AJUSTES_SOLICITUD_RECHAZADA = "La solicitud %s fue rechazada por el Decano y no admite ajustes por asignatura...";
+    public static final String COMENTARIO_DECISION_PARCIAL_REQUERIDO = "El Decano rechazó alguna de las asignaturas: debe escribir un comentario para el Funcionario Académico...";
+    public static final String COMENTARIO_RECHAZO_DECANO_REQUERIDO = "Al rechazar la solicitud completa, el Decano debe escribir un comentario para el Funcionario Académico...";
     public static final String OBSERVACION_RESPUESTA_REQUERIDA = "El Decano rechazó la solicitud o alguna de sus asignaturas: la respuesta al estudiante requiere una observación...";
     public static final String VALOR_ASIGNATURA_MUY_LARGO = "En la asignatura %s, %s supera los %d caracteres permitidos...";
     public static final String OBSERVACION_ASIGNATURA_MUY_LARGA = "%s de la asignatura %s supera los %d caracteres permitidos...";

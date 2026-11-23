@@ -1,0 +1,18 @@
+<fieldset class="decision-decano" data-decision-decano>
+  <legend class="decision-titulo">Decisión del Decano <span class="text-danger">*</span></legend>
+  <div class="decision-opciones">
+    <div class="form-check">
+      <input class="form-check-input" type="radio" [name]="nombre" [id]="nombre + '-aprobar'" value="aprobar" data-opcion="aprobar"
+        [checked]="decision === 'aprobar'" [disabled]="deshabilitado" (change)="elegir('aprobar')">
+      <label class="form-check-label" [for]="nombre + '-aprobar'">{{ textoAprobar }}</label>
+    </div>
+    <div class="form-check">
+      <input class="form-check-input" type="radio" [name]="nombre" [id]="nombre + '-rechazar'" value="rechazar" data-opcion="rechazar"
+        [checked]="decision === 'rechazar'" [disabled]="deshabilitado" (change)="elegir('rechazar')">
+      <label class="form-check-label" [for]="nombre + '-rechazar'">{{ textoRechazar }}</label>
+    </div>
+  </div>
+  @if (decision === null) {
+  <small class="decision-ayuda" data-ayuda-decision>Elige una opción para habilitar "{{ etiquetaEnviar }}".</small>
+  }
+</fieldset>

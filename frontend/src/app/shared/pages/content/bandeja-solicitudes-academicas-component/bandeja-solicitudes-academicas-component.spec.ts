@@ -28,8 +28,9 @@ describe('BandejaSolicitudesAcademicasComponent', () => {
 
   beforeEach(() => {
     servicio = jasmine.createSpyObj<SolicitudAcademicaService>('SolicitudAcademicaService', [
-      'getSolicitudesEstudiante', 'getSolicitudesFuncionario', 'getSolicitudesDecano'
+      'getSolicitudesEstudiante', 'getSolicitudesFuncionario', 'getSolicitudesDecano', 'getCorreosPendientes'
     ]);
+    servicio.getCorreosPendientes.and.returnValue(of({ cantidad: 0 }));
     errores = jasmine.createSpyObj<ErrorHandlerService>('ErrorHandlerService', ['handleError']);
     router = jasmine.createSpyObj<Router>('Router', ['navigate']);
     TestBed.configureTestingModule({

@@ -110,21 +110,18 @@ describe('EstExamenSupletorioContentComponent', () => {
     it('la linea del docente que orienta la asignatura usa la etiqueta nueva y descarga su formato', () => {
       const fixture = crear();
       fixture.componentInstance.alCambiarCausa('otra');
-      expect(enlaces(fixture)).toEqual({ for23: { href: 'formatos/formato-firma-docente.doc', download: 'formato-firma-docente.doc' } });
+      expect(enlaces(fixture)).toEqual({ for23: { href: 'formatos/supletorio.docx', download: 'supletorio.docx' } });
       const linea = fixture.nativeElement.querySelector('[data-campo-anexo="for23"]').textContent;
       expect(linea).toContain('Formato firmado por el docente que orienta la asignatura');
       expect(linea).not.toContain('PM-FO-4-FOR-23');
       expect(linea).toContain('Descargar formato');
     });
 
-    it('con cruce las dos lineas de formato tienen su enlace y el soporte no', () => {
+    it('con cruce solo la linea del docente que orienta la asignatura tiene el formato unico', () => {
       const fixture = crear();
       fixture.componentInstance.alCambiarCausa('cruce');
-      expect(enlaces(fixture)).toEqual({
-        for23: { href: 'formatos/formato-firma-docente.doc', download: 'formato-firma-docente.doc' },
-        doc: { href: 'formatos/formato-firma-docente-cruce.doc', download: 'formato-firma-docente-cruce.doc' }
-      });
-      const enlace = fixture.nativeElement.querySelector('[data-campo-anexo="doc"] [data-descargar-formato]');
+      expect(enlaces(fixture)).toEqual({ for23: { href: 'formatos/supletorio.docx', download: 'supletorio.docx' } });
+      const enlace = fixture.nativeElement.querySelector('[data-campo-anexo="for23"] [data-descargar-formato]');
       expect(enlace.textContent.trim()).toBe('Descargar formato');
       expect(enlace.getAttribute('target')).toBeNull();
       expect(enlace.hasAttribute('routerLink')).toBeFalse();

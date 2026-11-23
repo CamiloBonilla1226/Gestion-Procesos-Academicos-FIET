@@ -245,7 +245,10 @@ CREATE TABLE IF NOT EXISTS SOLICITUD_SUPLETORIO_CRUCE_ASIGNATURA (
 -- vista y C2 Perdida. R0 No cursada se conserva con ambito NULL (retirada):
 -- no se ofrece ni se acepta. Las filas de ASIGNATURA_SOLICITUD_ACADEMICA que
 -- apuntaban a un valor fuera de su lista quedaron en NULL
--- (docs/database/migracion_situaciones_siglas.sql). Hibernate crea ambito
+-- (docs/database/migracion_situaciones_siglas.sql). Desde P64 los nombres son
+-- R1R (R1) Cursada por primera vez, R2 (R2) Cursada por segunda vez, R3
+-- (R3) Cursada por tercera vez, C1 No cursada y C2 Como perdida
+-- (docs/database/migracion_nombres_situaciones.sql). Hibernate crea ambito
 -- como ENUM desde el enum AmbitoSituacionAcademica.
 CREATE TABLE IF NOT EXISTS SITUACION_ACADEMICA_ASIGNATURA (
     uuidSituacionAcademica  VARCHAR(100) NOT NULL,
@@ -263,11 +266,18 @@ CREATE TABLE IF NOT EXISTS SITUACION_ACADEMICA_ASIGNATURA (
 -- observacionDecision solo se usan en Cancelación de Asignatura, donde el
 -- Decano decide cada asignatura por separado (decisión P14 de
 -- docs/database/etapas-por-proceso.md). En Cancelación de Matrícula quedan
--- en NULL. BOOLEAN es TINYINT(1) en MySQL.
+-- en NULL. BOOLEAN es TINYINT(1) en MySQL. Desde P67 cumpleCondiciones ya
+-- no se registra (NULL en las nuevas); al responder, cada asignatura
+-- aprobada exige SituacionMatricula_uuid, SituacionCancelar_uuid y
+-- SituacionNuevaMatricula_uuid.
 -- numeroFaltas y nota son texto de hasta 20 caracteres: si el valor es
 -- numérico se valida (faltas entero >= 0; nota de 0.0 a 5.0 con un decimal,
 -- con punto o coma, guardada con punto); si no, se guarda el texto tal cual.
 -- observacionDecision es opcional y el Estudiante nunca la ve.
+-- SituacionNuevaMatricula_uuid (P66): estado académico de la asignatura
+-- cuando el estudiante la matricule de nuevo (lista de la situación de la
+-- asignatura). Solo Cancelación de Asignatura; obligatorio al responder en
+-- cada asignatura aprobada por el Decano; nulo en las rechazadas.
 CREATE TABLE IF NOT EXISTS ASIGNATURA_SOLICITUD_ACADEMICA (
     uuidAsignaturaSolicitud     VARCHAR(100) NOT NULL,
     SolicitudAcademica_uuid     VARCHAR(100) NOT NULL,
@@ -276,6 +286,7 @@ CREATE TABLE IF NOT EXISTS ASIGNATURA_SOLICITUD_ACADEMICA (
     nota                        VARCHAR(20)  NULL,
     SituacionMatricula_uuid     VARCHAR(100) NULL,
     SituacionCancelar_uuid      VARCHAR(100) NULL,
+    SituacionNuevaMatricula_uuid VARCHAR(100) NULL,
     cumpleCondiciones           BOOLEAN      NULL,
     observacionEvaluacion       VARCHAR(255) NULL,
     aprobadaPorDecano           BOOLEAN      NULL,
@@ -288,7 +299,9 @@ CREATE TABLE IF NOT EXISTS ASIGNATURA_SOLICITUD_ACADEMICA (
     CONSTRAINT fk_asigsol_situmatricula
         FOREIGN KEY (SituacionMatricula_uuid) REFERENCES SITUACION_ACADEMICA_ASIGNATURA (uuidSituacionAcademica),
     CONSTRAINT fk_asigsol_situcancelar
-        FOREIGN KEY (SituacionCancelar_uuid) REFERENCES SITUACION_ACADEMICA_ASIGNATURA (uuidSituacionAcademica)
+        FOREIGN KEY (SituacionCancelar_uuid) REFERENCES SITUACION_ACADEMICA_ASIGNATURA (uuidSituacionAcademica),
+    CONSTRAINT fk_asigsol_situnuevamat
+        FOREIGN KEY (SituacionNuevaMatricula_uuid) REFERENCES SITUACION_ACADEMICA_ASIGNATURA (uuidSituacionAcademica)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ---------------------------------------------------------------------
@@ -460,7 +473,7 @@ CREATE TABLE IF NOT EXISTS NOTIFICACION_RESOLUCION (
     firmada                   BIT(1)        NOT NULL DEFAULT b'0',
     numeroResolucion          VARCHAR(20)   NOT NULL,
     anioResolucion            INT           NOT NULL,
-    decision                  VARCHAR(60)   NOT NULL,
+    decision                  VARCHAR(500)  NOT NULL,
     mensajeInicial            VARCHAR(2000) NULL,
     textoComunicacion         VARCHAR(4000) NULL,
     textoDarca                VARCHAR(4000) NULL,
@@ -477,14 +490,34 @@ CREATE TABLE IF NOT EXISTS NOTIFICACION_RESOLUCION (
         FOREIGN KEY (SolicitudAcademica_uuid) REFERENCES SOLICITUD_ACADEMICA (uuidSolicitudAcademica)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- ---------------------------------------------------------------------
+-- CORREO_PENDIENTE: cola de correos inmediatos. Se guarda en la misma
+-- transaccion que la respuesta y un reintento periodico envia los que no
+-- salieron (por ejemplo, sin conexion a internet). Sin FK a otras tablas.
+-- ---------------------------------------------------------------------
+CREATE TABLE CORREO_PENDIENTE (
+    idCorreo       BIGINT        NOT NULL AUTO_INCREMENT,
+    destinatario   VARCHAR(255)  NOT NULL,
+    asunto         VARCHAR(500)  NOT NULL,
+    texto          LONGTEXT      NOT NULL,
+    adjuntos       LONGTEXT      NULL,
+    estado         VARCHAR(20)   NOT NULL,
+    intentos       INT           NOT NULL DEFAULT 0,
+    ultimoError    VARCHAR(1000) NULL,
+    fechaCreacion  DATETIME      NOT NULL,
+    fechaReclamo   DATETIME      NULL,
+    fechaEnvio     DATETIME      NULL,
+    PRIMARY KEY (idCorreo)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- =====================================================================
--- Fin del script. Son 21 tablas nuevas en total. Orden de creación ya
+-- Fin del script. Son 22 tablas nuevas en total. Orden de creación ya
 -- resuelto para respetar FKs: ProgramaAcademico ->
 -- Estudiante/FuncionarioAcademico ->
 -- Asignatura/AsignaturaMatriculada -> TipoSolicitud -> Etapa/EtapaEtiqueta
 -- -> SolicitudAcademica -> especializaciones -> SituacionAcademica ->
 -- AsignaturaSolicitud -> Anexos -> Resolución -> Historial ->
--- NotificacionDocente -> NotificacionResolucion.
+-- NotificacionDocente -> NotificacionResolucion -> CorreoPendiente.
 -- =====================================================================

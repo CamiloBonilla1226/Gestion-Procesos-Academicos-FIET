@@ -21,8 +21,8 @@
     </div>
   </div>
   <div data-campo-programacion="decision">
-    <app-input-text-component label="Decisión" [required]="true" [(value)]="programacion.decision">
-    </app-input-text-component>
+    <app-input-text-tarea-component label="Decisión" [required]="true" [(value)]="programacion.decision">
+    </app-input-text-tarea-component>
     <small class="nota-gris d-block">Se propone según lo que decidió el Decano por asignatura; puedes editarla.</small>
     <small class="texto-error" data-error="decision">{{ errores['decision'] || '' }}</small>
   </div>

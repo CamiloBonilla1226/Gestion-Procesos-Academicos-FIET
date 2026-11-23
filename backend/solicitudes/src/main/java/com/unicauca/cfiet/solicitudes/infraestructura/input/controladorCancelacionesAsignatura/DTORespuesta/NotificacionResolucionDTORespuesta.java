@@ -17,7 +17,7 @@ public class NotificacionResolucionDTORespuesta {
     private boolean firmada;
     private String numeroResolucion;
     private Integer anioResolucion;
-    private String sufijoResolucion;
+    private String prefijoResolucion;
     private String decision;
     private String mensajeInicial;
     private String textoComunicacion;

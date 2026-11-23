@@ -150,19 +150,26 @@ class ServicioCorreoTest {
         assertDoesNotThrow(() -> servicio.enviar("est@unicauca.edu.co", "Asunto", "Texto", List.of()));
     }
 
+    private ColaCorreos colaConIds(Long... ids) {
+        ColaCorreos cola = mock(ColaCorreos.class);
+        when(cola.guardar(any(), any(), any(), any())).thenReturn(ids[0], java.util.Arrays.copyOfRange(ids, 1, ids.length));
+        return cola;
+    }
+
     @Test
-    void dentroDeUnaTransaccionElCorreoSaleSoloAlConfirmar() {
-        ServicioCorreo servicioMock = mock(ServicioCorreo.class);
-        CorreoImplAdaptador adaptador = new CorreoImplAdaptador(servicioMock);
+    void dentroDeUnaTransaccionElCorreoSeGuardaYSaleSoloAlConfirmar() {
+        ColaCorreos cola = colaConIds(1L);
+        CorreoImplAdaptador adaptador = new CorreoImplAdaptador(mock(ServicioCorreo.class), cola);
         List<AdjuntoCorreo> adjuntos = List.of(adjunto("r.pdf", RUTA_RESOLUCION));
         TransactionSynchronizationManager.initSynchronization();
         try {
             adaptador.enviar("est@unicauca.edu.co", "Asunto", "Texto", adjuntos);
-            verify(servicioMock, never()).enviar(any(), any(), any(), any());
+            verify(cola).guardar("est@unicauca.edu.co", "Asunto", "Texto", adjuntos);
+            verify(cola, never()).enviarEnSegundoPlano(any());
 
             for (TransactionSynchronization sincronizacion : TransactionSynchronizationManager.getSynchronizations())
                 sincronizacion.afterCommit();
-            verify(servicioMock).enviar("est@unicauca.edu.co", "Asunto", "Texto", adjuntos);
+            verify(cola).enviarEnSegundoPlano(1L);
         } finally {
             TransactionSynchronizationManager.clearSynchronization();
         }
@@ -170,8 +177,8 @@ class ServicioCorreoTest {
 
     @Test
     void siLaTransaccionSeRevierteNoSeEnviaElCorreo() {
-        ServicioCorreo servicioMock = mock(ServicioCorreo.class);
-        CorreoImplAdaptador adaptador = new CorreoImplAdaptador(servicioMock);
+        ColaCorreos cola = colaConIds(1L);
+        CorreoImplAdaptador adaptador = new CorreoImplAdaptador(mock(ServicioCorreo.class), cola);
         TransactionSynchronizationManager.initSynchronization();
         try {
             adaptador.enviar("est@unicauca.edu.co", "Asunto", "Texto", List.of());
@@ -181,15 +188,53 @@ class ServicioCorreoTest {
             TransactionSynchronizationManager.clearSynchronization();
         }
 
-        verify(servicioMock, never()).enviar(any(), any(), any(), any());
+        verify(cola, never()).enviarEnSegundoPlano(any());
     }
 
     @Test
     void unFalloAlProgramarElEnvioNoSePropaga() {
-        ServicioCorreo servicioMock = mock(ServicioCorreo.class);
-        doThrow(new IllegalStateException("sin hilos")).when(servicioMock).enviar(any(), any(), any(), any());
+        ColaCorreos cola = colaConIds(1L);
+        doThrow(new IllegalStateException("sin hilos")).when(cola).enviarEnSegundoPlano(any());
 
-        assertDoesNotThrow(() -> new CorreoImplAdaptador(servicioMock).enviar("est@unicauca.edu.co", "Asunto", "Texto", List.of()));
+        assertDoesNotThrow(() -> new CorreoImplAdaptador(mock(ServicioCorreo.class), cola).enviar("est@unicauca.edu.co", "Asunto", "Texto", List.of()));
+    }
+
+    @Test
+    void unFalloAlGuardarElCorreoNoSePropagaNiLoEnvia() {
+        ColaCorreos cola = mock(ColaCorreos.class);
+        when(cola.guardar(any(), any(), any(), any())).thenThrow(new IllegalStateException("sin base"));
+
+        assertDoesNotThrow(() -> new CorreoImplAdaptador(mock(ServicioCorreo.class), cola).enviar("est@unicauca.edu.co", "Asunto", "Texto", List.of()));
+        verify(cola, never()).enviarEnSegundoPlano(any());
+    }
+
+    @Test
+    void sinDestinatarioNoSeGuardaNiSeEnvia() {
+        ColaCorreos cola = mock(ColaCorreos.class);
+        CorreoImplAdaptador adaptador = new CorreoImplAdaptador(mock(ServicioCorreo.class), cola);
+
+        adaptador.enviar(null, "Asunto", "Texto", List.of());
+        adaptador.enviar("  ", "Asunto", "Texto", List.of());
+
+        verifyNoInteractions(cola);
+    }
+
+    @Test
+    void sinConexionEnviarAhoraLanzaUnaFallaTransitoria() {
+        doThrow(new MailSendException("Mail server connection failed", new jakarta.mail.MessagingException("Could not connect",
+                new java.net.UnknownHostException("smtp.gmail.com")))).when(enviador).send(any(MimeMessage.class));
+
+        assertThrows(com.unicauca.cfiet.solicitudes.aplicacion.output.FallaTransitoriaCorreoException.class, () -> servicio.enviarAhora(
+                CorreoPreparado.builder().destinatario("est@unicauca.edu.co").asunto("Asunto").texto("Texto").build()));
+    }
+
+    @Test
+    void unRechazoDelServidorNoEsUnaFallaTransitoria() {
+        doThrow(new MailSendException("550 buzon inexistente")).when(enviador).send(any(MimeMessage.class));
+
+        RuntimeException error = assertThrows(MailSendException.class, () -> servicio.enviarAhora(
+                CorreoPreparado.builder().destinatario("est@unicauca.edu.co").asunto("Asunto").texto("Texto").build()));
+        assertFalse(error instanceof com.unicauca.cfiet.solicitudes.aplicacion.output.FallaTransitoriaCorreoException);
     }
 
     @Test
@@ -220,8 +265,8 @@ class ServicioCorreoTest {
 
     @Test
     void laPreparacionCorreAntesDeConfirmarYSuCorreoSaleDespuesDelCommit() {
-        ServicioCorreo servicioMock = mock(ServicioCorreo.class);
-        CorreoImplAdaptador correo = new CorreoImplAdaptador(servicioMock);
+        ColaCorreos cola = colaConIds(1L, 2L);
+        CorreoImplAdaptador correo = new CorreoImplAdaptador(mock(ServicioCorreo.class), cola);
         PreparacionCorreoImplAdaptador preparacion = new PreparacionCorreoImplAdaptador();
         List<String> pasos = new ArrayList<>();
         TransactionSynchronizationManager.initSynchronization();
@@ -235,11 +280,11 @@ class ServicioCorreoTest {
 
             TransactionSynchronizationUtils.triggerBeforeCommit(false);
             assertEquals(List.of("preparado"), pasos);
-            verify(servicioMock, never()).enviar(any(), any(), any(), any());
+            verify(cola, never()).enviarEnSegundoPlano(any());
 
             TransactionSynchronizationUtils.triggerAfterCommit();
-            verify(servicioMock).enviar("est@unicauca.edu.co", "Estudiante", "Texto", List.of());
-            verify(servicioMock).enviar("darca@unicauca.edu.co", "DARCA", "Texto", List.of());
+            verify(cola).enviarEnSegundoPlano(1L);
+            verify(cola).enviarEnSegundoPlano(2L);
         } finally {
             TransactionSynchronizationManager.clearSynchronization();
         }
@@ -247,8 +292,8 @@ class ServicioCorreoTest {
 
     @Test
     void siFallaLaPreparacionDeUnCorreoNoSePropagaYLosDemasSalen() {
-        ServicioCorreo servicioMock = mock(ServicioCorreo.class);
-        CorreoImplAdaptador correo = new CorreoImplAdaptador(servicioMock);
+        ColaCorreos cola = colaConIds(1L, 2L);
+        CorreoImplAdaptador correo = new CorreoImplAdaptador(mock(ServicioCorreo.class), cola);
         PreparacionCorreoImplAdaptador preparacion = new PreparacionCorreoImplAdaptador();
         TransactionSynchronizationManager.initSynchronization();
         try {
@@ -261,9 +306,9 @@ class ServicioCorreoTest {
             assertDoesNotThrow(() -> TransactionSynchronizationUtils.triggerBeforeCommit(false));
             TransactionSynchronizationUtils.triggerAfterCommit();
 
-            verify(servicioMock).enviar("est@unicauca.edu.co", "Estudiante", "Texto", List.of());
-            verify(servicioMock).enviar("prof@unicauca.edu.co", "Profesor", "Texto", List.of());
-            verify(servicioMock, times(2)).enviar(any(), any(), any(), any());
+            verify(cola).enviarEnSegundoPlano(1L);
+            verify(cola).enviarEnSegundoPlano(2L);
+            verify(cola, times(2)).enviarEnSegundoPlano(any());
         } finally {
             TransactionSynchronizationManager.clearSynchronization();
         }
@@ -271,8 +316,8 @@ class ServicioCorreoTest {
 
     @Test
     void siLaTransaccionSeRevierteNoSePreparaNiSeEnvia() {
-        ServicioCorreo servicioMock = mock(ServicioCorreo.class);
-        CorreoImplAdaptador correo = new CorreoImplAdaptador(servicioMock);
+        ColaCorreos cola = colaConIds(1L);
+        CorreoImplAdaptador correo = new CorreoImplAdaptador(mock(ServicioCorreo.class), cola);
         List<String> pasos = new ArrayList<>();
         TransactionSynchronizationManager.initSynchronization();
         try {
@@ -286,7 +331,8 @@ class ServicioCorreoTest {
         }
 
         assertTrue(pasos.isEmpty());
-        verify(servicioMock, never()).enviar(any(), any(), any(), any());
+        verify(cola, never()).guardar(any(), any(), any(), any());
+        verify(cola, never()).enviarEnSegundoPlano(any());
     }
 
     @Test

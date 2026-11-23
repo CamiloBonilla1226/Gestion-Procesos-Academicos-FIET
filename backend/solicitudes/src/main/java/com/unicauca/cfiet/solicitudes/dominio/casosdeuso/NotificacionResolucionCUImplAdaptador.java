@@ -31,7 +31,7 @@ public class NotificacionResolucionCUImplAdaptador implements NotificacionResolu
     private static final String TEXTO_ESTUDIANTE = "El texto de la comunicación al estudiante";
     private static final String TEXTO_DARCA = "El texto del correo a DARCA";
     private static final int MAXIMO_NUMERO = 20;
-    private static final int MAXIMO_DECISION = 60;
+    private static final int MAXIMO_DECISION = 500;
     private static final int ANIO_MINIMO = 2000;
     private static final int ANIO_MAXIMO = 2100;
     private static final int MAXIMO_INTENTOS = 3;
@@ -120,7 +120,7 @@ public class NotificacionResolucionCUImplAdaptador implements NotificacionResolu
         correo.enviar(correoDe(solicitud), comunicacion.asuntoMensajeInicial(solicitud.getRadicado()), mensaje, List.of());
         log.crearLog("Programar comunicación de la Resolución",
                 String.format("Solicitud académica %s: comunicación programada para %s, Resolución %s%s de %d, mensaje inicial enviado",
-                        solicitud.getRadicado(), programacion.getFechaProgramada(), creada.getNumeroResolucion(), comunicacion.getSufijo(),
+                        solicitud.getRadicado(), programacion.getFechaProgramada(), comunicacion.getPrefijo(), creada.getNumeroResolucion(),
                         creada.getAnioResolucion()),
                 token);
         return vista(creada, solicitud);
@@ -135,7 +135,7 @@ public class NotificacionResolucionCUImplAdaptador implements NotificacionResolu
                 .decisionPropuesta(comunicacion.decisionPropuesta(solicitud.getEtapa() == null ? null : solicitud.getEtapa().getCodigo(),
                         cancelacion == null ? List.of() : cancelacion.getAsignaturas()))
                 .anioResolucion(LocalDateTime.now(reloj).getYear())
-                .sufijoResolucion(comunicacion.getSufijo())
+                .prefijoResolucion(comunicacion.getPrefijo())
                 .textoComunicacion(comunicacion.plantillaComunicacion())
                 .textoDarca(notificador.plantillaDarcaResolucion(solicitud,
                         solicitud.getEtapa() != null && APROBADA_POR_DECANO.equals(solicitud.getEtapa().getCodigo()), false))
@@ -165,7 +165,7 @@ public class NotificacionResolucionCUImplAdaptador implements NotificacionResolu
             formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.NOTIFICACION_NO_EDITABLE, solicitud.getRadicado()));
         log.crearLog("Reprogramar comunicación de la Resolución",
                 String.format("Solicitud académica %s: comunicación programada para %s, Resolución %s%s de %d", solicitud.getRadicado(),
-                        limpia.getFechaProgramada(), limpia.getNumeroResolucion(), comunicacion.getSufijo(), limpia.getAnioResolucion()),
+                        limpia.getFechaProgramada(), comunicacion.getPrefijo(), limpia.getNumeroResolucion(), limpia.getAnioResolucion()),
                 token);
         return vista(gateway.getPorSolicitud(actual.getUuidSolicitudAcademica()), solicitud);
     }
@@ -218,6 +218,7 @@ public class NotificacionResolucionCUImplAdaptador implements NotificacionResolu
             return false;
         NotificacionResolucion notificacion = gateway.getPorSolicitud(uuidSolicitud);
         List<String> errores = new ArrayList<>();
+        int transitorios = 0;
         SolicitudAcademica solicitud = null;
         try {
             solicitud = solicitudGateway.getPorUuid(uuidSolicitud);
@@ -233,6 +234,7 @@ public class NotificacionResolucionCUImplAdaptador implements NotificacionResolu
                 notificacion.setFechaEnvioEstudiante(LocalDateTime.now(reloj));
                 gateway.marcarEnvioEstudiante(uuidSolicitud, notificacion.getFechaEnvioEstudiante());
             } catch (RuntimeException error) {
+                transitorios += error instanceof FallaTransitoriaCorreoException ? 1 : 0;
                 errores.add("Correo al estudiante: " + error.getMessage());
             }
         }
@@ -244,10 +246,12 @@ public class NotificacionResolucionCUImplAdaptador implements NotificacionResolu
                         notificacion.getTextoDarca()));
                 gateway.marcarEnvioDarca(uuidSolicitud, LocalDateTime.now(reloj));
             } catch (RuntimeException error) {
+                transitorios += error instanceof FallaTransitoriaCorreoException ? 1 : 0;
                 errores.add("Correo a DARCA: " + error.getMessage());
             }
         }
-        int intentos = notificacion.getIntentos() + 1;
+        boolean soloTransitorios = !errores.isEmpty() && errores.size() == transitorios;
+        int intentos = soloTransitorios ? notificacion.getIntentos() : notificacion.getIntentos() + 1;
         if (errores.isEmpty())
             gateway.registrarResultado(uuidSolicitud, EstadoNotificacionResolucion.ENVIADA, intentos, null, LocalDateTime.now(reloj));
         else
@@ -260,7 +264,7 @@ public class NotificacionResolucionCUImplAdaptador implements NotificacionResolu
         if (notificacion == null) return null;
         notificacion.setEditable(notificacion.getEstado() == EstadoNotificacionResolucion.PROGRAMADA && !notificacion.isFirmada()
                 && notificacion.getFechaProgramada() != null && notificacion.getFechaProgramada().isAfter(LocalDateTime.now(reloj)));
-        notificacion.setSufijoResolucion(comunicacion.getSufijo());
+        notificacion.setPrefijoResolucion(comunicacion.getPrefijo());
         String firmada = notificador.plantillaDarcaFirmada(notificacion.getTextoDarca());
         boolean aprobada = solicitud != null && solicitud.getEtapa() != null && APROBADA.equals(solicitud.getEtapa().getCodigo());
         notificacion.setTextoDarcaFirma(firmada != null || solicitud == null ? firmada
