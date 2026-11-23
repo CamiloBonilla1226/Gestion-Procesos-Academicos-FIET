@@ -18,7 +18,7 @@ public class EtapaEtiquetaRolGatewayImplAdaptador implements EtapaEtiquetaRolGat
 
     @Override
     public List<EtapaEtiquetaRol> getPorRol(RolEtiquetaEtapa rol) {
-        return repositorio.findByIdRolOrderByEtapaCodigoAsc(rol).stream()
+        return repositorio.buscarPorRolConEtapa(rol).stream()
                 .map(mapper::toDominio)
                 .toList();
     }
