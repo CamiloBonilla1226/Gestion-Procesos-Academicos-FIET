@@ -34,6 +34,11 @@ services:
     volumes:
       - ./uploads:/app/uploads
     restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: ${BACKEND_LOG_MAX_SIZE:-20m}
+        max-file: "${BACKEND_LOG_MAX_FILE:-5}"
     networks:
       - cfiet_red
     depends_on:
