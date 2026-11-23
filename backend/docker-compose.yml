@@ -12,7 +12,7 @@ version: '3'
 services:
   solicitudes-consejo-de-facultad:
     build: .
-    mem_limit: 512m
+    mem_limit: ${BACKEND_MEM_LIMIT:-1g}
     ports:
       - "8080:8080"
     environment:
@@ -28,6 +28,7 @@ services:
       CORREO_DARCA: ${CORREO_DARCA:?Falta CORREO_DARCA en backend/.env (ver backend/.env.example)}
       JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:-}
       SHOW_SQL: ${SHOW_SQL:-false}
+      JDK_JAVA_OPTIONS: -XX:MaxRAMPercentage=${JAVA_MAX_RAM_PERCENTAGE:-50}
     volumes:
       - ./uploads:/app/uploads
     restart: always
