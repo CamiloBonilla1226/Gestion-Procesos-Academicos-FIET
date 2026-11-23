@@ -13,6 +13,7 @@ import com.unicauca.cfiet.solicitudes.aplicacion.output.SolicitudCancelacionAsig
 import com.unicauca.cfiet.solicitudes.aplicacion.output.SolicitudCancelacionMatriculaGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.SolicitudExamenSupletorioGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.TipoSolicitudAcademicaGatewayIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.output.UsuarioActorGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.UsuarioGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
 import com.unicauca.cfiet.solicitudes.dominio.servicios.MaquinaEtapas;
@@ -74,7 +75,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
     private EtapaSolicitudAcademicaGatewayIntPuerto etapaGateway;
 
     @Mock
-    private UsuarioGatewayIntPuerto usuarioGateway;
+    private UsuarioActorGatewayIntPuerto usuarioActorGateway;
 
     @Mock
     private ResolucionAcademicaGatewayIntPuerto resolucionGateway;
@@ -99,7 +100,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
     private SolicitudAcademicaCUImplAdaptador casoDeUso(Clock reloj) {
         ExcepcionesFormateadorImplAdaptador formateador = new ExcepcionesFormateadorImplAdaptador();
         return new SolicitudAcademicaCUImplAdaptador(gateway, estudianteGateway, tipoSolicitudGateway, etapaGateway,
-                resolucionGateway, anexoGateway, usuarioGateway, almacenamiento, new MaquinaEtapas(formateador), formateador, log, reloj,
+                resolucionGateway, anexoGateway, usuarioActorGateway, almacenamiento, new MaquinaEtapas(formateador), formateador, log, reloj,
                 correo, notificador);
     }
 
@@ -178,11 +179,11 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         for (String codigo : ETAPAS)
             etapas.add(EtapaSolicitudAcademica.builder().uuidEtapa("etapa-" + codigo).codigo(codigo).build());
         lenient().when(etapaGateway.getPorTipoIncluyendoUniversales(anyString())).thenAnswer(invocacion -> etapas);
-        lenient().when(usuarioGateway.getUsuario(ESTUDIANTE)).thenReturn(usuario(ESTUDIANTE, "Estudiante"));
-        lenient().when(usuarioGateway.getUsuario(OTRO_ESTUDIANTE)).thenReturn(usuario(OTRO_ESTUDIANTE, "Estudiante"));
-        lenient().when(usuarioGateway.getUsuario(FUNCIONARIO)).thenReturn(usuario(FUNCIONARIO, "Funcionario Académico"));
-        lenient().when(usuarioGateway.getUsuario(OTRO_FUNCIONARIO)).thenReturn(usuario(OTRO_FUNCIONARIO, "Funcionario Académico"));
-        lenient().when(usuarioGateway.getUsuario(DECANO)).thenReturn(usuario(DECANO, "Decano"));
+        lenient().when(usuarioActorGateway.getUsuario(ESTUDIANTE)).thenReturn(usuario(ESTUDIANTE, "Estudiante"));
+        lenient().when(usuarioActorGateway.getUsuario(OTRO_ESTUDIANTE)).thenReturn(usuario(OTRO_ESTUDIANTE, "Estudiante"));
+        lenient().when(usuarioActorGateway.getUsuario(FUNCIONARIO)).thenReturn(usuario(FUNCIONARIO, "Funcionario Académico"));
+        lenient().when(usuarioActorGateway.getUsuario(OTRO_FUNCIONARIO)).thenReturn(usuario(OTRO_FUNCIONARIO, "Funcionario Académico"));
+        lenient().when(usuarioActorGateway.getUsuario(DECANO)).thenReturn(usuario(DECANO, "Decano"));
         lenient().when(gateway.crear(any(), any())).thenAnswer(invocacion -> invocacion.getArgument(0));
         lenient().when(gateway.actualizarEtapa(any(), any())).thenAnswer(invocacion -> invocacion.getArgument(0));
     }
@@ -457,7 +458,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
     @Test
     void unActorInexistenteNoGuardaNada() {
         when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoMatricula(), EN_REVISION_DECANO));
-        when(usuarioGateway.getUsuario("no-existe")).thenReturn(null);
+        when(usuarioActorGateway.getUsuario("no-existe")).thenReturn(null);
 
         assertThrows(ErrorEntidadNoExisteExcepcion.class,
                 () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.APROBAR_DECANO, actor("no-existe", RolEtiquetaEtapa.DECANO), null, TOKEN));
@@ -870,11 +871,11 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         GeneradorPdfRespuestaIntPuerto generadorRoto = mock(GeneradorPdfRespuestaIntPuerto.class);
         when(generadorRoto.generar(any())).thenThrow(new IllegalStateException("fuente dañada"));
         NotificadorRespuestaFinal real = new NotificadorRespuestaFinal(mock(SolicitudCancelacionAsignaturaGatewayIntPuerto.class), mock(SolicitudCancelacionMatriculaGatewayIntPuerto.class),
-                mock(SolicitudExamenSupletorioGatewayIntPuerto.class), resolucionGateway, anexoGateway, usuarioGateway, generadorRoto,
+                mock(SolicitudExamenSupletorioGatewayIntPuerto.class), resolucionGateway, anexoGateway, mock(UsuarioGatewayIntPuerto.class), generadorRoto,
                 new PreparacionCorreoImplAdaptador(), correo, "darca@unicauca.edu.co");
         ExcepcionesFormateadorImplAdaptador formateador = new ExcepcionesFormateadorImplAdaptador();
         SolicitudAcademicaCUImplAdaptador conNotificadorReal = new SolicitudAcademicaCUImplAdaptador(gateway, estudianteGateway,
-                tipoSolicitudGateway, etapaGateway, resolucionGateway, anexoGateway, usuarioGateway, almacenamiento,
+                tipoSolicitudGateway, etapaGateway, resolucionGateway, anexoGateway, usuarioActorGateway, almacenamiento,
                 new MaquinaEtapas(formateador), formateador, log, reloj("2026-03-10T15:00:00Z"), correo, real);
         when(gateway.getPorUuid(SOLICITUD)).thenReturn(conDatosDeContacto(solicitud(tipoMatricula(), APROBADA_POR_DECANO)));
         when(resolucionGateway.existePorSolicitud(SOLICITUD)).thenReturn(true);

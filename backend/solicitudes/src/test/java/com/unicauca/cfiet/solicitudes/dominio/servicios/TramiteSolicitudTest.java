@@ -3,7 +3,7 @@ package com.unicauca.cfiet.solicitudes.dominio.servicios;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.IJwtServicio;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.SesionGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.SolicitudAcademicaGatewayIntPuerto;
-import com.unicauca.cfiet.solicitudes.aplicacion.output.UsuarioGatewayIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.output.UsuarioActorGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.formateador.ExcepcionesFormateadorImplAdaptador;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.MensajesError;
@@ -46,7 +46,7 @@ class TramiteSolicitudTest {
     private SolicitudAcademicaGatewayIntPuerto solicitudGateway;
 
     @Mock
-    private UsuarioGatewayIntPuerto usuarioGateway;
+    private UsuarioActorGatewayIntPuerto usuarioActorGateway;
 
     @Mock
     private SesionGatewayIntPuerto sesionGateway;
@@ -59,7 +59,7 @@ class TramiteSolicitudTest {
     @BeforeEach
     void setUp() {
         ExcepcionesFormateadorImplAdaptador formateador = new ExcepcionesFormateadorImplAdaptador();
-        tramite = new TramiteSolicitud(solicitudGateway, usuarioGateway, sesionGateway, jwtServicio, new MaquinaEtapas(formateador), formateador);
+        tramite = new TramiteSolicitud(solicitudGateway, usuarioActorGateway, sesionGateway, jwtServicio, new MaquinaEtapas(formateador), formateador);
         registrar(usuario(ESTUDIANTE, "Estudiante"));
         registrar(usuario(OTRO_ESTUDIANTE, "Estudiante"));
         registrar(usuario(FUNCIONARIO, "Funcionario Académico"));
@@ -71,8 +71,6 @@ class TramiteSolicitudTest {
     void sinEscrituras() {
         verify(solicitudGateway, never()).crear(any(), any());
         verify(solicitudGateway, never()).actualizarEtapa(any(), any());
-        verify(usuarioGateway, never()).guardarUsuario(any());
-        verify(usuarioGateway, never()).guardarUsuarios(any());
     }
 
     private Usuario usuario(String uuid, String rol) {
@@ -83,7 +81,7 @@ class TramiteSolicitudTest {
     }
 
     private void registrar(Usuario usuario) {
-        lenient().when(usuarioGateway.getUsuario(usuario.getUuidUsuario())).thenReturn(usuario);
+        lenient().when(usuarioActorGateway.getUsuario(usuario.getUuidUsuario())).thenReturn(usuario);
     }
 
     private void sesion(String token, Usuario usuario) {
@@ -229,7 +227,7 @@ class TramiteSolicitudTest {
                         AccionEtapa.REMITIR_DECANO, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO)));
 
         assertEquals(String.format(MensajesError.ENTIDAD_NO_ENCONTRADA, "Solicitud académica", "no-existe"), error.getMessage());
-        verify(usuarioGateway, never()).getUsuario(anyString());
+        verify(usuarioActorGateway, never()).getUsuario(anyString());
     }
 
     @Test
@@ -334,7 +332,7 @@ class TramiteSolicitudTest {
                         AccionEtapa.REMITIR_DECANO, actor(FUNCIONARIO, null)));
 
         assertEquals(MensajesError.DATOS_TRANSICION_INCOMPLETOS, error.getMessage());
-        verify(usuarioGateway, never()).getUsuario(anyString());
+        verify(usuarioActorGateway, never()).getUsuario(anyString());
     }
 
     @Test

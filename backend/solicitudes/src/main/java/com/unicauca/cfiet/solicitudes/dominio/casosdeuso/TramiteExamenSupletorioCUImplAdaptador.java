@@ -36,7 +36,7 @@ public class TramiteExamenSupletorioCUImplAdaptador implements TramiteExamenSupl
 
     public TramiteExamenSupletorioCUImplAdaptador(SolicitudExamenSupletorioGatewayIntPuerto gateway,
                                                   SolicitudAcademicaGatewayIntPuerto solicitudGateway,
-                                                  UsuarioGatewayIntPuerto usuarioGateway,
+                                                  UsuarioActorGatewayIntPuerto usuarioActorGateway,
                                                   SesionGatewayIntPuerto sesionGateway,
                                                   IJwtServicio jwtServicio,
                                                   DocenteGatewayIntPuerto docenteGateway,
@@ -51,7 +51,7 @@ public class TramiteExamenSupletorioCUImplAdaptador implements TramiteExamenSupl
         this.docenteGateway = docenteGateway;
         this.notificacionGateway = notificacionGateway;
         this.solicitudCU = solicitudCU;
-        this.tramite = new TramiteSolicitud(solicitudGateway, usuarioGateway, sesionGateway, jwtServicio, maquinaEtapas, formateadorExcepciones);
+        this.tramite = new TramiteSolicitud(solicitudGateway, usuarioActorGateway, sesionGateway, jwtServicio, maquinaEtapas, formateadorExcepciones);
         this.formateadorExcepciones = formateadorExcepciones;
         this.log = log;
         this.reloj = reloj;

@@ -63,7 +63,7 @@ class TramiteExamenSupletorioCUImplAdaptadorTest {
     private SolicitudAcademicaGatewayIntPuerto solicitudGateway;
 
     @Mock
-    private UsuarioGatewayIntPuerto usuarioGateway;
+    private UsuarioActorGatewayIntPuerto usuarioActorGateway;
 
     @Mock
     private SesionGatewayIntPuerto sesionGateway;
@@ -177,7 +177,7 @@ class TramiteExamenSupletorioCUImplAdaptadorTest {
     private void sesion(String token, Usuario usuario) {
         lenient().when(jwtServicio.getUsername(token)).thenReturn("user-" + usuario.getUuidUsuario());
         lenient().when(sesionGateway.getUsuario("user-" + usuario.getUuidUsuario())).thenReturn(usuario);
-        lenient().when(usuarioGateway.getUsuario(usuario.getUuidUsuario())).thenReturn(usuario);
+        lenient().when(usuarioActorGateway.getUsuario(usuario.getUuidUsuario())).thenReturn(usuario);
     }
 
     private void enEtapa(String codigo) {
@@ -204,9 +204,9 @@ class TramiteExamenSupletorioCUImplAdaptadorTest {
         ExcepcionesFormateadorImplAdaptador formateador = new ExcepcionesFormateadorImplAdaptador();
         MaquinaEtapas maquina = new MaquinaEtapas(formateador);
         SolicitudAcademicaCUImplAdaptador solicitudCU = new SolicitudAcademicaCUImplAdaptador(solicitudGateway, estudianteGateway,
-                tipoSolicitudGateway, etapaGateway, resolucionGateway, anexoGateway, usuarioGateway, almacenamiento, maquina, formateador, log,
+                tipoSolicitudGateway, etapaGateway, resolucionGateway, anexoGateway, usuarioActorGateway, almacenamiento, maquina, formateador, log,
                 RELOJ, mock(CorreoIntPuerto.class), notificador);
-        casoDeUso = new TramiteExamenSupletorioCUImplAdaptador(gateway, solicitudGateway, usuarioGateway, sesionGateway, jwtServicio,
+        casoDeUso = new TramiteExamenSupletorioCUImplAdaptador(gateway, solicitudGateway, usuarioActorGateway, sesionGateway, jwtServicio,
                 docenteGateway, notificacionGateway, solicitudCU, maquina, formateador, log, RELOJ, notificador);
         lenient().when(docenteGateway.getActivo(DOCENTE)).thenReturn(Docente.builder().uuidUsuario(DOCENTE).nombres("Ana").apellidos("Ruiz")
                 .numeroDocumento("1061").username("aruiz").build());

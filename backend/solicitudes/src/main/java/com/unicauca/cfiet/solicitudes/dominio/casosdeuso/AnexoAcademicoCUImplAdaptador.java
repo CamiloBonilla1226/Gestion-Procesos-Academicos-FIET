@@ -43,7 +43,7 @@ public class AnexoAcademicoCUImplAdaptador implements AnexoAcademicoCUIntPuerto 
                                          SolicitudAcademicaGatewayIntPuerto solicitudGateway,
                                          TipoSolicitudAcademicaGatewayIntPuerto tipoSolicitudGateway,
                                          TipoAnexoAcademicoGatewayIntPuerto tipoAnexoGateway,
-                                         UsuarioGatewayIntPuerto usuarioGateway,
+                                         UsuarioActorGatewayIntPuerto usuarioActorGateway,
                                          AlmacenamientoAnexosIntPuerto almacenamiento,
                                          ExcepcionesFormateadorIntPuerto formateadorExcepciones,
                                          LogCUIntPuerto log,
@@ -53,7 +53,7 @@ public class AnexoAcademicoCUImplAdaptador implements AnexoAcademicoCUIntPuerto 
         this.tipoSolicitudGateway = tipoSolicitudGateway;
         this.tipoAnexoGateway = tipoAnexoGateway;
         this.almacenamiento = almacenamiento;
-        this.validadorActor = new ValidadorActorSolicitud(usuarioGateway, formateadorExcepciones);
+        this.validadorActor = new ValidadorActorSolicitud(usuarioActorGateway, formateadorExcepciones);
         this.validadorArchivo = new ValidadorArchivoAdjunto(formateadorExcepciones);
         this.formateadorExcepciones = formateadorExcepciones;
         this.log = log;

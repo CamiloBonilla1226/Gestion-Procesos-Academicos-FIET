@@ -69,7 +69,7 @@ class TramiteCancelacionAsignaturaCUImplAdaptadorTest {
     private SituacionAcademicaAsignaturaGatewayIntPuerto situacionGateway;
 
     @Mock
-    private UsuarioGatewayIntPuerto usuarioGateway;
+    private UsuarioActorGatewayIntPuerto usuarioActorGateway;
 
     @Mock
     private SesionGatewayIntPuerto sesionGateway;
@@ -126,7 +126,7 @@ class TramiteCancelacionAsignaturaCUImplAdaptadorTest {
     private void sesion(String token, Usuario usuario) {
         lenient().when(jwtServicio.getUsername(token)).thenReturn("user-" + usuario.getUuidUsuario());
         lenient().when(sesionGateway.getUsuario("user-" + usuario.getUuidUsuario())).thenReturn(usuario);
-        lenient().when(usuarioGateway.getUsuario(usuario.getUuidUsuario())).thenReturn(usuario);
+        lenient().when(usuarioActorGateway.getUsuario(usuario.getUuidUsuario())).thenReturn(usuario);
     }
 
     private AsignaturaSolicitudAcademica fila(String uuid, String uuidMatriculada, String nombre, Boolean cumple) {
@@ -226,10 +226,10 @@ class TramiteCancelacionAsignaturaCUImplAdaptadorTest {
         ExcepcionesFormateadorImplAdaptador formateador = new ExcepcionesFormateadorImplAdaptador();
         MaquinaEtapas maquina = new MaquinaEtapas(formateador);
         SolicitudAcademicaCUImplAdaptador solicitudCU = new SolicitudAcademicaCUImplAdaptador(solicitudGateway, estudianteGateway,
-                tipoSolicitudGateway, etapaGateway, resolucionGateway, anexoGateway, usuarioGateway, almacenamiento, maquina, formateador, log,
+                tipoSolicitudGateway, etapaGateway, resolucionGateway, anexoGateway, usuarioActorGateway, almacenamiento, maquina, formateador, log,
                 Clock.fixed(Instant.parse("2026-10-06T15:00:00Z"), ZoneId.of("America/Bogota")), correo, notificador);
         casoDeUso = new TramiteCancelacionAsignaturaCUImplAdaptador(gateway, asignaturaSolicitudGateway, solicitudGateway, situacionGateway,
-                usuarioGateway, sesionGateway, jwtServicio, solicitudCU, maquina, formateador, log, notificacionCU);
+                usuarioActorGateway, sesionGateway, jwtServicio, solicitudCU, maquina, formateador, log, notificacionCU);
 
         sesion(TOKEN_FUNCIONARIO, usuario(FUNCIONARIO, "Funcionario Académico"));
         sesion(TOKEN_OTRO_FUNCIONARIO, usuario(OTRO_FUNCIONARIO, "Funcionario Académico"));

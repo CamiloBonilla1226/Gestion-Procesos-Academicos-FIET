@@ -1,7 +1,7 @@
 package com.unicauca.cfiet.solicitudes.dominio.servicios;
 
 import com.unicauca.cfiet.solicitudes.aplicacion.output.ExcepcionesFormateadorIntPuerto;
-import com.unicauca.cfiet.solicitudes.aplicacion.output.UsuarioGatewayIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.output.UsuarioActorGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.dominio.helper.constantes.ApplicationConstantes;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.ActorSolicitud;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.RolEtiquetaEtapa;
@@ -19,11 +19,11 @@ public class ValidadorActorSolicitud {
             RolEtiquetaEtapa.FUNCIONARIO, ApplicationConstantes.FUNCIONARIO_ACADEMICO_ROL,
             RolEtiquetaEtapa.DECANO, ApplicationConstantes.DECANO);
 
-    private final UsuarioGatewayIntPuerto usuarioGateway;
+    private final UsuarioActorGatewayIntPuerto usuarioActorGateway;
     private final ExcepcionesFormateadorIntPuerto formateadorExcepciones;
 
-    public ValidadorActorSolicitud(UsuarioGatewayIntPuerto usuarioGateway, ExcepcionesFormateadorIntPuerto formateadorExcepciones) {
-        this.usuarioGateway = usuarioGateway;
+    public ValidadorActorSolicitud(UsuarioActorGatewayIntPuerto usuarioActorGateway, ExcepcionesFormateadorIntPuerto formateadorExcepciones) {
+        this.usuarioActorGateway = usuarioActorGateway;
         this.formateadorExcepciones = formateadorExcepciones;
     }
 
@@ -33,7 +33,7 @@ public class ValidadorActorSolicitud {
     }
 
     public void validarRol(ActorSolicitud actor) {
-        Usuario usuario = usuarioGateway.getUsuario(actor.getUuidUsuario());
+        Usuario usuario = usuarioActorGateway.getUsuario(actor.getUuidUsuario());
         if (usuario == null)
             formateadorExcepciones.lanzarEntidadNoExiste(String.format(MensajesError.ENTIDAD_NO_ENCONTRADA, USUARIO, actor.getUuidUsuario()));
         String rolRequerido = ROLES.get(actor.getRol());

@@ -69,7 +69,7 @@ class AnexoAcademicoCUImplAdaptadorTest {
     private TipoAnexoAcademicoGatewayIntPuerto tipoAnexoGateway;
 
     @Mock
-    private UsuarioGatewayIntPuerto usuarioGateway;
+    private UsuarioActorGatewayIntPuerto usuarioActorGateway;
 
     @Mock
     private AlmacenamientoAnexosIntPuerto almacenamiento;
@@ -164,7 +164,7 @@ class AnexoAcademicoCUImplAdaptadorTest {
     @BeforeEach
     void setUp() {
         casoDeUso = new AnexoAcademicoCUImplAdaptador(anexoGateway, solicitudGateway, tipoSolicitudGateway, tipoAnexoGateway,
-                usuarioGateway, almacenamiento, new ExcepcionesFormateadorImplAdaptador(), log,
+                usuarioActorGateway, almacenamiento, new ExcepcionesFormateadorImplAdaptador(), log,
                 Clock.fixed(Instant.parse("2026-03-10T15:00:00Z"), ZoneId.of("America/Bogota")));
 
         tipoAnexo(matricula, PAZ_BIBLIOTECAS, "pdf", true);
@@ -183,11 +183,11 @@ class AnexoAcademicoCUImplAdaptadorTest {
                 .filter(t -> t.getUuidTipoAnexoAcademico().equals(invocacion.getArgument(0))).findFirst().orElse(null));
         lenient().when(tipoAnexoGateway.getPorTipo(anyString())).thenAnswer(invocacion -> catalogo.stream()
                 .filter(t -> t.getTipoSolicitudAcademica().getUuidTipoSolicitudAcademica().equals(invocacion.getArgument(0))).toList());
-        lenient().when(usuarioGateway.getUsuario(ESTUDIANTE)).thenReturn(usuario(ESTUDIANTE, "Estudiante"));
-        lenient().when(usuarioGateway.getUsuario(OTRO_ESTUDIANTE)).thenReturn(usuario(OTRO_ESTUDIANTE, "Estudiante"));
-        lenient().when(usuarioGateway.getUsuario(FUNCIONARIO)).thenReturn(usuario(FUNCIONARIO, "Funcionario Académico"));
-        lenient().when(usuarioGateway.getUsuario(OTRO_FUNCIONARIO)).thenReturn(usuario(OTRO_FUNCIONARIO, "Funcionario Académico"));
-        lenient().when(usuarioGateway.getUsuario(DECANO)).thenReturn(usuario(DECANO, "Decano"));
+        lenient().when(usuarioActorGateway.getUsuario(ESTUDIANTE)).thenReturn(usuario(ESTUDIANTE, "Estudiante"));
+        lenient().when(usuarioActorGateway.getUsuario(OTRO_ESTUDIANTE)).thenReturn(usuario(OTRO_ESTUDIANTE, "Estudiante"));
+        lenient().when(usuarioActorGateway.getUsuario(FUNCIONARIO)).thenReturn(usuario(FUNCIONARIO, "Funcionario Académico"));
+        lenient().when(usuarioActorGateway.getUsuario(OTRO_FUNCIONARIO)).thenReturn(usuario(OTRO_FUNCIONARIO, "Funcionario Académico"));
+        lenient().when(usuarioActorGateway.getUsuario(DECANO)).thenReturn(usuario(DECANO, "Decano"));
         lenient().when(almacenamiento.guardar(anyString(), anyString(), any())).thenReturn(RUTA);
         lenient().when(anexoGateway.guardar(any())).thenAnswer(invocacion -> invocacion.getArgument(0));
     }

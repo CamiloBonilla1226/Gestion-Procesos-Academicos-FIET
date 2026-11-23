@@ -174,7 +174,7 @@ public class BeanConfiguracion {
                                                                      EtapaSolicitudAcademicaGatewayIntPuerto etapaGateway,
                                                                      ResolucionAcademicaGatewayIntPuerto resolucionGateway,
                                                                      AnexoAcademicoGatewayIntPuerto anexoGateway,
-                                                                     UsuarioGatewayIntPuerto usuarioGateway,
+                                                                     UsuarioActorGatewayIntPuerto usuarioActorGateway,
                                                                      AlmacenamientoAnexosIntPuerto almacenamiento,
                                                                      MaquinaEtapas maquinaEtapas,
                                                                      ExcepcionesFormateadorIntPuerto formateadorExcepciones,
@@ -182,7 +182,7 @@ public class BeanConfiguracion {
                                                                      CorreoIntPuerto correo,
                                                                      NotificadorRespuestaFinal notificador){
         return new SolicitudAcademicaCUImplAdaptador(gateway, estudianteGateway, tipoSolicitudGateway, etapaGateway,
-                resolucionGateway, anexoGateway, usuarioGateway, almacenamiento, maquinaEtapas, formateadorExcepciones, log,
+                resolucionGateway, anexoGateway, usuarioActorGateway, almacenamiento, maquinaEtapas, formateadorExcepciones, log,
                 Clock.system(ZoneId.of("America/Bogota")), correo, notificador);
     }
 
@@ -206,23 +206,23 @@ public class BeanConfiguracion {
                                                              SolicitudAcademicaGatewayIntPuerto solicitudGateway,
                                                              TipoSolicitudAcademicaGatewayIntPuerto tipoSolicitudGateway,
                                                              TipoAnexoAcademicoGatewayIntPuerto tipoAnexoGateway,
-                                                             UsuarioGatewayIntPuerto usuarioGateway,
+                                                             UsuarioActorGatewayIntPuerto usuarioActorGateway,
                                                              AlmacenamientoAnexosIntPuerto almacenamiento,
                                                              ExcepcionesFormateadorIntPuerto formateadorExcepciones,
                                                              LogCUIntPuerto log){
         return new AnexoAcademicoCUImplAdaptador(anexoGateway, solicitudGateway, tipoSolicitudGateway, tipoAnexoGateway,
-                usuarioGateway, almacenamiento, formateadorExcepciones, log, Clock.system(ZoneId.of("America/Bogota")));
+                usuarioActorGateway, almacenamiento, formateadorExcepciones, log, Clock.system(ZoneId.of("America/Bogota")));
     }
 
     @Bean
     public ResolucionAcademicaCUImplAdaptador crearResolucionAcademicaCU(ResolucionAcademicaGatewayIntPuerto gateway,
                                                                        SolicitudAcademicaGatewayIntPuerto solicitudGateway,
-                                                                       UsuarioGatewayIntPuerto usuarioGateway,
+                                                                       UsuarioActorGatewayIntPuerto usuarioActorGateway,
                                                                        AlmacenamientoAnexosIntPuerto almacenamiento,
                                                                        ExcepcionesFormateadorIntPuerto formateadorExcepciones,
                                                                        LogCUIntPuerto log,
                                                                        NotificacionResolucionGatewayIntPuerto notificacionGateway){
-        return new ResolucionAcademicaCUImplAdaptador(gateway, solicitudGateway, usuarioGateway, almacenamiento,
+        return new ResolucionAcademicaCUImplAdaptador(gateway, solicitudGateway, usuarioActorGateway, almacenamiento,
                 formateadorExcepciones, log, Clock.system(ZoneId.of("America/Bogota")), notificacionGateway);
     }
 
@@ -300,14 +300,14 @@ public class BeanConfiguracion {
     public TramiteCancelacionMatriculaCUImplAdaptador crearTramiteCancelacionMatriculaCU(SolicitudCancelacionMatriculaGatewayIntPuerto gateway,
                                                                                        SolicitudAcademicaGatewayIntPuerto solicitudGateway,
                                                                                        SituacionAcademicaAsignaturaGatewayIntPuerto situacionGateway,
-                                                                                       UsuarioGatewayIntPuerto usuarioGateway,
+                                                                                       UsuarioActorGatewayIntPuerto usuarioActorGateway,
                                                                                        SesionGatewayIntPuerto sesionGateway,
                                                                                        IJwtServicio jwtServicio,
                                                                                        SolicitudAcademicaCUIntPuerto solicitudCU,
                                                                                        MaquinaEtapas maquinaEtapas,
                                                                                        ExcepcionesFormateadorIntPuerto formateadorExcepciones,
                                                                                        LogCUIntPuerto log){
-        return new TramiteCancelacionMatriculaCUImplAdaptador(gateway, solicitudGateway, situacionGateway, usuarioGateway,
+        return new TramiteCancelacionMatriculaCUImplAdaptador(gateway, solicitudGateway, situacionGateway, usuarioActorGateway,
                 sesionGateway, jwtServicio, solicitudCU, maquinaEtapas, formateadorExcepciones, log);
     }
 
@@ -344,7 +344,7 @@ public class BeanConfiguracion {
                                                                                          SolicitudCancelacionMatriculaGatewayIntPuerto asignaturaSolicitudGateway,
                                                                                          SolicitudAcademicaGatewayIntPuerto solicitudGateway,
                                                                                          SituacionAcademicaAsignaturaGatewayIntPuerto situacionGateway,
-                                                                                         UsuarioGatewayIntPuerto usuarioGateway,
+                                                                                         UsuarioActorGatewayIntPuerto usuarioActorGateway,
                                                                                          SesionGatewayIntPuerto sesionGateway,
                                                                                          IJwtServicio jwtServicio,
                                                                                          SolicitudAcademicaCUIntPuerto solicitudCU,
@@ -353,7 +353,7 @@ public class BeanConfiguracion {
                                                                                          LogCUIntPuerto log,
                                                                                          NotificacionResolucionCUIntPuerto notificacionCU){
         return new TramiteCancelacionAsignaturaCUImplAdaptador(gateway, asignaturaSolicitudGateway, solicitudGateway, situacionGateway,
-                usuarioGateway, sesionGateway, jwtServicio, solicitudCU, maquinaEtapas, formateadorExcepciones, log, notificacionCU);
+                usuarioActorGateway, sesionGateway, jwtServicio, solicitudCU, maquinaEtapas, formateadorExcepciones, log, notificacionCU);
     }
 
     @Bean
@@ -385,7 +385,7 @@ public class BeanConfiguracion {
     @Bean
     public TramiteExamenSupletorioCUImplAdaptador crearTramiteExamenSupletorioCU(SolicitudExamenSupletorioGatewayIntPuerto gateway,
                                                                                SolicitudAcademicaGatewayIntPuerto solicitudGateway,
-                                                                               UsuarioGatewayIntPuerto usuarioGateway,
+                                                                               UsuarioActorGatewayIntPuerto usuarioActorGateway,
                                                                                SesionGatewayIntPuerto sesionGateway,
                                                                                IJwtServicio jwtServicio,
                                                                                DocenteGatewayIntPuerto docenteGateway,
@@ -395,7 +395,7 @@ public class BeanConfiguracion {
                                                                                ExcepcionesFormateadorIntPuerto formateadorExcepciones,
                                                                                LogCUIntPuerto log,
                                                                                NotificadorRespuestaFinal notificador){
-        return new TramiteExamenSupletorioCUImplAdaptador(gateway, solicitudGateway, usuarioGateway, sesionGateway, jwtServicio,
+        return new TramiteExamenSupletorioCUImplAdaptador(gateway, solicitudGateway, usuarioActorGateway, sesionGateway, jwtServicio,
                 docenteGateway, notificacionGateway, solicitudCU, maquinaEtapas, formateadorExcepciones, log,
                 Clock.system(ZoneId.of("America/Bogota")), notificador);
     }

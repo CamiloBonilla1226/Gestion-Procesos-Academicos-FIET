@@ -11,7 +11,7 @@ import com.unicauca.cfiet.solicitudes.aplicacion.output.ExcepcionesFormateadorIn
 import com.unicauca.cfiet.solicitudes.aplicacion.output.ResolucionAcademicaGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.SolicitudAcademicaGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.TipoSolicitudAcademicaGatewayIntPuerto;
-import com.unicauca.cfiet.solicitudes.aplicacion.output.UsuarioGatewayIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.output.UsuarioActorGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
 import com.unicauca.cfiet.solicitudes.dominio.servicios.MaquinaEtapas;
 import com.unicauca.cfiet.solicitudes.dominio.servicios.NotificadorRespuestaFinal;
@@ -79,7 +79,7 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
                                              EtapaSolicitudAcademicaGatewayIntPuerto etapaGateway,
                                              ResolucionAcademicaGatewayIntPuerto resolucionGateway,
                                              AnexoAcademicoGatewayIntPuerto anexoGateway,
-                                             UsuarioGatewayIntPuerto usuarioGateway,
+                                             UsuarioActorGatewayIntPuerto usuarioActorGateway,
                                              AlmacenamientoAnexosIntPuerto almacenamiento,
                                              MaquinaEtapas maquinaEtapas,
                                              ExcepcionesFormateadorIntPuerto formateadorExcepciones,
@@ -94,7 +94,7 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
         this.resolucionGateway = resolucionGateway;
         this.anexoGateway = anexoGateway;
         this.almacenamiento = almacenamiento;
-        this.validadorActor = new ValidadorActorSolicitud(usuarioGateway, formateadorExcepciones);
+        this.validadorActor = new ValidadorActorSolicitud(usuarioActorGateway, formateadorExcepciones);
         this.maquinaEtapas = maquinaEtapas;
         this.formateadorExcepciones = formateadorExcepciones;
         this.log = log;

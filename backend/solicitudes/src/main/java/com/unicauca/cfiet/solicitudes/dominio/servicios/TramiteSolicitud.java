@@ -24,7 +24,7 @@ public class TramiteSolicitud {
     private final ExcepcionesFormateadorIntPuerto formateadorExcepciones;
 
     public TramiteSolicitud(SolicitudAcademicaGatewayIntPuerto solicitudGateway,
-                            UsuarioGatewayIntPuerto usuarioGateway,
+                            UsuarioActorGatewayIntPuerto usuarioActorGateway,
                             SesionGatewayIntPuerto sesionGateway,
                             IJwtServicio jwtServicio,
                             MaquinaEtapas maquinaEtapas,
@@ -32,7 +32,7 @@ public class TramiteSolicitud {
         this.solicitudGateway = solicitudGateway;
         this.sesionGateway = sesionGateway;
         this.jwtServicio = jwtServicio;
-        this.validadorActor = new ValidadorActorSolicitud(usuarioGateway, formateadorExcepciones);
+        this.validadorActor = new ValidadorActorSolicitud(usuarioActorGateway, formateadorExcepciones);
         this.maquinaEtapas = maquinaEtapas;
         this.formateadorExcepciones = formateadorExcepciones;
     }

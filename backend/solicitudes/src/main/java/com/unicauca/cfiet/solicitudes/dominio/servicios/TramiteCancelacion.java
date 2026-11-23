@@ -27,14 +27,14 @@ public class TramiteCancelacion {
     public TramiteCancelacion(SolicitudCancelacionMatriculaGatewayIntPuerto asignaturaGateway,
                               SolicitudAcademicaGatewayIntPuerto solicitudGateway,
                               SituacionAcademicaAsignaturaGatewayIntPuerto situacionGateway,
-                              UsuarioGatewayIntPuerto usuarioGateway,
+                              UsuarioActorGatewayIntPuerto usuarioActorGateway,
                               SesionGatewayIntPuerto sesionGateway,
                               IJwtServicio jwtServicio,
                               MaquinaEtapas maquinaEtapas,
                               ExcepcionesFormateadorIntPuerto formateadorExcepciones) {
         this.asignaturaGateway = asignaturaGateway;
         this.situacionGateway = situacionGateway;
-        this.tramiteSolicitud = new TramiteSolicitud(solicitudGateway, usuarioGateway, sesionGateway, jwtServicio, maquinaEtapas,
+        this.tramiteSolicitud = new TramiteSolicitud(solicitudGateway, usuarioActorGateway, sesionGateway, jwtServicio, maquinaEtapas,
                 formateadorExcepciones);
         this.formateadorExcepciones = formateadorExcepciones;
     }

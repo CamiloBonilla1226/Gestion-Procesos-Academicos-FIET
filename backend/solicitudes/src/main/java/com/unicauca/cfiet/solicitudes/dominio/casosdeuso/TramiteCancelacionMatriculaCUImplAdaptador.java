@@ -27,7 +27,7 @@ public class TramiteCancelacionMatriculaCUImplAdaptador implements TramiteCancel
     public TramiteCancelacionMatriculaCUImplAdaptador(SolicitudCancelacionMatriculaGatewayIntPuerto gateway,
                                                       SolicitudAcademicaGatewayIntPuerto solicitudGateway,
                                                       SituacionAcademicaAsignaturaGatewayIntPuerto situacionGateway,
-                                                      UsuarioGatewayIntPuerto usuarioGateway,
+                                                      UsuarioActorGatewayIntPuerto usuarioActorGateway,
                                                       SesionGatewayIntPuerto sesionGateway,
                                                       IJwtServicio jwtServicio,
                                                       SolicitudAcademicaCUIntPuerto solicitudCU,
@@ -36,7 +36,7 @@ public class TramiteCancelacionMatriculaCUImplAdaptador implements TramiteCancel
                                                       LogCUIntPuerto log) {
         this.gateway = gateway;
         this.solicitudCU = solicitudCU;
-        this.tramite = new TramiteCancelacion(gateway, solicitudGateway, situacionGateway, usuarioGateway, sesionGateway, jwtServicio,
+        this.tramite = new TramiteCancelacion(gateway, solicitudGateway, situacionGateway, usuarioActorGateway, sesionGateway, jwtServicio,
                 maquinaEtapas, formateadorExcepciones);
         this.formateadorExcepciones = formateadorExcepciones;
         this.log = log;

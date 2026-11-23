@@ -1,6 +1,6 @@
 package com.unicauca.cfiet.solicitudes.dominio.servicios;
 
-import com.unicauca.cfiet.solicitudes.aplicacion.output.UsuarioGatewayIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.output.UsuarioActorGatewayIntPuerto;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.formateador.ExcepcionesFormateadorImplAdaptador;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.MensajesError;
@@ -37,7 +37,7 @@ class ValidadorActorSolicitudTest {
     private static final String COMITE = "comite-1";
 
     @Mock
-    private UsuarioGatewayIntPuerto usuarioGateway;
+    private UsuarioActorGatewayIntPuerto usuarioActorGateway;
 
     private ValidadorActorSolicitud validador;
 
@@ -54,7 +54,7 @@ class ValidadorActorSolicitudTest {
 
     @BeforeEach
     void setUp() {
-        validador = new ValidadorActorSolicitud(usuarioGateway, new ExcepcionesFormateadorImplAdaptador());
+        validador = new ValidadorActorSolicitud(usuarioActorGateway, new ExcepcionesFormateadorImplAdaptador());
         registrar(DUENIO, "Estudiante");
         registrar(OTRO_ESTUDIANTE, "Estudiante");
         registrar(ASIGNADO, "Funcionario Académico");
@@ -68,7 +68,7 @@ class ValidadorActorSolicitudTest {
         List<Rol> lista = new ArrayList<>();
         for (String rol : roles)
             lista.add(Rol.builder().uuidRol("rol-" + rol).nombre(rol).estado(true).build());
-        lenient().when(usuarioGateway.getUsuario(uuid)).thenReturn(Usuario.builder().uuidUsuario(uuid).roles(lista).build());
+        lenient().when(usuarioActorGateway.getUsuario(uuid)).thenReturn(Usuario.builder().uuidUsuario(uuid).roles(lista).build());
     }
 
     private ActorSolicitud actor(String uuid, RolEtiquetaEtapa rol) {
@@ -180,7 +180,7 @@ class ValidadorActorSolicitudTest {
 
     @Test
     void rechazaAlUsuarioSinRoles() {
-        when(usuarioGateway.getUsuario("sin-roles")).thenReturn(Usuario.builder().uuidUsuario("sin-roles").build());
+        when(usuarioActorGateway.getUsuario("sin-roles")).thenReturn(Usuario.builder().uuidUsuario("sin-roles").build());
 
         ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
                 () -> validador.validar(solicitud, actor("sin-roles", RolEtiquetaEtapa.DECANO)));
@@ -211,7 +211,7 @@ class ValidadorActorSolicitudTest {
                 () -> validador.validar(solicitud, incompleto));
 
         assertEquals(MensajesError.DATOS_TRANSICION_INCOMPLETOS, error.getMessage());
-        verify(usuarioGateway, never()).getUsuario(anyString());
+        verify(usuarioActorGateway, never()).getUsuario(anyString());
     }
 
     @Test

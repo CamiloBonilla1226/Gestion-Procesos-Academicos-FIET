@@ -44,7 +44,7 @@ class TramiteCancelacionTest {
     private SituacionAcademicaAsignaturaGatewayIntPuerto situacionGateway;
 
     @Mock
-    private UsuarioGatewayIntPuerto usuarioGateway;
+    private UsuarioActorGatewayIntPuerto usuarioActorGateway;
 
     @Mock
     private SesionGatewayIntPuerto sesionGateway;
@@ -59,7 +59,7 @@ class TramiteCancelacionTest {
     @BeforeEach
     void setUp() {
         ExcepcionesFormateadorImplAdaptador formateador = new ExcepcionesFormateadorImplAdaptador();
-        tramite = new TramiteCancelacion(asignaturaGateway, solicitudGateway, situacionGateway, usuarioGateway, sesionGateway,
+        tramite = new TramiteCancelacion(asignaturaGateway, solicitudGateway, situacionGateway, usuarioActorGateway, sesionGateway,
                 jwtServicio, new MaquinaEtapas(formateador), formateador);
     }
 
