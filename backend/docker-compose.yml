@@ -29,6 +29,8 @@ services:
       JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:-}
       SHOW_SQL: ${SHOW_SQL:-false}
       JDK_JAVA_OPTIONS: -XX:MaxRAMPercentage=${JAVA_MAX_RAM_PERCENTAGE:-50}
+      DB_POOL_MAX: ${DB_POOL_MAX:-10}
+      DB_POOL_TIMEOUT_MS: ${DB_POOL_TIMEOUT_MS:-30000}
     volumes:
       - ./uploads:/app/uploads
     restart: always
