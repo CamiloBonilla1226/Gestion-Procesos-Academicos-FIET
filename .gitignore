@@ -26,3 +26,7 @@ backend/pruebas/limpiar-estudiantes.ps1
 backend/.env
 !.env.example
 !backend/.env.example
+
+# Documentacion local y configuracion de herramientas, fuera del repositorio
+*.md
+.claude/
