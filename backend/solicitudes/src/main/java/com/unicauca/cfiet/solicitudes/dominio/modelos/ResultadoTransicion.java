@@ -13,4 +13,6 @@ public class ResultadoTransicion {
     private final boolean resolucionObligatoria;
     private final boolean reciboObligatorio;
     private final boolean comprobanteObligatorio;
+    private final boolean formatoEstudianteObligatorio;
+    private final boolean formatoDecanoObligatorio;
 }

@@ -196,7 +196,7 @@ class TramiteExamenSupletorioCUImplAdaptadorTest {
     }
 
     private void conAnexos(String... nombres) {
-        lenient().when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(Stream.of(nombres).map(this::anexoDeTipo).toList());
+        lenient().when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(Stream.concat(Stream.of(nombres), Stream.of("Formato firmado por el Decano")).map(this::anexoDeTipo).toList());
     }
 
     @BeforeEach
@@ -384,7 +384,7 @@ class TramiteExamenSupletorioCUImplAdaptadorTest {
     @Test
     void enviarElReciboSinElReciboCargadoSeRechaza() {
         enEtapa(APROBADA_POR_DECANO);
-        conAnexos("Formato firmado por el docente que orienta la asignatura", "Comprobante de pago");
+        conAnexos("Formato firmado", "Comprobante de pago");
 
         assertTrue(falla(enviarRecibo(), TOKEN_FUNCIONARIO).contains("el recibo de pago"));
     }

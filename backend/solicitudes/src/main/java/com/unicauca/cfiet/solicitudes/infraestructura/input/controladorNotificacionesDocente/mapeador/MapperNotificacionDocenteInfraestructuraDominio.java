@@ -17,7 +17,7 @@ import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSoli
 @RequiredArgsConstructor
 public class MapperNotificacionDocenteInfraestructuraDominio {
     private static final String RESULTADO_APROBADA = "Aprobada";
-    private static final String RESULTADO_RECHAZADA = "Rechazada";
+    private static final String RESULTADO_RECHAZADA = "No aprobada";
 
     private final MapperExamenSupletorioInfraestructuraDominio mapperSupletorio;
 

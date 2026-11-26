@@ -14,6 +14,8 @@ import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepcione
 import java.util.*;
 
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.DOCUMENTO_ADICIONAL;
+import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.FORMATO_FIRMADO_DECANO;
+import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.FORMATO_FIRMADO_ESTUDIANTE;
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.FORMATOS_SOPORTE_LIBRE;
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.tamanioMaximoDe;
 
@@ -142,6 +144,8 @@ public class CancelacionMatriculaCUImplAdaptador implements CancelacionMatricula
                 anexoDeOtroTipo(uuidTipo, tipo);
             if (tieneTexto(uuidTipo) && DOCUMENTO_ADICIONAL.equals(catalogo.get(uuidTipo).getNombre()))
                 formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.ANEXO_SOLO_DEL_FUNCIONARIO, DOCUMENTO_ADICIONAL));
+            if (tieneTexto(uuidTipo) && esFormatoFirmado(catalogo.get(uuidTipo).getNombre()))
+                formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.ANEXO_NO_PERMITIDO_AL_RADICAR, catalogo.get(uuidTipo).getNombre()));
             if (tieneTexto(uuidTipo) && !catalogo.get(uuidTipo).estaVigente())
                 formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.ANEXO_NO_VIGENTE,
                         catalogo.get(uuidTipo).getNombre(), tipo.getNombre(), String.join("; ", obligatoriosVigentes(catalogo))));
@@ -177,6 +181,10 @@ public class CancelacionMatriculaCUImplAdaptador implements CancelacionMatricula
         if (otro == null)
             formateadorExcepciones.lanzarEntidadNoExiste(String.format(MensajesError.ENTIDAD_NO_ENCONTRADA, TIPO_ANEXO_ACADEMICO, uuidTipoAnexo));
         formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.ANEXO_DE_OTRO_TIPO, otro.getNombre(), tipo.getNombre()));
+    }
+
+    private boolean esFormatoFirmado(String nombre) {
+        return FORMATO_FIRMADO_ESTUDIANTE.equals(nombre) || FORMATO_FIRMADO_DECANO.equals(nombre);
     }
 
     private boolean tieneTexto(String valor) {

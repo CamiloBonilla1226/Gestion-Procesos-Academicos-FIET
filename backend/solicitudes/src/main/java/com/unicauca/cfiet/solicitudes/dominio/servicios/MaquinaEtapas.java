@@ -29,8 +29,12 @@ public class MaquinaEtapas {
             EnumSet.of(TipoProcesoAcademico.CANCELACION_MATRICULA, TipoProcesoAcademico.CANCELACION_ASIGNATURA);
     private static final Set<TipoProcesoAcademico> SUPLETORIO = EnumSet.of(TipoProcesoAcademico.EXAMEN_SUPLETORIO);
     private static final Set<TipoProcesoAcademico> TODOS = EnumSet.allOf(TipoProcesoAcademico.class);
+    private static final Set<TipoProcesoAcademico> ASIGNATURA = EnumSet.of(TipoProcesoAcademico.CANCELACION_ASIGNATURA);
+    private static final Set<TipoProcesoAcademico> MATRICULA_Y_SUPLETORIO =
+            EnumSet.of(TipoProcesoAcademico.CANCELACION_MATRICULA, TipoProcesoAcademico.EXAMEN_SUPLETORIO);
 
     private static final Map<String, ResponsableEtapa> RESPONSABLES = Map.of(
+            PENDIENTE_FIRMA_ESTUDIANTE, ResponsableEtapa.ESTUDIANTE,
             RADICADA, ResponsableEtapa.FUNCIONARIO,
             EN_REVISION_DECANO, ResponsableEtapa.DECANO,
             APROBADA_POR_DECANO, ResponsableEtapa.FUNCIONARIO,
@@ -41,15 +45,20 @@ public class MaquinaEtapas {
             RECHAZADA, ResponsableEtapa.NINGUNO);
 
     private static final List<Transicion> TRANSICIONES = List.of(
-            new Transicion(TODOS, null, AccionEtapa.RADICAR, RADICADA, RolEtiquetaEtapa.ESTUDIANTE, false, false, false, false),
+            new Transicion(TODOS, null, AccionEtapa.RADICAR, RADICADA, RolEtiquetaEtapa.ESTUDIANTE, false, false, false, false, false, false, true),
+            new Transicion(TODOS, null, AccionEtapa.GENERAR_FORMATO, PENDIENTE_FIRMA_ESTUDIANTE, RolEtiquetaEtapa.ESTUDIANTE, false, false, false, false),
+            new Transicion(TODOS, PENDIENTE_FIRMA_ESTUDIANTE, AccionEtapa.RADICAR, RADICADA, RolEtiquetaEtapa.ESTUDIANTE, false, false, false, false, true, false, false),
+            new Transicion(TODOS, PENDIENTE_FIRMA_ESTUDIANTE, AccionEtapa.DESCARTAR, null, RolEtiquetaEtapa.ESTUDIANTE, false, false, false, false),
             new Transicion(TODOS, RADICADA, AccionEtapa.RECHAZAR_FUNCIONARIO, RECHAZADA, RolEtiquetaEtapa.FUNCIONARIO, true, false, false, false),
             new Transicion(TODOS, RADICADA, AccionEtapa.REMITIR_DECANO, EN_REVISION_DECANO, RolEtiquetaEtapa.FUNCIONARIO, false, false, false, false),
-            new Transicion(TODOS, EN_REVISION_DECANO, AccionEtapa.APROBAR_DECANO, APROBADA_POR_DECANO, RolEtiquetaEtapa.DECANO, false, false, false, false),
-            new Transicion(TODOS, EN_REVISION_DECANO, AccionEtapa.RECHAZAR_DECANO, RECHAZADA_POR_DECANO, RolEtiquetaEtapa.DECANO, false, false, false, false),
-            new Transicion(CANCELACIONES, APROBADA_POR_DECANO, AccionEtapa.ENVIAR_RESPUESTA, APROBADA, RolEtiquetaEtapa.FUNCIONARIO, false, true, false, false),
-            new Transicion(CANCELACIONES, RECHAZADA_POR_DECANO, AccionEtapa.ENVIAR_RESPUESTA, RECHAZADA, RolEtiquetaEtapa.FUNCIONARIO, false, true, false, false),
-            new Transicion(SUPLETORIO, RECHAZADA_POR_DECANO, AccionEtapa.ENVIAR_RESPUESTA, RECHAZADA, RolEtiquetaEtapa.FUNCIONARIO, false, false, false, false),
-            new Transicion(SUPLETORIO, APROBADA_POR_DECANO, AccionEtapa.ENVIAR_RECIBO, PENDIENTE_PAGO, RolEtiquetaEtapa.FUNCIONARIO, false, false, true, false),
+            new Transicion(MATRICULA_Y_SUPLETORIO, EN_REVISION_DECANO, AccionEtapa.APROBAR_DECANO, APROBADA_POR_DECANO, RolEtiquetaEtapa.DECANO, false, false, false, false),
+            new Transicion(MATRICULA_Y_SUPLETORIO, EN_REVISION_DECANO, AccionEtapa.RECHAZAR_DECANO, RECHAZADA_POR_DECANO, RolEtiquetaEtapa.DECANO, false, false, false, false),
+            new Transicion(ASIGNATURA, EN_REVISION_DECANO, AccionEtapa.APROBAR_DECANO, APROBADA_POR_DECANO, RolEtiquetaEtapa.DECANO, false, false, false, false, false, true, false),
+            new Transicion(ASIGNATURA, EN_REVISION_DECANO, AccionEtapa.RECHAZAR_DECANO, RECHAZADA_POR_DECANO, RolEtiquetaEtapa.DECANO, false, false, false, false, false, true, false),
+            new Transicion(CANCELACIONES, APROBADA_POR_DECANO, AccionEtapa.ENVIAR_RESPUESTA, APROBADA, RolEtiquetaEtapa.FUNCIONARIO, false, true, false, false, false, true, false),
+            new Transicion(CANCELACIONES, RECHAZADA_POR_DECANO, AccionEtapa.ENVIAR_RESPUESTA, RECHAZADA, RolEtiquetaEtapa.FUNCIONARIO, false, true, false, false, false, true, false),
+            new Transicion(SUPLETORIO, RECHAZADA_POR_DECANO, AccionEtapa.ENVIAR_RESPUESTA, RECHAZADA, RolEtiquetaEtapa.FUNCIONARIO, false, false, false, false, false, true, false),
+            new Transicion(SUPLETORIO, APROBADA_POR_DECANO, AccionEtapa.ENVIAR_RECIBO, PENDIENTE_PAGO, RolEtiquetaEtapa.FUNCIONARIO, false, false, true, false, false, true, false),
             new Transicion(SUPLETORIO, PENDIENTE_PAGO, AccionEtapa.SUBIR_COMPROBANTE, EN_VERIFICACION_PAGO, RolEtiquetaEtapa.ESTUDIANTE, false, false, false, true),
             new Transicion(SUPLETORIO, EN_VERIFICACION_PAGO, AccionEtapa.APROBAR_COMPROBANTE, APROBADA, RolEtiquetaEtapa.FUNCIONARIO, false, false, false, false),
             new Transicion(SUPLETORIO, EN_VERIFICACION_PAGO, AccionEtapa.RECHAZAR_COMPROBANTE, RECHAZADA, RolEtiquetaEtapa.FUNCIONARIO, true, false, false, false));
@@ -69,7 +78,7 @@ public class MaquinaEtapas {
             formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.ETAPA_FINAL_SIN_ACCIONES, origen));
 
         Transicion transicion = TRANSICIONES.stream()
-                .filter(t -> t.procesos().contains(tipo) && Objects.equals(t.origen(), origen) && t.accion() == accion)
+                .filter(t -> !t.historica() && t.procesos().contains(tipo) && Objects.equals(t.origen(), origen) && t.accion() == accion)
                 .findFirst()
                 .orElse(null);
         if (transicion == null)
@@ -85,6 +94,8 @@ public class MaquinaEtapas {
                 .resolucionObligatoria(transicion.resolucion())
                 .reciboObligatorio(transicion.recibo())
                 .comprobanteObligatorio(transicion.comprobante())
+                .formatoEstudianteObligatorio(transicion.formatoEstudiante())
+                .formatoDecanoObligatorio(transicion.formatoDecano())
                 .build();
     }
 
@@ -104,6 +115,10 @@ public class MaquinaEtapas {
         if (!faltantes.isEmpty())
             formateadorExcepciones.lanzarReglaNegocioViolada(String.format(
                     MensajesError.REQUISITO_TRANSICION_FALTANTE, accion, String.join(" y ", faltantes)));
+        if (resultado.isFormatoDecanoObligatorio() && !recibida.isFormatoDecano())
+            formateadorExcepciones.lanzarReglaNegocioViolada(MensajesError.FORMATO_DECANO_FALTANTE);
+        if (resultado.isFormatoEstudianteObligatorio() && !recibida.isFormatoEstudiante())
+            formateadorExcepciones.lanzarReglaNegocioViolada(MensajesError.FORMATO_ESTUDIANTE_FALTANTE);
         return resultado;
     }
 
@@ -114,7 +129,7 @@ public class MaquinaEtapas {
         if (origen != null && esFinal(origen))
             return List.of();
         return TRANSICIONES.stream()
-                .filter(t -> t.procesos().contains(tipo) && Objects.equals(t.origen(), origen) && t.rol() == rol)
+                .filter(t -> !t.historica() && t.procesos().contains(tipo) && Objects.equals(t.origen(), origen) && t.rol() == rol)
                 .map(Transicion::accion)
                 .distinct()
                 .toList();
@@ -125,6 +140,7 @@ public class MaquinaEtapas {
         return TRANSICIONES.stream()
                 .filter(t -> t.procesos().contains(tipo) && Objects.equals(t.origen(), origen) && t.accion() == accion)
                 .map(Transicion::destino)
+                .filter(Objects::nonNull)
                 .findFirst()
                 .orElse(null);
     }
@@ -145,6 +161,11 @@ public class MaquinaEtapas {
     }
 
     private record Transicion(Set<TipoProcesoAcademico> procesos, String origen, AccionEtapa accion, String destino,
-                              RolEtiquetaEtapa rol, boolean observacion, boolean resolucion, boolean recibo, boolean comprobante) {
+                              RolEtiquetaEtapa rol, boolean observacion, boolean resolucion, boolean recibo, boolean comprobante,
+                              boolean formatoEstudiante, boolean formatoDecano, boolean historica) {
+        private Transicion(Set<TipoProcesoAcademico> procesos, String origen, AccionEtapa accion, String destino,
+                           RolEtiquetaEtapa rol, boolean observacion, boolean resolucion, boolean recibo, boolean comprobante) {
+            this(procesos, origen, accion, destino, rol, observacion, resolucion, recibo, comprobante, false, false, false);
+        }
     }
 }

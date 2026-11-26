@@ -11,7 +11,8 @@ public class EtapaSolicitudAcademicaConstantes {
     public static final String EN_VERIFICACION_PAGO = "EN_VERIFICACION_PAGO";
     public static final String APROBADA = "APROBADA";
     public static final String RECHAZADA = "RECHAZADA";
-    public static final List<String> ETAPAS = List.of(RADICADA, EN_REVISION_DECANO, APROBADA_POR_DECANO,
+    public static final String PENDIENTE_FIRMA_ESTUDIANTE = "PENDIENTE_FIRMA_ESTUDIANTE";
+    public static final List<String> ETAPAS = List.of(PENDIENTE_FIRMA_ESTUDIANTE, RADICADA, EN_REVISION_DECANO, APROBADA_POR_DECANO,
             RECHAZADA_POR_DECANO, PENDIENTE_PAGO, EN_VERIFICACION_PAGO, APROBADA, RECHAZADA);
     public static final String ETIQUETA_FUNCIONARIO_SUPLETORIO_APROBADO = "Enviar Recibo";
     public static final String DECISION_APROBADA = "APROBADA";

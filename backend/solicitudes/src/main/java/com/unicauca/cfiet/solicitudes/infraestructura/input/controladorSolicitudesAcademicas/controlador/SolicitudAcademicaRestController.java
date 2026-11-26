@@ -4,12 +4,16 @@ import com.unicauca.cfiet.solicitudes.aplicacion.input.AnexoAcademicoCUIntPuerto
 import com.unicauca.cfiet.solicitudes.aplicacion.input.ConsultaSolicitudAcademicaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.CorreosPendientesCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.EliminacionRespuestasCUIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.input.FormatoOficialCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.ResolucionAcademicaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.dominio.helper.constantes.ApplicationConstantes;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.ActorSolicitud;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.AnexoAcademico;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.ArchivoAdjunto;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.ResolucionAcademica;
+import com.unicauca.cfiet.solicitudes.dominio.modelos.ValorProvisionalFormato;
+import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudesAcademicas.DTOPeticion.AjusteFormatoDTOPeticion;
+import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudesAcademicas.DTOPeticion.FormatoCompuestoDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudesAcademicas.DTORespuesta.AnexoAcademicoDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudesAcademicas.DTORespuesta.CorreosPendientesDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorSolicitudesAcademicas.DTORespuesta.EliminacionRespuestasDTORespuesta;
@@ -57,6 +61,7 @@ public class SolicitudAcademicaRestController {
     private final EliminacionRespuestasCUIntPuerto eliminacionCU;
     private final MapperEliminacionRespuestasInfraestructuraDominio mapperEliminacion;
     private final CorreosPendientesCUIntPuerto correosPendientesCU;
+    private final FormatoOficialCUIntPuerto formatoCU;
 
     @PreAuthorize(ApplicationConstantes.ESTUDIANTE_ACCESO)
     @Transactional(readOnly = true)
@@ -179,6 +184,94 @@ public class SolicitudAcademicaRestController {
                                                                  @RequestHeader("Authorization") String token) {
         ActorSolicitud actor = consultaCU.resolverActor(uuidSolicitud, token.substring(7));
         return descarga(resolucionCU.obtenerResolucion(uuidSolicitud, actor));
+    }
+
+    @PreAuthorize(ApplicationConstantes.ESTUDIANTE_FUNCIONARIO_ACADEMICO_DECANO_ACCESO)
+    @Transactional(readOnly = true)
+    @GetMapping(UUID_SOLICITUD + "/formato")
+    public ResponseEntity<ByteArrayResource> descargarFormato(@PathVariable String uuidSolicitud,
+                                                              @RequestHeader("Authorization") String token) {
+        return descarga(formatoCU.descargarFormato(uuidSolicitud, token.substring(7)));
+    }
+
+    @PreAuthorize(ApplicationConstantes.ESTUDIANTE_ACCESO)
+    @Transactional
+    @PostMapping(value = UUID_SOLICITUD + "/estudiante/radicar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> radicarFormato(@PathVariable String uuidSolicitud,
+                                            @RequestParam("archivo") MultipartFile archivo,
+                                            @RequestHeader("Authorization") String token) {
+        try {
+            formatoCU.radicar(uuidSolicitud, mapper.mapearArchivo(archivo), token.substring(7));
+            return new ResponseEntity<SolicitudAcademicaDetalleDTORespuesta>(
+                    mapper.mapearDetalleARespuesta(consultaCU.getDetalle(uuidSolicitud, token.substring(7))), HttpStatus.OK);
+        } catch (DataAccessException ex) {
+            return errorBaseDeDatos(ex);
+        }
+    }
+
+    @PreAuthorize(ApplicationConstantes.ESTUDIANTE_ACCESO)
+    @Transactional
+    @DeleteMapping(UUID_SOLICITUD + "/estudiante")
+    public ResponseEntity<?> descartarSolicitud(@PathVariable String uuidSolicitud,
+                                                @RequestHeader("Authorization") String token) {
+        try {
+            formatoCU.descartar(uuidSolicitud, token.substring(7));
+        } catch (DataAccessException ex) {
+            return errorBaseDeDatos(ex);
+        }
+        return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize(ApplicationConstantes.FUNCIONARIO_ACADEMICO_DECANO_ACCESO)
+    @Transactional(readOnly = true)
+    @PostMapping(UUID_SOLICITUD + "/formato/compuesto")
+    public ResponseEntity<ByteArrayResource> descargarFormatoCompuesto(@PathVariable String uuidSolicitud,
+                                                                       @RequestBody(required = false) FormatoCompuestoDTOPeticion peticion,
+                                                                       @RequestHeader("Authorization") String token) {
+        List<ValorProvisionalFormato> valores = peticion == null || peticion.getValoresProvisionales() == null ? List.of()
+                : peticion.getValoresProvisionales().stream()
+                .filter(valor -> valor != null)
+                .map(valor -> ValorProvisionalFormato.builder()
+                        .uuidAsignaturaSolicitud(valor.getAsignaturaSolicitudUuid())
+                        .uuidSituacionMatricula(valor.getSituacionMatriculaUuid())
+                        .uuidSituacionCancelar(valor.getSituacionCancelarUuid())
+                        .faltas(valor.getNumeroFaltas())
+                        .nota(valor.getNota())
+                        .aprobada(valor.getAprobada())
+                        .build())
+                .toList();
+        return descarga(formatoCU.componer(uuidSolicitud, valores, token.substring(7)));
+    }
+
+    @PreAuthorize(ApplicationConstantes.FUNCIONARIO_ACADEMICO_DECANO_ACCESO)
+    @Transactional
+    @PostMapping(value = UUID_SOLICITUD + "/formato/decano", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> subirFormatoDecano(@PathVariable String uuidSolicitud,
+                                                @RequestParam("archivo") MultipartFile archivo,
+                                                @RequestHeader("Authorization") String token) {
+        try {
+            formatoCU.subirFormatoDecano(uuidSolicitud, mapper.mapearArchivo(archivo), token.substring(7));
+            return new ResponseEntity<SolicitudAcademicaDetalleDTORespuesta>(
+                    mapper.mapearDetalleARespuesta(consultaCU.getDetalle(uuidSolicitud, token.substring(7))), HttpStatus.OK);
+        } catch (DataAccessException ex) {
+            return errorBaseDeDatos(ex);
+        }
+    }
+
+    @PreAuthorize(ApplicationConstantes.FUNCIONARIO_ACADEMICO_ACCESO)
+    @Transactional
+    @PutMapping(UUID_SOLICITUD + "/formato/ajuste")
+    public ResponseEntity<?> guardarAjusteFormato(@PathVariable String uuidSolicitud,
+                                                  @RequestBody(required = false) AjusteFormatoDTOPeticion peticion,
+                                                  @RequestHeader("Authorization") String token) {
+        try {
+            formatoCU.guardarAjuste(uuidSolicitud, peticion == null ? null : peticion.getAjusteXmm(),
+                    peticion == null ? null : peticion.getAjusteYmm(), token.substring(7));
+            return new ResponseEntity<SolicitudAcademicaDetalleDTORespuesta>(
+                    mapper.mapearDetalleARespuesta(consultaCU.getDetalle(uuidSolicitud, token.substring(7))), HttpStatus.OK);
+        } catch (DataAccessException ex) {
+            return errorBaseDeDatos(ex);
+        }
     }
 
     private ResponseEntity<ByteArrayResource> descarga(ArchivoAdjunto archivo) {

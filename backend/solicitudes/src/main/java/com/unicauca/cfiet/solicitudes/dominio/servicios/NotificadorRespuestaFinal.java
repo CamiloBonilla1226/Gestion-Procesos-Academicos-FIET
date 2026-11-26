@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.DOCUMENTO_ADICIONAL;
+import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.FORMATO_FIRMADO_DECANO;
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.SOPORTE_JUSTIFICACION;
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.APROBADA;
 
@@ -41,7 +42,7 @@ public class NotificadorRespuestaFinal {
     private static final DateTimeFormatter FECHA_CARTA = DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", Locale.forLanguageTag("es-CO"));
     private static final String TIPO_PDF = "application/pdf";
     private static final String APROBADA_TEXTO = "Aprobada";
-    private static final String RECHAZADA_TEXTO = "Rechazada";
+    private static final String RECHAZADA_TEXTO = "No aprobada";
     private static final String NO_APLICA = "No aplica";
     private static final String ASIGNATURA_EXAMEN = "Asignatura del examen";
     private static final String CAUSA_CRUCE = "Cruce de exámenes con la asignatura %s";
@@ -88,6 +89,8 @@ public class NotificadorRespuestaFinal {
             boolean sinResolucion = proceso == TipoProcesoAcademico.EXAMEN_SUPLETORIO || accion == AccionEtapa.RECHAZAR_FUNCIONARIO;
             if (!sinResolucion)
                 adjuntos.addAll(resolucionDe(solicitud));
+            if (accion != AccionEtapa.RECHAZAR_FUNCIONARIO)
+                adjuntos.addAll(formatoDecanoDe(solicitud));
             if (proceso.admiteDocumentoAdicional())
                 adjuntos.addAll(adicionalesDe(solicitud));
             adjuntos.addAll(soportesDe(solicitud, proceso));
@@ -107,6 +110,7 @@ public class NotificadorRespuestaFinal {
         List<AdjuntoCorreo> adjuntos = new ArrayList<>();
         adjuntos.add(pdf(resumen));
         adjuntos.addAll(resolucionDe(solicitud));
+        adjuntos.addAll(formatoDecanoDe(solicitud));
         adjuntos.addAll(soportesDe(solicitud, proceso));
         if (!firmada && constancia != null)
             adjuntos.addAll(constancia);
@@ -222,7 +226,7 @@ public class NotificadorRespuestaFinal {
 
     private String decisionComprobante(AccionEtapa accion) {
         if (accion == AccionEtapa.APROBAR_COMPROBANTE) return "Aprobado";
-        if (accion == AccionEtapa.RECHAZAR_COMPROBANTE) return "Rechazado";
+        if (accion == AccionEtapa.RECHAZAR_COMPROBANTE) return "No aprobado";
         return "No aplica, la solicitud se cerró antes del pago";
     }
 
@@ -249,7 +253,7 @@ public class NotificadorRespuestaFinal {
         long aprobadas = asignaturas.stream().filter(asignatura -> APROBADA_TEXTO.equals(asignatura.getDecision())).count();
         long rechazadas = asignaturas.size() - aprobadas;
         return String.format("solicita cancelar %d asignaturas: %d %s y %d %s.", asignaturas.size(),
-                aprobadas, aprobadas == 1 ? "aprobada" : "aprobadas", rechazadas, rechazadas == 1 ? "rechazada" : "rechazadas");
+                aprobadas, aprobadas == 1 ? "aprobada" : "aprobadas", rechazadas, rechazadas == 1 ? "no aprobada" : "no aprobadas");
     }
 
     private String asignaturaDelExamen(ResumenRespuesta resumen) {
@@ -269,6 +273,18 @@ public class NotificadorRespuestaFinal {
                 .tipoContenido(TIPO_PDF)
                 .urlArchivo(resolucion.getUrlArchivo())
                 .build());
+    }
+
+    public List<AdjuntoCorreo> formatoDecanoDe(SolicitudAcademica solicitud) {
+        return anexoGateway.getPorSolicitud(solicitud.getUuidSolicitudAcademica()).stream()
+                .filter(anexo -> anexo.getTipoAnexoAcademico() != null && FORMATO_FIRMADO_DECANO.equals(anexo.getTipoAnexoAcademico().getNombre()))
+                .limit(1)
+                .map(formato -> AdjuntoCorreo.builder()
+                        .nombre("Formato-" + solicitud.getRadicado() + ".pdf")
+                        .tipoContenido(TIPO_PDF)
+                        .urlArchivo(formato.getUrlArchivo())
+                        .build())
+                .toList();
     }
 
     public AdjuntoCorreo pdfRespuesta(SolicitudAcademica solicitud, LocalDate fecha) {

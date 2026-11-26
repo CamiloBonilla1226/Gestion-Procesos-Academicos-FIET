@@ -1,6 +1,9 @@
 package com.unicauca.cfiet.solicitudes.infraestructura.configuracion;
 
 import com.unicauca.cfiet.solicitudes.aplicacion.input.AnexoAcademicoCUIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.input.ConsultaCancelacionAsignaturaCUIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.input.ConsultaCancelacionMatriculaCUIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.input.ConsultaExamenSupletorioCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.ConsultaSolicitudAcademicaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.LogCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.NotificacionResolucionCUIntPuerto;
@@ -441,5 +444,26 @@ public class BeanConfiguracion {
                                                                          ExcepcionesFormateadorIntPuerto formateadorExcepciones){
         return new AccesoRecursoConsejoCUImplAdaptador(usuarioGateway, sesionGateway, solicitudGateway, respuestaGateway,
                 jwtServicio, formateadorExcepciones);
+    }
+
+    @Bean
+    public FormatoOficialCUImplAdaptador crearFormatoOficialCU(ConsultaSolicitudAcademicaCUIntPuerto consultaCU,
+                                                               ConsultaCancelacionMatriculaCUIntPuerto consultaMatriculaCU,
+                                                               ConsultaCancelacionAsignaturaCUIntPuerto consultaAsignaturaCU,
+                                                               ConsultaExamenSupletorioCUIntPuerto consultaSupletorioCU,
+                                                               SolicitudAcademicaCUIntPuerto solicitudCU,
+                                                               AnexoAcademicoCUIntPuerto anexoCU,
+                                                               SolicitudAcademicaGatewayIntPuerto solicitudGateway,
+                                                               TipoAnexoAcademicoGatewayIntPuerto tipoAnexoGateway,
+                                                               SituacionAcademicaAsignaturaGatewayIntPuerto situacionGateway,
+                                                               EliminacionRespuestasGatewayIntPuerto eliminacionGateway,
+                                                               AlmacenamientoAnexosIntPuerto almacenamiento,
+                                                               ComposicionFormatoOficialIntPuerto composicion,
+                                                               MaquinaEtapas maquinaEtapas,
+                                                               ExcepcionesFormateadorIntPuerto formateadorExcepciones,
+                                                               LogCUIntPuerto log){
+        return new FormatoOficialCUImplAdaptador(consultaCU, consultaMatriculaCU, consultaAsignaturaCU, consultaSupletorioCU, solicitudCU,
+                anexoCU, solicitudGateway, tipoAnexoGateway, situacionGateway, eliminacionGateway, almacenamiento, composicion,
+                maquinaEtapas, formateadorExcepciones, log);
     }
 }

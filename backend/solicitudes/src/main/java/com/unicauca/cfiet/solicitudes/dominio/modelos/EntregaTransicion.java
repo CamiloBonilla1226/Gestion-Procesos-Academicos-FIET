@@ -14,4 +14,6 @@ public class EntregaTransicion {
     private boolean resolucion;
     private boolean recibo;
     private boolean comprobante;
+    private boolean formatoEstudiante;
+    private boolean formatoDecano;
 }

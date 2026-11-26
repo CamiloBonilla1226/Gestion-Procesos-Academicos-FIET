@@ -27,6 +27,7 @@ public class AnexoAcademicoCUImplAdaptador implements AnexoAcademicoCUIntPuerto 
     private static final String SOPORTE_LIBRE = "Soporte libre";
     private static final List<String> ETAPAS_ADICIONAL_CANCELACION = List.of(RADICADA, APROBADA_POR_DECANO, RECHAZADA_POR_DECANO);
     private static final List<String> ETAPAS_ADICIONAL_SUPLETORIO = List.of(RADICADA, RECHAZADA_POR_DECANO, EN_VERIFICACION_PAGO);
+    private static final List<String> ETAPAS_FORMATO_DECANO = List.of(APROBADA_POR_DECANO, RECHAZADA_POR_DECANO);
 
     private final AnexoAcademicoGatewayIntPuerto anexoGateway;
     private final SolicitudAcademicaGatewayIntPuerto solicitudGateway;
@@ -68,7 +69,7 @@ public class AnexoAcademicoCUImplAdaptador implements AnexoAcademicoCUIntPuerto 
         TipoProcesoAcademico proceso = procesoDe(solicitud.getTipoSolicitudAcademica());
         TipoAnexoAcademico tipoAnexo = tipoAnexoDe(solicitud, uuidTipoAnexoAcademico, proceso);
         validarQuienYCuando(solicitud, tipoAnexo, actor, proceso);
-        List<AnexoAcademico> reemplazados = esDocumentoAdicional(tipoAnexo) ? documentosAdicionales(solicitud) : List.of();
+        List<AnexoAcademico> reemplazados = seReemplaza(tipoAnexo) ? delMismoTipo(solicitud, tipoAnexo) : List.of();
         String extension = validadorArchivo.validar(archivo, tipoAnexo == null ? SOPORTE_LIBRE : tipoAnexo.getNombre(),
                 tipoAnexo == null ? FORMATOS_SOPORTE_LIBRE : tipoAnexo.getFormatosPermitidos(),
                 tamanioMaximoDe(tipoAnexo == null ? null : tipoAnexo.getNombre()));
@@ -206,12 +207,16 @@ public class AnexoAcademicoCUImplAdaptador implements AnexoAcademicoCUIntPuerto 
                                      TipoProcesoAcademico proceso) {
         String nombre = tipoAnexo == null ? SOPORTE_LIBRE : tipoAnexo.getNombre();
         RolEtiquetaEtapa rolPermitido = RolEtiquetaEtapa.ESTUDIANTE;
-        List<String> etapasPermitidas = List.of(RADICADA);
+        List<String> etapasPermitidas = List.of(PENDIENTE_FIRMA_ESTUDIANTE);
         if (RECIBO_PAGO.equals(nombre)) {
             rolPermitido = RolEtiquetaEtapa.FUNCIONARIO;
             etapasPermitidas = List.of(APROBADA_POR_DECANO);
         } else if (COMPROBANTE_PAGO.equals(nombre)) {
             etapasPermitidas = List.of(PENDIENTE_PAGO);
+        } else if (FORMATO_FIRMADO_DECANO.equals(nombre)) {
+            boolean firmaElDecano = proceso == TipoProcesoAcademico.CANCELACION_ASIGNATURA;
+            rolPermitido = firmaElDecano ? RolEtiquetaEtapa.DECANO : RolEtiquetaEtapa.FUNCIONARIO;
+            etapasPermitidas = firmaElDecano ? List.of(EN_REVISION_DECANO) : ETAPAS_FORMATO_DECANO;
         } else if (esDocumentoAdicional(tipoAnexo)) {
             rolPermitido = RolEtiquetaEtapa.FUNCIONARIO;
             etapasPermitidas = proceso == TipoProcesoAcademico.EXAMEN_SUPLETORIO ? ETAPAS_ADICIONAL_SUPLETORIO : ETAPAS_ADICIONAL_CANCELACION;
@@ -228,9 +233,14 @@ public class AnexoAcademicoCUImplAdaptador implements AnexoAcademicoCUIntPuerto 
         return tipoAnexo != null && DOCUMENTO_ADICIONAL.equals(tipoAnexo.getNombre());
     }
 
-    private List<AnexoAcademico> documentosAdicionales(SolicitudAcademica solicitud) {
+    private boolean seReemplaza(TipoAnexoAcademico tipoAnexo) {
+        return esDocumentoAdicional(tipoAnexo) || (tipoAnexo != null
+                && (FORMATO_FIRMADO_ESTUDIANTE.equals(tipoAnexo.getNombre()) || FORMATO_FIRMADO_DECANO.equals(tipoAnexo.getNombre())));
+    }
+
+    private List<AnexoAcademico> delMismoTipo(SolicitudAcademica solicitud, TipoAnexoAcademico tipoAnexo) {
         return anexoGateway.getPorSolicitud(solicitud.getUuidSolicitudAcademica()).stream()
-                .filter(anexo -> esDocumentoAdicional(anexo.getTipoAnexoAcademico()))
+                .filter(anexo -> anexo.getTipoAnexoAcademico() != null && tipoAnexo.getNombre().equals(anexo.getTipoAnexoAcademico().getNombre()))
                 .toList();
     }
 

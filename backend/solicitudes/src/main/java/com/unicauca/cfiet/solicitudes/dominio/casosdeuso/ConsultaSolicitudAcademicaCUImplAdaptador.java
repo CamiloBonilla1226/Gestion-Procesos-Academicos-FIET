@@ -17,6 +17,8 @@ import java.util.Map;
 import java.util.Set;
 
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.DOCUMENTO_ADICIONAL;
+import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.FORMATO_FIRMADO_DECANO;
+import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.FORMATO_FIRMADO_ESTUDIANTE;
 
 public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolicitudAcademicaCUIntPuerto {
     private static final String SOLICITUD_ACADEMICA = "Solicitud académica";
@@ -101,15 +103,23 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
         boolean tieneResolucion = !acceso.retenida() && resolucionGateway.existePorSolicitud(uuid);
         boolean puedeDescargar = tieneResolucion && (acceso.rol() != RolEtiquetaEtapa.ESTUDIANTE || maquinaEtapas.esFinal(etapa));
         TipoProcesoAcademico proceso = TipoProcesoAcademico.porNombre(solicitud.getTipoSolicitudAcademica().getNombre());
-        List<AnexoAcademico> anexos = anexoGateway.getPorSolicitud(uuid);
+        boolean formatoDecanoVisible = formatoDecanoVisible(acceso, proceso, etapa);
+        List<AnexoAcademico> anexos = anexoGateway.getPorSolicitud(uuid).stream()
+                .filter(anexo -> !acceso.retenida() || !esDocumentoAdicional(anexo))
+                .filter(anexo -> formatoDecanoVisible || !esDelTipo(anexo, FORMATO_FIRMADO_DECANO))
+                .toList();
         return DetalleSolicitudAcademica.builder()
                 .solicitudAcademica(solicitud)
                 .etiqueta(acceso.etiqueta())
                 .etapaCodigo(acceso.retenida() ? EtapaSolicitudAcademicaConstantes.EN_REVISION_DECANO : etapaVisible(etapa, acceso.rol()))
                 .numeroDocumento(acceso.rol() == RolEtiquetaEtapa.ESTUDIANTE ? null : numeroDocumento(solicitud))
-                .anexos(acceso.retenida() ? anexos.stream().filter(anexo -> !esDocumentoAdicional(anexo)).toList() : anexos)
+                .anexos(anexos)
                 .tieneResolucion(tieneResolucion)
                 .puedeDescargarResolucion(puedeDescargar)
+                .formatoFirmadoEstudianteUuid(uuidDelTipo(anexos, FORMATO_FIRMADO_ESTUDIANTE))
+                .formatoFirmadoDecanoUuid(uuidDelTipo(anexos, FORMATO_FIRMADO_DECANO))
+                .ajusteFormatoXmm(acceso.rol() == RolEtiquetaEtapa.ESTUDIANTE ? null : solicitud.getAjusteFormatoXmm())
+                .ajusteFormatoYmm(acceso.rol() == RolEtiquetaEtapa.ESTUDIANTE ? null : solicitud.getAjusteFormatoYmm())
                 .accionesDisponibles(proceso == null ? List.of() : maquinaEtapas.accionesDisponibles(proceso, etapa, acceso.rol()))
                 .build();
     }
@@ -178,7 +188,8 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
         AnexoAcademico anexo = tieneTexto(uuidAnexoAcademico) ? anexoGateway.getPorUuid(uuidAnexoAcademico) : null;
         String deLaSolicitud = anexo == null || anexo.getSolicitudAcademica() == null ? null
                 : anexo.getSolicitudAcademica().getUuidSolicitudAcademica();
-        if (!acceso.solicitud().getUuidSolicitudAcademica().equals(deLaSolicitud) || (acceso.retenida() && esDocumentoAdicional(anexo)))
+        if (!acceso.solicitud().getUuidSolicitudAcademica().equals(deLaSolicitud) || (acceso.retenida() && esDocumentoAdicional(anexo))
+                || (esDelTipo(anexo, FORMATO_FIRMADO_DECANO) && !formatoDecanoVisible(acceso, procesoDe(acceso.solicitud()), acceso.solicitud().getEtapa().getCodigo())))
             formateadorExcepciones.lanzarEntidadNoExiste(String.format(MensajesError.ENTIDAD_NO_ENCONTRADA, ANEXO_ACADEMICO, uuidAnexoAcademico));
         return anexoCU.obtenerAnexo(uuidAnexoAcademico, acceso.actor());
     }
@@ -202,6 +213,21 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
                 .map(EtapaEtiquetaRol::getEtiqueta)
                 .findFirst()
                 .orElse(ETIQUETA_EN_TRAMITE);
+    }
+
+    private boolean formatoDecanoVisible(Acceso acceso, TipoProcesoAcademico proceso, String etapa) {
+        if (acceso.rol() != RolEtiquetaEtapa.ESTUDIANTE) return true;
+        if (acceso.retenida()) return false;
+        return maquinaEtapas.esFinal(etapa) || (proceso == TipoProcesoAcademico.EXAMEN_SUPLETORIO
+                && (EtapaSolicitudAcademicaConstantes.PENDIENTE_PAGO.equals(etapa) || EtapaSolicitudAcademicaConstantes.EN_VERIFICACION_PAGO.equals(etapa)));
+    }
+
+    private boolean esDelTipo(AnexoAcademico anexo, String nombre) {
+        return anexo != null && anexo.getTipoAnexoAcademico() != null && nombre.equals(anexo.getTipoAnexoAcademico().getNombre());
+    }
+
+    private String uuidDelTipo(List<AnexoAcademico> anexos, String nombre) {
+        return anexos.stream().filter(anexo -> esDelTipo(anexo, nombre)).map(AnexoAcademico::getUuidAnexoAcademico).findFirst().orElse(null);
     }
 
     private boolean esDocumentoAdicional(AnexoAcademico anexo) {

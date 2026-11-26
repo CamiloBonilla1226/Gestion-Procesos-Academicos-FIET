@@ -22,7 +22,7 @@ public class TramiteExamenSupletorioCUImplAdaptador implements TramiteExamenSupl
     private static final String DOCENTE = "Docente";
     private static final String TITULO_NOTIFICACION = "Examen supletorio %s, radicado %s";
     private static final String RESULTADO_APROBADO = "aprobado";
-    private static final String RESULTADO_RECHAZADO = "rechazado";
+    private static final String RESULTADO_RECHAZADO = "no aprobado";
 
     private final SolicitudExamenSupletorioGatewayIntPuerto gateway;
     private final DocenteGatewayIntPuerto docenteGateway;

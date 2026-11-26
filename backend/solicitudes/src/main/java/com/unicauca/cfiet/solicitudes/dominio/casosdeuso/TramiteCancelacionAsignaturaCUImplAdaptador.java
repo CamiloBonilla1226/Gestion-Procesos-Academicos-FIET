@@ -131,7 +131,7 @@ public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCance
         SolicitudAcademica actualizada = solicitudCU.cambiarEtapa(uuidSolicitudAcademica, AccionEtapa.APROBAR_DECANO, actor, observacion, token);
         cancelacion.setAsignaturas(tramite.guardarAsignaturas(cancelacion.getAsignaturas()));
         log.crearLog("Registrar decisión del Decano por asignatura",
-                String.format("Solicitud académica %s, acción %s: %d asignaturas aprobadas y %d rechazadas", actualizada.getRadicado(),
+                String.format("Solicitud académica %s, acción %s: %d asignaturas aprobadas y %d no aprobadas", actualizada.getRadicado(),
                         AccionEtapa.APROBAR_DECANO, aprobadas, cancelacion.getAsignaturas().size() - aprobadas),
                 token);
         return conSolicitud(cancelacion, actualizada);

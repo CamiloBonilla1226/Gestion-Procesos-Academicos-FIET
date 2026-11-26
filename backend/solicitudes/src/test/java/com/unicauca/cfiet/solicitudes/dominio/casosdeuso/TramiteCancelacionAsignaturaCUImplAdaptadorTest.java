@@ -253,7 +253,8 @@ class TramiteCancelacionAsignaturaCUImplAdaptadorTest {
         lenient().when(etapaGateway.getPorTipoIncluyendoUniversales(TIPO_CA)).thenReturn(EtapaSolicitudAcademicaConstantes.ETAPAS.stream()
                 .map(codigo -> EtapaSolicitudAcademica.builder().uuidEtapa("et-" + codigo).codigo(codigo).build())
                 .toList());
-        lenient().when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of());
+        lenient().when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(AnexoAcademico.builder().uuidAnexoAcademico("an-formato-decano")
+                .tipoAnexoAcademico(TipoAnexoAcademico.builder().nombre("Formato firmado por el Decano").build()).build()));
         lenient().when(solicitudGateway.actualizarEtapa(any(), any())).thenAnswer(invocacion -> invocacion.getArgument(0));
     }
 
@@ -509,7 +510,7 @@ class TramiteCancelacionAsignaturaCUImplAdaptadorTest {
         assertEquals(APROBADA_POR_DECANO, resultado.getSolicitudAcademica().getEtapa().getCodigo());
         verify(situacionGateway, never()).getTodas();
         verify(asignaturaSolicitudGateway, never()).cambiarEstadoAsignaturasMatriculadas(any(), any());
-        verify(log).crearLog(eq("Registrar decisión del Decano por asignatura"), contains("1 asignaturas aprobadas y 2 rechazadas"), eq(TOKEN_DECANO));
+        verify(log).crearLog(eq("Registrar decisión del Decano por asignatura"), contains("1 asignaturas aprobadas y 2 no aprobadas"), eq(TOKEN_DECANO));
     }
 
     @Test
@@ -588,7 +589,7 @@ class TramiteCancelacionAsignaturaCUImplAdaptadorTest {
         ErrorReglaNegocioVioladaExcepcion error = falla(() -> casoDeUso.aprobarPorDecano(SOLICITUD, null, List.of(decision("as-1", false),
                 decision("as-2", false), decision("as-3", false)), null, TOKEN_DECANO));
 
-        assertTrue(error.getMessage().contains("rechazo del Decano"), error::getMessage);
+        assertTrue(error.getMessage().contains("no aprobar del Decano"), error::getMessage);
         verificarQueNoSeEscribioNada();
     }
 

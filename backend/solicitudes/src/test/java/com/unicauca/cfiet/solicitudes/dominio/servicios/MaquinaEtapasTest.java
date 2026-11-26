@@ -52,7 +52,9 @@ class MaquinaEtapasTest {
 
     private static List<Fila> tablaCancelacion(TipoProcesoAcademico tipo) {
         return List.of(
-                new Fila(tipo, null, RADICAR, ESTUDIANTE, RADICADA, false, false, false, false),
+                new Fila(tipo, null, GENERAR_FORMATO, ESTUDIANTE, PENDIENTE_FIRMA_ESTUDIANTE, false, false, false, false),
+                new Fila(tipo, PENDIENTE_FIRMA_ESTUDIANTE, RADICAR, ESTUDIANTE, RADICADA, false, false, false, false),
+                new Fila(tipo, PENDIENTE_FIRMA_ESTUDIANTE, DESCARTAR, ESTUDIANTE, null, false, false, false, false),
                 new Fila(tipo, RADICADA, RECHAZAR_FUNCIONARIO, FUNCIONARIO, RECHAZADA, true, false, false, false),
                 new Fila(tipo, RADICADA, REMITIR_DECANO, FUNCIONARIO, EN_REVISION_DECANO, false, false, false, false),
                 new Fila(tipo, EN_REVISION_DECANO, APROBAR_DECANO, DECANO, APROBADA_POR_DECANO, false, false, false, false),
@@ -63,7 +65,9 @@ class MaquinaEtapasTest {
 
     private static List<Fila> tablaSupletorio() {
         return List.of(
-                new Fila(EXAMEN_SUPLETORIO, null, RADICAR, ESTUDIANTE, RADICADA, false, false, false, false),
+                new Fila(EXAMEN_SUPLETORIO, null, GENERAR_FORMATO, ESTUDIANTE, PENDIENTE_FIRMA_ESTUDIANTE, false, false, false, false),
+                new Fila(EXAMEN_SUPLETORIO, PENDIENTE_FIRMA_ESTUDIANTE, RADICAR, ESTUDIANTE, RADICADA, false, false, false, false),
+                new Fila(EXAMEN_SUPLETORIO, PENDIENTE_FIRMA_ESTUDIANTE, DESCARTAR, ESTUDIANTE, null, false, false, false, false),
                 new Fila(EXAMEN_SUPLETORIO, RADICADA, RECHAZAR_FUNCIONARIO, FUNCIONARIO, RECHAZADA, true, false, false, false),
                 new Fila(EXAMEN_SUPLETORIO, RADICADA, REMITIR_DECANO, FUNCIONARIO, EN_REVISION_DECANO, false, false, false, false),
                 new Fila(EXAMEN_SUPLETORIO, EN_REVISION_DECANO, APROBAR_DECANO, DECANO, APROBADA_POR_DECANO, false, false, false, false),
@@ -143,7 +147,7 @@ class MaquinaEtapasTest {
     }
 
     private EntregaTransicion entregaCompleta() {
-        return EntregaTransicion.builder().observacion("Motivo").resolucion(true).recibo(true).comprobante(true).build();
+        return EntregaTransicion.builder().observacion("Motivo").resolucion(true).recibo(true).comprobante(true).formatoEstudiante(true).formatoDecano(true).build();
     }
 
     @ParameterizedTest(name = "{0}: {1} --{2}/{3}--> valida")
@@ -167,8 +171,8 @@ class MaquinaEtapasTest {
     }
 
     @Test
-    void laTablaTieneExactamenteVeinticuatroTransiciones() {
-        assertEquals(24, tablaCompleta().size());
+    void laTablaTieneExactamenteTreintaTransiciones() {
+        assertEquals(30, tablaCompleta().size());
     }
 
     @Test
@@ -194,7 +198,7 @@ class MaquinaEtapasTest {
                         }
                     }
         assertTrue(sobrantes.isEmpty(), () -> "Transiciones que no estan en la tabla: " + sobrantes);
-        assertEquals(24, validas);
+        assertEquals(30, validas);
     }
 
     @ParameterizedTest(name = "{0}: {1} --{2}--> por {3} se rechaza")
@@ -233,7 +237,7 @@ class MaquinaEtapasTest {
     @EnumSource(value = TipoProcesoAcademico.class, names = {"CANCELACION_MATRICULA", "CANCELACION_ASIGNATURA"})
     void rechazarFuncionarioEnCancelacionesSoloExigeObservacionSinEscaneo(TipoProcesoAcademico tipo) {
         EntregaTransicion soloObservacion = EntregaTransicion.builder().observacion("No cumple").build();
-        EntregaTransicion soloEscaneo = EntregaTransicion.builder().resolucion(true).build();
+        EntregaTransicion soloEscaneo = EntregaTransicion.builder().resolucion(true).formatoDecano(true).build();
 
         ResultadoTransicion resultado = maquina.transicionar(tipo, RADICADA, RECHAZAR_FUNCIONARIO, FUNCIONARIO, soloObservacion);
         assertEquals(RECHAZADA, resultado.getEtapaSiguiente());
@@ -257,7 +261,7 @@ class MaquinaEtapasTest {
         assertRechazo("Resolución", () -> maquina.transicionar(tipo, APROBADA_POR_DECANO, ENVIAR_RESPUESTA, FUNCIONARIO, sinEscaneo));
         assertRechazo("Resolución", () -> maquina.transicionar(tipo, RECHAZADA_POR_DECANO, ENVIAR_RESPUESTA, FUNCIONARIO, sinEscaneo));
         assertTrue(maquina.transicionar(tipo, APROBADA_POR_DECANO, ENVIAR_RESPUESTA, FUNCIONARIO,
-                EntregaTransicion.builder().resolucion(true).build()).isResolucionObligatoria());
+                EntregaTransicion.builder().resolucion(true).formatoDecano(true).build()).isResolucionObligatoria());
     }
 
     @Test
@@ -268,7 +272,7 @@ class MaquinaEtapasTest {
         assertEquals(RECHAZADA, resultado.getEtapaSiguiente());
         assertFalse(resultado.isResolucionObligatoria());
         assertRechazo("observación", () -> maquina.transicionar(EXAMEN_SUPLETORIO, RADICADA, RECHAZAR_FUNCIONARIO, FUNCIONARIO,
-                EntregaTransicion.builder().resolucion(true).build()));
+                EntregaTransicion.builder().resolucion(true).formatoDecano(true).build()));
     }
 
     @Test
@@ -283,14 +287,15 @@ class MaquinaEtapasTest {
         for (String origen : List.of(APROBADA_POR_DECANO, RECHAZADA_POR_DECANO))
             assertRechazo("Resolución", () -> maquina.transicionar(tipo, origen, ENVIAR_RESPUESTA, FUNCIONARIO,
                     EntregaTransicion.builder().observacion("Respuesta").build()));
-        EntregaTransicion conEscaneo = EntregaTransicion.builder().resolucion(true).build();
+        EntregaTransicion conEscaneo = EntregaTransicion.builder().resolucion(true).formatoDecano(true).build();
         assertEquals(APROBADA, maquina.transicionar(tipo, APROBADA_POR_DECANO, ENVIAR_RESPUESTA, FUNCIONARIO, conEscaneo).getEtapaSiguiente());
         assertEquals(RECHAZADA, maquina.transicionar(tipo, RECHAZADA_POR_DECANO, ENVIAR_RESPUESTA, FUNCIONARIO, conEscaneo).getEtapaSiguiente());
     }
 
     @Test
-    void enviarRespuestaTrasRechazoDelDecanoEnSupletorioNoExigeNada() {
-        ResultadoTransicion resultado = maquina.transicionar(EXAMEN_SUPLETORIO, RECHAZADA_POR_DECANO, ENVIAR_RESPUESTA, FUNCIONARIO, null);
+    void enviarRespuestaTrasRechazoDelDecanoEnSupletorioSoloExigeElFormatoDelDecano() {
+        ResultadoTransicion resultado = maquina.transicionar(EXAMEN_SUPLETORIO, RECHAZADA_POR_DECANO, ENVIAR_RESPUESTA, FUNCIONARIO,
+                EntregaTransicion.builder().formatoDecano(true).build());
 
         assertEquals(RECHAZADA, resultado.getEtapaSiguiente());
         assertFalse(resultado.isObservacionObligatoria() || resultado.isResolucionObligatoria()
@@ -302,13 +307,13 @@ class MaquinaEtapasTest {
         assertRechazo("recibo", () -> maquina.transicionar(EXAMEN_SUPLETORIO, APROBADA_POR_DECANO, ENVIAR_RECIBO, FUNCIONARIO,
                 EntregaTransicion.builder().comprobante(true).build()));
         assertEquals(PENDIENTE_PAGO, maquina.transicionar(EXAMEN_SUPLETORIO, APROBADA_POR_DECANO, ENVIAR_RECIBO, FUNCIONARIO,
-                EntregaTransicion.builder().recibo(true).build()).getEtapaSiguiente());
+                EntregaTransicion.builder().recibo(true).formatoDecano(true).build()).getEtapaSiguiente());
     }
 
     @Test
     void subirComprobanteExigeElComprobante() {
         assertRechazo("comprobante", () -> maquina.transicionar(EXAMEN_SUPLETORIO, PENDIENTE_PAGO, SUBIR_COMPROBANTE, ESTUDIANTE,
-                EntregaTransicion.builder().recibo(true).build()));
+                EntregaTransicion.builder().recibo(true).formatoDecano(true).build()));
         assertEquals(EN_VERIFICACION_PAGO, maquina.transicionar(EXAMEN_SUPLETORIO, PENDIENTE_PAGO, SUBIR_COMPROBANTE, ESTUDIANTE,
                 EntregaTransicion.builder().comprobante(true).build()).getEtapaSiguiente());
     }
@@ -329,7 +334,7 @@ class MaquinaEtapasTest {
 
     @Test
     void radicarConEtapaEnBlancoSeTrataComoSolicitudNueva() {
-        assertEquals(RADICADA, maquina.siguienteEtapa(CANCELACION_MATRICULA, "  ", RADICAR, ESTUDIANTE).getEtapaSiguiente());
+        assertEquals(PENDIENTE_FIRMA_ESTUDIANTE, maquina.siguienteEtapa(CANCELACION_MATRICULA, "  ", GENERAR_FORMATO, ESTUDIANTE).getEtapaSiguiente());
     }
 
     @Test
@@ -405,7 +410,7 @@ class MaquinaEtapasTest {
                     }
                     ofrecidas += disponibles.size();
                 }
-        assertEquals(24, ofrecidas);
+        assertEquals(30, ofrecidas);
     }
 
     @ParameterizedTest(name = "{0} en {1} no ofrece acciones")
@@ -426,7 +431,8 @@ class MaquinaEtapasTest {
         assertEquals(List.of(APROBAR_DECANO, RECHAZAR_DECANO), maquina.accionesDisponibles(EXAMEN_SUPLETORIO, EN_REVISION_DECANO, DECANO));
         assertEquals(List.of(ENVIAR_RECIBO), maquina.accionesDisponibles(EXAMEN_SUPLETORIO, APROBADA_POR_DECANO, FUNCIONARIO));
         assertEquals(List.of(ENVIAR_RESPUESTA), maquina.accionesDisponibles(CANCELACION_ASIGNATURA, APROBADA_POR_DECANO, FUNCIONARIO));
-        assertEquals(List.of(RADICAR), maquina.accionesDisponibles(CANCELACION_ASIGNATURA, "  ", ESTUDIANTE));
+        assertEquals(List.of(GENERAR_FORMATO), maquina.accionesDisponibles(CANCELACION_ASIGNATURA, "  ", ESTUDIANTE));
+        assertEquals(List.of(RADICAR, DESCARTAR), maquina.accionesDisponibles(CANCELACION_ASIGNATURA, PENDIENTE_FIRMA_ESTUDIANTE, ESTUDIANTE));
         assertTrue(maquina.accionesDisponibles(CANCELACION_MATRICULA, RADICADA, ESTUDIANTE).isEmpty());
         assertTrue(maquina.accionesDisponibles(CANCELACION_MATRICULA, PENDIENTE_PAGO, ESTUDIANTE).isEmpty());
     }

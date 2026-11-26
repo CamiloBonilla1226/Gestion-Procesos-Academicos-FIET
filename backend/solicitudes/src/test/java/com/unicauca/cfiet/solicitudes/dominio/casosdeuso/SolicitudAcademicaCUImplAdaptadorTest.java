@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.COMPROBANTE_PAGO;
+import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.FORMATO_FIRMADO_DECANO;
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.RECIBO_PAGO;
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -186,6 +187,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         lenient().when(usuarioActorGateway.getUsuario(DECANO)).thenReturn(usuario(DECANO, "Decano"));
         lenient().when(gateway.crear(any(), any())).thenAnswer(invocacion -> invocacion.getArgument(0));
         lenient().when(gateway.actualizarEtapa(any(), any())).thenAnswer(invocacion -> invocacion.getArgument(0));
+        lenient().when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(anexo(FORMATO_FIRMADO_DECANO)));
     }
 
     private void verificarQueNoSeGuardoNada() {
@@ -202,7 +204,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
     }
 
     @Test
-    void crearSolicitudQuedaRadicadaConElPrimerRadicadoYUnHistorial() {
+    void crearSolicitudQuedaPendienteDeFirmaConElPrimerRadicadoYUnHistorial() {
         prepararCreacion(tipoMatricula());
         when(gateway.getUltimoRadicado("2026-CM-")).thenReturn(null);
 
@@ -213,8 +215,8 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         verify(gateway).crear(solicitud.capture(), historial.capture());
         assertSame(creada, solicitud.getValue());
         assertEquals("2026-CM-0001", creada.getRadicado());
-        assertEquals(RADICADA, creada.getEtapa().getCodigo());
-        assertEquals("etapa-RADICADA", creada.getEtapa().getUuidEtapa());
+        assertEquals(PENDIENTE_FIRMA_ESTUDIANTE, creada.getEtapa().getCodigo());
+        assertEquals("etapa-PENDIENTE_FIRMA_ESTUDIANTE", creada.getEtapa().getUuidEtapa());
         assertEquals(ESTUDIANTE, creada.getEstudiante().getUuidUsuario());
         assertEquals(TIPO_CM, creada.getTipoSolicitudAcademica().getUuidTipoSolicitudAcademica());
         assertEquals(LocalDateTime.of(2026, 3, 10, 10, 0), creada.getFechaCreacion());
@@ -222,7 +224,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
 
         assertSame(creada, historial.getValue().getSolicitudAcademica());
         assertEquals(ESTUDIANTE, historial.getValue().getUsuario().getUuidUsuario());
-        assertEquals("RADICAR", historial.getValue().getAccion());
+        assertEquals("GENERAR_FORMATO", historial.getValue().getAccion());
         assertNull(historial.getValue().getObservaciones());
         assertEquals(creada.getFechaCreacion(), historial.getValue().getFecha());
         assertNotNull(historial.getValue().getUuidHistorial());
@@ -303,9 +305,9 @@ class SolicitudAcademicaCUImplAdaptadorTest {
     }
 
     @Test
-    void crearSinLaEtapaRadicadaEnElCatalogoNoGuardaNada() {
+    void crearSinLaEtapaDeFirmaEnElCatalogoNoGuardaNada() {
         prepararCreacion(tipoMatricula());
-        etapas.removeIf(e -> e.getCodigo().equals(RADICADA));
+        etapas.removeIf(e -> e.getCodigo().equals(PENDIENTE_FIRMA_ESTUDIANTE));
 
         assertThrows(ErrorEntidadNoExisteExcepcion.class, () -> casoDeUso().crearSolicitud(ESTUDIANTE, TIPO_CM, TOKEN));
         verificarQueNoSeGuardoNada();
@@ -348,7 +350,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
     @Test
     void elEstudianteDuenioSubeElComprobanteDelSupletorio() {
         when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoSupletorio(), PENDIENTE_PAGO));
-        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(anexo(COMPROBANTE_PAGO)));
+        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(anexo(FORMATO_FIRMADO_DECANO), anexo(COMPROBANTE_PAGO)));
 
         SolicitudAcademica resultado = casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.SUBIR_COMPROBANTE,
                 actor(ESTUDIANTE, RolEtiquetaEtapa.ESTUDIANTE), null, TOKEN);
@@ -514,7 +516,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
     @Test
     void conElReciboEnLaBaseElFuncionarioEnviaElRecibo() {
         when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoSupletorio(), APROBADA_POR_DECANO));
-        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(anexo(RECIBO_PAGO)));
+        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(anexo(FORMATO_FIRMADO_DECANO), anexo(RECIBO_PAGO)));
 
         SolicitudAcademica resultado = casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.ENVIAR_RECIBO,
                 actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null, TOKEN);
@@ -525,7 +527,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
     @Test
     void unAnexoDeOtroTipoNoCuentaComoRecibo() {
         when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoSupletorio(), APROBADA_POR_DECANO));
-        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(anexo(COMPROBANTE_PAGO), anexo(null)));
+        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(anexo(FORMATO_FIRMADO_DECANO), anexo(COMPROBANTE_PAGO), anexo(null)));
 
         ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
                 () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.ENVIAR_RECIBO, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null, TOKEN));
@@ -537,7 +539,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
     @Test
     void subirElComprobanteSinComprobanteEnLaBaseNoGuardaNada() {
         when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoSupletorio(), PENDIENTE_PAGO));
-        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of());
+        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(anexo(FORMATO_FIRMADO_DECANO)));
 
         ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
                 () -> casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.SUBIR_COMPROBANTE, actor(ESTUDIANTE, RolEtiquetaEtapa.ESTUDIANTE), null, TOKEN));
@@ -694,7 +696,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         ArgumentCaptor<String> resultado = ArgumentCaptor.forClass(String.class);
         verify(log).crearLog(eq("Radicar solicitud académica"), resultado.capture(), eq(TOKEN));
         assertTrue(resultado.getValue().contains("2026-CM-0001"));
-        assertTrue(resultado.getValue().contains("RADICAR"));
+        assertTrue(resultado.getValue().contains("GENERAR_FORMATO"));
     }
 
     @Test
@@ -740,7 +742,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         when(gateway.getPorUuid(SOLICITUD)).thenReturn(conDatosDeContacto(solicitud(tipoMatricula(), APROBADA_POR_DECANO)));
         when(resolucionGateway.existePorSolicitud(SOLICITUD)).thenReturn(true);
         when(resolucionGateway.getPorSolicitud(SOLICITUD)).thenReturn(escaneo());
-        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(anexo(RECIBO_PAGO), documentoAdicional()));
+        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(anexo(FORMATO_FIRMADO_DECANO), anexo(RECIBO_PAGO), documentoAdicional()));
 
         casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.ENVIAR_RESPUESTA, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), "Observación privada", TOKEN);
 
@@ -765,7 +767,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
     @Test
     void elRechazoDirectoEnAsignaturaSaleSinResolucionNiDocumentoAdicional() {
         when(gateway.getPorUuid(SOLICITUD)).thenReturn(conDatosDeContacto(solicitud(tipo(TIPO_CA, "Cancelación de Asignatura"), RADICADA)));
-        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(documentoAdicional()));
+        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(anexo(FORMATO_FIRMADO_DECANO), documentoAdicional()));
 
         casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.RECHAZAR_FUNCIONARIO, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), "No cumple", TOKEN);
 
@@ -802,7 +804,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
     @Test
     void laRespuestaDelSupletorioInvitaAIngresarYNoBuscaResolucion() {
         when(gateway.getPorUuid(SOLICITUD)).thenReturn(conDatosDeContacto(solicitud(tipoSupletorio(), RECHAZADA_POR_DECANO)));
-        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(documentoAdicional()));
+        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(anexo(FORMATO_FIRMADO_DECANO), documentoAdicional()));
 
         casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.ENVIAR_RESPUESTA, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null, TOKEN);
 
@@ -823,6 +825,49 @@ class SolicitudAcademicaCUImplAdaptadorTest {
         casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.APROBAR_COMPROBANTE, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null, TOKEN);
 
         verify(correo).enviar(isNull(), eq("Notificación de examen supletorio"), any(), eq(List.of()));
+    }
+
+    @Test
+    void enviarElReciboDelSupletorioAvisaAlEstudianteSinAdjuntosNiDarca() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(conDatosDeContacto(solicitud(tipoSupletorio(), APROBADA_POR_DECANO)));
+        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(anexo(FORMATO_FIRMADO_DECANO), anexo(RECIBO_PAGO)));
+
+        casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.ENVIAR_RECIBO, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null, TOKEN);
+
+        ArgumentCaptor<String> texto = ArgumentCaptor.forClass(String.class);
+        InOrder orden = inOrder(gateway, correo);
+        orden.verify(gateway).actualizarEtapa(any(), any());
+        orden.verify(correo).enviar(eq("est@unicauca.edu.co"), eq("Examen supletorio - Recibo de pago disponible - Radicado 2026-XX-0001"),
+                texto.capture(), eq(List.of()));
+        assertTrue(texto.getValue().contains("Sr(a) Ana María Pérez Gómez"));
+        assertTrue(texto.getValue().contains("radicada con el número 2026-XX-0001, fue aprobada"));
+        assertTrue(texto.getValue().contains("adjuntar el comprobante"));
+        assertTrue(texto.getValue().contains("Universidad del Cauca"));
+        verify(correo, times(1)).enviar(any(), any(), any(), any());
+        verify(notificador, never()).avisarDarca(any(), any(), any(), any());
+    }
+
+    @Test
+    void enviarElReciboSinCorreoDelEstudianteIgualCambiaLaEtapa() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoSupletorio(), APROBADA_POR_DECANO));
+        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(anexo(FORMATO_FIRMADO_DECANO), anexo(RECIBO_PAGO)));
+
+        SolicitudAcademica resultado = casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.ENVIAR_RECIBO,
+                actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null, TOKEN);
+
+        assertEquals(PENDIENTE_PAGO, resultado.getEtapa().getCodigo());
+        verify(correo).enviar(isNull(), eq("Examen supletorio - Recibo de pago disponible - Radicado 2026-XX-0001"), any(), eq(List.of()));
+    }
+
+    @Test
+    void subirElComprobanteNoEnviaCorreo() {
+        when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoSupletorio(), PENDIENTE_PAGO));
+        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(anexo(FORMATO_FIRMADO_DECANO), anexo(COMPROBANTE_PAGO)));
+
+        casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.SUBIR_COMPROBANTE, actor(ESTUDIANTE, RolEtiquetaEtapa.ESTUDIANTE), null, TOKEN);
+
+        verify(correo, never()).enviar(any(), any(), any(), any());
+        verify(notificador, never()).avisarDarca(any(), any(), any(), any());
     }
 
     @Test
@@ -904,7 +949,7 @@ class SolicitudAcademicaCUImplAdaptadorTest {
     void remitirAlDecanoRetiraElDocumentoAdicionalTrasConfirmar() {
         when(gateway.getPorUuid(SOLICITUD)).thenReturn(solicitud(tipoMatricula(), RADICADA));
         AnexoAcademico adicional = documentoAdicional();
-        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(anexo(RECIBO_PAGO), adicional));
+        when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(anexo(FORMATO_FIRMADO_DECANO), anexo(RECIBO_PAGO), adicional));
 
         casoDeUso().cambiarEtapa(SOLICITUD, AccionEtapa.REMITIR_DECANO, actor(FUNCIONARIO, RolEtiquetaEtapa.FUNCIONARIO), null, TOKEN);
 

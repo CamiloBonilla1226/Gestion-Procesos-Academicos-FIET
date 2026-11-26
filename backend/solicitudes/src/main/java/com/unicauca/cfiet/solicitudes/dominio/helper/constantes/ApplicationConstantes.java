@@ -50,6 +50,7 @@ public final class ApplicationConstantes {
     public static final String ESTUDIANTE_FUNCIONARIO_ACADEMICO_ACCESO = "hasAnyAuthority('" + ESTUDIANTE_ROL + "', '" + FUNCIONARIO_ACADEMICO_ROL + "')";
     public static final String ESTUDIANTE_FUNCIONARIO_ACADEMICO_DECANO_ACCESO = "hasAnyAuthority('" + ESTUDIANTE_ROL + "', '" + FUNCIONARIO_ACADEMICO_ROL + "', '" + DECANO + "')";
     public static final String DOCENTE_ACCESO = "hasAnyAuthority('" + DOCENTE_ROL + "')";
+    public static final String FUNCIONARIO_ACADEMICO_DECANO_ACCESO = "hasAnyAuthority('" + FUNCIONARIO_ACADEMICO_ROL + "', '" + DECANO + "')";
     /*Tipos de Respuesta*/
     public static final String OFICIO = "Oficio";
     public static final String RESOLUCION = "Resolución";

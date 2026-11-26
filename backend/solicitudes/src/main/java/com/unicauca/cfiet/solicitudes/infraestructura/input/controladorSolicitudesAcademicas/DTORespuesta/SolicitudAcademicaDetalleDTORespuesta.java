@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,6 +29,10 @@ public class SolicitudAcademicaDetalleDTORespuesta {
     private List<AnexoAcademicoDTORespuesta> anexos = new ArrayList<>();
     private boolean tieneResolucion;
     private boolean puedeDescargarResolucion;
+    private String formatoFirmadoEstudianteUuid;
+    private String formatoFirmadoDecanoUuid;
+    private BigDecimal ajusteFormatoXmm;
+    private BigDecimal ajusteFormatoYmm;
     @Builder.Default
     private List<String> accionesDisponibles = new ArrayList<>();
 }

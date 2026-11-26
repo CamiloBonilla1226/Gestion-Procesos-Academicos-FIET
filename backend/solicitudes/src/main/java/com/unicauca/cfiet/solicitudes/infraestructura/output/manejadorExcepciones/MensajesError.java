@@ -88,16 +88,16 @@ public class MensajesError {
     public static final String ASIGNATURA_NO_MATRICULADA = "La asignatura %s no es una asignatura matriculada del estudiante %s...";
     public static final String ASIGNATURA_NO_ACTIVA = "La asignatura %s está %s y solo se pueden cancelar asignaturas activas...";
     public static final String SOLO_SOPORTES_LIBRES = "La cancelación de asignatura solo admite soportes libres, sin tipo de anexo, y llegó uno de tipo %s...";
-    public static final String NINGUNA_ASIGNATURA_APROBADA = "No se aprobó ninguna asignatura: para negar la solicitud completa use el rechazo del Decano...";
+    public static final String NINGUNA_ASIGNATURA_APROBADA = "No se aprobó ninguna asignatura: para negar la solicitud completa use la opción de no aprobar del Decano...";
     public static final String FORMA_APROBACION_DECANO = "Debe enviar la decisión de cada asignatura (decisiones); el Funcionario ya no evalúa si cumple las condiciones y no hay evaluación que aceptar (aceptarEvaluacion)...";
     public static final String SITUACION_NO_PERMITIDA = "%s no admite el valor %s: las opciones son %s...";
-    public static final String SITUACION_MATRICULA_RECHAZADA = "La asignatura %s fue rechazada por el Decano y no lleva situación en la matrícula en la respuesta...";
-    public static final String SITUACION_CANCELAR_RECHAZADA = "La asignatura %s fue rechazada por el Decano y no lleva situación al cancelar...";
-    public static final String SITUACION_NUEVA_MATRICULA_RECHAZADA = "La asignatura %s fue rechazada por el Decano y no lleva estado académico para cuando la matricule de nuevo...";
-    public static final String AJUSTES_SOLICITUD_RECHAZADA = "La solicitud %s fue rechazada por el Decano y no admite ajustes por asignatura...";
-    public static final String COMENTARIO_DECISION_PARCIAL_REQUERIDO = "El Decano rechazó alguna de las asignaturas: debe escribir un comentario para el Funcionario Académico...";
-    public static final String COMENTARIO_RECHAZO_DECANO_REQUERIDO = "Al rechazar la solicitud completa, el Decano debe escribir un comentario para el Funcionario Académico...";
-    public static final String OBSERVACION_RESPUESTA_REQUERIDA = "El Decano rechazó la solicitud o alguna de sus asignaturas: la respuesta al estudiante requiere una observación...";
+    public static final String SITUACION_MATRICULA_RECHAZADA = "La asignatura %s no fue aprobada por el Decano y no lleva situación en la matrícula en la respuesta...";
+    public static final String SITUACION_CANCELAR_RECHAZADA = "La asignatura %s no fue aprobada por el Decano y no lleva situación al cancelar...";
+    public static final String SITUACION_NUEVA_MATRICULA_RECHAZADA = "La asignatura %s no fue aprobada por el Decano y no lleva estado académico para cuando la matricule de nuevo...";
+    public static final String AJUSTES_SOLICITUD_RECHAZADA = "La solicitud %s no fue aprobada por el Decano y no admite ajustes por asignatura...";
+    public static final String COMENTARIO_DECISION_PARCIAL_REQUERIDO = "El Decano no aprobó alguna de las asignaturas: debe escribir un comentario para el Funcionario Académico...";
+    public static final String COMENTARIO_RECHAZO_DECANO_REQUERIDO = "Al no aprobar la solicitud completa, el Decano debe escribir un comentario para el Funcionario Académico...";
+    public static final String OBSERVACION_RESPUESTA_REQUERIDA = "El Decano no aprobó la solicitud o alguna de sus asignaturas: la respuesta al estudiante requiere una observación...";
     public static final String VALOR_ASIGNATURA_MUY_LARGO = "En la asignatura %s, %s supera los %d caracteres permitidos...";
     public static final String OBSERVACION_ASIGNATURA_MUY_LARGA = "%s de la asignatura %s supera los %d caracteres permitidos...";
     public static final String ASIGNATURA_SUPLETORIO_REQUERIDA = "Debe elegir la asignatura del examen no presentado...";
@@ -146,4 +146,11 @@ public class MensajesError {
     public static final String RANGO_FECHAS_REQUERIDO = "Debe indicar la fecha inicial y la fecha final del rango...";
     public static final String RANGO_FECHAS_INVERTIDO = "La fecha inicial (%s) no puede ser posterior a la fecha final (%s)...";
     public static final String RANGO_FECHAS_FUTURO = "%s (%s) no puede ser posterior a hoy (%s, hora de Colombia)...";
+    public static final String FORMATO_DECANO_FALTANTE = "Falta el formato firmado por el Decano...";
+    public static final String FORMATO_ESTUDIANTE_FALTANTE = "Falta el formato firmado por el estudiante...";
+    public static final String FORMATO_PAGINAS_INSUFICIENTES = "El formato firmado debe tener al menos %d páginas...";
+    public static final String FORMATO_NO_LEGIBLE = "El formato firmado no es un PDF que se pueda leer...";
+    public static final String AJUSTE_FORMATO_FUERA_DE_RANGO = "%s debe estar entre %d y %d milímetros...";
+    public static final String AJUSTE_FORMATO_ETAPA_FINAL = "La solicitud %s ya terminó y no admite ajustes del formato...";
+    public static final String FORMATO_NO_GENERADO = "No se pudo generar el formato oficial de la solicitud %s...";
 }

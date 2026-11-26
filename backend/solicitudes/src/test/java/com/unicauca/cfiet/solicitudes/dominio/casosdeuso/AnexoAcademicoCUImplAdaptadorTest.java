@@ -50,7 +50,7 @@ class AnexoAcademicoCUImplAdaptadorTest {
     private static final int CINCO_MB = 5 * 1024 * 1024;
     private static final String PAZ_BIBLIOTECAS = "Paz y salvo - División de Bibliotecas";
     private static final String DARCA = "Carné estudiantil o constancia de no trámite - DARCA";
-    private static final String FOR_23 = "Formato firmado por el docente que orienta la asignatura";
+    private static final String FOR_23 = "Formato firmado";
     private static final String JUSTIFICACION = "Soporte de la justificación de la no presentación";
     private static final String CRUCE = "Formato firmado por el docente de la asignatura con la que se cruza";
     private static final String RECIBO = "Recibo de pago";
@@ -204,7 +204,7 @@ class AnexoAcademicoCUImplAdaptadorTest {
 
     @Test
     void elEstudianteDuenioAdjuntaUnPazYSalvoYQuedaLaFichaCompleta() {
-        solicitud(matricula, RADICADA);
+        solicitud(matricula, PENDIENTE_FIRMA_ESTUDIANTE);
         byte[] contenido = pdf(1024);
 
         AnexoAcademico anexo = adjuntar(porNombre(PAZ_BIBLIOTECAS), archivo("paz y salvo biblioteca.pdf", contenido), estudiante());
@@ -226,7 +226,7 @@ class AnexoAcademicoCUImplAdaptadorTest {
 
     @Test
     void adjuntarUnAnexoEscribeElLogConElRadicadoYLaAccion() {
-        solicitud(matricula, RADICADA);
+        solicitud(matricula, PENDIENTE_FIRMA_ESTUDIANTE);
 
         AnexoAcademico anexo = adjuntar(porNombre(PAZ_BIBLIOTECAS), archivo("paz.pdf", pdf(100)), estudiante());
 
@@ -240,7 +240,7 @@ class AnexoAcademicoCUImplAdaptadorTest {
 
     @Test
     void siFallaLaBaseNoSeEscribeElLog() {
-        solicitud(matricula, RADICADA);
+        solicitud(matricula, PENDIENTE_FIRMA_ESTUDIANTE);
         when(anexoGateway.guardar(any())).thenThrow(new IllegalStateException("base caida"));
 
         assertThrows(IllegalStateException.class,
@@ -250,7 +250,7 @@ class AnexoAcademicoCUImplAdaptadorTest {
 
     @Test
     void elNombreOriginalConRutasPeligrosasSoloConservaElNombreYNoSeUsaEnDisco() {
-        solicitud(matricula, RADICADA);
+        solicitud(matricula, PENDIENTE_FIRMA_ESTUDIANTE);
 
         AnexoAcademico desdeUnix = adjuntar(porNombre(PAZ_BIBLIOTECAS), archivo("../../etc/passwd/paz.pdf", pdf(100)), estudiante());
         AnexoAcademico desdeWindows = adjuntar(porNombre(PAZ_BIBLIOTECAS), archivo("C:\\Windows\\..\\paz2.pdf", pdf(100)), estudiante());
@@ -264,7 +264,7 @@ class AnexoAcademicoCUImplAdaptadorTest {
 
     @Test
     void elCarneDeDarcaAceptaJpegConMayusculasYSeGuardaComoJpg() {
-        solicitud(matricula, RADICADA);
+        solicitud(matricula, PENDIENTE_FIRMA_ESTUDIANTE);
 
         AnexoAcademico anexo = adjuntar(porNombre(DARCA), archivo("carne.JPEG", jpg()), estudiante());
 
@@ -274,14 +274,14 @@ class AnexoAcademicoCUImplAdaptadorTest {
 
     @Test
     void elCarneDeDarcaAceptaPng() {
-        solicitud(matricula, RADICADA);
+        solicitud(matricula, PENDIENTE_FIRMA_ESTUDIANTE);
 
         assertEquals("image/png", adjuntar(porNombre(DARCA), archivo("carne.png", png()), estudiante()).getTipoArchivo());
     }
 
     @Test
     void unPazYSalvoNoAceptaImagenes() {
-        solicitud(matricula, RADICADA);
+        solicitud(matricula, PENDIENTE_FIRMA_ESTUDIANTE);
 
         assertThrows(ErrorMalFormatoExcepcion.class, () -> adjuntar(porNombre(PAZ_BIBLIOTECAS), archivo("paz.png", png()), estudiante()));
         assertThrows(ErrorMalFormatoExcepcion.class, () -> adjuntar(porNombre(PAZ_BIBLIOTECAS), archivo("paz.jpg", jpg()), estudiante()));
@@ -290,7 +290,7 @@ class AnexoAcademicoCUImplAdaptadorTest {
 
     @Test
     void unArchivoSinExtensionOConExtensionDesconocidaSeRechaza() {
-        solicitud(matricula, RADICADA);
+        solicitud(matricula, PENDIENTE_FIRMA_ESTUDIANTE);
 
         assertThrows(ErrorMalFormatoExcepcion.class, () -> adjuntar(porNombre(DARCA), archivo("carne", pdf(100)), estudiante()));
         assertThrows(ErrorMalFormatoExcepcion.class, () -> adjuntar(porNombre(DARCA), archivo("carne.exe", pdf(100)), estudiante()));
@@ -300,7 +300,7 @@ class AnexoAcademicoCUImplAdaptadorTest {
 
     @Test
     void unArchivoCuyoContenidoNoCorrespondeASuExtensionSeRechaza() {
-        solicitud(matricula, RADICADA);
+        solicitud(matricula, PENDIENTE_FIRMA_ESTUDIANTE);
 
         assertThrows(ErrorMalFormatoExcepcion.class, () -> adjuntar(porNombre(PAZ_BIBLIOTECAS), archivo("paz.pdf", png()), estudiante()));
         assertThrows(ErrorMalFormatoExcepcion.class, () -> adjuntar(porNombre(DARCA), archivo("carne.png", jpg()), estudiante()));
@@ -309,14 +309,14 @@ class AnexoAcademicoCUImplAdaptadorTest {
 
     @Test
     void unArchivoDeExactamenteCincoMegasSeAcepta() {
-        solicitud(matricula, RADICADA);
+        solicitud(matricula, PENDIENTE_FIRMA_ESTUDIANTE);
 
         assertEquals((long) CINCO_MB, adjuntar(porNombre(PAZ_BIBLIOTECAS), archivo("paz.pdf", pdf(CINCO_MB)), estudiante()).getTamanioBytes());
     }
 
     @Test
     void unArchivoDeMasDeCincoMegasSeRechaza() {
-        solicitud(matricula, RADICADA);
+        solicitud(matricula, PENDIENTE_FIRMA_ESTUDIANTE);
 
         assertThrows(ErrorMalFormatoExcepcion.class, () -> adjuntar(porNombre(PAZ_BIBLIOTECAS), archivo("paz.pdf", pdf(CINCO_MB + 1)), estudiante()));
         verificarQueNoSeGuardoNada();
@@ -324,7 +324,7 @@ class AnexoAcademicoCUImplAdaptadorTest {
 
     @Test
     void unArchivoVacioONuloSeRechaza() {
-        solicitud(matricula, RADICADA);
+        solicitud(matricula, PENDIENTE_FIRMA_ESTUDIANTE);
 
         assertThrows(ErrorMalFormatoExcepcion.class, () -> adjuntar(porNombre(PAZ_BIBLIOTECAS), archivo("paz.pdf", new byte[0]), estudiante()));
         assertThrows(ErrorMalFormatoExcepcion.class, () -> adjuntar(porNombre(PAZ_BIBLIOTECAS), null, estudiante()));
@@ -333,7 +333,7 @@ class AnexoAcademicoCUImplAdaptadorTest {
 
     @Test
     void elSoporteLibreSeAdjuntaEnLasCancelaciones() {
-        solicitud(asignatura, RADICADA);
+        solicitud(asignatura, PENDIENTE_FIRMA_ESTUDIANTE);
 
         AnexoAcademico anexo = adjuntar(null, archivo("incapacidad.png", png()), estudiante());
 
@@ -343,7 +343,7 @@ class AnexoAcademicoCUImplAdaptadorTest {
 
     @Test
     void elSupletorioNoAdmiteSoporteLibre() {
-        solicitud(supletorio, RADICADA);
+        solicitud(supletorio, PENDIENTE_FIRMA_ESTUDIANTE);
 
         assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> adjuntar(null, archivo("soporte.pdf", pdf(100)), estudiante()));
         verificarQueNoSeGuardoNada();
@@ -351,7 +351,7 @@ class AnexoAcademicoCUImplAdaptadorTest {
 
     @Test
     void unTipoDeAnexoDeOtroProcesoSeRechaza() {
-        solicitud(matricula, RADICADA);
+        solicitud(matricula, PENDIENTE_FIRMA_ESTUDIANTE);
 
         ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
                 () -> adjuntar(porNombre(FOR_23), archivo("for23.pdf", pdf(100)), estudiante()));
@@ -361,7 +361,7 @@ class AnexoAcademicoCUImplAdaptadorTest {
 
     @Test
     void unTipoDeAnexoInexistenteOUnaSolicitudInexistenteSeRechazan() {
-        solicitud(matricula, RADICADA);
+        solicitud(matricula, PENDIENTE_FIRMA_ESTUDIANTE);
         when(solicitudGateway.getPorUuid("no-existe")).thenReturn(null);
 
         assertThrows(ErrorEntidadNoExisteExcepcion.class,
@@ -373,7 +373,7 @@ class AnexoAcademicoCUImplAdaptadorTest {
 
     @Test
     void unEstudianteNoAdjuntaEnUnaSolicitudAjena() {
-        solicitud(matricula, RADICADA);
+        solicitud(matricula, PENDIENTE_FIRMA_ESTUDIANTE);
 
         ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
                 () -> adjuntar(porNombre(PAZ_BIBLIOTECAS), archivo("paz.pdf", pdf(100)), actor(OTRO_ESTUDIANTE, RolEtiquetaEtapa.ESTUDIANTE)));
@@ -383,7 +383,7 @@ class AnexoAcademicoCUImplAdaptadorTest {
 
     @Test
     void elFuncionarioYElDecanoNoAdjuntanLosAnexosDelEstudiante() {
-        solicitud(matricula, RADICADA);
+        solicitud(matricula, PENDIENTE_FIRMA_ESTUDIANTE);
 
         assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
                 () -> adjuntar(porNombre(PAZ_BIBLIOTECAS), archivo("paz.pdf", pdf(100)), funcionario()));
@@ -394,7 +394,7 @@ class AnexoAcademicoCUImplAdaptadorTest {
 
     @Test
     void unUsuarioSinElRolDeclaradoNoAdjunta() {
-        solicitud(matricula, RADICADA);
+        solicitud(matricula, PENDIENTE_FIRMA_ESTUDIANTE);
 
         assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
                 () -> adjuntar(porNombre(PAZ_BIBLIOTECAS), archivo("paz.pdf", pdf(100)), actor(FUNCIONARIO, RolEtiquetaEtapa.ESTUDIANTE)));
@@ -402,12 +402,12 @@ class AnexoAcademicoCUImplAdaptadorTest {
     }
 
     @Test
-    void losAnexosDelEstudianteSoloSeSubenEnRadicada() {
+    void losAnexosDelEstudianteSoloSeSubenPendientesDeFirma() {
         solicitud(matricula, EN_REVISION_DECANO);
 
         ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
                 () -> adjuntar(porNombre(PAZ_BIBLIOTECAS), archivo("paz.pdf", pdf(100)), estudiante()));
-        assertTrue(error.getMessage().contains("RADICADA"));
+        assertTrue(error.getMessage().contains("PENDIENTE_FIRMA_ESTUDIANTE"));
         verificarQueNoSeGuardoNada();
     }
 
@@ -559,7 +559,7 @@ class AnexoAcademicoCUImplAdaptadorTest {
 
     @Test
     void siFallaElGuardadoEnBaseSeBorraElArchivoDelDisco() {
-        solicitud(matricula, RADICADA);
+        solicitud(matricula, PENDIENTE_FIRMA_ESTUDIANTE);
         RuntimeException fallo = new IllegalStateException("fallo en base");
         when(anexoGateway.guardar(any())).thenThrow(fallo);
 
@@ -572,7 +572,7 @@ class AnexoAcademicoCUImplAdaptadorTest {
 
     @Test
     void siFallanLaBaseYElBorradoSeConservaElErrorOriginal() {
-        solicitud(matricula, RADICADA);
+        solicitud(matricula, PENDIENTE_FIRMA_ESTUDIANTE);
         RuntimeException fallo = new IllegalStateException("fallo en base");
         when(anexoGateway.guardar(any())).thenThrow(fallo);
         doThrow(new UncheckedIOException(new IOException("disco"))).when(almacenamiento).eliminar(RUTA);
@@ -586,7 +586,7 @@ class AnexoAcademicoCUImplAdaptadorTest {
 
     @Test
     void siFallaElDiscoNoSeGuardaLaFicha() {
-        solicitud(matricula, RADICADA);
+        solicitud(matricula, PENDIENTE_FIRMA_ESTUDIANTE);
         when(almacenamiento.guardar(anyString(), anyString(), any())).thenThrow(new UncheckedIOException(new IOException("disco lleno")));
 
         assertThrows(ErrorGenericoExcepcion.class, () -> adjuntar(porNombre(PAZ_BIBLIOTECAS), archivo("paz.pdf", pdf(100)), estudiante()));
@@ -724,7 +724,7 @@ class AnexoAcademicoCUImplAdaptadorTest {
     @Test
     void unAnexoRetiradoDeMatriculaYaNoSeSube() {
         conPazYSalvosUnico();
-        solicitud(matricula, RADICADA);
+        solicitud(matricula, PENDIENTE_FIRMA_ESTUDIANTE);
 
         ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
                 () -> adjuntar(porNombre(PAZ_BIBLIOTECAS), archivo("biblioteca.pdf", pdf(100)), estudiante()));
@@ -737,7 +737,7 @@ class AnexoAcademicoCUImplAdaptadorTest {
     @Test
     void elPdfUnicoDePazYSalvosAdmiteHasta10Mb() {
         TipoAnexoAcademico unico = conPazYSalvosUnico();
-        solicitud(matricula, RADICADA);
+        solicitud(matricula, PENDIENTE_FIRMA_ESTUDIANTE);
 
         adjuntar(unico, archivo("paz-y-salvos.pdf", pdf(10 * 1024 * 1024)), estudiante());
         verify(anexoGateway).guardar(any());

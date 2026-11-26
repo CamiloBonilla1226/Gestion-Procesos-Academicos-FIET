@@ -217,7 +217,7 @@ public class ExamenSupletorioCUImplAdaptador implements ExamenSupletorioCUIntPue
         Map<String, TipoAnexoAcademico> catalogo = new HashMap<>();
         for (TipoAnexoAcademico tipoAnexo : tipoAnexoGateway.getPorTipo(tipo.getUuidTipoSolicitudAcademica()))
             catalogo.put(tipoAnexo.getUuidTipoAnexoAcademico(), tipoAnexo);
-        List<String> obligatorios = causa == CausaSupletorio.CRUCE ? List.of(FORMATO_FOR_23) : List.of(FORMATO_FOR_23, SOPORTE_JUSTIFICACION);
+        List<String> obligatorios = causa == CausaSupletorio.CRUCE ? List.of() : List.of(SOPORTE_JUSTIFICACION);
 
         Set<String> presentes = new HashSet<>();
         List<TipoAnexoAcademico> tipos = new ArrayList<>();
@@ -229,8 +229,11 @@ public class ExamenSupletorioCUImplAdaptador implements ExamenSupletorioCUIntPue
             if (tipoAnexo == null)
                 anexoDeOtroTipo(uuidTipo, tipo);
             String nombre = tipoAnexo.getNombre();
-            if (RECIBO_PAGO.equals(nombre) || COMPROBANTE_PAGO.equals(nombre) || DOCUMENTO_ADICIONAL.equals(nombre))
+            if (RECIBO_PAGO.equals(nombre) || COMPROBANTE_PAGO.equals(nombre) || DOCUMENTO_ADICIONAL.equals(nombre)
+                    || FORMATO_FIRMADO_ESTUDIANTE.equals(nombre) || FORMATO_FIRMADO_DECANO.equals(nombre))
                 formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.ANEXO_NO_PERMITIDO_AL_RADICAR, nombre));
+            if (!tipoAnexo.estaVigente())
+                formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.ANEXO_NO_VIGENTE, nombre, tipo.getNombre(), SOPORTE_JUSTIFICACION));
             if (FORMATO_DOCENTE_CRUCE.equals(nombre) || (causa == CausaSupletorio.CRUCE && SOPORTE_JUSTIFICACION.equals(nombre)))
                 formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.ANEXO_NO_CORRESPONDE_CAUSA, nombre, nombreCausa(causa)));
             if (!presentes.add(nombre))

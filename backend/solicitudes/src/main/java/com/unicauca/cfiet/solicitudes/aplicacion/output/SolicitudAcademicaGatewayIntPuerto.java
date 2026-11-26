@@ -1,5 +1,7 @@
 package com.unicauca.cfiet.solicitudes.aplicacion.output;
 
+import java.math.BigDecimal;
+
 import com.unicauca.cfiet.solicitudes.dominio.modelos.HistorialSolicitudAcademica;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.ResultadoAsignaturaSolicitud;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.SolicitudAcademica;
@@ -25,6 +27,8 @@ public interface SolicitudAcademicaGatewayIntPuerto {
     SolicitudAcademica crear(SolicitudAcademica solicitud, HistorialSolicitudAcademica historial);
 
     SolicitudAcademica actualizarEtapa(SolicitudAcademica solicitud, HistorialSolicitudAcademica historial);
+
+    void guardarAjusteFormato(String uuidSolicitudAcademica, BigDecimal ajusteXmm, BigDecimal ajusteYmm);
 
     Map<String, String> getUltimaAccion(List<String> uuidsSolicitud, List<String> acciones);
 

@@ -257,7 +257,7 @@ class NotificacionResolucionCUImplAdaptadorTest {
         assertTrue(creada.getTextoComunicacion().endsWith("Cordialmente,\n\nCRISTIAN ESTIBEN ILLERA OSPITIA\nApoyo Administrativo\nDecanatura\n"
                 + "Facultad de Ingeniería Electrónica y Telecomunicaciones"));
         assertTrue(creada.getTextoDarca().startsWith("Popayán, Cauca, {fecha}\n\nEl estudiante Ana María Muñoz Peña, con código 104618021, "
-                + "solicita cancelar 2 asignaturas: 1 aprobada y 1 rechazada."));
+                + "solicita cancelar 2 asignaturas: 1 aprobada y 1 no aprobada."));
         assertTrue(creada.getTextoDarca().contains("se adjunta la constancia de la comunicación."));
         assertTrue(creada.getTextoDarca().endsWith("La información de la respuesta está en el PDF adjunto."));
         verify(correo).enviar(CORREO_ESTUDIANTE, "Respuesta a su solicitud de cancelación de asignatura - Radicado " + RADICADO,
@@ -311,11 +311,11 @@ class NotificacionResolucionCUImplAdaptadorTest {
     void laPlantillaDeDarcaResumeLaDecisionFinalAntesDeEnviarLaRespuesta() {
         when(solicitudGateway.getPorUuid(SOLICITUD)).thenReturn(solicitud("Cancelación de Asignatura", APROBADA_POR_DECANO));
         assertTrue(casoDeUso.getPlantilla(SOLICITUD, token(FUNCIONARIO)).getTextoDarca()
-                .contains("solicita cancelar 2 asignaturas: 1 aprobada y 1 rechazada. La Resolución se comunicó al estudiante"));
+                .contains("solicita cancelar 2 asignaturas: 1 aprobada y 1 no aprobada. La Resolución se comunicó al estudiante"));
 
         when(solicitudGateway.getPorUuid(SOLICITUD)).thenReturn(solicitud("Cancelación de Asignatura", RECHAZADA_POR_DECANO));
         assertTrue(casoDeUso.getPlantilla(SOLICITUD, token(FUNCIONARIO)).getTextoDarca()
-                .contains("solicita cancelar 2 asignaturas: 0 aprobadas y 2 rechazadas."));
+                .contains("solicita cancelar 2 asignaturas: 0 aprobadas y 2 no aprobadas."));
     }
 
     @Test

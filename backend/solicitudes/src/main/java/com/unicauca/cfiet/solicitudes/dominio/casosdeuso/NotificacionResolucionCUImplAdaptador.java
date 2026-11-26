@@ -276,6 +276,7 @@ public class NotificacionResolucionCUImplAdaptador implements NotificacionResolu
         List<AdjuntoCorreo> adjuntos = new ArrayList<>();
         adjuntos.add(notificador.pdfRespuesta(solicitud, ahora.toLocalDate()));
         adjuntos.addAll(notificador.resolucionDe(solicitud));
+        adjuntos.addAll(notificador.formatoDecanoDe(solicitud));
         return adjuntos;
     }
 

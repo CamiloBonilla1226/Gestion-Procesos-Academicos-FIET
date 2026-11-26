@@ -173,7 +173,8 @@ class TramiteCancelacionMatriculaCUImplAdaptadorTest {
         lenient().when(etapaGateway.getPorTipoIncluyendoUniversales(TIPO_CM)).thenReturn(EtapaSolicitudAcademicaConstantes.ETAPAS.stream()
                 .map(codigo -> EtapaSolicitudAcademica.builder().uuidEtapa("et-" + codigo).codigo(codigo).build())
                 .toList());
-        lenient().when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of());
+        lenient().when(anexoGateway.getPorSolicitud(SOLICITUD)).thenReturn(List.of(AnexoAcademico.builder().uuidAnexoAcademico("an-formato-decano")
+                .tipoAnexoAcademico(TipoAnexoAcademico.builder().nombre("Formato firmado por el Decano").build()).build()));
         lenient().when(solicitudGateway.actualizarEtapa(any(), any())).thenAnswer(invocacion -> invocacion.getArgument(0));
     }
 

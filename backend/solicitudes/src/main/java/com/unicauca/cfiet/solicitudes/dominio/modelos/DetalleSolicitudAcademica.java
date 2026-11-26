@@ -2,6 +2,7 @@ package com.unicauca.cfiet.solicitudes.dominio.modelos;
 
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,6 +20,10 @@ public class DetalleSolicitudAcademica {
     private List<AnexoAcademico> anexos = new ArrayList<>();
     private boolean tieneResolucion;
     private boolean puedeDescargarResolucion;
+    private String formatoFirmadoEstudianteUuid;
+    private String formatoFirmadoDecanoUuid;
+    private BigDecimal ajusteFormatoXmm;
+    private BigDecimal ajusteFormatoYmm;
     @Builder.Default
     private List<AccionEtapa> accionesDisponibles = new ArrayList<>();
 }

@@ -22,6 +22,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -165,6 +166,15 @@ public class SolicitudAcademicaGatewayImplAdaptador implements SolicitudAcademic
         SolicitudAcademicaEntidad guardada = repositorio.saveAndFlush(entidad);
         guardarHistorial(guardada, historial);
         return mapper.toDominio(guardada);
+    }
+
+    @Override
+    @Transactional
+    public void guardarAjusteFormato(String uuidSolicitudAcademica, BigDecimal ajusteXmm, BigDecimal ajusteYmm) {
+        SolicitudAcademicaEntidad entidad = repositorio.findById(uuidSolicitudAcademica).orElseThrow();
+        entidad.setAjusteFormatoXmm(ajusteXmm);
+        entidad.setAjusteFormatoYmm(ajusteYmm);
+        repositorio.saveAndFlush(entidad);
     }
 
     private void guardarHistorial(SolicitudAcademicaEntidad solicitud, HistorialSolicitudAcademica historial) {

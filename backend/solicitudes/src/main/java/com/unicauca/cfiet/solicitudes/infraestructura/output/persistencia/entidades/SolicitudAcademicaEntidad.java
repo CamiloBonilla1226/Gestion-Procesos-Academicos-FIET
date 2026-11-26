@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -49,4 +50,8 @@ public class SolicitudAcademicaEntidad {
             foreignKey = @ForeignKey(name = "fk_solacad_etapa")
     )
     private EtapaSolicitudAcademicaEntidad etapa;
+    @Column(name = "ajusteFormatoXmm", precision = 4, scale = 1)
+    private BigDecimal ajusteFormatoXmm;
+    @Column(name = "ajusteFormatoYmm", precision = 4, scale = 1)
+    private BigDecimal ajusteFormatoYmm;
 }

@@ -22,6 +22,8 @@ public class SolicitudAcademicaOwnMapper implements OwnMapper<SolicitudAcademica
                 .tipoSolicitudAcademica(tipoSolicitudMapper.toDominio(source.getTipoSolicitudAcademica()))
                 .etapa(etapaMapper.toDominio(source.getEtapa()))
                 .fechaCreacion(source.getFechaCreacion())
+                .ajusteFormatoXmm(source.getAjusteFormatoXmm())
+                .ajusteFormatoYmm(source.getAjusteFormatoYmm())
                 .build();
     }
 

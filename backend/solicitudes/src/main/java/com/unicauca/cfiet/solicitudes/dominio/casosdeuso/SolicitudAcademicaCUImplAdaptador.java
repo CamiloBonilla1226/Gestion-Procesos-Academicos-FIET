@@ -32,6 +32,8 @@ import java.util.stream.Collectors;
 
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.COMPROBANTE_PAGO;
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.DOCUMENTO_ADICIONAL;
+import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.FORMATO_FIRMADO_DECANO;
+import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.FORMATO_FIRMADO_ESTUDIANTE;
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.RECIBO_PAGO;
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.APROBADA;
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.RECHAZADA;
@@ -55,6 +57,16 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
             + "Ingrese a la aplicación para ver la respuesta.";
     private static final String CUERPO_SUPLETORIO = "Su solicitud de examen supletorio con radicado %s ya tiene respuesta. "
             + "Ingrese a la aplicación para consultarla.";
+    private static final String ASUNTO_RECIBO_SUPLETORIO = "Examen supletorio - Recibo de pago disponible - Radicado %s";
+    private static final String CUERPO_RECIBO_SUPLETORIO = "Reciba un cordial saludo.%n%n"
+            + "Le informamos que su solicitud de expedición de examen supletorio, radicada con el número %s, fue aprobada "
+            + "y el recibo de pago ya se encuentra disponible.%n%n"
+            + "Le solicitamos ingresar a la plataforma de Gestión de Procesos Académicos para descargar el recibo, realizar el pago "
+            + "y adjuntar el comprobante correspondiente, con el fin de continuar con el trámite.%n%n"
+            + "Atentamente,%n%n"
+            + "Decanatura%n"
+            + "Facultad de Ingeniería Electrónica y Telecomunicaciones%n"
+            + "Universidad del Cauca";
     private static final DateTimeFormatter FECHA_CARTA = DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", Locale.forLanguageTag("es-CO"));
     private static final String TIPO_PDF = "application/pdf";
 
@@ -115,7 +127,7 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
 
         TipoProcesoAcademico proceso = procesoDe(tipo);
         verificarSinSolicitudEnCurso(estudiante.getUuidUsuario(), tipo);
-        ResultadoTransicion resultado = maquinaEtapas.siguienteEtapa(proceso, null, AccionEtapa.RADICAR, RolEtiquetaEtapa.ESTUDIANTE);
+        ResultadoTransicion resultado = maquinaEtapas.siguienteEtapa(proceso, null, AccionEtapa.GENERAR_FORMATO, RolEtiquetaEtapa.ESTUDIANTE);
         EtapaSolicitudAcademica etapa = etapaDe(tipo, resultado.getEtapaSiguiente());
         LocalDateTime ahora = LocalDateTime.now(reloj);
 
@@ -127,9 +139,9 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
                 .etapa(etapa)
                 .fechaCreacion(ahora)
                 .build();
-        SolicitudAcademica creada = gateway.crear(solicitud, historial(solicitud, estudiante.getUuidUsuario(), AccionEtapa.RADICAR, null, ahora));
+        SolicitudAcademica creada = gateway.crear(solicitud, historial(solicitud, estudiante.getUuidUsuario(), AccionEtapa.GENERAR_FORMATO, null, ahora));
         log.crearLog("Radicar solicitud académica",
-                String.format("Solicitud académica %s radicada (%s), acción %s", creada.getRadicado(), tipo.getNombre(), AccionEtapa.RADICAR),
+                String.format("Solicitud académica %s creada (%s), acción %s", creada.getRadicado(), tipo.getNombre(), AccionEtapa.GENERAR_FORMATO),
                 token);
         return creada;
     }
@@ -180,7 +192,17 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
                 token);
         if (ETAPAS_FINALES.contains(resultado.getEtapaSiguiente()) && !comunicacionProgramada(proceso, accion))
             avisarRespuesta(solicitud, proceso, accion, ahora.toLocalDate());
+        if (proceso == TipoProcesoAcademico.EXAMEN_SUPLETORIO && accion == AccionEtapa.ENVIAR_RECIBO)
+            avisarRecibo(solicitud, ahora.toLocalDate());
         return actualizada;
+    }
+
+    private void avisarRecibo(SolicitudAcademica solicitud, LocalDate fecha) {
+        Usuario usuario = solicitud.getEstudiante() == null ? null : solicitud.getEstudiante().getUsuario();
+        String texto = String.format(ENCABEZADO_RESPUESTA, fecha.format(FECHA_CARTA), nombreCompleto(usuario))
+                + String.format(CUERPO_RECIBO_SUPLETORIO, solicitud.getRadicado());
+        correo.enviar(usuario == null ? null : usuario.getCorreoElectronico(),
+                String.format(ASUNTO_RECIBO_SUPLETORIO, solicitud.getRadicado()), texto, List.of());
     }
 
     private boolean comunicacionProgramada(TipoProcesoAcademico proceso, AccionEtapa accion) {
@@ -202,6 +224,8 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
                     .tipoContenido(TIPO_PDF)
                     .urlArchivo(resolucion.getUrlArchivo())
                     .build());
+        if (!rechazoDirecto)
+            adjuntos.addAll(notificador.formatoDecanoDe(solicitud));
         for (AnexoAcademico adicional : proceso.admiteDocumentoAdicional() ? documentosAdicionales(uuidSolicitud) : List.<AnexoAcademico>of())
             adjuntos.add(AdjuntoCorreo.builder()
                     .nombre(adicional.getNombreArchivo())
@@ -240,6 +264,8 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
                 .resolucion(resolucionGateway.existePorSolicitud(uuidSolicitud))
                 .recibo(anexos.contains(RECIBO_PAGO))
                 .comprobante(anexos.contains(COMPROBANTE_PAGO))
+                .formatoEstudiante(anexos.contains(FORMATO_FIRMADO_ESTUDIANTE))
+                .formatoDecano(anexos.contains(FORMATO_FIRMADO_DECANO))
                 .build();
     }
 

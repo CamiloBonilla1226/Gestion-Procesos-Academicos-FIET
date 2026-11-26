@@ -72,6 +72,10 @@ public class MapperSolicitudAcademicaInfraestructuraDominio {
                 .anexos(detalle.getAnexos() == null ? new ArrayList<>() : detalle.getAnexos().stream().map(this::mapearAnexoARespuesta).toList())
                 .tieneResolucion(detalle.isTieneResolucion())
                 .puedeDescargarResolucion(detalle.isPuedeDescargarResolucion())
+                .formatoFirmadoEstudianteUuid(detalle.getFormatoFirmadoEstudianteUuid())
+                .formatoFirmadoDecanoUuid(detalle.getFormatoFirmadoDecanoUuid())
+                .ajusteFormatoXmm(detalle.getAjusteFormatoXmm())
+                .ajusteFormatoYmm(detalle.getAjusteFormatoYmm())
                 .accionesDisponibles(detalle.getAccionesDisponibles() == null ? new ArrayList<>()
                         : detalle.getAccionesDisponibles().stream().map(AccionEtapa::name).toList())
                 .build();

@@ -158,7 +158,7 @@ class ExamenSupletorioCUImplAdaptadorTest {
                 tipoAnexo(RECIBO, "Recibo de pago", "pdf", false),
                 tipoAnexo(COMPROBANTE, "Comprobante de pago", "pdf,jpg,png", false),
                 tipoAnexo("an-adicional", "Documento adicional de la respuesta", "pdf", false),
-                tipoAnexo(FOR_23, "Formato firmado por el docente que orienta la asignatura", "pdf,jpg,png", true)));
+                tipoAnexo(FOR_23, "Formato firmado", "pdf,jpg,png", true)));
         lenient().when(solicitudCU.crearSolicitud(ESTUDIANTE, TIPO_ES, TOKEN)).thenReturn(SolicitudAcademica.builder()
                 .uuidSolicitudAcademica(SOLICITUD).radicado("2026-ES-0001").tipoSolicitudAcademica(supletorio).build());
         lenient().when(gateway.guardar(any())).thenAnswer(invocacion -> invocacion.getArgument(0));
@@ -420,13 +420,9 @@ class ExamenSupletorioCUImplAdaptadorTest {
     }
 
     @Test
-    void elFor23EsObligatorioConCualquierCausa() {
-        String nombreFor23 = "Formato firmado por el docente que orienta la asignatura";
-        assertEquals(String.format(MensajesError.ANEXOS_OBLIGATORIOS_FALTANTES, nombreFor23),
-                reglaViolada(() -> radicarCruce("am-2", LUNES, "08:00", List.of())));
-        assertEquals(String.format(MensajesError.ANEXOS_OBLIGATORIOS_FALTANTES, nombreFor23),
-                reglaViolada(() -> casoDeUso.radicarExamenSupletorio(ESTUDIANTE, "am-1", LUNES, "otra", null, null, null,
-                        List.of(anexo(JUSTIFICACION)), TOKEN)));
+    void elFor23YaNoSePideAlRadicarPorqueLasFirmasVanEnElFormatoGenerado() {
+        assertDoesNotThrow(() -> casoDeUso.radicarExamenSupletorio(ESTUDIANTE, "am-1", LUNES, "otra", null, null, null,
+                List.of(anexo(JUSTIFICACION)), TOKEN));
     }
 
     @Test
@@ -441,7 +437,7 @@ class ExamenSupletorioCUImplAdaptadorTest {
                 reglaViolada(() -> casoDeUso.radicarExamenSupletorio(ESTUDIANTE, "am-1", LUNES, "otra", null, null, null,
                         List.of(anexo(FOR_23)), TOKEN)));
         assertEquals(String.format(MensajesError.ANEXOS_OBLIGATORIOS_FALTANTES,
-                        "Formato firmado por el docente que orienta la asignatura; Soporte de la justificación de la no presentación"),
+                        "Soporte de la justificación de la no presentación"),
                 reglaViolada(() -> casoDeUso.radicarExamenSupletorio(ESTUDIANTE, "am-1", LUNES, "otra", null, null, null, null, TOKEN)));
     }
 
@@ -468,7 +464,7 @@ class ExamenSupletorioCUImplAdaptadorTest {
 
     @Test
     void unAnexoRepetidoSeRechaza() {
-        assertEquals(String.format(MensajesError.ANEXO_REPETIDO, "Formato firmado por el docente que orienta la asignatura"),
+        assertEquals(String.format(MensajesError.ANEXO_REPETIDO, "Formato firmado"),
                 reglaViolada(() -> casoDeUso.radicarExamenSupletorio(ESTUDIANTE, "am-1", LUNES, "otra", null, null, null,
                         List.of(anexo(FOR_23), anexo(JUSTIFICACION), anexo(FOR_23)), TOKEN)));
     }

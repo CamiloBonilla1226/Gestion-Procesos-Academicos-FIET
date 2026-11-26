@@ -164,10 +164,10 @@ class NotificadorRespuestaFinalTest {
 
         ArgumentCaptor<String> texto = ArgumentCaptor.forClass(String.class);
         verify(correo).enviar(eq(DARCA), any(), texto.capture(), any());
-        assertTrue(texto.getValue().contains("con código 104618021, solicita cancelar 3 asignaturas: 2 aprobadas y 1 rechazada."));
+        assertTrue(texto.getValue().contains("con código 104618021, solicita cancelar 3 asignaturas: 2 aprobadas y 1 no aprobada."));
         List<AsignaturaResumenRespuesta> asignaturas = generados.get(0).getAsignaturas();
         assertEquals(List.of("ISI-001", "ISI-002", "ISI-003"), asignaturas.stream().map(AsignaturaResumenRespuesta::getCodigo).toList());
-        assertEquals(List.of("Aprobada", "Rechazada", "Aprobada"), asignaturas.stream().map(AsignaturaResumenRespuesta::getDecision).toList());
+        assertEquals(List.of("Aprobada", "No aprobada", "Aprobada"), asignaturas.stream().map(AsignaturaResumenRespuesta::getDecision).toList());
         assertEquals(List.of("Bajo rendimiento", "No aplica", "Calamidad"),
                 asignaturas.stream().map(AsignaturaResumenRespuesta::getSituacionAlCancelar).toList());
         assertEquals(List.of("Cursada por primera vez (R1)", "No aplica", "Cursada por primera vez (R1)"),
@@ -183,8 +183,8 @@ class NotificadorRespuestaFinalTest {
 
         ArgumentCaptor<String> texto = ArgumentCaptor.forClass(String.class);
         verify(correo).enviar(eq(DARCA), any(), texto.capture(), any());
-        assertTrue(texto.getValue().contains("solicita cancelar la asignatura Cálculo I (rechazada)."));
-        assertEquals("Rechazada", generados.get(0).getEstadoFinal());
+        assertTrue(texto.getValue().contains("solicita cancelar la asignatura Cálculo I (no aprobada)."));
+        assertEquals("No aprobada", generados.get(0).getEstadoFinal());
         assertEquals("No aplica", generados.get(0).getAsignaturas().get(0).getSituacionAlCancelar());
     }
 
@@ -198,11 +198,11 @@ class NotificadorRespuestaFinalTest {
         ArgumentCaptor<List<AdjuntoCorreo>> adjuntos = capturaAdjuntos();
         verify(correo).enviar(eq(DARCA), eq("DARCA - Notificación de Cancelación de matrícula - Radicado 2026-CM-0002"), texto.capture(),
                 adjuntos.capture());
-        assertTrue(texto.getValue().contains("El estudiante Ana María Muñoz Peña, con código 104618021, solicita cancelar su matrícula (rechazada)."));
+        assertTrue(texto.getValue().contains("El estudiante Ana María Muñoz Peña, con código 104618021, solicita cancelar su matrícula (no aprobada)."));
         assertEquals(List.of("Radicado-2026-CM-0002.pdf", "Resolucion-2026-CM-0002.pdf"),
                 adjuntos.getValue().stream().map(AdjuntoCorreo::getNombre).toList());
         assertEquals("Decisión de la solicitud", generados.get(0).getDetalles().get(0).getEtiqueta());
-        assertEquals("Rechazada", generados.get(0).getDetalles().get(0).getValor());
+        assertEquals("No aprobada", generados.get(0).getDetalles().get(0).getValor());
         assertTrue(generados.get(0).getAsignaturas().isEmpty());
         verifyNoInteractions(cancelacionGateway, supletorioGateway);
     }
@@ -217,7 +217,7 @@ class NotificadorRespuestaFinalTest {
         ArgumentCaptor<List<AdjuntoCorreo>> adjuntos = capturaAdjuntos();
         verify(correo).enviar(eq(DARCA), eq("DARCA - Notificación de Cancelación de matrícula - Radicado 2026-CM-0009"), texto.capture(), adjuntos.capture());
         assertEquals(List.of("Radicado-2026-CM-0009.pdf", "acta.pdf"), adjuntos.getValue().stream().map(AdjuntoCorreo::getNombre).toList());
-        assertTrue(texto.getValue().contains("solicita cancelar su matrícula (rechazada)."));
+        assertTrue(texto.getValue().contains("solicita cancelar su matrícula (no aprobada)."));
         verify(resolucionGateway, never()).getPorSolicitud(any());
     }
 
@@ -290,7 +290,7 @@ class NotificadorRespuestaFinalTest {
 
         notificador.avisarDarca(solicitud("2026-ES-0003", RECHAZADA), TipoProcesoAcademico.EXAMEN_SUPLETORIO, AccionEtapa.RECHAZAR_COMPROBANTE, FECHA);
 
-        assertEquals("Rechazado", generados.get(0).getDetalles().get(1).getValor());
+        assertEquals("No aprobado", generados.get(0).getDetalles().get(1).getValor());
     }
 
     @Test
@@ -386,7 +386,7 @@ class NotificadorRespuestaFinalTest {
         assertEquals(List.of("Radicado-2026-CA-0003.pdf", "Resolucion-2026-CA-0003.pdf", "Comunicacion-Estudiante-2026-CA-0003.pdf"),
                 correoDarca.getAdjuntos().stream().map(AdjuntoCorreo::getNombre).toList());
         assertTrue(correoDarca.getTexto().startsWith("Popayán, Cauca, 15 de octubre de 2026"));
-        assertTrue(correoDarca.getTexto().contains("solicita cancelar 2 asignaturas: 1 aprobada y 1 rechazada."));
+        assertTrue(correoDarca.getTexto().contains("solicita cancelar 2 asignaturas: 1 aprobada y 1 no aprobada."));
         assertTrue(correoDarca.getTexto().contains("se adjunta la constancia de la comunicación"));
         verify(correo, never()).enviar(any(), any(), any(), any());
     }
@@ -412,10 +412,10 @@ class NotificadorRespuestaFinalTest {
         String rechazada = notificador.plantillaDarcaResolucion(solicitud("2026-CA-0003", RECHAZADA_POR_DECANO), false, true);
 
         assertEquals("Popayán, Cauca, {fecha}\n\nEl estudiante Ana María Muñoz Peña, con código 104618021, solicita cancelar 2 asignaturas: "
-                + "1 aprobada y 1 rechazada. La Resolución se comunicó al estudiante por correo electrónico; se adjunta la constancia de la "
+                + "1 aprobada y 1 no aprobada. La Resolución se comunicó al estudiante por correo electrónico; se adjunta la constancia de la "
                 + "comunicación.\n\nLa información de la respuesta está en el PDF adjunto.", aprobada);
-        assertTrue(rechazada.contains("0 aprobadas y 2 rechazadas. El estudiante firmó la Resolución en la Decanatura"));
-        assertEquals(rechazada.replace("2 rechazadas", "x"), notificador.plantillaDarcaFirmada(rechazada.replace("2 rechazadas", "x")));
+        assertTrue(rechazada.contains("0 aprobadas y 2 no aprobadas. El estudiante firmó la Resolución en la Decanatura"));
+        assertEquals(rechazada.replace("2 no aprobadas", "x"), notificador.plantillaDarcaFirmada(rechazada.replace("2 no aprobadas", "x")));
         assertTrue(notificador.plantillaDarcaFirmada(aprobada).contains("El estudiante firmó la Resolución en la Decanatura; se adjunta la Resolución firmada."));
         assertNull(notificador.plantillaDarcaFirmada(" "));
     }
