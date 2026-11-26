@@ -46,5 +46,5 @@ WHERE r.rol = 'FUNCIONARIO' AND e.codigo = 'APROBADA_POR_DECANO';
 
 UPDATE ETAPA_ETIQUETA_ROL r
 JOIN ETAPA_SOLICITUD_ACADEMICA e ON e.uuidEtapa = r.Etapa_uuid
-SET r.etiqueta = 'Rechazada por el Decano'
+SET r.etiqueta = 'No aprobada por el Decano'
 WHERE r.rol = 'FUNCIONARIO' AND e.codigo = 'RECHAZADA_POR_DECANO';

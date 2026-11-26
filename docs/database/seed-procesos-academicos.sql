@@ -27,7 +27,8 @@ INSERT IGNORE INTO ETAPA_SOLICITUD_ACADEMICA (uuidEtapa, codigo, TipoSolicitudAc
 ('6e6b1b7e-f7db-4fb8-8c4a-3d67c18dbe5a', 'APROBADA', NULL),
 ('475e51b3-f854-4b4e-818e-a792ef59f64c', 'RECHAZADA', NULL),
 ('6e4561a7-b354-4f21-9825-f35263882b36', 'PENDIENTE_PAGO', '459cde47-f3a3-4a74-9b44-1063a516326c'),
-('ac289652-cf4e-4142-bec4-8809cbcb74fc', 'EN_VERIFICACION_PAGO', '459cde47-f3a3-4a74-9b44-1063a516326c');
+('ac289652-cf4e-4142-bec4-8809cbcb74fc', 'EN_VERIFICACION_PAGO', '459cde47-f3a3-4a74-9b44-1063a516326c'),
+('b3034d80-46ee-4fad-8364-0c45fbd0afee', 'PENDIENTE_FIRMA_ESTUDIANTE', NULL);
 
 INSERT IGNORE INTO ETAPA_ETIQUETA_ROL (Etapa_uuid, rol, etiqueta) VALUES
 ('653e4772-562b-4d3c-becf-85f19a6dbdc9', 'ESTUDIANTE', 'En trámite'),
@@ -50,9 +51,10 @@ INSERT IGNORE INTO ETAPA_ETIQUETA_ROL (Etapa_uuid, rol, etiqueta) VALUES
 ('6e6b1b7e-f7db-4fb8-8c4a-3d67c18dbe5a', 'ESTUDIANTE', 'Aprobada'),
 ('6e6b1b7e-f7db-4fb8-8c4a-3d67c18dbe5a', 'FUNCIONARIO', 'Respondida'),
 ('6e6b1b7e-f7db-4fb8-8c4a-3d67c18dbe5a', 'DECANO', 'Respondida'),
-('475e51b3-f854-4b4e-818e-a792ef59f64c', 'ESTUDIANTE', 'Rechazada'),
+('475e51b3-f854-4b4e-818e-a792ef59f64c', 'ESTUDIANTE', 'No aprobada'),
 ('475e51b3-f854-4b4e-818e-a792ef59f64c', 'FUNCIONARIO', 'Respondida'),
-('475e51b3-f854-4b4e-818e-a792ef59f64c', 'DECANO', 'Respondida');
+('475e51b3-f854-4b4e-818e-a792ef59f64c', 'DECANO', 'Respondida'),
+('b3034d80-46ee-4fad-8364-0c45fbd0afee', 'ESTUDIANTE', 'En gestión');
 
 INSERT IGNORE INTO TIPO_ANEXO_ACADEMICO (uuidTipoAnexoAcademico, TipoSolicitudAcademica_uuid, nombre, formatosPermitidos, obligatorio) VALUES
 ('0870fd29-220d-4226-92b1-590804ac0974', '3b6dccc9-ff78-48ef-8e66-05fb9932e302', 'Paz y salvo - División de Bibliotecas', 'pdf', 1),
@@ -61,7 +63,7 @@ INSERT IGNORE INTO TIPO_ANEXO_ACADEMICO (uuidTipoAnexoAcademico, TipoSolicitudAc
 ('6898eb98-f150-4784-8255-0eab0eb61edd', '3b6dccc9-ff78-48ef-8e66-05fb9932e302', 'Cupón de Confirmación de la Intervención Psicosocial - División de Salud Integral', 'pdf', 1),
 ('c756365a-f0c4-4e9a-9326-2946aeacd638', '3b6dccc9-ff78-48ef-8e66-05fb9932e302', 'Paz y salvo - División Financiera', 'pdf', 1),
 ('22ca9f7d-967d-44ba-87fa-103aa63b297f', '3b6dccc9-ff78-48ef-8e66-05fb9932e302', 'Carné estudiantil o constancia de no trámite - DARCA', 'pdf,jpg,jpeg,png', 1),
-('ee145c67-0f6e-4971-84b7-42679747ed49', '459cde47-f3a3-4a74-9b44-1063a516326c', 'Formato firmado por el docente que orienta la asignatura', 'pdf,jpg,png', 1),
+('ee145c67-0f6e-4971-84b7-42679747ed49', '459cde47-f3a3-4a74-9b44-1063a516326c', 'Formato firmado', 'pdf,jpg,png', 1),
 ('2bfc61be-7787-4772-8b86-ca64488f2578', '459cde47-f3a3-4a74-9b44-1063a516326c', 'Soporte de la justificación de la no presentación', 'pdf,jpg,png', 0),
 ('3cba6336-4de6-492b-838d-602f28a9efbe', '459cde47-f3a3-4a74-9b44-1063a516326c', 'Formato firmado por el docente de la asignatura con la que se cruza', 'pdf,jpg,png', 0),
 ('422163e2-81b8-48f8-a054-2c40033de17c', '459cde47-f3a3-4a74-9b44-1063a516326c', 'Recibo de pago', 'pdf', 0),
@@ -69,7 +71,13 @@ INSERT IGNORE INTO TIPO_ANEXO_ACADEMICO (uuidTipoAnexoAcademico, TipoSolicitudAc
 ('60c22473-ad8d-48d1-a189-9195668a636a', '3b6dccc9-ff78-48ef-8e66-05fb9932e302', 'Documento adicional de la respuesta', 'pdf', 0),
 ('a6305ab3-9e82-40da-ba52-7f9cc6cce16f', '7b3d4347-3525-4ab7-a2b4-723b1ced80c8', 'Documento adicional de la respuesta', 'pdf', 0),
 ('ea7c3bf9-cb3c-459a-8834-120cfcdda9d2', '459cde47-f3a3-4a74-9b44-1063a516326c', 'Documento adicional de la respuesta', 'pdf', 0),
-('72a5768d-7762-4f5c-bd0c-cef438c6f8ad', '3b6dccc9-ff78-48ef-8e66-05fb9932e302', 'Paz y salvos (un solo PDF con todos los paz y salvos)', 'pdf', 1);
+('72a5768d-7762-4f5c-bd0c-cef438c6f8ad', '3b6dccc9-ff78-48ef-8e66-05fb9932e302', 'Paz y salvos (un solo PDF con todos los paz y salvos)', 'pdf', 1),
+('afbc10a7-ff6c-4972-a710-a1f022e37f79', '3b6dccc9-ff78-48ef-8e66-05fb9932e302', 'Formato firmado por el estudiante', 'pdf', 0),
+('a2b477a3-b542-4ecb-868a-e19069690c96', '7b3d4347-3525-4ab7-a2b4-723b1ced80c8', 'Formato firmado por el estudiante', 'pdf', 0),
+('a9a4dd9e-c0df-441d-9562-c5fda346aa54', '459cde47-f3a3-4a74-9b44-1063a516326c', 'Formato firmado por el estudiante', 'pdf', 0),
+('af35a439-4bdd-4b7a-8b14-409860ae5729', '3b6dccc9-ff78-48ef-8e66-05fb9932e302', 'Formato firmado por el Decano', 'pdf', 0),
+('4e424980-063a-4b23-bf0f-e29b3ee30bec', '7b3d4347-3525-4ab7-a2b4-723b1ced80c8', 'Formato firmado por el Decano', 'pdf', 0),
+('b90e833c-562e-462f-a1aa-6909f605ac6d', '459cde47-f3a3-4a74-9b44-1063a516326c', 'Formato firmado por el Decano', 'pdf', 0);
 
 INSERT IGNORE INTO SITUACION_ACADEMICA_ASIGNATURA (uuidSituacionAcademica, codigo, nombre, ambito) VALUES
 ('6eec86b1-53da-4c65-baa9-96bf67669c13', 'R0', 'No cursada', NULL),
@@ -82,7 +90,7 @@ INSERT IGNORE INTO SITUACION_ACADEMICA_ASIGNATURA (uuidSituacionAcademica, codig
 
 UPDATE ETAPA_ETIQUETA_ROL SET etiqueta = 'Pendiente Notificar' WHERE rol = 'FUNCIONARIO' AND Etapa_uuid IN ('1dfc0089-f1b0-486d-bfc5-2025081d800f', 'fa3c502f-dc81-46eb-bace-88deb194564b');
 UPDATE ETAPA_ETIQUETA_ROL SET etiqueta = 'Recibo Pagado' WHERE rol = 'FUNCIONARIO' AND Etapa_uuid = 'ac289652-cf4e-4142-bec4-8809cbcb74fc';
-UPDATE TIPO_ANEXO_ACADEMICO SET nombre = 'Formato firmado por el docente que orienta la asignatura' WHERE uuidTipoAnexoAcademico = 'ee145c67-0f6e-4971-84b7-42679747ed49';
+UPDATE TIPO_ANEXO_ACADEMICO SET nombre = 'Formato firmado' WHERE uuidTipoAnexoAcademico = 'ee145c67-0f6e-4971-84b7-42679747ed49';
 UPDATE TIPO_ANEXO_ACADEMICO SET obligatorio = 0, vigente = 0 WHERE uuidTipoAnexoAcademico IN ('0870fd29-220d-4226-92b1-590804ac0974', 'fc630c85-6dff-4def-a072-ea26bd942d6e', '7b26091a-d12e-48d2-85b1-10a578ef198e', '6898eb98-f150-4784-8255-0eab0eb61edd', 'c756365a-f0c4-4e9a-9326-2946aeacd638', '22ca9f7d-967d-44ba-87fa-103aa63b297f');
 UPDATE TIPO_ANEXO_ACADEMICO SET obligatorio = 0, vigente = 0 WHERE uuidTipoAnexoAcademico = 'a6305ab3-9e82-40da-ba52-7f9cc6cce16f';
 UPDATE SITUACION_ACADEMICA_ASIGNATURA SET ambito = 'MATRICULA' WHERE uuidSituacionAcademica IN ('62aa0705-f878-408e-8111-78691c1a871a', 'fa14cee3-6e4f-4178-955c-ba73312e08cb', 'a6077d43-d5fc-4e8d-9424-18c549515c24');
@@ -97,3 +105,4 @@ UPDATE SITUACION_ACADEMICA_ASIGNATURA SET nombre = '(R2) Cursada por segunda vez
 UPDATE SITUACION_ACADEMICA_ASIGNATURA SET nombre = '(R3) Cursada por tercera vez' WHERE uuidSituacionAcademica = 'a6077d43-d5fc-4e8d-9424-18c549515c24';
 UPDATE SITUACION_ACADEMICA_ASIGNATURA SET nombre = 'No cursada' WHERE uuidSituacionAcademica = '73e1a062-b426-4f52-9cd9-e884f9f65df3';
 UPDATE SITUACION_ACADEMICA_ASIGNATURA SET nombre = 'Como perdida' WHERE uuidSituacionAcademica = 'a36ac5d2-2c4f-4a23-a212-e1cb2e54fc1b';
+UPDATE TIPO_ANEXO_ACADEMICO SET obligatorio = 0, vigente = 0 WHERE uuidTipoAnexoAcademico IN ('ee145c67-0f6e-4971-84b7-42679747ed49', '3cba6336-4de6-492b-838d-602f28a9efbe');

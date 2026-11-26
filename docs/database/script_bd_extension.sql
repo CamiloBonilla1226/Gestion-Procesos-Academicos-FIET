@@ -174,6 +174,8 @@ CREATE TABLE IF NOT EXISTS SOLICITUD_ACADEMICA (
     TipoSolicitudAcademica_uuid  VARCHAR(100) NOT NULL,
     fechaCreacion                DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     Etapa_uuid                   VARCHAR(100) NOT NULL,
+    ajusteFormatoXmm             DECIMAL(4,1) NULL,
+    ajusteFormatoYmm             DECIMAL(4,1) NULL,
     PRIMARY KEY (uuidSolicitudAcademica),
     UNIQUE KEY uk_solacad_radicado (radicado),
     CONSTRAINT fk_solacad_estudiante
