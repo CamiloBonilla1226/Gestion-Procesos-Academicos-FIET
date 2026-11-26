@@ -562,7 +562,7 @@ Escribir-Resultado "tras responder la bandeja del funcionario conserva APROBADA_
     $d = Descargar -Ruta "solicitudes-academicas/$sol2/resolucion" -Token $est2.Token
     Escribir-Resultado "el estudiante 2 descarga la Resolucion del rechazo (200, obtuvo $($d.Status))" (($d.Status -eq 200) -and (Mismos-Bytes $pdfResolucion $d.Bytes))
     $detalle = Leer-Json (Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$sol2" -Token $est2.Token)
-    Escribir-Resultado "el estudiante 2 ve Rechazada sin decision por asignatura" (($detalle.solicitud.etiqueta -eq "Rechazada") -and (Sin-Resultado $detalle))
+    Escribir-Resultado "el estudiante 2 ve Rechazada sin decision por asignatura" (($detalle.solicitud.etiqueta -eq "No aprobada") -and (Sin-Resultado $detalle))
 
     $activas3 = Activas $est3
     $r = Radicar -Token $est3.Token -Asignaturas $activas3 -Pdf $pdf -ConSoporte $true

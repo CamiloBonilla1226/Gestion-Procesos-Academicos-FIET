@@ -444,7 +444,7 @@ try {
     Verificar-EtapaHttp -Solicitud $sol3 -Esperada "RECHAZADA" -Estudiante $est3.Token -Funcionario $fa1.Token -Decano $decano.Token
     Escribir-Resultado "tras el rechazo del Decano las asignaturas siguen activas (obtuvo $(Estados-Matricula $est3.Uuid))" ((Estados-Matricula $est3.Uuid) -eq "activa,activa")
     $detalle = Leer-Json (Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$sol3" -Token $est3.Token)
-    Escribir-Resultado "el estudiante 3 ve su solicitud Rechazada con la Resolucion descargable" (($detalle.solicitud.etiqueta -eq "Rechazada") -and $detalle.solicitud.puedeDescargarResolucion)
+    Escribir-Resultado "el estudiante 3 ve su solicitud Rechazada con la Resolucion descargable" (($detalle.solicitud.etiqueta -eq "No aprobada") -and $detalle.solicitud.puedeDescargarResolucion)
     $etapasHistorial = (@(Leer-Json (Invoke-Api -Metodo GET -Ruta "solicitudes-academicas/$sol3/historial" -Token $fa1.Token)) | ForEach-Object { "$($_.accion):$($_.etapaCodigo)" } | Sort-Object) -join ","; Escribir-Resultado "cada accion del historial trae la etapa a la que llevo (obtuvo $etapasHistorial)" ($etapasHistorial -eq "ENVIAR_RESPUESTA:RECHAZADA,RADICAR:RADICADA,RECHAZAR_DECANO:RECHAZADA_POR_DECANO,REMITIR_DECANO:EN_REVISION_DECANO")
 }
 finally {

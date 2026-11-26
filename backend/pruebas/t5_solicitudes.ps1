@@ -301,7 +301,7 @@ try {
     $d = Descargar -Ruta "$Global:Ruta/$s1/resolucion" -Token $est1.Token
     Escribir-Resultado "en RECHAZADA el duenio baja la Resolucion identica (200, obtuvo $($d.Status))" (($d.Status -eq 200) -and (Mismos-Bytes $pdfResolucion $d.Bytes))
     $detalle = Leer-Json (Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$s1" -Token $est1.Token)
-    Escribir-Resultado "en RECHAZADA el detalle del duenio permite la descarga (etiqueta $($detalle.etiqueta))" ($detalle.puedeDescargarResolucion -and ($detalle.etiqueta -eq "Rechazada"))
+    Escribir-Resultado "en RECHAZADA el detalle del duenio permite la descarga (etiqueta $($detalle.etiqueta))" ($detalle.puedeDescargarResolucion -and ($detalle.etiqueta -eq "No aprobada"))
     $r = Invoke-Api -Metodo GET -Ruta "$Global:Ruta/estudiante" -Token $est1.Token
     Escribir-Resultado "en RECHAZADA el detalle y la bandeja del duenio traen etapaCodigo RECHAZADA (obtuvo $($detalle.etapaCodigo), $(Codigos-DeLista $r @($s1)))" (($detalle.etapaCodigo -eq "RECHAZADA") -and ((Codigos-DeLista $r @($s1)) -eq "$($s1):RECHAZADA"))
 

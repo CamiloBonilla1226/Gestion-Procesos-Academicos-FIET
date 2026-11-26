@@ -66,6 +66,12 @@ POST   solicitudes-academicas/{uuidSolicitud}/anexos                            
 GET    solicitudes-academicas/{uuidSolicitud}/anexos/{uuidAnexo}                ninguno   denegado  denegado   permitido permitido      permitido
 POST   solicitudes-academicas/{uuidSolicitud}/resolucion                        multipart denegado  denegado   denegado  permitido      denegado
 GET    solicitudes-academicas/{uuidSolicitud}/resolucion                        ninguno   denegado  denegado   permitido permitido      permitido
+GET    solicitudes-academicas/{uuidSolicitud}/formato                           ninguno   denegado  denegado   permitido permitido      permitido
+POST   solicitudes-academicas/{uuidSolicitud}/estudiante/radicar                multipart denegado  denegado   denegado  denegado       permitido
+DELETE solicitudes-academicas/{uuidSolicitud}/estudiante                        ninguno   denegado  denegado   denegado  denegado       permitido
+POST   solicitudes-academicas/{uuidSolicitud}/formato/compuesto                 json      denegado  denegado   permitido permitido      denegado
+PUT    solicitudes-academicas/{uuidSolicitud}/formato/ajuste                    json      denegado  denegado   denegado  permitido      denegado
+POST   solicitudes-academicas/{uuidSolicitud}/formato/decano                    multipart denegado  denegado   permitido permitido      denegado
 GET    cancelaciones-matricula/formulario                                       ninguno   denegado  denegado   denegado  denegado       permitido
 POST   cancelaciones-matricula                                                  multipart denegado  denegado   denegado  denegado       permitido
 GET    cancelaciones-matricula/{uuidSolicitud}                                  ninguno   denegado  denegado   permitido permitido      permitido

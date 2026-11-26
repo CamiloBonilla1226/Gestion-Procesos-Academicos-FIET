@@ -235,7 +235,7 @@ $tokenRoot = Iniciar-Sesion -Usuario "rootfiet" -Clave "rootfiet1234"
 $inicioCorreos = Consultar-Base "select now()"
 $tipoEs = Ejecutar-Sql "select uuidTipoSolicitudAcademica from TIPO_SOLICITUD_ACADEMICA where nombre like 'Examen Supletorio'"
 $tipoCm = Ejecutar-Sql "select uuidTipoSolicitudAcademica from TIPO_SOLICITUD_ACADEMICA where nombre like 'Cancelaci%n de Matr%cula'"
-$for23 = Tipo-Anexo "Formato firmado por el docente que orienta la asignatura"
+$for23 = Tipo-Anexo "Formato firmado"
 $justificacion = Tipo-Anexo "Soporte de la justificaci%"
 $docente = Tipo-Anexo "Formato firmado por el docente de la asignatura con la que se cruza"
 $recibo = Tipo-Anexo "Recibo de pago"
@@ -349,7 +349,7 @@ try {
     $r = Radicar -Token $est1.Token -Asignatura $a1 -Fecha $hoy -Causa "otra" -Tipos @($for23) -Pdf $pdf
     Escribir-Resultado "con causa otra falta el soporte de justificacion (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "Falta el anexo obligatorio: Soporte de la justificaci*"))
     $r = Radicar -Token $est1.Token -Asignatura $a1 -Fecha $hoy -Causa "cruce" -Cruzada $a2 -FechaCruzada $hoy -Hora "10:30" -Tipos @() -Pdf $pdf
-    Escribir-Resultado "con causa cruce falta el FOR-23 (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "Falta el anexo obligatorio: Formato firmado por el docente que orienta la asignatura*"))
+    Escribir-Resultado "con causa cruce falta el FOR-23 (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "Falta el anexo obligatorio: Formato firmado*"))
     $r = Radicar -Token $est1.Token -Asignatura $a1 -Fecha $hoy -Causa "otra" -Tipos @($for23, $justificacion, $docente) -Pdf $pdf
     Escribir-Resultado "con causa otra el formato del docente cruzado se rechaza (obtuvo $($r.Status): $(Mensaje-De $r))" (($r.Status -ne 200) -and ((Mensaje-De $r) -like "*no corresponde a la causa otra*"))
     $r = Radicar -Token $est1.Token -Asignatura $a1 -Fecha $hoy -Causa "cruce" -Cruzada $a2 -FechaCruzada $hoy -Hora "10:30" -Tipos @($for23, $docente) -Pdf $pdf
@@ -488,7 +488,7 @@ try {
     Escribir-Resultado "el rechazo del funcionario sin escaneo deja la solicitud RECHAZADA (obtuvo $($r.Status), etapa $(Etapa-De $sol2))" (($r.Status -eq 200) -and ((Etapa-De $sol2) -eq "RECHAZADA"))
     Verificar-EtapaHttp -Solicitud $sol2 -Esperada "RECHAZADA" -Estudiante $est2.Token -Funcionario $fa1.Token -Decano $decano.Token
     $detalle = Leer-Json (Invoke-Api -Metodo GET -Ruta "$Global:Ruta/$sol2" -Token $est2.Token)
-    Escribir-Resultado "el estudiante 2 ve Rechazada y su asignatura sigue activa" (($detalle.solicitud.etiqueta -eq "Rechazada") -and ((Estados @($est2.Uuid)) -eq "activa"))
+    Escribir-Resultado "el estudiante 2 ve Rechazada y su asignatura sigue activa" (($detalle.solicitud.etiqueta -eq "No aprobada") -and ((Estados @($est2.Uuid)) -eq "activa"))
 
     $c1 = @(Activas $est3)[0]
     $r = Radicar -Token $est3.Token -Asignatura $c1 -Fecha $hoy -Causa "otra" -Tipos @($for23, $justificacion) -Pdf $pdf
