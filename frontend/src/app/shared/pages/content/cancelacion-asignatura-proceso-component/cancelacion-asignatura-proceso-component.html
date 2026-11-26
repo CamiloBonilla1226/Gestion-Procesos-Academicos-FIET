@@ -46,8 +46,8 @@
       }
       @if (decide) {
       <p class="ayuda-tabla" data-ayuda-decision>
-        Elige Aprobar o Rechazar en cada asignatura. "{{ etiquetaEnviarDecision }}" se habilita cuando todas tengan una decisión.
-        Con "Aprobar" o "Rechazar" decides todas las asignaturas a la vez; al rechazar debes escribir un comentario para el
+        Elige Aprobar o No aprobar en cada asignatura. "{{ etiquetaEnviarDecision }}" se habilita cuando todas tengan una decisión.
+        Con "Aprobar" o "No aprobar" decides todas las asignaturas a la vez; al no aprobar debes escribir un comentario para el
         Funcionario Académico.
       </p>
       }
@@ -134,7 +134,7 @@
                   [disabled]="enviando" (change)="cambiarDecision(uuid, valorDe($event))">
                   <option value="" [selected]="decisiones[uuid] === null">—</option>
                   <option value="aprobar" [selected]="decisiones[uuid] === true">Aprobar</option>
-                  <option value="rechazar" [selected]="decisiones[uuid] === false">Rechazar</option>
+                  <option value="rechazar" [selected]="decisiones[uuid] === false">No aprobar</option>
                 </select>
                 } @else {
                 {{ columna.valor(asignatura) ?? sinDato }}
@@ -154,7 +154,7 @@
       </div>
       @if (decide && todasRechazadas) {
       <p class="nota-aviso mt-3" data-aviso-todas-rechazadas>
-        Todas las asignaturas quedaron en Rechazar: al enviar la decisión se rechaza la solicitud completa.
+        Todas las asignaturas quedaron en No aprobar: al enviar la decisión no se aprueba la solicitud completa.
       </p>
       }
       @if (editable && faltanDatosTabla) {
@@ -176,6 +176,10 @@
   }
   }
 
+  <app-formato-oficial-component [uuidSolicitud]="uuidSolicitud" [solicitud]="solicitud" [rol]="rol" [valoresProvisionales]="valoresProvisionales"
+    [firmaElDecano]="true" [decisionLista]="decisionLista" (formatoSubido)="recargar()">
+  </app-formato-oficial-component>
+
   @if (accionesVisibles.length > 0) {
   <section class="tarjeta tarjeta-acciones" data-acciones>
     @if (decide) {
@@ -185,7 +189,7 @@
     <app-simple-button-component data-accion="APROBAR_TODAS" label="Aprobar" width="auto" height="38px" color="#2A3A86"
       [contorno]="true" [disabled]="!detalle" (clicked)="decidirTodas(true)">
     </app-simple-button-component>
-    <app-simple-button-component data-accion="RECHAZAR_TODAS" label="Rechazar" width="auto" height="38px" color="#D0463B"
+    <app-simple-button-component data-accion="RECHAZAR_TODAS" label="No aprobar" width="auto" height="38px" color="#D0463B"
       [contorno]="true" [disabled]="!detalle" (clicked)="decidirTodas(false)">
     </app-simple-button-component>
     }
@@ -206,7 +210,7 @@
     @switch (accionActiva) {
     @case (acciones.RECHAZAR_FUNCIONARIO) {
     <p class="nota-gris" data-nota-rechazo-directo>
-      La solicitud quedará rechazada y terminará el trámite sin pasar por el Decano, así que no lleva Resolución.
+      La solicitud quedará no aprobada y terminará el trámite sin pasar por el Decano, así que no lleva Resolución.
       Escribe la observación que verá el estudiante.
     </p>
     }
@@ -225,7 +229,7 @@
     }
     @case (acciones.RECHAZAR_DECANO) {
     <p class="nota-gris">
-      Rechazaste todas las asignaturas: se niega la solicitud completa. La solicitud pasará al Funcionario Académico para
+      No aprobaste ninguna asignatura: se niega la solicitud completa. La solicitud pasará al Funcionario Académico para
       que envíe la respuesta al estudiante.
     </p>
     <ng-container *ngTemplateOutlet="resumenDecisiones"></ng-container>
@@ -236,10 +240,33 @@
       @if (solicitud.etapaCodigo === 'APROBADA_POR_DECANO') {
       y solo se cancelan las asignaturas aprobadas que sigan activas.
       } @else {
-      como rechazada.
+      como no aprobada.
       }
     </p>
     }
+    }
+
+    @if (esDecisionDecano) {
+    <section class="d-flex flex-column gap-2" data-campo-formato-decano>
+      <h4 class="subtitulo mb-0">Formato firmado por el Decano</h4>
+      <p class="nota-gris mb-0">
+        Descargar el formato con la decisión marcada, firmarlo, escanearlo y subirlo aquí. Viaja con la decisión al Funcionario
+        Académico y después al estudiante y a DARCA.
+      </p>
+      <div>
+        <app-simple-button-component data-boton-formato-decision
+          [label]="descargandoFormato ? 'Generando...' : 'Descargar formato con la decisión'" width="auto" height="34px"
+          color="#2A3A86" [contorno]="true" [disabled]="descargandoFormato || enviando" (clicked)="descargarFormatoConDecision()">
+        </app-simple-button-component>
+      </div>
+      @if (hayFormatoDecano) {
+      <p class="nota-gris mb-0">Ya hay un formato firmado cargado. Si se elige otro, lo reemplaza.</p>
+      }
+      <app-input-anexo-upload-component #entradaFormatoDecano [tipoAnexo]="tipoFormatoDecano" [uploadedFile]="archivoFormatoDecano"
+        (fileSelected)="alSeleccionarFormatoDecano($event, entradaFormatoDecano)" (fileRemoved)="alQuitarFormatoDecano()">
+      </app-input-anexo-upload-component>
+      <small class="texto-error" data-error="formato-decano">{{ errores['formato-decano'] || '' }}</small>
+    </section>
     }
 
     @if (accionActiva === acciones.ENVIAR_RESPUESTA && comunicacion) {
@@ -299,7 +326,7 @@
     @for (asignatura of asignaturas; track asignatura.uuidAsignaturaSolicitud) {
     <li [attr.data-decision]="asignatura.uuidAsignaturaSolicitud">
       {{ asignatura.codigoAsignatura }} - {{ asignatura.nombreAsignatura }}:
-      <b>{{ decisiones[asignatura.uuidAsignaturaSolicitud] ? 'Aprobar' : 'Rechazar' }}</b>
+      <b>{{ decisiones[asignatura.uuidAsignaturaSolicitud] ? 'Aprobar' : 'No aprobar' }}</b>
     </li>
     }
   </ul>

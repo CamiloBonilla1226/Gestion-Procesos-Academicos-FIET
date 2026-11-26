@@ -1,5 +1,3 @@
-import { FORMATO_SUPLETORIO } from './formatos-supletorio';
-
 export interface AnexoCatalogo {
   texto: string;
   formato?: string;
@@ -26,6 +24,7 @@ export const TRAMITES_ESTUDIANTE: TramiteCatalogo[] = [
       'Encontrarse a paz y salvo con la Universidad.'
     ],
     anexos: [
+      { texto: 'Formato oficial PA-GA-4.2-FOR-14, que el sistema genera al enviar la solicitud: se imprime, se firma y se sube escaneado.' },
       { texto: 'Paz y salvo de Bibliotecas, Deportes y Recreación, Salud Integral y División Financiera.' },
       { texto: 'Cupón de Confirmación de la Intervención Psicosocial.' },
       { texto: 'Carné estudiantil o constancia de no trámite.' }
@@ -42,7 +41,8 @@ export const TRAMITES_ESTUDIANTE: TramiteCatalogo[] = [
       'Contar con nota promedio igual o superior a 3.0.'
     ],
     anexos: [
-      { texto: 'No se exigen documentos obligatorios; solo debes indicar el motivo.' },
+      { texto: 'Formato oficial PA-GA-4.2-FOR-9, que el sistema genera al enviar la solicitud: se imprime, se firma y se sube escaneado.' },
+      { texto: 'Además del formato no se exigen otros documentos; solo se requiere indicar el motivo.' },
       { texto: 'Soporte que respalde el motivo, de forma opcional.' }
     ]
   },
@@ -56,8 +56,8 @@ export const TRAMITES_ESTUDIANTE: TramiteCatalogo[] = [
       'Contar con la firma del docente que orienta la asignatura.'
     ],
     anexos: [
-      { texto: 'Formato firmado por el docente que orienta la asignatura, siempre obligatorio.', formato: FORMATO_SUPLETORIO },
-      { texto: 'Soporte de la justificación, solo si la causa no es un cruce de exámenes. Con cruce se sube únicamente el formato.' }
+      { texto: 'Formato oficial PM-FO-4-FOR-23, que el sistema genera al enviar la solicitud: se imprime, lo firman el estudiante y el docente de la asignatura (y el de la asignatura cruzada, si hay cruce) y se sube escaneado.' },
+      { texto: 'Soporte de la justificación, solo si la causa no es un cruce de exámenes.' }
     ]
   }
 ];

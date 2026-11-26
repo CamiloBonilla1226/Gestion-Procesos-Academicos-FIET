@@ -156,7 +156,7 @@ describe('CancelacionMatriculaProcesoComponent', () => {
       expect(opciones.map(o => o.getAttribute('data-opcion'))).toEqual(['aprobar', 'rechazar']);
       expect(opciones.every(o => !o.checked)).toBeTrue();
       expect(fixture.nativeElement.querySelector('[data-decision-decano]')?.textContent).toContain('Aprobar la cancelación de matrícula');
-      expect(fixture.nativeElement.querySelector('[data-decision-decano]')?.textContent).toContain('Rechazar la cancelación de matrícula');
+      expect(fixture.nativeElement.querySelector('[data-decision-decano]')?.textContent).toContain('No aprobar la cancelación de matrícula');
     });
 
     it('el boton queda deshabilitado hasta elegir la decision', () => {
@@ -190,7 +190,7 @@ describe('CancelacionMatriculaProcesoComponent', () => {
       fixture.detectChanges();
       const componente = fixture.componentInstance;
       expect(componente.accionActiva).toBe('RECHAZAR_DECANO');
-      expect(componente.tituloDialogo).toBe('Rechazar la cancelación de matrícula');
+      expect(componente.tituloDialogo).toBe('No aprobar la cancelación de matrícula');
       componente.confirmar();
       expect(cancelaciones.rechazarPorDecano).toHaveBeenCalledWith('s-1', { observacion: null });
       expect(cancelaciones.aprobarPorDecano).not.toHaveBeenCalled();
@@ -219,7 +219,7 @@ describe('CancelacionMatriculaProcesoComponent', () => {
     fixture.detectChanges();
     const componente = fixture.componentInstance;
     expect(componente.dialogoVisible).toBeTrue();
-    expect(componente.tituloDialogo).toBe('Rechazar la solicitud');
+    expect(componente.tituloDialogo).toBe('No aprobar la solicitud');
     expect(document.querySelector('[data-dialogo]')).toBeTruthy();
     expect(document.querySelector('[data-campo-resolucion]')).toBeNull();
     expect(document.querySelector('[data-nota-rechazo-directo]')?.textContent).toContain('no lleva Resolución');
@@ -565,7 +565,7 @@ describe('CancelacionMatriculaProcesoComponent', () => {
     const fixture = crear(solicitud(['RECHAZAR_FUNCIONARIO', 'REMITIR_DECANO']));
     fixture.componentInstance.abrir('RECHAZAR_FUNCIONARIO');
     fixture.detectChanges();
-    expect((document.querySelector('[data-boton-dialogo] button')?.textContent ?? '').trim()).toBe('Rechazar solicitud');
+    expect((document.querySelector('[data-boton-dialogo] button')?.textContent ?? '').trim()).toBe('No aprobar solicitud');
     fixture.componentInstance.cerrar(false);
     fixture.componentInstance.evaluaciones['as-1'] = { faltas: '0', nota: '4.0', situacion: 'r0', cancelar: null };
     fixture.componentInstance.abrir('REMITIR_DECANO');
@@ -579,7 +579,7 @@ describe('CancelacionMatriculaProcesoComponent', () => {
     const rechazar = fixture.nativeElement.querySelector('[data-acciones] [data-accion="RECHAZAR_FUNCIONARIO"] button') as HTMLButtonElement;
     const remitir = fixture.nativeElement.querySelector('[data-acciones] [data-accion="REMITIR_DECANO"] button') as HTMLButtonElement;
     expect(rechazar.classList).toContain('contorno');
-    expect(rechazar.textContent?.trim()).toBe('Rechazar solicitud');
+    expect(rechazar.textContent?.trim()).toBe('No aprobar solicitud');
     expect(remitir.classList).not.toContain('contorno');
     expect(remitir.textContent?.trim()).toBe('Remitir al Decano');
     expect(fixture.nativeElement.querySelector('[data-acciones]').classList).toContain('tarjeta-acciones');

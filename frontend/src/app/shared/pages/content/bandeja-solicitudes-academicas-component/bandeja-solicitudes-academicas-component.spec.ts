@@ -174,7 +174,7 @@ describe('BandejaSolicitudesAcademicasComponent', () => {
     it('Respuestas solo muestra las finalizadas con estado Aprobada o Rechazada y sus iconos', () => {
       const fixture = crearEnModo('respuestas');
       expect(radicados(fixture)).toEqual(['2026-CA-0002', '2026-CA-0004', '2026-CA-0006']);
-      expect(filas(fixture).map(f => f.querySelector('.estado')?.textContent?.trim())).toEqual(['Aprobada', 'Rechazada', 'Aprobada']);
+      expect(filas(fixture).map(f => f.querySelector('.estado')?.textContent?.trim())).toEqual(['Aprobada', 'No aprobada', 'Aprobada']);
       expect(estados(fixture)).toEqual(['aprobada', 'rechazada', 'aprobada']);
       expect(encabezados(fixture)).toEqual([
         'Radicado', 'Estudiante', 'Documento', 'Código', 'Tipo de proceso', 'Fecha de radicación', 'Estado', 'Acciones'
@@ -185,8 +185,8 @@ describe('BandejaSolicitudesAcademicasComponent', () => {
 
     it('el filtro de estado de Respuestas solo ofrece Aprobada y Rechazada y filtra por ellas', () => {
       const fixture = crearEnModo('respuestas');
-      expect(opcionesEstado(fixture)).toEqual(['Todos', 'Aprobada', 'Rechazada']);
-      fixture.componentInstance.onEstadoChange('Rechazada');
+      expect(opcionesEstado(fixture)).toEqual(['Todos', 'Aprobada', 'No aprobada']);
+      fixture.componentInstance.onEstadoChange('No aprobada');
       fixture.detectChanges();
       expect(radicados(fixture)).toEqual(['2026-CA-0004']);
       fixture.componentInstance.onCodigoChange('4614');
@@ -215,7 +215,7 @@ describe('BandejaSolicitudesAcademicasComponent', () => {
       expect(fixture.componentInstance).toBe(instancia);
       expect(instancia.estadoFiltro).toBe(instancia.todos);
       expect(radicados(fixture)).toEqual(['2026-CA-0002', '2026-CA-0004', '2026-CA-0006']);
-      expect(opcionesEstado(fixture)).toEqual(['Todos', 'Aprobada', 'Rechazada']);
+      expect(opcionesEstado(fixture)).toEqual(['Todos', 'Aprobada', 'No aprobada']);
       expect(fixture.nativeElement.querySelector('.tarjeta-head h2').textContent.trim()).toBe('Solicitudes respondidas');
 
       instancia.onEstadoChange('Aprobada');
@@ -264,7 +264,7 @@ describe('BandejaSolicitudesAcademicasComponent', () => {
       it('agrupa por resultado: 2 aprobadas y 1 rechazada dan 2 filas, todas iguales dan 1, y las demas siguen con una fila', () => {
         const fixture = crearCon('respuestas');
         expect(radicados(fixture)).toEqual(['2026-CA-0001', '2026-CA-0001', '2026-CA-0002', '2026-CA-0003', '2026-CA-0004']);
-        expect(estadosTexto(fixture)).toEqual(['Aprobada', 'Rechazada', 'Aprobada', 'Rechazada', 'Rechazada']);
+        expect(estadosTexto(fixture)).toEqual(['Aprobada', 'No aprobada', 'Aprobada', 'No aprobada', 'No aprobada']);
         expect(estados(fixture)).toEqual(['aprobada', 'rechazada', 'aprobada', 'rechazada', 'rechazada']);
         expect(encabezados(fixture)).toEqual([
           'Radicado', 'Estudiante', 'Documento', 'Código', 'Tipo de proceso', 'Fecha de radicación', 'Estado', 'Acciones'
@@ -295,7 +295,7 @@ describe('BandejaSolicitudesAcademicasComponent', () => {
         fixture.componentInstance.onEstadoChange('Aprobada');
         fixture.detectChanges();
         expect(claves(fixture)).toEqual(['uuid-1:aprobada', 'uuid-2']);
-        fixture.componentInstance.onEstadoChange('Rechazada');
+        fixture.componentInstance.onEstadoChange('No aprobada');
         fixture.detectChanges();
         expect(claves(fixture)).toEqual(['uuid-1:rechazada', 'uuid-3:rechazada', 'uuid-4']);
         expect(fixture.nativeElement.querySelector('.pie small').textContent.trim()).toBe('3 solicitudes');
@@ -465,12 +465,12 @@ describe('BandejaSolicitudesAcademicasComponent', () => {
   it('el Funcionario ve la decision del Decano en Estado con su icono y sin insignia aparte', () => {
     const lista = solicitudes(3);
     lista[0].etiqueta = 'Aprobada por el Decano';
-    lista[1].etiqueta = 'Rechazada por el Decano';
+    lista[1].etiqueta = 'No aprobada por el Decano';
     servicio.getSolicitudesFuncionario.and.returnValue(of(lista));
     const fixture = crear('FUNCIONARIO');
     expect(estados(fixture)).toEqual(['aprobada', 'rechazada', 'pendiente']);
     expect(filas(fixture)[0].querySelector('.estado')?.textContent?.trim()).toBe('Aprobada por el Decano');
-    expect(filas(fixture)[1].querySelector('.estado')?.textContent?.trim()).toBe('Rechazada por el Decano');
+    expect(filas(fixture)[1].querySelector('.estado')?.textContent?.trim()).toBe('No aprobada por el Decano');
     expect(fixture.nativeElement.querySelector('[data-decision-decano]')).toBeNull();
     expect(fixture.nativeElement.querySelector('.badge')).toBeNull();
   });
@@ -483,7 +483,7 @@ describe('BandejaSolicitudesAcademicasComponent', () => {
     lista[1].etapaCodigo = 'RECHAZADA';
     lista[2].etiqueta = 'Aprobada';
     lista[2].etapaCodigo = 'RADICADA';
-    lista[3].etiqueta = 'Rechazada';
+    lista[3].etiqueta = 'No aprobada';
     lista[3].etapaCodigo = 'RADICADA';
     servicio.getSolicitudesEstudiante.and.returnValue(of(lista));
     const fixture = crear('ESTUDIANTE');

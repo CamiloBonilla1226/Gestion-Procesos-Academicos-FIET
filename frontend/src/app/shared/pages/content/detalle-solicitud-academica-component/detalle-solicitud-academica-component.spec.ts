@@ -219,7 +219,7 @@ describe('DetalleSolicitudAcademicaComponent', () => {
   it('al Estudiante le pinta amarilla la etiqueta de pago y roja la de rechazo', () => {
     const pago = crear({ ...detalle(false, false), etiqueta: 'Pendiente de pago', etapaCodigo: 'EN_REVISION_DECANO' });
     expect(pago.nativeElement.querySelector('[data-estado-solicitud]').getAttribute('data-categoria')).toBe('pago');
-    const rechazo = crear({ ...detalle(false, false), etiqueta: 'Rechazada', etapaCodigo: 'APROBADA' });
+    const rechazo = crear({ ...detalle(false, false), etiqueta: 'No aprobada', etapaCodigo: 'APROBADA' });
     expect(rechazo.nativeElement.querySelector('[data-estado-solicitud]').getAttribute('data-categoria')).toBe('rechazada');
   });
 
@@ -228,13 +228,13 @@ describe('DetalleSolicitudAcademicaComponent', () => {
       ...historial,
       { accion: 'RECHAZAR_DECANO', etapaCodigo: 'RECHAZADA_POR_DECANO', observaciones: 'No hay soporte médico', fecha: '2026-10-09T15:00:00', nombresUsuario: 'Luis', apellidosUsuario: 'Decano' }
     ];
-    servicio.getSolicitud.and.returnValue(of({ ...detalle(false, false), etiqueta: 'Rechazada por el Decano', etapaCodigo: 'RECHAZADA_POR_DECANO' }));
+    servicio.getSolicitud.and.returnValue(of({ ...detalle(false, false), etiqueta: 'No aprobada por el Decano', etapaCodigo: 'RECHAZADA_POR_DECANO' }));
     servicio.getHistorial.and.returnValue(of(conDecision));
     const fixture = TestBed.createComponent(DetalleSolicitudAcademicaComponent);
     fixture.componentRef.setInput('rol', 'FUNCIONARIO');
     fixture.detectChanges();
     const bloque = fixture.nativeElement.querySelector('[data-decision-decano]');
-    expect(bloque.querySelector('[data-decision]').textContent.trim()).toBe('Rechazada por el Decano');
+    expect(bloque.querySelector('[data-decision]').textContent.trim()).toBe('No aprobada por el Decano');
     expect(bloque.querySelector('[data-decision]').classList).toContain('rechazada');
     expect(bloque.querySelector('[data-observacion-decano]').textContent).toContain('No hay soporte médico');
   });
@@ -318,13 +318,13 @@ describe('DetalleSolicitudAcademicaComponent', () => {
     }
 
     function rechazada(tieneResolucion: boolean, tipoSolicitud = 'Cancelación de Matrícula'): SolicitudAcademicaDetalleDTORespuesta {
-      return { ...detalle(tieneResolucion, tieneResolucion), tipoSolicitud, etiqueta: 'Rechazada', etapaCodigo: 'RECHAZADA' };
+      return { ...detalle(tieneResolucion, tieneResolucion), tipoSolicitud, etiqueta: 'No aprobada', etapaCodigo: 'RECHAZADA' };
     }
 
     it('al Estudiante le dice que fue rechazada sin Resolucion y no ofrece descargarla', () => {
       const fixture = crearCon(rechazada(false), rechazoDirecto);
       fixture.detectChanges();
-      expect(fixture.nativeElement.querySelector('[data-rechazo-sin-resolucion]').textContent).toContain('no tiene Resolución');
+      expect(fixture.nativeElement.querySelector('[data-rechazo-sin-resolucion]').textContent).toContain('no cuenta con Resolución');
       expect(fixture.nativeElement.querySelector('[data-boton-resolucion]')).toBeNull();
       expect(fixture.nativeElement.textContent).not.toContain('pendiente');
     });

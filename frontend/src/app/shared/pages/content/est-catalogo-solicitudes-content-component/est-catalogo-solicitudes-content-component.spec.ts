@@ -33,27 +33,18 @@ describe('EstCatalogoSolicitudesContentComponent', () => {
     const titulos = tarjetas.map(t => t.querySelector('h2').textContent.trim());
     expect(titulos).toEqual(['Cancelación de Matrícula', 'Cancelación de Asignatura', 'Examen Supletorio']);
     expect(tarjetas[0].querySelectorAll('[data-lista="requisitos"] li').length).toBe(3);
-    expect(tarjetas[1].querySelectorAll('[data-lista="anexos"] li').length).toBe(2);
+    expect(tarjetas[1].querySelectorAll('[data-lista="anexos"] li').length).toBe(3);
     expect(tarjetas[2].querySelector('.descripcion').textContent).toContain('examen parcial, final o de habilitación');
     expect(tarjetas[0].querySelector('[data-lista="anexos"] li').textContent.trim())
-      .toBe('Paz y salvo de Bibliotecas, Deportes y Recreación, Salud Integral y División Financiera.');
+      .toContain('Formato oficial PA-GA-4.2-FOR-14');
   });
 
-  it('la ficha del Examen Supletorio tiene un solo Descargar formato, en la linea del docente que orienta la asignatura', async () => {
+  it('ninguna ficha ofrece descargar un formato fijo, porque el sistema genera el formato oficial', async () => {
     const harness = await abrir();
     const lineas: HTMLElement[] = Array.from(harness.routeNativeElement!.querySelectorAll('[data-tramite="/estudiante/examen-supletorio"] [data-lista="anexos"] li'));
     expect(lineas.length).toBe(2);
-    const enlace = lineas[0].querySelector('[data-descargar-formato]') as HTMLAnchorElement;
-    expect(enlace.textContent!.trim()).toBe('Descargar formato');
-    expect(enlace.getAttribute('href')).toBe('formatos/supletorio.docx');
-    expect(enlace.getAttribute('download')).toBe('supletorio.docx');
-    expect(enlace.getAttribute('target')).toBeNull();
-    expect(lineas[0].textContent).toContain('Formato firmado por el docente que orienta la asignatura');
-    expect(lineas[0].lastElementChild?.tagName.toLowerCase()).toBe('app-enlace-formato-component');
-    expect(lineas[1].textContent).toContain('Con cruce se sube únicamente el formato');
-    expect(lineas[1].querySelector('[data-descargar-formato]')).toBeNull();
-    const otras = harness.routeNativeElement!.querySelectorAll('[data-tramite="/estudiante/cancelacion-matricula"] [data-descargar-formato], [data-tramite="/estudiante/cancelacion-asignatura"] [data-descargar-formato]');
-    expect(otras.length).toBe(0);
+    expect(lineas[0].textContent).toContain('Formato oficial PM-FO-4-FOR-23');
+    expect(harness.routeNativeElement!.querySelectorAll('[data-descargar-formato]').length).toBe(0);
   });
 
   it('ninguna ficha muestra los textos informativos de Cancelacion de Matricula', async () => {

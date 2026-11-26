@@ -172,7 +172,7 @@ describe('EstCancelacionAsignaturaContentComponent', () => {
     expect(servicio.radicar).not.toHaveBeenCalled();
   });
 
-  it('radica con el motivo, las asignaturas elegidas en orden y los soportes, y navega al detalle', () => {
+  it('radica con el motivo, las asignaturas elegidas en orden y los soportes, y muestra los pasos para firmar sin salir del formulario', () => {
     servicio.radicar.and.returnValue(of({ uuidSolicitudAcademica: 's-3', radicado: '2026-CA-0003' }));
     const componente = crear().componentInstance;
     componente.alCambiarSeleccion('am-3', marcar());
@@ -187,8 +187,8 @@ describe('EstCancelacionAsignaturaContentComponent', () => {
       asignaturas: ['am-1', 'am-3'],
       soportes: [jasmine.any(File)]
     });
-    expect(toast.showSuccess).toHaveBeenCalledWith('Solicitud radicada', 'Radicado 2026-CA-0003');
-    expect(router.navigate).toHaveBeenCalledWith(['/estudiante/solicitudes', 's-3']);
+    expect(toast.showSuccess).toHaveBeenCalledWith('Formato generado', 'Radicado 2026-CA-0003: descargue, firme y suba el formato');
+    expect(router.navigate).not.toHaveBeenCalled();
   });
 
   it('no permite un doble envio mientras el POST esta en curso', () => {
@@ -243,7 +243,7 @@ describe('EstCancelacionAsignaturaContentComponent', () => {
     componente.alCambiarMotivo('Motivo');
     componente.radicar();
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('[data-estado="radicada"]').textContent).toContain('2026-CA-0003');
+    expect(fixture.nativeElement.querySelector('[data-estado="pendiente-firma"]').textContent).toContain('2026-CA-0003');
     expect(fixture.nativeElement.querySelectorAll('[data-asignatura]').length).toBe(0);
     expect(fixture.nativeElement.querySelector('[data-boton-radicar]')).toBeNull();
   });
@@ -283,19 +283,21 @@ describe('EstCancelacionAsignaturaContentComponent con el Router real', () => {
     return harness;
   }
 
-  it('navega de verdad al detalle de la solicitud radicada', async () => {
+  it('al generar el formato se queda en el formulario y al subir el firmado navega de verdad al detalle', async () => {
     configurar(true);
     const harness = await radicarDesdeLaRuta();
+    expect(TestBed.inject(Router).url).toBe('/estudiante/cancelacion-asignatura');
+    harness.routeDebugElement!.componentInstance.irAlDetalle();
+    await harness.fixture.whenStable();
     expect(TestBed.inject(Router).url).toBe('/estudiante/solicitudes/s-3');
-    expect(harness.routeNativeElement?.querySelector('[data-destino]')).toBeTruthy();
   });
 
-  it('si la navegacion no ocurre muestra el radicado y no el formulario', async () => {
+  it('tras generar el formato muestra el radicado y no el formulario', async () => {
     configurar(false);
     const harness = await radicarDesdeLaRuta();
     expect(TestBed.inject(Router).url).toBe('/estudiante/cancelacion-asignatura');
     const pantalla = harness.routeNativeElement as HTMLElement;
-    expect(pantalla.querySelector('[data-estado="radicada"]')?.textContent).toContain('2026-CA-0003');
+    expect(pantalla.querySelector('[data-estado="pendiente-firma"]')?.textContent).toContain('2026-CA-0003');
     expect(pantalla.querySelectorAll('[data-asignatura]').length).toBe(0);
   });
 });

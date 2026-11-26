@@ -1,10 +1,9 @@
 @if (radicacion) {
-<div class="tarjeta" data-estado="radicada">
-  <div class="tarjeta-body d-flex flex-wrap justify-content-between align-items-center gap-2">
-    <span>Tu solicitud quedó radicada con el número <b>{{ radicacion.radicado }}</b>.</span>
-    <app-simple-button-component label="Ver solicitud" width="130px" height="36px" color="#2A3A86" (clicked)="irAlDetalle()">
-    </app-simple-button-component>
-  </div>
+<div data-estado="pendiente-firma">
+  <app-formato-estudiante-component [uuidSolicitud]="radicacion.uuidSolicitudAcademica" [radicado]="radicacion.radicado"
+    [supletorio]="false" [descargarAlIniciar]="true" [soportes]="true"
+    [maximoSoporteBytes]="maximoSoporteBytes" [nombreSoporte]="nombreSoporte" (radicada)="irAlDetalle()" (descartada)="volver()">
+  </app-formato-estudiante-component>
 </div>
 } @else if (cargando) {
 <div class="cargando" data-estado="cargando">
@@ -21,7 +20,7 @@
 <div class="pila">
   @if (!puedeRadicar) {
   <p class="nota-aviso" data-estado="sin-asignaturas">
-    No tienes asignaturas activas, por eso no puedes radicar una Cancelación de Asignatura.
+    No se registran asignaturas activas; por lo tanto, no es posible radicar una Cancelación de Asignatura.
   </p>
   } @else {
   <p class="nota-aviso" data-nota="articulo-5"><b>{{ articulo5.encabezado }}</b> {{ articulo5.texto }}</p>
@@ -41,10 +40,10 @@
   <section class="tarjeta">
     <header class="tarjeta-head">
       <span class="paso-numero" aria-hidden="true">2</span>
-      <h3>Asignaturas que quieres cancelar</h3>
+      <h3>Asignaturas a cancelar</h3>
     </header>
     <div class="tarjeta-body">
-      <p class="ayuda">Elige al menos una. El resto de tu matrícula sigue activa.</p>
+      <p class="ayuda">Se debe seleccionar al menos una asignatura. Las demás asignaturas de la matrícula permanecen activas.</p>
       <div class="lista">
         @for (asignatura of formulario.asignaturas; track asignatura.uuidAsignaturaMatriculada) {
         <label [attr.data-asignatura]="asignatura.uuidAsignaturaMatriculada">
@@ -67,6 +66,7 @@
       <h3>Motivo de la cancelación</h3>
     </header>
     <div class="tarjeta-body">
+      <p class="ayuda">El motivo se escribe en el formato. Si se necesita adjuntar un soporte en PDF, se podrá subir junto con el formato firmado.</p>
       <app-input-text-tarea-component label="Motivo de la cancelación" [required]="true" [value]="motivo"
         [forceValidation]="intentoEnvio" (valueChange)="alCambiarMotivo($event)">
       </app-input-text-tarea-component>
@@ -77,37 +77,6 @@
     </div>
   </section>
 
-  <section class="tarjeta">
-    <header class="tarjeta-head">
-      <span class="paso-numero" aria-hidden="true">4</span>
-      <h3>Soportes opcionales</h3>
-    </header>
-    <div class="tarjeta-body d-flex flex-column gap-3">
-      <p class="ayuda mb-0">Cada archivo puede pesar máximo {{ formatearTamanio(maximoSoporteBytes) }}.</p>
-      <app-input-anexo-upload-component #entradaSoporte [tipoAnexo]="tipoSoporte" [uploadedFile]="null"
-        (fileSelected)="alAgregarSoporte($event, entradaSoporte)">
-      </app-input-anexo-upload-component>
-      @if (errores['soporte'] || erroresServidor['soporte']) {
-      <small class="texto-error" data-error="soporte">{{ errores['soporte'] || erroresServidor['soporte'] }}</small>
-      }
-      @if (soportes.length > 0) {
-      <ul class="lista">
-        @for (soporte of soportes; track $index) {
-        <li class="d-flex justify-content-between align-items-center gap-2" data-soporte>
-          <span class="text-break">{{ soporte.name }} ({{ formatearTamanio(soporte.size) }})</span>
-          <app-simple-button-component label="Quitar" width="80px" height="28px" color="#D0463B" [contorno]="true"
-            (clicked)="quitarSoporte($index)">
-          </app-simple-button-component>
-        </li>
-        }
-      </ul>
-      }
-    </div>
-  </section>
-
-  @if (errores['total']) {
-  <p class="nota-error" data-error="total">{{ errores['total'] }}</p>
-  }
   @if (erroresServidorGenerales.length > 0) {
   <div class="nota-error" data-error="servidor">
     @for (mensaje of erroresServidorGenerales; track mensaje) {
@@ -121,8 +90,8 @@
     <app-simple-button-component data-boton-volver label="Volver" width="110px" height="38px" color="#2A3A86" [contorno]="true"
       (clicked)="volver()">
     </app-simple-button-component>
-    <app-simple-button-component data-boton-radicar [label]="enviando ? 'Enviando...' : 'Radicar solicitud'"
-      width="180px" height="38px" color="#2A3A86" [disabled]="enviando || !puedeRadicar" (clicked)="radicar()">
+    <app-simple-button-component data-boton-radicar [label]="enviando ? 'Generando...' : 'Generar solicitud'"
+      width="180px" height="38px" color="#2A3A86" [disabled]="enviando || !puedeRadicar" (clicked)="generarSolicitud()">
     </app-simple-button-component>
   </div>
 </div>

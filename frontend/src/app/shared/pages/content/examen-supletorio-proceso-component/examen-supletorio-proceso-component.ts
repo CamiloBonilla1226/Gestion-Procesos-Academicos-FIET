@@ -1,4 +1,5 @@
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { FormatoOficialComponent } from '../../../others/formato-oficial-component/formato-oficial-component';
 import { Observable, catchError, finalize, map, of, switchMap, tap, throwError } from 'rxjs';
 import { GenericDialogFormComponent } from '../../../generic-dialog-form-component/generic-dialog-form-component';
 import { SimpleButtonComponent } from '../../../buttons/simple-button-component/simple-button-component';
@@ -78,29 +79,29 @@ const ANEXO_DE_ACCION: Partial<Record<AccionAcademica, string>> = {
 };
 
 const ETIQUETAS_BOTON: Partial<Record<AccionAcademica, string>> = {
-  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'Rechazar solicitud',
+  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'No aprobar solicitud',
   [ACCIONES_ACADEMICAS.REMITIR_DECANO]: 'Remitir al Decano',
   [ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA]: 'Enviar respuesta',
   [ACCIONES_ACADEMICAS.ENVIAR_RECIBO]: 'Enviar recibo de pago',
   [ACCIONES_ACADEMICAS.SUBIR_COMPROBANTE]: 'Subir comprobante de pago',
   [ACCIONES_ACADEMICAS.APROBAR_COMPROBANTE]: 'Aprobar comprobante',
-  [ACCIONES_ACADEMICAS.RECHAZAR_COMPROBANTE]: 'Rechazar comprobante'
+  [ACCIONES_ACADEMICAS.RECHAZAR_COMPROBANTE]: 'No aprobar comprobante'
 };
 
 const TITULOS_DIALOGO: Partial<Record<AccionAcademica, string>> = {
-  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'Rechazar la solicitud',
+  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'No aprobar la solicitud',
   [ACCIONES_ACADEMICAS.REMITIR_DECANO]: 'Remitir la solicitud al Decano',
   [ACCIONES_ACADEMICAS.APROBAR_DECANO]: 'Aprobar el examen supletorio',
-  [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: 'Rechazar el examen supletorio',
+  [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: 'No aprobar el examen supletorio',
   [ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA]: 'Enviar la respuesta al estudiante',
   [ACCIONES_ACADEMICAS.ENVIAR_RECIBO]: 'Enviar el recibo de pago',
   [ACCIONES_ACADEMICAS.SUBIR_COMPROBANTE]: 'Subir el comprobante de pago',
   [ACCIONES_ACADEMICAS.APROBAR_COMPROBANTE]: 'Aprobar el comprobante de pago',
-  [ACCIONES_ACADEMICAS.RECHAZAR_COMPROBANTE]: 'Rechazar el comprobante de pago'
+  [ACCIONES_ACADEMICAS.RECHAZAR_COMPROBANTE]: 'No aprobar el comprobante de pago'
 };
 
 const TEXTOS_BOTON_DIALOGO: Partial<Record<AccionAcademica, string>> = {
-  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'Rechazar solicitud',
+  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'No aprobar solicitud',
   [ACCIONES_ACADEMICAS.REMITIR_DECANO]: 'Remitir al Decano',
   [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: ETIQUETA_ENVIAR_DECISION,
   [ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA]: 'Enviar respuesta',
@@ -108,19 +109,19 @@ const TEXTOS_BOTON_DIALOGO: Partial<Record<AccionAcademica, string>> = {
   [ACCIONES_ACADEMICAS.ENVIAR_RECIBO]: 'Enviar recibo',
   [ACCIONES_ACADEMICAS.SUBIR_COMPROBANTE]: 'Subir comprobante',
   [ACCIONES_ACADEMICAS.APROBAR_COMPROBANTE]: 'Aprobar comprobante',
-  [ACCIONES_ACADEMICAS.RECHAZAR_COMPROBANTE]: 'Rechazar comprobante'
+  [ACCIONES_ACADEMICAS.RECHAZAR_COMPROBANTE]: 'No aprobar comprobante'
 };
 
 const MENSAJES_EXITO: Partial<Record<AccionAcademica, string>> = {
-  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'La solicitud quedó rechazada.',
+  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'La solicitud quedó no aprobada.',
   [ACCIONES_ACADEMICAS.REMITIR_DECANO]: 'La solicitud fue remitida al Decano.',
   [ACCIONES_ACADEMICAS.APROBAR_DECANO]: 'El examen supletorio quedó aprobado.',
-  [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: 'El examen supletorio quedó rechazado.',
+  [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: 'El examen supletorio quedó no aprobado.',
   [ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA]: 'La respuesta fue enviada al estudiante.',
   [ACCIONES_ACADEMICAS.ENVIAR_RECIBO]: 'El recibo de pago fue enviado al estudiante.',
   [ACCIONES_ACADEMICAS.SUBIR_COMPROBANTE]: 'El comprobante de pago fue enviado.',
   [ACCIONES_ACADEMICAS.APROBAR_COMPROBANTE]: 'El comprobante quedó aprobado.',
-  [ACCIONES_ACADEMICAS.RECHAZAR_COMPROBANTE]: 'El comprobante quedó rechazado.'
+  [ACCIONES_ACADEMICAS.RECHAZAR_COMPROBANTE]: 'El comprobante quedó no aprobado.'
 };
 
 const TEXTOS_CAUSA: Record<string, string> = {
@@ -135,6 +136,7 @@ function mismoNombre(a: string | null | undefined, b: string): boolean {
 @Component({
   selector: 'app-examen-supletorio-proceso-component',
   imports: [
+    FormatoOficialComponent,
     GenericDialogFormComponent,
     SimpleButtonComponent,
     InputTextTareaComponent,
@@ -153,6 +155,11 @@ export class ExamenSupletorioProcesoComponent implements OnChanges {
   @Input({ required: true }) solicitud!: SolicitudAcademicaDetalleDTORespuesta;
   @Input({ required: true }) rol!: RolEtiqueta;
   @Input({ required: true }) recargar!: () => void;
+
+  faltaFormatoDecano(accion: AccionAcademica): boolean {
+    return (accion === ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA || accion === ACCIONES_ACADEMICAS.ENVIAR_RECIBO)
+      && !this.solicitud?.formatoFirmadoDecanoUuid;
+  }
 
   readonly acciones = ACCIONES_ACADEMICAS;
   readonly notaAprobarDecano = NOTA_APROBAR_DECANO;

@@ -16,7 +16,7 @@ interface UsuarioSesion {
   correoElectronico?: string | null;
 }
 
-export const NOTA_DATOS_DARCA = 'Si algún dato es incorrecto, debes corregirlo ante DARCA antes de radicar la solicitud. La información aquí mostrada es la que quedará registrada en el trámite.';
+export const NOTA_DATOS_DARCA = 'Si algún dato es incorrecto, se debe solicitar su corrección ante DARCA antes de radicar la solicitud. La información aquí mostrada es la que quedará registrada en el trámite.';
 
 @Component({
   selector: 'app-datos-estudiante-sesion-component',

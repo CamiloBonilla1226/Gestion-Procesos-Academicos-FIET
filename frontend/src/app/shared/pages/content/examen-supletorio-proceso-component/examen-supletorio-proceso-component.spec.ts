@@ -266,7 +266,7 @@ describe('ExamenSupletorioProcesoComponent', () => {
       boton(fixture).click();
       fixture.detectChanges();
       expect(fixture.componentInstance.accionActiva).toBe('RECHAZAR_DECANO');
-      expect(fixture.componentInstance.tituloDialogo).toBe('Rechazar el examen supletorio');
+      expect(fixture.componentInstance.tituloDialogo).toBe('No aprobar el examen supletorio');
       fixture.componentInstance.confirmar();
       const req = accion('decano/rechazar');
       expect(req.request.body).toEqual({ observacion: null });
@@ -563,20 +563,20 @@ describe('ExamenSupletorioProcesoComponent', () => {
       'ESTUDIANTE'
     );
     const aviso = fixture.nativeElement.querySelector('[data-aviso-etapa="PENDIENTE_PAGO"]').textContent;
-    expect(aviso).toContain('Descarga el recibo');
+    expect(aviso).toContain('El recibo de pago está disponible');
     expect(aviso).toContain('comprobante');
   });
 
   it('en EN_VERIFICACION_PAGO avisa que el comprobante esta en verificacion', () => {
     const fixture = crear(solicitud([], 'EN_VERIFICACION_PAGO', [], 'En verificación de pago'), 'ESTUDIANTE');
-    expect(fixture.nativeElement.querySelector('[data-aviso-etapa="EN_VERIFICACION_PAGO"]').textContent).toContain('verificando');
+    expect(fixture.nativeElement.querySelector('[data-aviso-etapa="EN_VERIFICACION_PAGO"]').textContent).toContain('en verificación');
   });
 
   it('con el comprobante rechazado indica radicar una solicitud nueva', () => {
-    const conComprobante = crear(solicitud([], 'RECHAZADA', [anexo('u-comprobante', 'Comprobante de pago')], 'Rechazada'), 'ESTUDIANTE');
+    const conComprobante = crear(solicitud([], 'RECHAZADA', [anexo('u-comprobante', 'Comprobante de pago')], 'No aprobada'), 'ESTUDIANTE');
     expect(conComprobante.nativeElement.querySelector('[data-aviso-etapa="COMPROBANTE_RECHAZADO"]').textContent)
       .toContain('radicar una solicitud nueva');
-    const sinComprobante = crear(solicitud([], 'RECHAZADA', [], 'Rechazada'), 'ESTUDIANTE');
+    const sinComprobante = crear(solicitud([], 'RECHAZADA', [], 'No aprobada'), 'ESTUDIANTE');
     expect(sinComprobante.nativeElement.querySelector('[data-aviso-etapa]')).toBeNull();
   });
 
@@ -601,7 +601,7 @@ describe('ExamenSupletorioProcesoComponent', () => {
     componente.cerrar(false);
     componente.abrir('RECHAZAR_COMPROBANTE');
     fixture.detectChanges();
-    expect((document.querySelector('[data-boton-dialogo] button')?.textContent ?? '').trim()).toBe('Rechazar comprobante');
+    expect((document.querySelector('[data-boton-dialogo] button')?.textContent ?? '').trim()).toBe('No aprobar comprobante');
     const textos: Record<string, string> = {
       ENVIAR_RECIBO: 'Enviar recibo', SUBIR_COMPROBANTE: 'Subir comprobante', APROBAR_DECANO: 'Enviar decisión',
       RECHAZAR_DECANO: 'Enviar decisión', REMITIR_DECANO: 'Remitir al Decano', ENVIAR_RESPUESTA: 'Enviar respuesta'

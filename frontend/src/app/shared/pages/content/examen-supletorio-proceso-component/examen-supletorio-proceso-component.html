@@ -54,7 +54,7 @@
   @if (avisoEtapa === 'PENDIENTE_PAGO') {
   <p class="nota-aviso" data-aviso-etapa="PENDIENTE_PAGO">
     @if (esEstudiante) {
-    Descarga el recibo de pago en la sección Anexos, realiza el pago y sube el comprobante con el botón
+    El recibo de pago está disponible en la sección Anexos. Una vez realizado el pago, el comprobante se carga con el botón
     "Subir comprobante de pago".
     } @else {
     El estudiante debe pagar el recibo y subir el comprobante de pago.
@@ -63,7 +63,7 @@
   } @else if (avisoEtapa === 'EN_VERIFICACION_PAGO') {
   <p class="nota-aviso" data-aviso-etapa="EN_VERIFICACION_PAGO">
     @if (esEstudiante) {
-    El Funcionario Académico está verificando tu comprobante de pago.
+    El comprobante de pago se encuentra en verificación por parte del Funcionario Académico.
     } @else {
     El comprobante de pago está en la sección Anexos y espera la verificación del Funcionario Académico.
     }
@@ -71,18 +71,22 @@
   } @else if (avisoEtapa === 'COMPROBANTE_RECHAZADO') {
   <p class="nota-error" data-aviso-etapa="COMPROBANTE_RECHAZADO">
     @if (esEstudiante) {
-    Tu comprobante de pago fue rechazado. Si aún necesitas el examen supletorio, debes radicar una solicitud nueva.
+    El comprobante de pago no fue aprobado. Para continuar con el examen supletorio, es necesario radicar una solicitud nueva.
     } @else {
-    El comprobante de pago fue rechazado. Para continuar, el estudiante debe radicar una solicitud nueva.
+    El comprobante de pago no fue aprobado. Para continuar, el estudiante debe radicar una solicitud nueva.
     }
   </p>
   }
+
+  <app-formato-oficial-component [uuidSolicitud]="uuidSolicitud" [solicitud]="solicitud" [rol]="rol"
+    (formatoSubido)="recargar()">
+  </app-formato-oficial-component>
 
   @if (accionesVisibles.length > 0) {
   <section class="tarjeta tarjeta-acciones" data-acciones>
     @if (decide) {
     <app-decision-decano-component nombre="decision-supletorio" textoAprobar="Aprobar el examen supletorio"
-      textoRechazar="Rechazar el examen supletorio" [decision]="decisionDecano" [deshabilitado]="!detalle || cargandoTipos"
+      textoRechazar="No aprobar el examen supletorio" [decision]="decisionDecano" [deshabilitado]="!detalle || cargandoTipos"
       (decisionChange)="decisionDecano = $event">
     </app-decision-decano-component>
     <app-simple-button-component data-accion="ENVIAR_DECISION" [label]="etiquetaEnviarDecision" width="auto" height="38px"
@@ -92,7 +96,7 @@
     @for (accion of accionesBotones; track accion) {
     <app-simple-button-component [attr.data-accion]="accion" [label]="etiquetaBoton(accion)" width="auto" height="38px"
       [color]="esRechazo(accion) ? '#D0463B' : '#2A3A86'" [contorno]="esRechazo(accion)"
-      [disabled]="!detalle || cargandoTipos" (clicked)="abrir(accion)">
+      [disabled]="!detalle || cargandoTipos || faltaFormatoDecano(accion)" (clicked)="abrir(accion)">
     </app-simple-button-component>
     }
   </section>
@@ -105,7 +109,7 @@
     <app-resumen-solicitud-component [solicitud]="solicitud"></app-resumen-solicitud-component>
     @switch (accionActiva) {
     @case (acciones.RECHAZAR_FUNCIONARIO) {
-    <p class="nota-gris">La solicitud quedará rechazada y terminará el trámite. Escribe la observación que verá el estudiante.</p>
+    <p class="nota-gris">La solicitud quedará no aprobada y terminará el trámite. Escribe la observación que verá el estudiante.</p>
     }
     @case (acciones.REMITIR_DECANO) {
     @if (hayDocumentoAdicional) {
@@ -120,7 +124,7 @@
     <p class="nota-gris">La solicitud pasará al Funcionario Académico para que envíe la respuesta al estudiante.</p>
     }
     @case (acciones.ENVIAR_RESPUESTA) {
-    <p class="nota-gris">La solicitud termina como rechazada y el estudiante verá que fue rechazada.</p>
+    <p class="nota-gris">La solicitud termina como no aprobada y el estudiante verá que no fue aprobada.</p>
     }
     @case (acciones.APROBAR_COMPROBANTE) {
     <p class="nota-gris">
@@ -143,7 +147,7 @@
     </div>
     }
     @case (acciones.RECHAZAR_COMPROBANTE) {
-    <p class="nota-gris">La solicitud quedará rechazada y el estudiante deberá radicar una solicitud nueva.</p>
+    <p class="nota-gris">La solicitud quedará no aprobada y el estudiante deberá radicar una solicitud nueva.</p>
     }
     }
 

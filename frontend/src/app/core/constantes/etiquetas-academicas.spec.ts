@@ -9,7 +9,7 @@ import {
 describe('etiquetas academicas', () => {
   it('la insignia del Estudiante sale solo de su etiqueta', () => {
     expect(claseInsigniaEtiquetaEstudiante('Aprobada')).toBe('text-bg-success');
-    expect(claseInsigniaEtiquetaEstudiante('Rechazada')).toBe('text-bg-danger');
+    expect(claseInsigniaEtiquetaEstudiante('No aprobada')).toBe('text-bg-danger');
     expect(claseInsigniaEtiquetaEstudiante('Pendiente de pago')).toBe('text-bg-warning');
     expect(claseInsigniaEtiquetaEstudiante('En verificación de pago')).toBe('text-bg-warning');
     expect(claseInsigniaEtiquetaEstudiante('En trámite')).toBe('text-bg-secondary');
@@ -27,10 +27,10 @@ describe('etiquetas academicas', () => {
     expect(categoriaEstado('Pendiente de Verificación')).toBe('gestion');
     expect(categoriaEstado('En verificación de pago')).toBe('gestion');
     expect(categoriaEstado('Aprobada por el Decano')).toBe('aprobada');
-    expect(categoriaEstado('Rechazada por el Decano')).toBe('rechazada');
+    expect(categoriaEstado('No aprobada por el Decano')).toBe('rechazada');
     expect(categoriaEstado('Respondida')).toBe('aprobada');
     expect(categoriaEstado('Aprobada')).toBe('aprobada');
-    expect(categoriaEstado('Rechazada')).toBe('rechazada');
+    expect(categoriaEstado('No aprobada')).toBe('rechazada');
     expect(categoriaEstado('Pendiente de pago')).toBe('pago');
     expect(categoriaEstado('Enviar Recibo')).toBe('notificar');
     expect(categoriaEstado('Pendiente Notificar')).toBe('notificar');

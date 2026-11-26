@@ -15,5 +15,9 @@ export interface SolicitudAcademicaDetalleDTORespuesta {
   anexos: AnexoAcademicoDTORespuesta[];
   tieneResolucion: boolean;
   puedeDescargarResolucion: boolean;
+  formatoFirmadoEstudianteUuid?: string | null;
+  formatoFirmadoDecanoUuid?: string | null;
+  ajusteFormatoXmm?: number | null;
+  ajusteFormatoYmm?: number | null;
   accionesDisponibles: string[];
 }

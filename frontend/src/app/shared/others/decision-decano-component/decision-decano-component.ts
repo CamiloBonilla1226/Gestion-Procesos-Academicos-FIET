@@ -9,7 +9,7 @@ import { DecisionDecano, ETIQUETA_ENVIAR_DECISION } from '../../../core/utils/de
 export class DecisionDecanoComponent {
   @Input() nombre = 'decision-decano';
   @Input() textoAprobar = 'Aprobar la solicitud';
-  @Input() textoRechazar = 'Rechazar la solicitud';
+  @Input() textoRechazar = 'No aprobar la solicitud';
   @Input() decision: DecisionDecano | null = null;
   @Input() deshabilitado = false;
   @Output() decisionChange = new EventEmitter<DecisionDecano>();

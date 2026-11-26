@@ -1,6 +1,7 @@
 import { Component, DestroyRef, Input, OnInit, Type, inject } from '@angular/core';
 import { NgClass, NgComponentOutlet } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
+import { FormatoEstudianteComponent } from '../../../others/formato-estudiante-component/formato-estudiante-component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize, forkJoin } from 'rxjs';
 import { SimpleButtonComponent } from '../../../buttons/simple-button-component/simple-button-component';
@@ -61,7 +62,7 @@ import { COMPONENTES_PROCESO, EntradasComponenteProceso } from './componentes-pr
 
 @Component({
   selector: 'app-detalle-solicitud-academica-component',
-  imports: [NgClass, NgComponentOutlet, SimpleButtonComponent, AnexosAcademicosComponent, AvisoCorreosPendientesComponent, TarjetaPlegableDirective],
+  imports: [NgClass, NgComponentOutlet, SimpleButtonComponent, AnexosAcademicosComponent, AvisoCorreosPendientesComponent, TarjetaPlegableDirective, FormatoEstudianteComponent],
   templateUrl: './detalle-solicitud-academica-component.html',
   styleUrls: ['../estilos-academicos.css', './detalle-solicitud-academica-component.css']
 })
@@ -108,6 +109,30 @@ export class DetalleSolicitudAcademicaComponent implements OnInit {
 
   get esFuncionario(): boolean {
     return this.rol === ROLES_ETIQUETA.FUNCIONARIO;
+  }
+
+  descargandoFormatoDecano = false;
+
+  get pendienteDeFirma(): boolean {
+    return this.esEstudiante && (this.solicitud?.accionesDisponibles ?? []).includes(ACCIONES_ACADEMICAS.RADICAR);
+  }
+
+  irABandeja(): void {
+    this.router.navigate([this.rutaBandeja]);
+  }
+
+  descargarFormatoDecano(): void {
+    const uuidAnexo = this.solicitud?.formatoFirmadoDecanoUuid;
+    if (!this.solicitud || !uuidAnexo || this.descargandoFormatoDecano) return;
+    const radicado = this.solicitud.radicado;
+    this.descargandoFormatoDecano = true;
+    this.solicitudAcademicaService
+      .descargarAnexo(this.uuidSolicitud, uuidAnexo)
+      .pipe(finalize(() => (this.descargandoFormatoDecano = false)))
+      .subscribe({
+        next: blob => guardarArchivo(blob, `Formato-${radicado}.pdf`),
+        error: err => this.errorHandlerService.handleError(err, 'Error', 'No se pudo descargar el formato firmado por el Decano')
+      });
   }
 
   get esEstudiante(): boolean {

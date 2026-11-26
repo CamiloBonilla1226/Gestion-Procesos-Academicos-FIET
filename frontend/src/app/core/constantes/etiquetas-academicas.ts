@@ -6,15 +6,16 @@ export const ETIQUETAS_ESTUDIANTE = {
   EN_TRAMITE: 'En trámite',
   PENDIENTE_PAGO: 'Pendiente de pago',
   EN_VERIFICACION_PAGO: 'En verificación de pago',
+  PENDIENTE_FIRMA: 'En gestión',
   APROBADA: 'Aprobada',
-  RECHAZADA: 'Rechazada'
+  RECHAZADA: 'No aprobada'
 } as const;
 
 export const ETIQUETAS_FINALES_ESTUDIANTE: readonly string[] = [ETIQUETAS_ESTUDIANTE.APROBADA, ETIQUETAS_ESTUDIANTE.RECHAZADA];
 
 export const ETIQUETAS_DECISION_DECANO = {
   APROBADA: 'Aprobada por el Decano',
-  RECHAZADA: 'Rechazada por el Decano'
+  RECHAZADA: 'No aprobada por el Decano'
 } as const;
 
 function mismaEtiqueta(etiqueta: string | null | undefined, esperada: string): boolean {
@@ -39,7 +40,7 @@ const CATEGORIAS_ESTADO: [CategoriaEstado, string[]][] = [
   ['rechazada', [ETIQUETAS_ESTUDIANTE.RECHAZADA, ETIQUETAS_DECISION_DECANO.RECHAZADA]],
   ['pago', [ETIQUETAS_ESTUDIANTE.PENDIENTE_PAGO]],
   ['notificar', ['Pendiente de Respuesta', 'Pendiente Notificar', 'Por notificar', 'Enviar Recibo']],
-  ['gestion', [ETIQUETAS_ESTUDIANTE.EN_TRAMITE, ETIQUETAS_ESTUDIANTE.EN_VERIFICACION_PAGO, 'En Gestión', 'Pendiente de Verificación', 'Recibo Pagado']],
+  ['gestion', [ETIQUETAS_ESTUDIANTE.EN_TRAMITE, ETIQUETAS_ESTUDIANTE.PENDIENTE_FIRMA, ETIQUETAS_ESTUDIANTE.EN_VERIFICACION_PAGO, 'En Gestión', 'Pendiente de Verificación', 'Recibo Pagado']],
   ['pendiente', ['Pendiente']]
 ];
 

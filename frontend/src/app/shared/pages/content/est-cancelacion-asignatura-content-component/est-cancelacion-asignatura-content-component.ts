@@ -2,7 +2,6 @@ import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import { InputTextTareaComponent } from '../../../inputs/input-text-tarea-component/input-text-tarea-component';
-import { InputAnexoUploadComponent } from '../../../inputs/input-anexo-upload-component/input-anexo-upload-component';
 import { SimpleButtonComponent } from '../../../buttons/simple-button-component/simple-button-component';
 import { CancelacionAsignaturaService } from '../../../../core/services/cancelacion-asignatura-service';
 import { ErrorHandlerService } from '../../../../core/services/error-handler-service';
@@ -10,27 +9,25 @@ import { ToastService } from '../../../../core/services/toast-service';
 import { RadicacionCancelacionAsignaturaDTORespuesta } from '../../../../core/models/CancelacionAsignatura/DTOResponse/RadicacionCancelacionAsignaturaDTORespuesta';
 import { FormularioCancelacionAsignaturaDTORespuesta } from '../../../../core/models/CancelacionAsignatura/DTOResponse/FormularioCancelacionAsignaturaDTORespuesta';
 import {
-  FORMATOS_SOPORTE_LIBRE,
   MAXIMO_CARACTERES_MOTIVO,
   RUTAS_SOLICITUDES_POR_ROL,
   ROLES_ETIQUETA,
-  TAMANIO_MAXIMO_ARCHIVO_BYTES,
-  TAMANIO_MAXIMO_PETICION_BYTES
+  TAMANIO_MAXIMO_ARCHIVO_BYTES
 } from '../../../../core/constantes/procesos-academicos';
 import {
   ARTICULO_5_CANCELACION_ASIGNATURA,
   NOTIFICACION_CORREO_INSTITUCIONAL
 } from '../../../../core/constantes/textos-cancelacion-asignatura';
-import { comoTipoAnexo, errorDeArchivo, errorDeTexto, erroresDeCampos } from '../../../../core/utils/validaciones-academicas';
-import { formatearTamanio } from '../../../../core/utils/formato';
+import { errorDeTexto, erroresDeCampos } from '../../../../core/utils/validaciones-academicas';
 import { DatosEstudianteSesionComponent } from '../../../others/datos-estudiante-sesion-component/datos-estudiante-sesion-component';
+import { FormatoEstudianteComponent } from '../../../others/formato-estudiante-component/formato-estudiante-component';
 import { PasoFormulario, StepperFormularioComponent } from '../../../others/stepper-formulario-component/stepper-formulario-component';
 
 @Component({
   selector: 'app-est-cancelacion-asignatura-content-component',
   imports: [
+    FormatoEstudianteComponent,
     InputTextTareaComponent,
-    InputAnexoUploadComponent,
     SimpleButtonComponent,
     DatosEstudianteSesionComponent,
     StepperFormularioComponent
@@ -40,7 +37,6 @@ import { PasoFormulario, StepperFormularioComponent } from '../../../others/step
 })
 export class EstCancelacionAsignaturaContentComponent implements OnInit {
   readonly maximoMotivo = MAXIMO_CARACTERES_MOTIVO;
-  readonly formatearTamanio = formatearTamanio;
   readonly articulo5 = ARTICULO_5_CANCELACION_ASIGNATURA;
   readonly notificacion = NOTIFICACION_CORREO_INSTITUCIONAL;
 
@@ -50,10 +46,8 @@ export class EstCancelacionAsignaturaContentComponent implements OnInit {
 
   motivo = '';
   seleccionadas = new Set<string>();
-  soportes: File[] = [];
-  formatosSoporte = FORMATOS_SOPORTE_LIBRE;
   maximoSoporteBytes = TAMANIO_MAXIMO_ARCHIVO_BYTES;
-  tipoSoporte = comoTipoAnexo('soporte', 'Soporte del motivo (opcional)', FORMATOS_SOPORTE_LIBRE, false);
+  nombreSoporte = 'Soporte del motivo de la cancelación';
 
   errores: Record<string, string> = {};
   erroresServidor: Record<string, string> = {};
@@ -81,13 +75,12 @@ export class EstCancelacionAsignaturaContentComponent implements OnInit {
     return [
       { titulo: 'Datos del estudiante', completo: true },
       { titulo: 'Asignaturas', completo: !errores['asignaturas'] },
-      { titulo: 'Motivo', completo: !errores['motivo'] },
-      { titulo: 'Soportes', completo: !errores['asignaturas'] && !errores['motivo'] && !errores['soporte'] && !errores['total'] }
+      { titulo: 'Motivo', completo: !errores['motivo'] }
     ];
   }
 
   get erroresServidorGenerales(): string[] {
-    const conocidos = new Set(['motivo', 'asignaturas', 'soporte']);
+    const conocidos = new Set(['motivo', 'asignaturas']);
     return Object.entries(this.erroresServidor)
       .filter(([campo]) => !conocidos.has(campo))
       .map(([campo, mensaje]) => `${campo}: ${mensaje}`);
@@ -104,9 +97,7 @@ export class EstCancelacionAsignaturaContentComponent implements OnInit {
           this.formulario = formulario;
           const soporte = formulario.soportes?.[0];
           if (soporte) {
-            this.formatosSoporte = soporte.formatosPermitidos || FORMATOS_SOPORTE_LIBRE;
             this.maximoSoporteBytes = soporte.tamanioMaximoBytes || TAMANIO_MAXIMO_ARCHIVO_BYTES;
-            this.tipoSoporte = comoTipoAnexo('soporte', `${soporte.nombre} (opcional)`, this.formatosSoporte, false);
           }
         },
         error: err => {
@@ -134,29 +125,12 @@ export class EstCancelacionAsignaturaContentComponent implements OnInit {
     this.revalidar();
   }
 
-  alAgregarSoporte(archivo: File, entrada: InputAnexoUploadComponent): void {
-    entrada.reset();
-    const error = errorDeArchivo(archivo, this.formatosSoporte, this.maximoSoporteBytes);
-    if (error) {
-      this.errores['soporte'] = error;
-      return;
-    }
-    this.soportes = [...this.soportes, archivo];
-    delete this.errores['soporte'];
-    this.revalidar();
-  }
-
-  quitarSoporte(indice: number): void {
-    this.soportes = this.soportes.filter((_, i) => i !== indice);
-    this.revalidar();
-  }
-
-  radicar(): void {
+  generarSolicitud(): void {
     if (this.enviando || !this.puedeRadicar) return;
     this.intentoEnvio = true;
     this.errores = this.validar();
     if (Object.keys(this.errores).length > 0) {
-      this.toastService.showError('Revisa el formulario', 'Hay campos pendientes o con errores.');
+      this.toastService.showError('Formulario incompleto', 'Hay campos pendientes o con errores.');
       return;
     }
     this.enviando = true;
@@ -165,17 +139,16 @@ export class EstCancelacionAsignaturaContentComponent implements OnInit {
       .map(a => a.uuidAsignaturaMatriculada)
       .filter(uuid => this.seleccionadas.has(uuid));
     this.cancelacionAsignaturaService
-      .radicar({ motivo: this.motivo.trim(), asignaturas, soportes: this.soportes })
+      .radicar({ motivo: this.motivo.trim(), asignaturas, soportes: [] })
       .pipe(finalize(() => (this.enviando = false)))
       .subscribe({
         next: respuesta => {
           this.radicacion = respuesta;
-          this.toastService.showSuccess('Solicitud radicada', `Radicado ${respuesta.radicado}`);
-          this.irAlDetalle();
+          this.toastService.showSuccess('Solicitud generada', `Radicado ${respuesta.radicado}: se descarga el formato para firmarlo`);
         },
         error: err => {
           this.erroresServidor = erroresDeCampos(err);
-          this.errorHandlerService.handleError(err, 'Error', 'No se pudo radicar la solicitud');
+          this.errorHandlerService.handleError(err, 'Error', 'No se pudo generar la solicitud');
         }
       });
   }
@@ -197,16 +170,7 @@ export class EstCancelacionAsignaturaContentComponent implements OnInit {
     const errores: Record<string, string> = {};
     const errorMotivo = errorDeTexto(this.motivo, MAXIMO_CARACTERES_MOTIVO, true, 'El motivo de la cancelación');
     if (errorMotivo) errores['motivo'] = errorMotivo;
-    if (this.seleccionadas.size === 0) errores['asignaturas'] = 'Elige al menos una asignatura para cancelar.';
-    let total = 0;
-    for (const soporte of this.soportes) {
-      total += soporte.size;
-      const error = errorDeArchivo(soporte, this.formatosSoporte, this.maximoSoporteBytes);
-      if (error) errores['soporte'] = error;
-    }
-    if (total > TAMANIO_MAXIMO_PETICION_BYTES) {
-      errores['total'] = 'Entre todos los archivos se superan los 20 MB que admite el envío.';
-    }
+    if (this.seleccionadas.size === 0) errores['asignaturas'] = 'Se debe seleccionar al menos una asignatura para cancelar.';
     return errores;
   }
 }

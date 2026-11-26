@@ -24,7 +24,7 @@ const DETALLE: NotificacionDocenteDetalleDTORespuesta = {
   fechaExamenNoPresentado: '2026-10-05',
   cruce: null,
   anexos: [
-    { uuidAnexoAcademico: 'a-1', tipoAnexo: 'Formato firmado por el docente que orienta la asignatura', nombreArchivo: 'formato.pdf', tipoArchivo: 'application/pdf', fechaSubida: '2026-10-06T09:00:00' },
+    { uuidAnexoAcademico: 'a-1', tipoAnexo: 'Formato firmado', nombreArchivo: 'formato.pdf', tipoArchivo: 'application/pdf', fechaSubida: '2026-10-06T09:00:00' },
     { uuidAnexoAcademico: 'a-2', tipoAnexo: 'Comprobante de pago', nombreArchivo: 'comprobante.pdf', tipoArchivo: 'application/pdf', fechaSubida: '2026-10-07T09:00:00' }
   ]
 };

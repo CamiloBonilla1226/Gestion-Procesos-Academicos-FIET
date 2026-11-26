@@ -27,6 +27,7 @@ import {
 import { comoTipoAnexo, errorDeArchivo, errorDeTexto, erroresDeCampos } from '../../../../core/utils/validaciones-academicas';
 import { formatearTamanio } from '../../../../core/utils/formato';
 import { DatosEstudianteSesionComponent } from '../../../others/datos-estudiante-sesion-component/datos-estudiante-sesion-component';
+import { FormatoEstudianteComponent } from '../../../others/formato-estudiante-component/formato-estudiante-component';
 import { PasoFormulario, StepperFormularioComponent } from '../../../others/stepper-formulario-component/stepper-formulario-component';
 
 interface CampoAnexo {
@@ -37,6 +38,7 @@ interface CampoAnexo {
 @Component({
   selector: 'app-est-cancelacion-matricula-content-component',
   imports: [
+    FormatoEstudianteComponent,
     InputTextTareaComponent,
     InputAnexoUploadComponent,
     SimpleButtonComponent,
@@ -180,7 +182,7 @@ export class EstCancelacionMatriculaContentComponent implements OnInit {
     this.intentoEnvio = true;
     this.errores = this.validar();
     if (Object.keys(this.errores).length > 0) {
-      this.toastService.showError('Revisa el formulario', 'Hay campos pendientes o con errores.');
+      this.toastService.showError('Formulario incompleto', 'Hay campos pendientes o con errores.');
       return;
     }
     this.enviando = true;
@@ -197,8 +199,7 @@ export class EstCancelacionMatriculaContentComponent implements OnInit {
       .subscribe({
         next: respuesta => {
           this.radicacion = respuesta;
-          this.toastService.showSuccess('Solicitud radicada', `Radicado ${respuesta.radicado}`);
-          this.irAlDetalle();
+          this.toastService.showSuccess('Formato generado', `Radicado ${respuesta.radicado}: descargue, firme y suba el formato`);
         },
         error: err => {
           this.erroresServidor = erroresDeCampos(err);
@@ -244,7 +245,7 @@ export class EstCancelacionMatriculaContentComponent implements OnInit {
     if (total > TAMANIO_MAXIMO_PETICION_BYTES) {
       errores['total'] = 'Entre todos los archivos se superan los 20 MB que admite el envío.';
     }
-    if (!this.aceptaAdvertencia) errores['advertencia'] = 'Debes confirmar que leíste la advertencia.';
+    if (!this.aceptaAdvertencia) errores['advertencia'] = 'Es necesario confirmar la lectura de la advertencia.';
     return errores;
   }
 }

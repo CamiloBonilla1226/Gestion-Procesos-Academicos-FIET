@@ -1,10 +1,8 @@
 @if (radicacion) {
-<div class="tarjeta" data-estado="radicada">
-  <div class="tarjeta-body d-flex flex-wrap justify-content-between align-items-center gap-2">
-    <span>Tu solicitud quedó radicada con el número <b>{{ radicacion.radicado }}</b>.</span>
-    <app-simple-button-component label="Ver solicitud" width="130px" height="36px" color="#2A3A86" (clicked)="irAlDetalle()">
-    </app-simple-button-component>
-  </div>
+<div data-estado="pendiente-firma">
+  <app-formato-estudiante-component [uuidSolicitud]="radicacion.uuidSolicitudAcademica" [radicado]="radicacion.radicado"
+    [supletorio]="false" (radicada)="irAlDetalle()" (descartada)="volver()">
+  </app-formato-estudiante-component>
 </div>
 } @else if (cargando) {
 <div class="cargando" data-estado="cargando">
@@ -21,7 +19,7 @@
 <div class="pila">
   @if (!puedeRadicar) {
   <p class="nota-aviso" data-estado="sin-asignaturas">
-    No tienes asignaturas activas para cancelar, por eso no puedes radicar una Cancelación de Matrícula.
+    No se registran asignaturas activas para cancelar; por lo tanto, no es posible radicar una Cancelación de Matrícula.
   </p>
   } @else {
   <app-stepper-formulario-component [pasos]="pasos"></app-stepper-formulario-component>
@@ -42,7 +40,7 @@
       <h3>Asignaturas que se cancelan</h3>
     </header>
     <div class="tarjeta-body">
-      <p class="ayuda">La solicitud incluye todas tus asignaturas activas.</p>
+      <p class="ayuda">La solicitud incluye todas las asignaturas activas del estudiante.</p>
       <ul class="lista">
         @for (asignatura of formulario.asignaturas; track asignatura.codigoAsignatura) {
         <li data-asignatura>{{ asignatura.codigoAsignatura }} - {{ asignatura.nombreAsignatura }}</li>
@@ -73,7 +71,7 @@
       <h3>Anexos obligatorios</h3>
     </header>
     <div class="tarjeta-body d-flex flex-column gap-3">
-      <p class="ayuda mb-0" data-ayuda-paz-y-salvos>Sube en un solo PDF todos los paz y salvos. Ese PDF puede pesar máximo 10 MB y cada soporte del motivo, máximo 5 MB.</p>
+      <p class="ayuda mb-0" data-ayuda-paz-y-salvos>Los paz y salvos se adjuntan en un único archivo PDF de máximo 10 MB. Cada soporte del motivo admite un máximo de 5 MB.</p>
       <p class="nota-aviso" data-nota="vigencia-paz-y-salvos">{{ vigenciaPazYSalvos }}</p>
       @for (campo of campos; track campo.requerido.uuidTipoAnexoAcademico) {
       <div [attr.data-campo-anexo]="campo.requerido.uuidTipoAnexoAcademico">
@@ -118,13 +116,13 @@
 
       <div class="nota-aviso">
         <p class="mb-2">
-          Si cursas tu primer periodo académico de la carrera, al cancelar la matrícula solo podrás volver al programa por
+          Si el estudiante cursa el primer periodo académico de la carrera, al cancelar la matrícula solo podrá reingresar al programa mediante
           el proceso de admisión vigente.
         </p>
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="acepta-advertencia" [checked]="aceptaAdvertencia"
             (change)="alCambiarAdvertencia($event)">
-          <label class="form-check-label" for="acepta-advertencia">Leí y entiendo la advertencia.</label>
+          <label class="form-check-label" for="acepta-advertencia">Declaro haber leído y comprendido la advertencia.</label>
         </div>
         @if (errores['advertencia']) {
         <small class="texto-error d-block mt-1" data-error="advertencia">{{ errores['advertencia'] }}</small>

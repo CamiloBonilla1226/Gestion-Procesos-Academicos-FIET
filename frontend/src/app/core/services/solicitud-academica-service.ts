@@ -10,6 +10,7 @@ import { SolicitudAcademicaDetalleDTORespuesta } from '../models/SolicitudAcadem
 import { SolicitudAcademicaResumenDTORespuesta } from '../models/SolicitudAcademica/DTOResponse/SolicitudAcademicaResumenDTORespuesta';
 import { EliminacionRespuestasDTORespuesta } from '../models/SolicitudAcademica/DTOResponse/EliminacionRespuestasDTORespuesta';
 import { CorreosPendientesDTORespuesta } from '../models/SolicitudAcademica/DTOResponse/CorreosPendientesDTORespuesta';
+import { ValorProvisionalFormatoDTOPeticion } from '../models/SolicitudAcademica/DTORequest/ValorProvisionalFormatoDTOPeticion';
 import { parsearErrorBlob } from '../utils/descargas';
 import { armarParametros } from '../utils/parametros-http';
 
@@ -77,6 +78,38 @@ export class SolicitudAcademicaService {
     return this.http
       .get(`${this.url}/${uuidSolicitud}/resolucion`, { responseType: 'blob' })
       .pipe(parsearErrorBlob());
+  }
+
+  descargarFormato(uuidSolicitud: string): Observable<Blob> {
+    return this.http
+      .get(`${this.url}/${uuidSolicitud}/formato`, { responseType: 'blob' })
+      .pipe(parsearErrorBlob());
+  }
+
+  radicarFormato(uuidSolicitud: string, archivo: File): Observable<SolicitudAcademicaDetalleDTORespuesta> {
+    const formData = new FormData();
+    formData.append('archivo', archivo, archivo.name);
+    return this.http.post<SolicitudAcademicaDetalleDTORespuesta>(`${this.url}/${uuidSolicitud}/estudiante/radicar`, formData);
+  }
+
+  subirFormatoDecano(uuidSolicitud: string, archivo: File): Observable<SolicitudAcademicaDetalleDTORespuesta> {
+    const formData = new FormData();
+    formData.append('archivo', archivo, archivo.name);
+    return this.http.post<SolicitudAcademicaDetalleDTORespuesta>(`${this.url}/${uuidSolicitud}/formato/decano`, formData);
+  }
+
+  descartarSolicitud(uuidSolicitud: string): Observable<void> {
+    return this.http.delete<void>(`${this.url}/${uuidSolicitud}/estudiante`);
+  }
+
+  descargarFormatoCompuesto(uuidSolicitud: string, valoresProvisionales: ValorProvisionalFormatoDTOPeticion[] = []): Observable<Blob> {
+    return this.http
+      .post(`${this.url}/${uuidSolicitud}/formato/compuesto`, { valoresProvisionales }, { responseType: 'blob' })
+      .pipe(parsearErrorBlob());
+  }
+
+  guardarAjusteFormato(uuidSolicitud: string, ajusteXmm: number, ajusteYmm: number): Observable<SolicitudAcademicaDetalleDTORespuesta> {
+    return this.http.put<SolicitudAcademicaDetalleDTORespuesta>(`${this.url}/${uuidSolicitud}/formato/ajuste`, { ajusteXmm, ajusteYmm });
   }
 
   private armarFormDataAnexo(peticion: AnexoAcademicoDTOPeticion): FormData {

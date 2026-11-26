@@ -121,7 +121,7 @@ describe('EstCancelacionMatriculaContentComponent', () => {
     const pie = fixture.nativeElement.querySelector('.pie-formulario') as HTMLElement;
     expect(bloque.compareDocumentPosition(pie) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(fixture.nativeElement.querySelector('#acepta-advertencia')).toBeTruthy();
-    expect(fixture.nativeElement.textContent).toContain('Leí y entiendo la advertencia.');
+    expect(fixture.nativeElement.textContent).toContain('Declaro haber leído y comprendido la advertencia.');
   });
 
   it('no muestra el articulo 5 ni la notificacion de Cancelacion de Asignatura', () => {
@@ -200,7 +200,7 @@ describe('EstCancelacionMatriculaContentComponent', () => {
     expect(servicio.radicar).not.toHaveBeenCalled();
   });
 
-  it('radica con los seis anexos y los soportes, avisa el radicado y navega al detalle', () => {
+  it('radica con los seis anexos y los soportes, avisa el radicado y muestra los pasos para firmar sin salir del formulario', () => {
     servicio.radicar.and.returnValue(of({ uuidSolicitudAcademica: 's-9', radicado: '2026-CM-0009' }));
     const componente = crear().componentInstance;
     llenar(componente);
@@ -209,8 +209,8 @@ describe('EstCancelacionMatriculaContentComponent', () => {
     expect(peticion.motivo).toBe('Problemas de salud');
     expect(peticion.anexos.map(a => a.uuidTipoAnexoAcademico)).toEqual(['t-1', 't-2', 't-3', 't-4', 't-5', 't-6']);
     expect(peticion.soportes.map(s => s.name)).toEqual(['incapacidad.png']);
-    expect(toast.showSuccess).toHaveBeenCalledWith('Solicitud radicada', 'Radicado 2026-CM-0009');
-    expect(router.navigate).toHaveBeenCalledWith(['/estudiante/solicitudes', 's-9']);
+    expect(toast.showSuccess).toHaveBeenCalledWith('Formato generado', 'Radicado 2026-CM-0009: descargue, firme y suba el formato');
+    expect(router.navigate).not.toHaveBeenCalled();
   });
 
   it('no permite un doble envio mientras el POST esta en curso', () => {
@@ -266,9 +266,9 @@ describe('EstCancelacionMatriculaContentComponent', () => {
     llenar(fixture.componentInstance);
     fixture.componentInstance.radicar();
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('[data-estado="radicada"]').textContent).toContain('2026-CM-0009');
+    expect(fixture.nativeElement.querySelector('[data-estado="pendiente-firma"]').textContent).toContain('2026-CM-0009');
     expect(fixture.nativeElement.querySelectorAll('[data-campo-anexo]').length).toBe(0);
-    expect(fixture.nativeElement.textContent).not.toContain('Este anexo es obligatorio');
+    expect(fixture.nativeElement.querySelector('[data-boton-radicar]')).toBeNull();
   });
 
   it('muestra el stepper guia, los datos del estudiante con la nota de DARCA y avanza al completar', () => {
@@ -276,7 +276,7 @@ describe('EstCancelacionMatriculaContentComponent', () => {
     const estados = () => Array.from(fixture.nativeElement.querySelectorAll('app-stepper-formulario-component li'))
       .map((li: any) => li.getAttribute('data-paso'));
     expect(estados()).toEqual(['hecho', 'hecho', 'activo', 'pendiente', 'pendiente']);
-    expect(fixture.nativeElement.querySelector('[data-nota-darca]').textContent).toContain('corregirlo ante DARCA');
+    expect(fixture.nativeElement.querySelector('[data-nota-darca]').textContent).toContain('su corrección ante DARCA');
     const valores = Array.from(fixture.nativeElement.querySelectorAll('[data-datos-sesion] input')).map((i: any) => i.value);
     expect(valores).toContain('FIET');
 
@@ -330,20 +330,21 @@ describe('EstCancelacionMatriculaContentComponent con el Router real', () => {
     return harness;
   }
 
-  it('navega de verdad al detalle de la solicitud radicada', async () => {
+  it('al generar el formato se queda en el formulario y al subir el firmado navega de verdad al detalle', async () => {
     configurar(true);
     const harness = await radicarDesdeLaRuta();
+    expect(TestBed.inject(Router).url).toBe('/estudiante/cancelacion-matricula');
+    harness.routeDebugElement!.componentInstance.irAlDetalle();
+    await harness.fixture.whenStable();
     expect(TestBed.inject(Router).url).toBe('/estudiante/solicitudes/s-9');
-    expect(harness.routeNativeElement?.querySelector('[data-destino]')).toBeTruthy();
   });
 
-  it('si la navegacion no ocurre muestra el radicado y no el formulario limpio', async () => {
+  it('tras generar el formato muestra el radicado y no el formulario limpio', async () => {
     configurar(false);
     const harness = await radicarDesdeLaRuta();
     expect(TestBed.inject(Router).url).toBe('/estudiante/cancelacion-matricula');
     const pantalla = harness.routeNativeElement as HTMLElement;
-    expect(pantalla.querySelector('[data-estado="radicada"]')?.textContent).toContain('2026-CM-0009');
+    expect(pantalla.querySelector('[data-estado="pendiente-firma"]')?.textContent).toContain('2026-CM-0009');
     expect(pantalla.querySelectorAll('[data-campo-anexo]').length).toBe(0);
-    expect(pantalla.textContent).not.toContain('Este anexo es obligatorio');
   });
 });

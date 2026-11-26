@@ -1,0 +1,76 @@
+<section class="tarjeta" data-formato-estudiante>
+  <header class="tarjeta-head">
+    <h3>Solicitud en gestión</h3>
+  </header>
+  <div class="tarjeta-body d-flex flex-column gap-3">
+    <p class="mb-0">
+      La solicitud tiene el número de radicado <b>{{ radicado }}</b> y la información diligenciada quedó guardada. Para enviarla
+      al Funcionario Académico se deben completar los siguientes pasos:
+    </p>
+    <ol class="mb-0" data-pasos-formato>
+      <li>Descargar el formato oficial con los datos de la solicitud.</li>
+      @if (supletorio) {
+      <li>Imprimir el formato, firmarlo a mano y obtener la firma del docente de la asignatura y, si hay cruce de exámenes,
+        también la del docente de la asignatura con la que se cruza.</li>
+      } @else {
+      <li>Imprimir el formato y firmarlo a mano.</li>
+      }
+      <li>Escanear el formato firmado y subirlo en un solo archivo PDF de máximo 10 MB.</li>
+      @if (soportes) {
+      <li>Si se requiere, adjuntar en PDF el soporte del motivo de la cancelación. Este paso es opcional.</li>
+      }
+    </ol>
+    <div>
+      <app-simple-button-component data-boton-descargar-formato [label]="descargando ? 'Descargando...' : 'Descargar formato'"
+        width="190px" height="38px" color="#2A3A86" [contorno]="true" [disabled]="descargando" (clicked)="descargar()">
+      </app-simple-button-component>
+    </div>
+    <div>
+      <app-input-anexo-upload-component #entrada [tipoAnexo]="tipo" [uploadedFile]="archivo"
+        (fileSelected)="alSeleccionar($event, entrada)" (fileRemoved)="alQuitar()">
+      </app-input-anexo-upload-component>
+      @if (error) {
+      <small class="texto-error d-block mt-1" data-error="formato-firmado">{{ error }}</small>
+      }
+    </div>
+    @if (soportes) {
+    <div class="d-flex flex-column gap-2" data-soportes-motivo>
+      <p class="ayuda mb-0">Cada soporte puede pesar máximo {{ formatearTamanio(maximoSoporteBytes) }}.</p>
+      <app-input-anexo-upload-component #entradaSoporte [tipoAnexo]="tipoSoporte" [uploadedFile]="null"
+        (fileSelected)="alAgregarSoporte($event, entradaSoporte)">
+      </app-input-anexo-upload-component>
+      @if (errorSoporte) {
+      <small class="texto-error" data-error="soporte">{{ errorSoporte }}</small>
+      }
+      @if (soportesElegidos.length > 0) {
+      <ul class="lista mb-0">
+        @for (soporte of soportesElegidos; track $index) {
+        <li class="d-flex justify-content-between align-items-center gap-2" data-soporte>
+          <span class="text-break">{{ soporte.name }} ({{ formatearTamanio(soporte.size) }})</span>
+          <app-simple-button-component label="Quitar" width="80px" height="28px" color="#D0463B" [contorno]="true"
+            [disabled]="subiendo" (clicked)="quitarSoporte($index)">
+          </app-simple-button-component>
+        </li>
+        }
+      </ul>
+      }
+    </div>
+    }
+    <div class="d-flex flex-wrap gap-2 justify-content-between">
+      <app-simple-button-component data-boton-descartar label="Descartar solicitud" width="180px" height="38px"
+        color="#D0463B" [contorno]="true" [disabled]="subiendo || descartando" (clicked)="confirmarDescarte = true">
+      </app-simple-button-component>
+      <app-simple-button-component data-boton-subir-formato [label]="subiendo ? 'Enviando...' : 'Enviar solicitud'"
+        width="200px" height="38px" color="#2A3A86" [disabled]="subiendo || descartando || !archivo" (clicked)="subir()">
+      </app-simple-button-component>
+    </div>
+  </div>
+</section>
+
+<app-generic-dialog-form-component [(visible)]="confirmarDescarte" title="Descartar solicitud"
+  [textoBoton]="descartando ? 'Descartando...' : 'Descartar solicitud'" textoCancelar="Cancelar" [cerrarConEscape]="true"
+  (save)="descartar()">
+  <p class="mb-0" data-texto-descarte>
+    Se borrará la solicitud {{ radicado }} con sus anexos. Esta acción no se puede deshacer. ¿Desea continuar?
+  </p>
+</app-generic-dialog-form-component>

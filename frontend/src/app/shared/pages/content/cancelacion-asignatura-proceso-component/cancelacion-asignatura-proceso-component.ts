@@ -1,4 +1,6 @@
 import { Component, Input, OnChanges, SimpleChanges, inject } from '@angular/core';
+import { FormatoOficialComponent } from '../../../others/formato-oficial-component/formato-oficial-component';
+import { ValorProvisionalFormatoDTOPeticion } from '../../../../core/models/SolicitudAcademica/DTORequest/ValorProvisionalFormatoDTOPeticion';
 import { NgTemplateOutlet } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
@@ -32,7 +34,8 @@ import {
   ROLES_ETIQUETA,
   ResultadoFila,
   resultadoFilaValido,
-  RolEtiqueta
+  RolEtiqueta,
+  TAMANIO_MAXIMO_PAZ_Y_SALVOS_BYTES
 } from '../../../../core/constantes/procesos-academicos';
 import {
   CampoObservacion,
@@ -69,6 +72,7 @@ import {
 } from '../../../../core/utils/validaciones-academicas';
 import { AMBITOS_SITUACION, OpcionSituacion, opcionesDeSituacion, textoSituacion } from '../../../../core/utils/situaciones-academicas';
 import { ETIQUETA_ENVIAR_DECISION, accionDeDecisiones, decisionCompleta, esAccionDecisionDecano } from '../../../../core/utils/decision-decano';
+import { guardarArchivo } from '../../../../core/utils/descargas';
 
 interface EvaluacionEnEdicion {
   faltas: string;
@@ -102,21 +106,21 @@ const ACCIONES_DEL_PROCESO: AccionAcademica[] = [
 ];
 
 const ETIQUETAS_BOTON: Partial<Record<AccionAcademica, string>> = {
-  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'Rechazar solicitud',
+  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'No aprobar solicitud',
   [ACCIONES_ACADEMICAS.REMITIR_DECANO]: 'Remitir al Decano',
   [ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA]: 'Enviar respuesta'
 };
 
 const TITULOS_DIALOGO: Partial<Record<AccionAcademica, string>> = {
-  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'Rechazar la solicitud',
+  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'No aprobar la solicitud',
   [ACCIONES_ACADEMICAS.REMITIR_DECANO]: 'Remitir la solicitud al Decano',
   [ACCIONES_ACADEMICAS.APROBAR_DECANO]: 'Enviar la decisión del Decano',
-  [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: 'Rechazar la solicitud completa',
+  [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: 'No aprobar la solicitud completa',
   [ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA]: 'Enviar la respuesta al estudiante'
 };
 
 const TEXTOS_BOTON_DIALOGO: Partial<Record<AccionAcademica, string>> = {
-  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'Rechazar solicitud',
+  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'No aprobar solicitud',
   [ACCIONES_ACADEMICAS.REMITIR_DECANO]: 'Remitir al Decano',
   [ACCIONES_ACADEMICAS.APROBAR_DECANO]: ETIQUETA_ENVIAR_DECISION,
   [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: ETIQUETA_ENVIAR_DECISION,
@@ -124,10 +128,10 @@ const TEXTOS_BOTON_DIALOGO: Partial<Record<AccionAcademica, string>> = {
 };
 
 const MENSAJES_EXITO: Partial<Record<AccionAcademica, string>> = {
-  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'La solicitud quedó rechazada.',
+  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'La solicitud quedó no aprobada.',
   [ACCIONES_ACADEMICAS.REMITIR_DECANO]: 'La solicitud fue remitida al Decano.',
   [ACCIONES_ACADEMICAS.APROBAR_DECANO]: 'La decisión por asignatura quedó registrada.',
-  [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: 'La solicitud quedó rechazada.',
+  [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: 'La solicitud quedó no aprobada.',
   [ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA]: 'La respuesta quedó registrada y la comunicación de la Resolución quedó programada.'
 };
 
@@ -183,18 +187,19 @@ const COLUMNAS_FIJAS_EVALUACION = new Set([...COLUMNAS_FIJAS_DECANO, COLUMNA_NUE
 const CAMPO_DECISION_PARCIAL: CampoObservacion = {
   etiqueta: 'Comentario para el Funcionario Académico',
   obligatoria: true,
-  aviso: 'Rechazaste alguna asignatura: el Funcionario Académico verá este comentario.'
+  aviso: 'No aprobaste alguna asignatura: el Funcionario Académico verá este comentario.'
 };
 
 const CAMPO_RECHAZO_DECANO: CampoObservacion = {
   etiqueta: 'Comentario para el Funcionario Académico',
   obligatoria: true,
-  aviso: 'El Funcionario Académico verá este comentario al recibir la solicitud rechazada.'
+  aviso: 'El Funcionario Académico verá este comentario al recibir la solicitud no aprobada.'
 };
 
 @Component({
   selector: 'app-cancelacion-asignatura-proceso-component',
   imports: [
+    FormatoOficialComponent,
     NgTemplateOutlet,
     GenericDialogFormComponent,
     SimpleButtonComponent,
@@ -215,9 +220,15 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   @Input({ required: true }) rol!: RolEtiqueta;
   @Input({ required: true }) recargar!: () => void;
 
+  faltaFormatoDecano(accion: AccionAcademica): boolean {
+    return (accion === ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA || accion === ACCIONES_ACADEMICAS.ENVIAR_RECIBO)
+      && !this.solicitud?.formatoFirmadoDecanoUuid;
+  }
+
   readonly acciones = ACCIONES_ACADEMICAS;
   readonly maximoObservacion = MAXIMO_CARACTERES_OBSERVACION;
   readonly tipoResolucion = comoTipoAnexo('resolucion', 'Resolución sin firmar por el estudiante', FORMATOS_RESOLUCION, true);
+  readonly tipoFormatoDecano = comoTipoAnexo('formato-decano', 'Formato firmado por el Decano (PDF)', FORMATOS_RESOLUCION, true);
   readonly notaAprobarDecano = NOTA_APROBAR_DECANO;
   readonly notaSimca = NOTA_SIMCA;
   readonly sinDato = SIN_DATO;
@@ -248,6 +259,9 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   enviando = false;
   observacion = '';
   archivoResolucion: File | null = null;
+  archivoFormatoDecano: File | null = null;
+  formatoDecanoSubido = false;
+  descargandoFormato = false;
   resolucionSubida = false;
   evaluaciones: Record<string, EvaluacionEnEdicion> = {};
   decisiones: Record<string, boolean | null> = {};
@@ -274,6 +288,7 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   ngOnChanges(cambios: SimpleChanges): void {
     if (cambios['uuidSolicitud'] || cambios['solicitud']) {
       this.resolucionSubida = false;
+      this.formatoDecanoSubido = false;
       this.cargarDetalle();
     } else if (cambios['rol'] && this.detalle) {
       this.armarTabla(this.detalle);
@@ -317,7 +332,7 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
   }
 
   get textoResaltado(): string {
-    const plural = this.resultadoResaltado === RESULTADOS_FILA.APROBADA ? 'aprobadas' : 'rechazadas';
+    const plural = this.resultadoResaltado === RESULTADOS_FILA.APROBADA ? 'aprobadas' : 'no aprobadas';
     return `Se resaltan las asignaturas ${plural} de la solicitud`;
   }
 
@@ -401,8 +416,29 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
 
   botonDeshabilitado(accion: AccionAcademica): boolean {
     if (!this.detalle || this.cargandoSituaciones || this.cargandoPlantilla) return true;
+    if (this.faltaFormatoDecano(accion)) return true;
     return accion === ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA && this.ajustable && this.asignaturasSinSituaciones > 0;
   }
+
+  readonly valoresProvisionales = (): ValorProvisionalFormatoDTOPeticion[] => {
+    if (this.decide) {
+      return this.asignaturas.map(a => ({ asignaturaSolicitudUuid: a.uuidAsignaturaSolicitud, aprobada: this.decisiones[a.uuidAsignaturaSolicitud] ?? null }));
+    }
+    if (this.editable) {
+      return Object.entries(this.evaluaciones).map(([uuid, evaluacion]) => ({
+        asignaturaSolicitudUuid: uuid,
+        numeroFaltas: evaluacion.faltas,
+        nota: evaluacion.nota,
+        situacionMatriculaUuid: evaluacion.situacion,
+        situacionCancelarUuid: evaluacion.cancelar
+      }));
+    }
+    return Object.entries(this.ajustes).map(([uuid, ajuste]) => ({
+      asignaturaSolicitudUuid: uuid,
+      situacionMatriculaUuid: ajuste.matricula,
+      situacionCancelarUuid: ajuste.situacion
+    }));
+  };
 
   cambiarAjuste(uuid: string, campo: keyof AjusteEnEdicion, valor: string): void {
     const ajuste = this.ajustes[uuid];
@@ -488,6 +524,7 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
     if (!this.accionesVisibles.includes(accion) || this.cargandoSituaciones || this.cargandoPlantilla) return;
     this.accionActiva = accion;
     this.observacion = '';
+    this.archivoFormatoDecano = null;
     this.archivoResolucion = null;
     this.errores = {};
     this.erroresServidor = [];
@@ -564,6 +601,53 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
 
   alQuitarResolucion(): void {
     this.archivoResolucion = null;
+  }
+
+  get esDecisionDecano(): boolean {
+    return esAccionDecisionDecano(this.accionActiva);
+  }
+
+  get hayFormatoDecano(): boolean {
+    return !!this.solicitud?.formatoFirmadoDecanoUuid || this.formatoDecanoSubido;
+  }
+
+  alSeleccionarFormatoDecano(archivo: File, entrada: InputAnexoUploadComponent): void {
+    const error = errorDeArchivo(archivo, FORMATOS_RESOLUCION, TAMANIO_MAXIMO_PAZ_Y_SALVOS_BYTES);
+    if (error) {
+      this.archivoFormatoDecano = null;
+      this.errores['formato-decano'] = error;
+      entrada.reset();
+      return;
+    }
+    this.archivoFormatoDecano = archivo;
+    delete this.errores['formato-decano'];
+  }
+
+  alQuitarFormatoDecano(): void {
+    this.archivoFormatoDecano = null;
+  }
+
+  descargarFormatoConDecision(): void {
+    if (this.descargandoFormato) return;
+    this.descargandoFormato = true;
+    this.solicitudAcademicaService
+      .descargarFormatoCompuesto(this.uuidSolicitud, this.valoresProvisionales())
+      .pipe(finalize(() => (this.descargandoFormato = false)))
+      .subscribe({
+        next: blob => guardarArchivo(blob, `Formato-${this.solicitud.radicado}-con-la-decision.pdf`),
+        error: err => this.errorHandlerService.handleError(err, 'Error', 'No se pudo generar el formato')
+      });
+  }
+
+  private subirFormatoDecano(): Observable<void> {
+    if (!this.archivoFormatoDecano) return of(undefined);
+    return this.solicitudAcademicaService.subirFormatoDecano(this.uuidSolicitud, this.archivoFormatoDecano).pipe(
+      tap(() => {
+        this.formatoDecanoSubido = true;
+        this.archivoFormatoDecano = null;
+      }),
+      map(() => undefined)
+    );
   }
 
   confirmar(): void {
@@ -652,9 +736,9 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
           evaluaciones: this.armarEvaluaciones()
         });
       case ACCIONES_ACADEMICAS.APROBAR_DECANO:
-        return this.cancelacionAsignaturaService.aprobarPorDecano(uuid, this.armarAprobacion(opcional));
+        return this.subirFormatoDecano().pipe(switchMap(() => this.cancelacionAsignaturaService.aprobarPorDecano(uuid, this.armarAprobacion(opcional))));
       case ACCIONES_ACADEMICAS.RECHAZAR_DECANO:
-        return this.cancelacionAsignaturaService.rechazarPorDecano(uuid, { observacion: opcional });
+        return this.subirFormatoDecano().pipe(switchMap(() => this.cancelacionAsignaturaService.rechazarPorDecano(uuid, { observacion: opcional })));
       default: {
         const ajustes = this.armarAjustes();
         const comunicacion = this.comunicacion!;
@@ -727,6 +811,10 @@ export class CancelacionAsignaturaProcesoComponent implements OnChanges {
     if (this.campoObservacion) {
       const errorObservacion = errorDeTexto(this.observacion, this.maximoObservacion, this.observacionObligatoria, 'La observación', true);
       if (errorObservacion) errores['observacion'] = errorObservacion;
+    }
+
+    if (esAccionDecisionDecano(accion) && !this.archivoFormatoDecano && !this.hayFormatoDecano) {
+      errores['formato-decano'] = 'Se debe subir el formato con la decisión, firmado por el Decano (PDF).';
     }
 
     if (accion === ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA && !this.archivoResolucion && !this.hayResolucion) {

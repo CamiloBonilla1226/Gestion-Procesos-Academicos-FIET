@@ -1,0 +1,128 @@
+@if (esFuncionario || esDecano) {
+<section class="tarjeta" data-tarjeta-formato-oficial>
+  <header class="tarjeta-head">
+    <h3>Formato oficial</h3>
+  </header>
+  <div class="tarjeta-body d-flex flex-column gap-3">
+    @if (esFuncionario) {
+    @if (firmaElDecano) {
+    <p class="nota-gris mb-0" data-nota-formato>
+      El formato lleva el escaneo firmado por el estudiante con los datos de la Facultad escritos encima. Lo que esté escrito
+      en la tabla (faltas, nota y situaciones) se incluye aunque todavía no se haya guardado. Al remitir, el Decano recibe el
+      formato con esos datos, marca su decisión y lo devuelve firmado.
+    </p>
+    } @else {
+    <p class="nota-gris mb-0" data-nota-formato>
+      El formato para firma del Decano lleva el escaneo firmado por el estudiante con los datos de la Facultad y la decisión
+      del Decano escritos encima. Los valores que se muestran en la tabla se incluyen aunque todavía no se hayan guardado.
+    </p>
+    }
+    <div class="d-flex flex-wrap gap-2">
+      @if (tieneEscaneo) {
+      <app-simple-button-component data-boton-ver-escaneo [label]="abriendoEscaneo ? 'Descargando...' : 'Ver escaneo del estudiante'"
+        width="auto" height="38px" color="#2A3A86" [contorno]="true" [disabled]="abriendoEscaneo" (clicked)="verEscaneo()">
+      </app-simple-button-component>
+      }
+      <app-simple-button-component data-boton-formato-compuesto
+        [label]="descargando ? 'Generando...' : (firmaElDecano ? 'Generar formato con los datos de la tabla' : 'Descargar formato para firma del Decano')" width="auto" height="38px"
+        color="#2A3A86" [disabled]="descargando" (clicked)="descargarCompuesto()">
+      </app-simple-button-component>
+      @if (tieneFormatoDecano) {
+      <app-simple-button-component data-boton-ver-formato-decano [label]="abriendoFormatoDecano ? 'Descargando...' : 'Ver formato firmado por el Decano'"
+        width="auto" height="38px" color="#2A3A86" [contorno]="true" [disabled]="abriendoFormatoDecano" (clicked)="verFormatoDecano()">
+      </app-simple-button-component>
+      }
+    </div>
+    @if (!tieneEscaneo) {
+    <p class="nota-aviso mb-0" data-sin-escaneo>
+      La solicitud se radicó sin escaneo del estudiante; el formato se arma sobre la plantilla con sus datos.
+    </p>
+    }
+    <div>
+      <button type="button" class="btn btn-link p-0" data-alternar-ajuste [attr.aria-expanded]="verAjuste" (click)="alternarAjuste()">
+        {{ verAjuste ? 'Ocultar el ajuste de la posición del texto' : 'Ajustar posición del texto' }}
+      </button>
+      @if (verAjuste) {
+      <div class="d-flex flex-column gap-2 mt-2" data-ajuste-formato>
+        <p class="nota-gris mb-0">
+          Si el texto no coincide con las casillas del escaneo, se puede mover en milímetros: valores positivos en X lo llevan a la
+          derecha y en Y hacia arriba. El rango permitido va de -15 a 15.
+        </p>
+        <div class="d-flex flex-wrap gap-3">
+          <label class="d-flex flex-column">
+            <span>Desplazamiento horizontal X (mm)</span>
+            <input class="form-control" type="number" step="0.5" min="-15" max="15" data-ajuste="x"
+              [value]="ajusteX" (input)="ajusteX = $any($event.target).value">
+          </label>
+          <label class="d-flex flex-column">
+            <span>Desplazamiento vertical Y (mm)</span>
+            <input class="form-control" type="number" step="0.5" min="-15" max="15" data-ajuste="y"
+              [value]="ajusteY" (input)="ajusteY = $any($event.target).value">
+          </label>
+        </div>
+        @if (errorAjuste) {
+        <small class="texto-error" data-error="ajuste">{{ errorAjuste }}</small>
+        }
+        <div>
+          <app-simple-button-component data-boton-guardar-ajuste
+            [label]="guardandoAjuste ? 'Guardando...' : 'Guardar y descargar de nuevo'" width="auto" height="36px"
+            color="#2A3A86" [contorno]="true" [disabled]="guardandoAjuste || descargando" (clicked)="guardarAjuste()">
+          </app-simple-button-component>
+        </div>
+      </div>
+      }
+    </div>
+    @if (pideFormatoDecano) {
+    <div class="d-flex flex-column gap-2" data-carga-formato-decano>
+      @if (tieneFormatoDecano) {
+      <p class="nota-gris mb-0" data-formato-decano-cargado>
+        Ya hay un formato firmado por el Decano cargado. Si se elige otro, lo reemplaza.
+      </p>
+      } @else {
+      <p class="nota-aviso mb-0" data-falta-formato-decano>
+        Antes de enviar la respuesta o el recibo se debe subir el formato firmado por el Decano.
+      </p>
+      }
+      <app-input-anexo-upload-component #entrada [tipoAnexo]="tipo" [uploadedFile]="archivo"
+        (fileSelected)="alSeleccionar($event, entrada)" (fileRemoved)="alQuitar()">
+      </app-input-anexo-upload-component>
+      @if (error) {
+      <small class="texto-error" data-error="formato-decano">{{ error }}</small>
+      }
+      <div>
+        <app-simple-button-component data-boton-subir-formato-decano
+          [label]="subiendo ? 'Subiendo...' : 'Subir formato firmado por el Decano'" width="auto" height="38px"
+          color="#2A3A86" [disabled]="subiendo" (clicked)="subirFormatoDecano()">
+        </app-simple-button-component>
+      </div>
+    </div>
+    }
+    } @else if (firmaElDecano) {
+    <p class="nota-gris mb-0" data-pasos-decano>
+      Para enviar la decisión: elegir la decisión de cada asignatura en la tabla, descargar el formato con la decisión marcada,
+      firmarlo, escanearlo y subirlo en el diálogo de "Enviar decisión".
+    </p>
+    <div class="d-flex flex-wrap gap-2">
+      <app-simple-button-component data-boton-ver-formato
+        [label]="descargando ? 'Generando...' : 'Descargar formato con la decisión'" width="auto" height="38px" color="#2A3A86"
+        [disabled]="descargando || !decisionLista" (clicked)="descargarCompuesto()">
+      </app-simple-button-component>
+      @if (tieneFormatoDecano) {
+      <app-simple-button-component data-boton-ver-formato-decano [label]="abriendoFormatoDecano ? 'Descargando...' : 'Ver formato firmado por el Decano'"
+        width="auto" height="38px" color="#2A3A86" [contorno]="true" [disabled]="abriendoFormatoDecano" (clicked)="verFormatoDecano()">
+      </app-simple-button-component>
+      }
+    </div>
+    @if (!decisionLista) {
+    <p class="nota-aviso mb-0" data-falta-decision>El formato se descarga cuando todas las asignaturas tienen decisión.</p>
+    }
+    } @else {
+    <div>
+      <app-simple-button-component data-boton-ver-formato [label]="descargando ? 'Generando...' : 'Ver formato'" width="auto"
+        height="38px" color="#2A3A86" [contorno]="true" [disabled]="descargando" (clicked)="descargarCompuesto()">
+      </app-simple-button-component>
+    </div>
+    }
+  </div>
+</section>
+}

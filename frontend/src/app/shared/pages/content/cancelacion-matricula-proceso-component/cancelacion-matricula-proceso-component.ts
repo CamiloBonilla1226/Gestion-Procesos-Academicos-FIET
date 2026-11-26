@@ -1,4 +1,5 @@
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { FormatoOficialComponent } from '../../../others/formato-oficial-component/formato-oficial-component';
 import { Observable, catchError, finalize, map, of, switchMap, tap, throwError } from 'rxjs';
 import { GenericDialogFormComponent } from '../../../generic-dialog-form-component/generic-dialog-form-component';
 import { SimpleButtonComponent } from '../../../buttons/simple-button-component/simple-button-component';
@@ -88,21 +89,21 @@ const ACCIONES_DEL_PROCESO: AccionAcademica[] = [
 ];
 
 const ETIQUETAS_BOTON: Partial<Record<AccionAcademica, string>> = {
-  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'Rechazar solicitud',
+  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'No aprobar solicitud',
   [ACCIONES_ACADEMICAS.REMITIR_DECANO]: 'Remitir al Decano',
   [ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA]: 'Enviar respuesta'
 };
 
 const TITULOS_DIALOGO: Partial<Record<AccionAcademica, string>> = {
-  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'Rechazar la solicitud',
+  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'No aprobar la solicitud',
   [ACCIONES_ACADEMICAS.REMITIR_DECANO]: 'Remitir la solicitud al Decano',
   [ACCIONES_ACADEMICAS.APROBAR_DECANO]: 'Aprobar la cancelación de matrícula',
-  [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: 'Rechazar la cancelación de matrícula',
+  [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: 'No aprobar la cancelación de matrícula',
   [ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA]: 'Enviar la respuesta al estudiante'
 };
 
 const TEXTOS_BOTON_DIALOGO: Partial<Record<AccionAcademica, string>> = {
-  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'Rechazar solicitud',
+  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'No aprobar solicitud',
   [ACCIONES_ACADEMICAS.REMITIR_DECANO]: 'Remitir al Decano',
   [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: ETIQUETA_ENVIAR_DECISION,
   [ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA]: 'Enviar respuesta',
@@ -110,10 +111,10 @@ const TEXTOS_BOTON_DIALOGO: Partial<Record<AccionAcademica, string>> = {
 };
 
 const MENSAJES_EXITO: Partial<Record<AccionAcademica, string>> = {
-  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'La solicitud quedó rechazada.',
+  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'La solicitud quedó no aprobada.',
   [ACCIONES_ACADEMICAS.REMITIR_DECANO]: 'La solicitud fue remitida al Decano.',
   [ACCIONES_ACADEMICAS.APROBAR_DECANO]: 'La cancelación quedó aprobada.',
-  [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: 'La cancelación quedó rechazada.',
+  [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: 'La cancelación quedó no aprobada.',
   [ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA]: 'La respuesta fue enviada al estudiante.'
 };
 
@@ -122,6 +123,7 @@ const COLUMNAS_FIJAS = ['Código', 'Asignatura'];
 @Component({
   selector: 'app-cancelacion-matricula-proceso-component',
   imports: [
+    FormatoOficialComponent,
     GenericDialogFormComponent,
     SimpleButtonComponent,
     InputTextTareaComponent,
@@ -139,6 +141,11 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
   @Input({ required: true }) solicitud!: SolicitudAcademicaDetalleDTORespuesta;
   @Input({ required: true }) rol!: RolEtiqueta;
   @Input({ required: true }) recargar!: () => void;
+
+  faltaFormatoDecano(accion: AccionAcademica): boolean {
+    return (accion === ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA || accion === ACCIONES_ACADEMICAS.ENVIAR_RECIBO)
+      && !this.solicitud?.formatoFirmadoDecanoUuid;
+  }
 
   readonly acciones = ACCIONES_ACADEMICAS;
   readonly maximoObservacion = MAXIMO_CARACTERES_OBSERVACION;

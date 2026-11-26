@@ -28,6 +28,7 @@ import {
   fechaDeHoy
 } from '../../../../core/utils/validaciones-academicas';
 import { DatosEstudianteSesionComponent } from '../../../others/datos-estudiante-sesion-component/datos-estudiante-sesion-component';
+import { FormatoEstudianteComponent } from '../../../others/formato-estudiante-component/formato-estudiante-component';
 import { PasoFormulario, StepperFormularioComponent } from '../../../others/stepper-formulario-component/stepper-formulario-component';
 import { EnlaceFormatoComponent } from '../../../others/enlace-formato-component/enlace-formato-component';
 import { FORMATOS_POR_ANEXO } from '../../../../core/constantes/formatos-supletorio';
@@ -46,6 +47,7 @@ const TEXTOS_CAUSA: Record<string, string> = {
 @Component({
   selector: 'app-est-examen-supletorio-content-component',
   imports: [
+    FormatoEstudianteComponent,
     InputSelectComponent,
     InputDateComponent,
     InputAnexoUploadComponent,
@@ -222,7 +224,7 @@ export class EstExamenSupletorioContentComponent implements OnInit {
     this.intentoEnvio = true;
     this.errores = this.validar();
     if (Object.keys(this.errores).length > 0) {
-      this.toastService.showError('Revisa el formulario', 'Hay campos pendientes o con errores.');
+      this.toastService.showError('Formulario incompleto', 'Hay campos pendientes o con errores.');
       return;
     }
     this.enviando = true;
@@ -244,8 +246,7 @@ export class EstExamenSupletorioContentComponent implements OnInit {
       .subscribe({
         next: respuesta => {
           this.radicacion = respuesta;
-          this.toastService.showSuccess('Solicitud radicada', `Radicado ${respuesta.radicado}`);
-          this.irAlDetalle();
+          this.toastService.showSuccess('Formato generado', `Radicado ${respuesta.radicado}: descargue, firme y suba el formato`);
         },
         error: err => {
           this.erroresServidor = Object.entries(erroresDeCampos(err)).map(([campo, mensaje]) => `${campo}: ${mensaje}`);
@@ -276,20 +277,20 @@ export class EstExamenSupletorioContentComponent implements OnInit {
 
   private validar(): Record<string, string> {
     const errores: Record<string, string> = {};
-    if (!this.asignatura) errores['asignatura'] = 'Elige la asignatura del examen no presentado.';
+    if (!this.asignatura) errores['asignatura'] = 'Se debe seleccionar la asignatura del examen no presentado.';
     if (!esFechaValida(this.fechaExamen)) {
-      errores['fechaExamen'] = 'Indica la fecha del examen no presentado.';
+      errores['fechaExamen'] = 'Se debe indicar la fecha del examen no presentado.';
     } else if (this.fechaExamen.trim() > fechaDeHoy()) {
       errores['fechaExamen'] = 'La fecha del examen no presentado no puede ser posterior a hoy.';
     }
-    if (!this.causa) errores['causa'] = 'Elige la causa de la no presentación.';
+    if (!this.causa) errores['causa'] = 'Se debe seleccionar la causa de la no presentación.';
     if (this.esCruce) {
       if (!this.asignaturaCruzada) {
-        errores['asignaturaCruzada'] = 'Elige la asignatura con la que se cruzó el examen.';
+        errores['asignaturaCruzada'] = 'Se debe seleccionar la asignatura con la que se cruzó el examen.';
       } else if (this.asignaturaCruzada === this.asignatura) {
         errores['asignaturaCruzada'] = 'La asignatura cruzada debe ser distinta de la del examen no presentado.';
       }
-      if (!esFechaValida(this.fechaCruce)) errores['fechaCruce'] = 'Indica la fecha del examen cruzado.';
+      if (!esFechaValida(this.fechaCruce)) errores['fechaCruce'] = 'Se debe indicar la fecha del examen cruzado.';
       if (!esHoraValida(this.horaCruce)) errores['horaCruce'] = 'La hora del examen cruzado debe tener el formato HH:mm, por ejemplo 14:00.';
     }
     let total = 0;

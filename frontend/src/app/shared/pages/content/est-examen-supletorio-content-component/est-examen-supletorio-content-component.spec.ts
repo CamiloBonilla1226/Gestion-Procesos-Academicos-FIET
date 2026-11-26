@@ -19,7 +19,7 @@ function formulario(asignaturas = 2): FormularioExamenSupletorioDTORespuesta {
     })),
     causas: ['cruce', 'otra'],
     anexos: [
-      { uuidTipoAnexoAcademico: 'for23', nombre: 'Formato firmado por el docente que orienta la asignatura', formatosPermitidos: 'pdf,jpg,png', tamanioMaximoBytes: 5242880, causas: ['cruce', 'otra'] },
+      { uuidTipoAnexoAcademico: 'for23', nombre: 'Formato firmado', formatosPermitidos: 'pdf,jpg,png', tamanioMaximoBytes: 5242880, causas: ['cruce', 'otra'] },
       { uuidTipoAnexoAcademico: 'just', nombre: 'Soporte de la justificación de la no presentación', formatosPermitidos: 'pdf,jpg,png', tamanioMaximoBytes: 5242880, causas: ['otra'] },
       { uuidTipoAnexoAcademico: 'doc', nombre: 'Formato firmado por el docente de la asignatura con la que se cruza', formatosPermitidos: 'pdf,jpg,png', tamanioMaximoBytes: 5242880, causas: ['cruce'] }
     ],
@@ -112,7 +112,7 @@ describe('EstExamenSupletorioContentComponent', () => {
       fixture.componentInstance.alCambiarCausa('otra');
       expect(enlaces(fixture)).toEqual({ for23: { href: 'formatos/supletorio.docx', download: 'supletorio.docx' } });
       const linea = fixture.nativeElement.querySelector('[data-campo-anexo="for23"]').textContent;
-      expect(linea).toContain('Formato firmado por el docente que orienta la asignatura');
+      expect(linea).toContain('Formato firmado');
       expect(linea).not.toContain('PM-FO-4-FOR-23');
       expect(linea).toContain('Descargar formato');
     });
@@ -239,15 +239,15 @@ describe('EstExamenSupletorioContentComponent', () => {
     req.flush({ uuidSolicitudAcademica: 's-1', radicado: '2026-ES-0001' });
   });
 
-  it('tras radicar muestra el radicado en lugar del formulario y navega al detalle', () => {
+  it('tras radicar muestra el radicado en lugar del formulario y muestra los pasos para firmar sin salir del formulario', () => {
     const fixture = crear();
     llenarCruce(fixture.componentInstance);
     fixture.componentInstance.radicar();
     http.expectOne(URL).flush({ uuidSolicitudAcademica: 's-7', radicado: '2026-ES-0007' });
     fixture.detectChanges();
-    expect(toast.showSuccess).toHaveBeenCalledWith('Solicitud radicada', 'Radicado 2026-ES-0007');
-    expect(router.navigate).toHaveBeenCalledWith(['/estudiante/solicitudes', 's-7']);
-    expect(fixture.nativeElement.querySelector('[data-estado="radicada"]').textContent).toContain('2026-ES-0007');
+    expect(toast.showSuccess).toHaveBeenCalledWith('Formato generado', 'Radicado 2026-ES-0007: descargue, firme y suba el formato');
+    expect(router.navigate).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('[data-estado="pendiente-firma"]').textContent).toContain('2026-ES-0007');
     expect(fixture.nativeElement.querySelector('[data-boton-radicar]')).toBeNull();
   });
 

@@ -100,11 +100,15 @@
   </section>
   }
 
+  <app-formato-oficial-component [uuidSolicitud]="uuidSolicitud" [solicitud]="solicitud" [rol]="rol"
+    (formatoSubido)="recargar()">
+  </app-formato-oficial-component>
+
   @if (accionesVisibles.length > 0) {
   <section class="tarjeta tarjeta-acciones" data-acciones>
     @if (decide) {
     <app-decision-decano-component nombre="decision-matricula" textoAprobar="Aprobar la cancelación de matrícula"
-      textoRechazar="Rechazar la cancelación de matrícula" [decision]="decisionDecano" [deshabilitado]="!detalle"
+      textoRechazar="No aprobar la cancelación de matrícula" [decision]="decisionDecano" [deshabilitado]="!detalle"
       (decisionChange)="decisionDecano = $event">
     </app-decision-decano-component>
     <app-simple-button-component data-accion="ENVIAR_DECISION" [label]="etiquetaEnviarDecision" width="auto" height="38px"
@@ -114,7 +118,7 @@
     @for (accion of accionesBotones; track accion) {
     <app-simple-button-component [attr.data-accion]="accion" [label]="etiquetaBoton(accion)" width="auto" height="38px"
       [color]="esRechazo(accion) ? '#D0463B' : '#2A3A86'" [contorno]="esRechazo(accion)"
-      [disabled]="!detalle || cargandoSituaciones" (clicked)="abrir(accion)">
+      [disabled]="!detalle || cargandoSituaciones || faltaFormatoDecano(accion)" (clicked)="abrir(accion)">
     </app-simple-button-component>
     }
   </section>
@@ -128,7 +132,7 @@
     @switch (accionActiva) {
     @case (acciones.RECHAZAR_FUNCIONARIO) {
     <p class="nota-gris" data-nota-rechazo-directo>
-      La solicitud quedará rechazada y terminará el trámite sin pasar por el Decano, así que no lleva Resolución.
+      La solicitud quedará no aprobada y terminará el trámite sin pasar por el Decano, así que no lleva Resolución.
       Escribe la observación que verá el estudiante.
     </p>
     }
@@ -156,7 +160,7 @@
       @if (solicitud.etapaCodigo === 'APROBADA_POR_DECANO') {
       y las asignaturas que sigan activas quedan canceladas.
       } @else {
-      como rechazada.
+      como no aprobada.
       }
     </p>
     }

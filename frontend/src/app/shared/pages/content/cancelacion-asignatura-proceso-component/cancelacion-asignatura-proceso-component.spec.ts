@@ -51,7 +51,8 @@ function solicitud(acciones: string[], etapaCodigo = 'RADICADA', tieneResolucion
       uuidUsuario: 'e', nombres: 'María', apellidos: 'Pérez', codigoEstudiantil: '1', programaAcademico: 'P',
       semestre: '1', correoElectronico: 'm@u.co'
     },
-    anexos: [], tieneResolucion, puedeDescargarResolucion: tieneResolucion, accionesDisponibles: acciones
+    anexos: [], tieneResolucion, puedeDescargarResolucion: tieneResolucion, accionesDisponibles: acciones,
+    formatoFirmadoDecanoUuid: 'formato-decano'
   };
 }
 
@@ -195,14 +196,14 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
     it('decide que la etapa es final por la etiqueta y no por etapaCodigo', () => {
       const asignaturas = [{ ...soloCodigos('A1', 'Cálculo', 'as-1'), aprobadaPorDecano: true }];
       expect(encabezados(crear(solicitud([], 'APROBADA', false, 'En trámite'), asignaturas, 'ESTUDIANTE'))).toEqual(['Código', 'Asignatura']);
-      expect(encabezados(crear(solicitud([], 'EN_REVISION_DECANO', false, 'Rechazada'), asignaturas, 'ESTUDIANTE'))).toEqual([
+      expect(encabezados(crear(solicitud([], 'EN_REVISION_DECANO', false, 'No aprobada'), asignaturas, 'ESTUDIANTE'))).toEqual([
         'Código', 'Asignatura', 'Decisión del Decano', 'Situación académica al cancelar',
         'Estado académico de la asignatura cuando la matricule de nuevo'
       ]);
     });
 
     it('en la etapa final sin decisiones no pinta columnas vacias', () => {
-      const fixture = crear(solicitud([], 'RECHAZADA', false, 'Rechazada'), [soloCodigos('A1', 'Cálculo', 'as-1')], 'ESTUDIANTE');
+      const fixture = crear(solicitud([], 'RECHAZADA', false, 'No aprobada'), [soloCodigos('A1', 'Cálculo', 'as-1')], 'ESTUDIANTE');
       expect(encabezados(fixture)).toEqual(['Código', 'Asignatura']);
       expect(fixture.nativeElement.textContent).not.toContain('null');
     });
@@ -476,7 +477,7 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
       expect(fila2.textContent).not.toContain('Nota menor a 3.0');
       expect(selector(fixture, 'as-1').value).toBe('');
       expect(selector(fixture, 'as-2').value).toBe('');
-      expect(Array.from(selector(fixture, 'as-1').options).map(o => o.textContent?.trim())).toEqual(['—', 'Aprobar', 'Rechazar']);
+      expect(Array.from(selector(fixture, 'as-1').options).map(o => o.textContent?.trim())).toEqual(['—', 'Aprobar', 'No aprobar']);
       expect(fixture.componentInstance.decisiones).toEqual({ 'as-1': null, 'as-2': null });
       expect(fixture.nativeElement.querySelector('[data-cambio-decision]')).toBeNull();
     });
@@ -486,7 +487,7 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
       expect(botones(fixture)).toEqual(['ENVIAR_DECISION', 'APROBAR_TODAS', 'RECHAZAR_TODAS']);
       expect(boton(fixture, 'ENVIAR_DECISION').textContent?.trim()).toBe('Enviar decisión');
       expect(boton(fixture, 'APROBAR_TODAS').textContent?.trim()).toBe('Aprobar');
-      expect(boton(fixture, 'RECHAZAR_TODAS').textContent?.trim()).toBe('Rechazar');
+      expect(boton(fixture, 'RECHAZAR_TODAS').textContent?.trim()).toBe('No aprobar');
       expect(boton(fixture, 'APROBAR_TODAS').disabled).toBeFalse();
       expect(fixture.nativeElement.textContent).not.toContain('Aceptar tal como está');
       expect(fixture.nativeElement.textContent).not.toContain('Rechazar solicitud completa');
@@ -542,7 +543,7 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
       expect(componente.accionActiva).toBe('APROBAR_DECANO');
       expect(componente.tituloDialogo).toBe('Enviar la decisión del Decano');
       expect((document.querySelector('[data-boton-dialogo] button')?.textContent ?? '').trim()).toBe('Enviar decisión');
-      expect(document.querySelector('[data-decision="as-1"]')?.textContent).toContain('Rechazar');
+      expect(document.querySelector('[data-decision="as-1"]')?.textContent).toContain('No aprobar');
       expect(document.querySelector('[data-decision="as-2"]')?.textContent).toContain('Aprobar');
       componente.observacion = ' Solo la segunda ';
       componente.confirmar();
@@ -650,7 +651,7 @@ describe('CancelacionAsignaturaProcesoComponent', () => {
       expect(campo.textContent).toContain('Comentario para el Funcionario Académico');
       expect(campo.textContent).toContain('*');
       expect(campo.querySelector('[data-aviso-observacion]')?.textContent?.trim())
-        .toBe('El Funcionario Académico verá este comentario al recibir la solicitud rechazada.');
+        .toBe('El Funcionario Académico verá este comentario al recibir la solicitud no aprobada.');
       componente.confirmar();
       expect(componente.errores['observacion']).toContain('obligatori');
       expect(cancelaciones.rechazarPorDecano).not.toHaveBeenCalled();
@@ -1252,7 +1253,7 @@ describe('CancelacionAsignaturaProcesoComponent resaltado por resultado desde Re
     expect(otras(fixture)).toEqual(['as-1']);
     expect(fixture.nativeElement.querySelector('[data-otra-asignatura]').textContent.trim()).toBe('Otra asignatura de la solicitud');
     expect(celda(fixture, 'Asignatura')).toEqual(['Física', 'Química', 'Cálculo Otra asignatura de la solicitud']);
-    expect(aviso(fixture)).toBe('Se resaltan las asignaturas rechazadas de la solicitud');
+    expect(aviso(fixture)).toBe('Se resaltan las asignaturas no aprobadas de la solicitud');
     expect(fixture.nativeElement.querySelector('[data-motivo]').textContent).toContain('Cruce laboral');
   });
 

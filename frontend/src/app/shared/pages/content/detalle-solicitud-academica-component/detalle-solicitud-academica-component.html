@@ -42,10 +42,22 @@
           color="#2A3A86" [contorno]="true" [disabled]="descargandoResolucion" (clicked)="descargarResolucion()">
         </app-simple-button-component>
         }
+        @if (esEstudiante && solicitud.formatoFirmadoDecanoUuid) {
+        <app-simple-button-component data-boton-formato-decano
+          [label]="descargandoFormatoDecano ? 'Descargando...' : 'Descargar formato firmado por el Decano'" width="auto" height="36px"
+          color="#2A3A86" [contorno]="true" [disabled]="descargandoFormatoDecano" (clicked)="descargarFormatoDecano()">
+        </app-simple-button-component>
+        }
         <span class="pill" [attr.data-categoria]="categoriaEstado" data-estado-solicitud>{{ solicitud.etiqueta }}</span>
       </div>
     </div>
   </div>
+
+  @if (pendienteDeFirma) {
+  <app-formato-estudiante-component [uuidSolicitud]="uuidSolicitud" [radicado]="solicitud.radicado"
+    [supletorio]="proceso === 'examenes-supletorios'" [soportes]="proceso === 'cancelaciones-asignatura'" (radicada)="cargar()" (descartada)="irABandeja()">
+  </app-formato-estudiante-component>
+  }
 
   <section class="tarjeta" data-datos-generales [appTarjetaPlegable]="esFuncionario">
     <header class="tarjeta-head">
@@ -112,7 +124,7 @@
 
   @if (esEstudiante && rechazadaSinResolucion) {
   <p class="nota-aviso mb-0" data-rechazo-sin-resolucion>
-    El Funcionario Académico rechazó tu solicitud sin enviarla al Decano, por eso no tiene Resolución. La respuesta está en el
+    El Funcionario Académico no aprobó la solicitud sin remitirla al Decano; por esta razón, no cuenta con Resolución. La respuesta está en el
     mensaje para el estudiante y en el historial.
   </p>
   }

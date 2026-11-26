@@ -1,4 +1,5 @@
 export const ETAPAS_ACADEMICAS = {
+  PENDIENTE_FIRMA_ESTUDIANTE: 'PENDIENTE_FIRMA_ESTUDIANTE',
   RADICADA: 'RADICADA',
   EN_REVISION_DECANO: 'EN_REVISION_DECANO',
   APROBADA_POR_DECANO: 'APROBADA_POR_DECANO',
@@ -23,7 +24,9 @@ export const ACCIONES_ACADEMICAS = {
   ENVIAR_RECIBO: 'ENVIAR_RECIBO',
   SUBIR_COMPROBANTE: 'SUBIR_COMPROBANTE',
   APROBAR_COMPROBANTE: 'APROBAR_COMPROBANTE',
-  RECHAZAR_COMPROBANTE: 'RECHAZAR_COMPROBANTE'
+  RECHAZAR_COMPROBANTE: 'RECHAZAR_COMPROBANTE',
+  GENERAR_FORMATO: 'GENERAR_FORMATO',
+  DESCARTAR: 'DESCARTAR'
 } as const;
 
 export type AccionAcademica = (typeof ACCIONES_ACADEMICAS)[keyof typeof ACCIONES_ACADEMICAS];
@@ -94,26 +97,29 @@ export function resultadoFilaValido(valor: string | null | undefined): Resultado
 
 export const TEXTOS_ACCIONES: Record<AccionAcademica, string> = {
   [ACCIONES_ACADEMICAS.RADICAR]: 'Radicación de la solicitud',
-  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'Rechazo del Funcionario Académico',
+  [ACCIONES_ACADEMICAS.RECHAZAR_FUNCIONARIO]: 'No aprobación del Funcionario Académico',
   [ACCIONES_ACADEMICAS.REMITIR_DECANO]: 'Remisión al Decano',
   [ACCIONES_ACADEMICAS.APROBAR_DECANO]: 'Aprobación del Decano',
-  [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: 'Rechazo del Decano',
+  [ACCIONES_ACADEMICAS.RECHAZAR_DECANO]: 'No aprobación del Decano',
   [ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA]: 'Envío de la respuesta al estudiante',
   [ACCIONES_ACADEMICAS.ENVIAR_RECIBO]: 'Envío del recibo de pago',
   [ACCIONES_ACADEMICAS.SUBIR_COMPROBANTE]: 'Envío del comprobante de pago',
   [ACCIONES_ACADEMICAS.APROBAR_COMPROBANTE]: 'Aprobación del comprobante de pago',
-  [ACCIONES_ACADEMICAS.RECHAZAR_COMPROBANTE]: 'Rechazo del comprobante de pago'
+  [ACCIONES_ACADEMICAS.RECHAZAR_COMPROBANTE]: 'No aprobación del comprobante de pago',
+  [ACCIONES_ACADEMICAS.GENERAR_FORMATO]: 'Generación del formato para firmar',
+  [ACCIONES_ACADEMICAS.DESCARTAR]: 'Descarte de la solicitud'
 };
 
 export const TEXTOS_ETAPAS: Record<EtapaAcademica, string> = {
+  [ETAPAS_ACADEMICAS.PENDIENTE_FIRMA_ESTUDIANTE]: 'Pendiente de firma',
   [ETAPAS_ACADEMICAS.RADICADA]: 'Radicada',
   [ETAPAS_ACADEMICAS.EN_REVISION_DECANO]: 'En revisión del Decano',
   [ETAPAS_ACADEMICAS.APROBADA_POR_DECANO]: 'Aprobada por el Decano',
-  [ETAPAS_ACADEMICAS.RECHAZADA_POR_DECANO]: 'Rechazada por el Decano',
+  [ETAPAS_ACADEMICAS.RECHAZADA_POR_DECANO]: 'No aprobada por el Decano',
   [ETAPAS_ACADEMICAS.PENDIENTE_PAGO]: 'Pendiente de pago',
   [ETAPAS_ACADEMICAS.EN_VERIFICACION_PAGO]: 'En verificación de pago',
   [ETAPAS_ACADEMICAS.APROBADA]: 'Aprobada',
-  [ETAPAS_ACADEMICAS.RECHAZADA]: 'Rechazada'
+  [ETAPAS_ACADEMICAS.RECHAZADA]: 'No aprobada'
 };
 
 export function textoAccion(codigo: string | null | undefined): string {
