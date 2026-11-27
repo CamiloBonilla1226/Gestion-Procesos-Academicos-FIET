@@ -71,7 +71,6 @@ POST   solicitudes-academicas/{uuidSolicitud}/estudiante/radicar                
 DELETE solicitudes-academicas/{uuidSolicitud}/estudiante                        ninguno   denegado  denegado   denegado  denegado       permitido
 POST   solicitudes-academicas/{uuidSolicitud}/formato/compuesto                 json      denegado  denegado   permitido permitido      denegado
 PUT    solicitudes-academicas/{uuidSolicitud}/formato/ajuste                    json      denegado  denegado   denegado  permitido      denegado
-POST   solicitudes-academicas/{uuidSolicitud}/formato/decano                    multipart denegado  denegado   permitido permitido      denegado
 GET    cancelaciones-matricula/formulario                                       ninguno   denegado  denegado   denegado  denegado       permitido
 POST   cancelaciones-matricula                                                  multipart denegado  denegado   denegado  denegado       permitido
 GET    cancelaciones-matricula/{uuidSolicitud}                                  ninguno   denegado  denegado   permitido permitido      permitido
@@ -91,6 +90,8 @@ GET    cancelaciones-asignatura/{uuidSolicitud}/funcionario/notificacion/plantil
 PUT    cancelaciones-asignatura/{uuidSolicitud}/funcionario/notificacion        json      denegado  denegado   denegado  permitido      denegado
 POST   cancelaciones-asignatura/{uuidSolicitud}/funcionario/notificacion/firma  multipart denegado  denegado   denegado  permitido      denegado
 POST   cancelaciones-asignatura/{uuidSolicitud}/funcionario/notificacion/reintentar ninguno denegado denegado  denegado  permitido      denegado
+POST   cancelaciones-asignatura/{uuidSolicitud}/funcionario/resoluciones/borradores json denegado denegado  denegado  permitido      denegado
+POST   cancelaciones-asignatura/{uuidSolicitud}/funcionario/resoluciones/pdf    json      denegado  denegado   denegado  permitido      denegado
 POST   cancelaciones-asignatura/{uuidSolicitud}/decano/aprobar                  json      denegado  denegado   permitido denegado       denegado
 POST   cancelaciones-asignatura/{uuidSolicitud}/decano/rechazar                 json      denegado  denegado   permitido denegado       denegado
 GET    examenes-supletorios/formulario                                          ninguno   denegado  denegado   denegado  denegado       permitido

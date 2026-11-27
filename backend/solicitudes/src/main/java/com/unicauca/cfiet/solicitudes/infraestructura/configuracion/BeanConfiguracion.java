@@ -466,4 +466,17 @@ public class BeanConfiguracion {
                 anexoCU, solicitudGateway, tipoAnexoGateway, situacionGateway, eliminacionGateway, almacenamiento, composicion,
                 maquinaEtapas, formateadorExcepciones, log);
     }
+
+    @Bean
+    public ResolucionCancelacionAsignaturaCUImplAdaptador crearResolucionCancelacionAsignaturaCU(ConsultaCancelacionAsignaturaCUIntPuerto consultaAsignaturaCU,
+                                                                                               ConsultaSolicitudAcademicaCUIntPuerto consultaCU,
+                                                                                               SituacionAcademicaAsignaturaGatewayIntPuerto situacionGateway,
+                                                                                               GeneradorResolucionIntPuerto generador,
+                                                                                               ExcepcionesFormateadorIntPuerto formateadorExcepciones,
+                                                                                               @Value("${correo.resolucion.prefijo:}") String prefijo,
+                                                                                               @Value("${resolucion.firmante:}") String firmante,
+                                                                                               @Value("${resolucion.reviso:}") String reviso){
+        return new ResolucionCancelacionAsignaturaCUImplAdaptador(consultaAsignaturaCU, consultaCU, situacionGateway, generador,
+                formateadorExcepciones, Clock.system(ZoneId.of("America/Bogota")), prefijo, firmante, reviso);
+    }
 }

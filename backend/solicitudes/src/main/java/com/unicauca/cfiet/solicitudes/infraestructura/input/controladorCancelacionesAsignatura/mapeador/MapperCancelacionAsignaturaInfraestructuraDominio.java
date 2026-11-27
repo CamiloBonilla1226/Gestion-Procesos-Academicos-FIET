@@ -4,6 +4,8 @@ import com.unicauca.cfiet.solicitudes.aplicacion.output.ExcepcionesFormateadorIn
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
 import com.unicauca.cfiet.solicitudes.dominio.servicios.ComunicacionResolucion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTOPeticion.AjusteAsignaturaDTOPeticion;
+import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTOPeticion.BorradorResolucionDTOPeticion;
+import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTOPeticion.FilaResolucionDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTOPeticion.DecisionAsignaturaDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTOPeticion.EvaluacionCancelacionAsignaturaDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTOPeticion.ProgramacionResolucionDTOPeticion;
@@ -219,5 +221,62 @@ public class MapperCancelacionAsignaturaInfraestructuraDominio {
                 .codigo(situacion.getCodigo())
                 .nombre(situacion.getNombre())
                 .build();
+    }
+
+    public BorradorResolucion mapearBorrador(BorradorResolucionDTOPeticion peticion) {
+        if (peticion == null) return null;
+        List<FilaResolucionDTOPeticion> filas = peticion.getFilas() == null ? List.of() : peticion.getFilas();
+        return BorradorResolucion.builder()
+                .uuidAsignaturaSolicitud(peticion.getAsignaturaSolicitudUuid())
+                .numero(peticion.getNumero())
+                .fecha(peticion.getFecha())
+                .asunto(peticion.getAsunto())
+                .preambulo(peticion.getPreambulo())
+                .considerandos(peticion.getConsiderandos())
+                .articuloPrimero(peticion.getArticuloPrimero())
+                .filas(filas.stream().filter(fila -> fila != null).map(fila -> FilaResolucion.builder()
+                        .asignatura(fila.getAsignatura())
+                        .faltas(fila.getFaltas())
+                        .nota(fila.getNota())
+                        .estadoAlSolicitar(fila.getEstadoAlSolicitar())
+                        .estadoCancelacion(fila.getEstadoCancelacion())
+                        .estadoNuevaMatricula(fila.getEstadoNuevaMatricula())
+                        .build()).toList())
+                .articulosSiguientes(peticion.getArticulosSiguientes())
+                .firmante(peticion.getFirmante())
+                .cargoFirmante(peticion.getCargoFirmante())
+                .diligencia(peticion.getDiligencia())
+                .proyecto(peticion.getProyecto())
+                .reviso(peticion.getReviso())
+                .build();
+    }
+
+    public List<BorradorResolucionDTORespuesta> mapearBorradoresARespuesta(List<BorradorResolucion> borradores) {
+        return borradores.stream().map(borrador -> BorradorResolucionDTORespuesta.builder()
+                .asignaturaSolicitudUuid(borrador.getUuidAsignaturaSolicitud())
+                .asignatura(borrador.getAsignatura())
+                .aceptada(borrador.getAceptada())
+                .prefijo(borrador.getPrefijo())
+                .numero(borrador.getNumero())
+                .fecha(borrador.getFecha())
+                .asunto(borrador.getAsunto())
+                .preambulo(borrador.getPreambulo())
+                .considerandos(borrador.getConsiderandos())
+                .articuloPrimero(borrador.getArticuloPrimero())
+                .filas(borrador.getFilas().stream().map(fila -> FilaResolucionDTORespuesta.builder()
+                        .asignatura(fila.getAsignatura())
+                        .faltas(fila.getFaltas())
+                        .nota(fila.getNota())
+                        .estadoAlSolicitar(fila.getEstadoAlSolicitar())
+                        .estadoCancelacion(fila.getEstadoCancelacion())
+                        .estadoNuevaMatricula(fila.getEstadoNuevaMatricula())
+                        .build()).toList())
+                .articulosSiguientes(borrador.getArticulosSiguientes())
+                .firmante(borrador.getFirmante())
+                .cargoFirmante(borrador.getCargoFirmante())
+                .diligencia(borrador.getDiligencia())
+                .proyecto(borrador.getProyecto())
+                .reviso(borrador.getReviso())
+                .build()).toList();
     }
 }

@@ -137,6 +137,9 @@ public class MensajesError {
     public static final String DATO_RESOLUCION_MUY_LARGO = "%s de la Resolución supera los %d caracteres permitidos...";
     public static final String ANIO_RESOLUCION_INVALIDO = "El año de la Resolución debe estar entre %d y %d...";
     public static final String DECISION_RESOLUCION_REQUERIDA = "Debe indicar la decisión de la Resolución...";
+    public static final String RESOLUCION_BORRADOR_REQUERIDO = "Debe enviar el contenido de la Resolución que se va a generar...";
+    public static final String RESOLUCION_GENERADA_ETAPA = "La Resolución de la solicitud %s se genera cuando el Decano ya tomó la decisión y antes de enviar la respuesta...";
+    public static final String RESOLUCION_NO_GENERADA = "No se pudo generar el PDF de la Resolución de la solicitud %s...";
     public static final String MENSAJE_INICIAL_REQUERIDO = "El mensaje inmediato al estudiante es obligatorio: no puede estar vacío...";
     public static final String MENSAJE_INICIAL_MUY_LARGO = "El mensaje al estudiante supera los %d caracteres permitidos...";
     public static final String NOTIFICACION_NO_EDITABLE = "La comunicación de la Resolución de la solicitud %s ya no se puede modificar: solo se edita o se registra la firma mientras está programada, sin firma registrada y antes de la fecha y hora programadas...";

@@ -2,15 +2,21 @@ package com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelac
 
 import com.unicauca.cfiet.solicitudes.aplicacion.input.CancelacionAsignaturaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.ConsultaCancelacionAsignaturaCUIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.input.FormatoOficialCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.NotificacionResolucionCUIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.input.ResolucionCancelacionAsignaturaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.TramiteCancelacionAsignaturaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.dominio.helper.constantes.ApplicationConstantes;
+import com.unicauca.cfiet.solicitudes.dominio.modelos.ArchivoAdjunto;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.NotificacionResolucion;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.SolicitudCancelacionAsignatura;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTOPeticion.AprobacionCancelacionAsignaturaDTOPeticion;
+import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTOPeticion.BorradorResolucionDTOPeticion;
+import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTOPeticion.BorradoresResolucionDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTOPeticion.ProgramacionResolucionDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTOPeticion.RemisionCancelacionAsignaturaDTOPeticion;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTOPeticion.RespuestaCancelacionAsignaturaDTOPeticion;
+import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTORespuesta.BorradorResolucionDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTORespuesta.CancelacionAsignaturaDetalleDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTORespuesta.FormularioCancelacionAsignaturaDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTORespuesta.NotificacionResolucionDTORespuesta;
@@ -21,7 +27,10 @@ import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelaci
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.dao.DataAccessException;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +40,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,11 +54,14 @@ import java.util.function.Supplier;
 public class CancelacionAsignaturaRestController {
     private static final String UUID_SOLICITUD = "/{uuidSolicitud:[0-9a-fA-F\\-]{36}}";
     private static final String NOTIFICACION = "/funcionario/notificacion";
+    private static final String RESOLUCIONES = "/funcionario/resoluciones";
 
     private final CancelacionAsignaturaCUIntPuerto radicacionCU;
     private final ConsultaCancelacionAsignaturaCUIntPuerto consultaCU;
     private final TramiteCancelacionAsignaturaCUIntPuerto tramiteCU;
     private final NotificacionResolucionCUIntPuerto notificacionCU;
+    private final FormatoOficialCUIntPuerto formatoCU;
+    private final ResolucionCancelacionAsignaturaCUIntPuerto resolucionCU;
     private final MapperCancelacionAsignaturaInfraestructuraDominio mapper;
 
     @PreAuthorize(ApplicationConstantes.ESTUDIANTE_ACCESO)
@@ -166,8 +179,8 @@ public class CancelacionAsignaturaRestController {
     public ResponseEntity<?> aprobarPorDecano(@PathVariable String uuidSolicitud,
                                               @Valid @RequestBody AprobacionCancelacionAsignaturaDTOPeticion peticion,
                                               @RequestHeader("Authorization") String token) {
-        return accion(uuidSolicitud, token, () -> tramiteCU.aprobarPorDecano(uuidSolicitud, peticion.getAceptarEvaluacion(),
-                mapper.mapearDecisiones(peticion.getDecisiones()), peticion.getObservacion(), token.substring(7)));
+        return accion(uuidSolicitud, token, () -> conFormatoDeLaDecision(uuidSolicitud, token, tramiteCU.aprobarPorDecano(uuidSolicitud,
+                peticion.getAceptarEvaluacion(), mapper.mapearDecisiones(peticion.getDecisiones()), peticion.getObservacion(), token.substring(7))));
     }
 
     @PreAuthorize(ApplicationConstantes.DECANO_ACCESO)
@@ -176,8 +189,39 @@ public class CancelacionAsignaturaRestController {
     public ResponseEntity<?> rechazarPorDecano(@PathVariable String uuidSolicitud,
                                                @RequestBody(required = false) ObservacionDTOPeticion peticion,
                                                @RequestHeader("Authorization") String token) {
-        return accion(uuidSolicitud, token, () -> tramiteCU.rechazarPorDecano(uuidSolicitud,
-                peticion == null ? null : peticion.getObservacion(), token.substring(7)));
+        return accion(uuidSolicitud, token, () -> conFormatoDeLaDecision(uuidSolicitud, token, tramiteCU.rechazarPorDecano(uuidSolicitud,
+                peticion == null ? null : peticion.getObservacion(), token.substring(7))));
+    }
+
+    @PreAuthorize(ApplicationConstantes.FUNCIONARIO_ACADEMICO_ACCESO)
+    @Transactional(readOnly = true)
+    @PostMapping(UUID_SOLICITUD + RESOLUCIONES + "/borradores")
+    public ResponseEntity<List<BorradorResolucionDTORespuesta>> getBorradoresResolucion(@PathVariable String uuidSolicitud,
+                                                                                       @RequestBody(required = false) BorradoresResolucionDTOPeticion peticion,
+                                                                                       @RequestHeader("Authorization") String token) {
+        return new ResponseEntity<>(mapper.mapearBorradoresARespuesta(resolucionCU.getBorradores(uuidSolicitud,
+                peticion == null ? null : mapper.mapearAjustes(peticion.getAjustes()), token.substring(7))), HttpStatus.OK);
+    }
+
+    @PreAuthorize(ApplicationConstantes.FUNCIONARIO_ACADEMICO_ACCESO)
+    @Transactional(readOnly = true)
+    @PostMapping(UUID_SOLICITUD + RESOLUCIONES + "/pdf")
+    public ResponseEntity<ByteArrayResource> generarResolucion(@PathVariable String uuidSolicitud,
+                                                               @RequestBody BorradorResolucionDTOPeticion peticion,
+                                                               @RequestHeader("Authorization") String token) {
+        ArchivoAdjunto archivo = resolucionCU.generarPdf(uuidSolicitud, mapper.mapearBorrador(peticion), token.substring(7));
+        ByteArrayResource recurso = new ByteArrayResource(archivo.getContenido());
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.inline().filename(archivo.getNombreOriginal(), StandardCharsets.UTF_8).build().toString())
+                .contentType(MediaType.APPLICATION_PDF)
+                .contentLength(recurso.contentLength())
+                .body(recurso);
+    }
+
+    private SolicitudCancelacionAsignatura conFormatoDeLaDecision(String uuidSolicitud, String token, SolicitudCancelacionAsignatura cancelacion) {
+        formatoCU.guardarFormatoConDecision(uuidSolicitud, token.substring(7));
+        return cancelacion;
     }
 
     private ResponseEntity<?> accion(String uuidSolicitud, String token, Supplier<SolicitudCancelacionAsignatura> accion) {
