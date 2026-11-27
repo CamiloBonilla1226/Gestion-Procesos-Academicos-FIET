@@ -50,7 +50,7 @@ export function validarDatosUsuario(datos: DatosUsuarioAcademico): Record<string
   };
   agregar('nombres', errorDeTexto(datos.nombres, 1000, true, 'Los nombres'));
   agregar('apellidos', errorDeTexto(datos.apellidos, 1000, true, 'Los apellidos'));
-  if (!datos.tipoDocumento) errores['tipoDocumento'] = 'Elige el tipo de documento.';
+  if (!datos.tipoDocumento) errores['tipoDocumento'] = 'Se debe seleccionar el tipo de documento.';
   agregar('numeroDocumento', errorDeLongitud(datos.numeroDocumento, 5, 255, 'El número de documento'));
   agregar('telefono', errorDeLongitud(datos.telefono, 5, 1000, 'El teléfono'));
   agregar('correoElectronico', errorDeLongitud(datos.correoElectronico, 5, 1000, 'El correo electrónico'));

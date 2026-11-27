@@ -71,7 +71,6 @@ public class ExamenSupletorioCUImplAdaptador implements ExamenSupletorioCUIntPue
                                                              String horaExamenCruzada, List<AnexoRadicacion> anexos, String token) {
         validarEstudiante(uuidEstudiante);
         TipoSolicitudAcademica tipo = tipoExamenSupletorio();
-        solicitudCU.verificarSinSolicitudEnCurso(uuidEstudiante, tipo);
         Map<String, AsignaturaMatriculada> matriculadas = matriculadasDe(uuidEstudiante);
         if (!tieneTexto(uuidAsignaturaMatriculada))
             formateadorExcepciones.lanzarReglaNegocioViolada(MensajesError.ASIGNATURA_SUPLETORIO_REQUERIDA);

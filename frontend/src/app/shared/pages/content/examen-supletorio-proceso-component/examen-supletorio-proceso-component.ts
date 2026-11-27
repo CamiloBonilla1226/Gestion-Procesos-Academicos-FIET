@@ -373,7 +373,7 @@ export class ExamenSupletorioProcesoComponent implements OnChanges {
       .pipe(finalize(() => (this.enviando = false)))
       .subscribe({
         next: () => {
-          this.toastService.showSuccess('Listo', MENSAJES_EXITO[accion] ?? 'Acción realizada.');
+          this.toastService.showSuccess('Operación realizada', MENSAJES_EXITO[accion] ?? 'Acción realizada.');
           this.dialogoVisible = false;
           this.accionActiva = null;
           this.recargar();
@@ -502,11 +502,11 @@ export class ExamenSupletorioProcesoComponent implements OnChanges {
         const error = errorDeArchivo(this.archivoPago, this.tipoAnexoPago?.formatosPermitidos);
         if (error) errores['anexoPago'] = error;
       } else if (!this.anexoPagoYaCargado) {
-        errores['anexoPago'] = `Debes subir el ${ANEXO_DE_ACCION[accion]!.toLowerCase()}.`;
+        errores['anexoPago'] = `Se debe adjuntar el ${ANEXO_DE_ACCION[accion]!.toLowerCase()}.`;
       }
     }
     if (accion === ACCIONES_ACADEMICAS.APROBAR_COMPROBANTE && !this.docenteElegido) {
-      errores['docente'] = 'Selecciona el profesor que atenderá el examen supletorio.';
+      errores['docente'] = 'Se debe seleccionar el profesor que atenderá el examen supletorio.';
     }
     return errores;
   }

@@ -24,7 +24,7 @@ export const TRAMITES_ESTUDIANTE: TramiteCatalogo[] = [
       'Encontrarse a paz y salvo con la Universidad.'
     ],
     anexos: [
-      { texto: 'Formato oficial PA-GA-4.2-FOR-14, que el sistema genera al enviar la solicitud: se imprime, se firma y se sube escaneado.' },
+      { texto: 'Formato oficial PA-GA-4-FOR-83, que el sistema genera al enviar la solicitud: se imprime, se firma y se sube escaneado.' },
       { texto: 'Paz y salvo de Bibliotecas, Deportes y Recreación, Salud Integral y División Financiera.' },
       { texto: 'Cupón de Confirmación de la Intervención Psicosocial.' },
       { texto: 'Carné estudiantil o constancia de no trámite.' }
@@ -41,7 +41,7 @@ export const TRAMITES_ESTUDIANTE: TramiteCatalogo[] = [
       'Contar con nota promedio igual o superior a 3.0.'
     ],
     anexos: [
-      { texto: 'Formato oficial PA-GA-4.2-FOR-9, que el sistema genera al enviar la solicitud: se imprime, se firma y se sube escaneado.' },
+      { texto: 'Formato oficial PA-GA-4-FOR-84, que el sistema genera al enviar la solicitud: se imprime, se firma y se sube escaneado.' },
       { texto: 'Además del formato no se exigen otros documentos; solo se requiere indicar el motivo.' },
       { texto: 'Soporte que respalde el motivo, de forma opcional.' }
     ]

@@ -15,6 +15,11 @@ export class AnexosAcademicosComponent {
   @Input({ required: true }) uuidSolicitud!: string;
 
   @Input() anexos: AnexoAcademicoDTORespuesta[] = [];
+  @Input() formatoEnEdicion = false;
+  @Input() formatoConDecision = false;
+  @Input() radicado = '';
+
+  procesandoFormato: 'ver' | 'descargar' | null = null;
 
   descargando = new Set<string>();
   abriendo = new Set<string>();
@@ -43,7 +48,7 @@ export class AnexosAcademicosComponent {
       .pipe(finalize(() => this.descargando.delete(anexo.uuidAnexoAcademico)))
       .subscribe({
         next: blob => guardarArchivo(blob, anexo.nombreArchivo),
-        error: err => this.errorHandlerService.handleError(err, 'Error', 'No se pudo descargar el anexo')
+        error: err => this.errorHandlerService.handleError(err, 'Error', 'No fue posible descargar el anexo')
       });
   }
 
@@ -58,7 +63,41 @@ export class AnexosAcademicosComponent {
         next: blob => this.mostrar(blob, anexo, ventana),
         error: err => {
           ventana?.close();
-          this.errorHandlerService.handleError(err, 'Error', 'No se pudo abrir el anexo');
+          this.errorHandlerService.handleError(err, 'Error', 'No fue posible abrir el anexo');
+        }
+      });
+  }
+
+  get nombreFormato(): string {
+    return `Formato-${this.radicado}.pdf`;
+  }
+
+  get tipoFormato(): string {
+    return this.formatoConDecision
+      ? 'Formato de la solicitud con los datos de la Facultad y la decisión del Decano'
+      : 'Formato de la solicitud con los datos de la Facultad';
+  }
+
+  procesarFormato(accion: 'ver' | 'descargar'): void {
+    if (this.procesandoFormato || typeof window === 'undefined') return;
+    const ventana = accion === 'ver' ? window.open('', '_blank') : null;
+    this.procesandoFormato = accion;
+    this.solicitudAcademicaService
+      .descargarFormatoCompuesto(this.uuidSolicitud)
+      .pipe(finalize(() => (this.procesandoFormato = null)))
+      .subscribe({
+        next: blob => {
+          if (accion === 'descargar' || !ventana) {
+            guardarArchivo(blob, this.nombreFormato);
+            return;
+          }
+          const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+          ventana.location.href = url;
+          setTimeout(() => URL.revokeObjectURL(url), 60000);
+        },
+        error: err => {
+          ventana?.close();
+          this.errorHandlerService.handleError(err, 'Error', 'No fue posible obtener el formato de la solicitud');
         }
       });
   }

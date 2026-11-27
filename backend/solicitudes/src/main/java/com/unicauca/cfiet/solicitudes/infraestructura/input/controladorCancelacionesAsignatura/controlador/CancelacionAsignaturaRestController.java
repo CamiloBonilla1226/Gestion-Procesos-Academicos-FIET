@@ -2,7 +2,6 @@ package com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelac
 
 import com.unicauca.cfiet.solicitudes.aplicacion.input.CancelacionAsignaturaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.ConsultaCancelacionAsignaturaCUIntPuerto;
-import com.unicauca.cfiet.solicitudes.aplicacion.input.FormatoOficialCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.NotificacionResolucionCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.ResolucionCancelacionAsignaturaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.TramiteCancelacionAsignaturaCUIntPuerto;
@@ -60,7 +59,6 @@ public class CancelacionAsignaturaRestController {
     private final ConsultaCancelacionAsignaturaCUIntPuerto consultaCU;
     private final TramiteCancelacionAsignaturaCUIntPuerto tramiteCU;
     private final NotificacionResolucionCUIntPuerto notificacionCU;
-    private final FormatoOficialCUIntPuerto formatoCU;
     private final ResolucionCancelacionAsignaturaCUIntPuerto resolucionCU;
     private final MapperCancelacionAsignaturaInfraestructuraDominio mapper;
 
@@ -179,8 +177,8 @@ public class CancelacionAsignaturaRestController {
     public ResponseEntity<?> aprobarPorDecano(@PathVariable String uuidSolicitud,
                                               @Valid @RequestBody AprobacionCancelacionAsignaturaDTOPeticion peticion,
                                               @RequestHeader("Authorization") String token) {
-        return accion(uuidSolicitud, token, () -> conFormatoDeLaDecision(uuidSolicitud, token, tramiteCU.aprobarPorDecano(uuidSolicitud,
-                peticion.getAceptarEvaluacion(), mapper.mapearDecisiones(peticion.getDecisiones()), peticion.getObservacion(), token.substring(7))));
+        return accion(uuidSolicitud, token, () -> tramiteCU.aprobarPorDecano(uuidSolicitud, peticion.getAceptarEvaluacion(),
+                mapper.mapearDecisiones(peticion.getDecisiones()), peticion.getObservacion(), token.substring(7)));
     }
 
     @PreAuthorize(ApplicationConstantes.DECANO_ACCESO)
@@ -189,8 +187,8 @@ public class CancelacionAsignaturaRestController {
     public ResponseEntity<?> rechazarPorDecano(@PathVariable String uuidSolicitud,
                                                @RequestBody(required = false) ObservacionDTOPeticion peticion,
                                                @RequestHeader("Authorization") String token) {
-        return accion(uuidSolicitud, token, () -> conFormatoDeLaDecision(uuidSolicitud, token, tramiteCU.rechazarPorDecano(uuidSolicitud,
-                peticion == null ? null : peticion.getObservacion(), token.substring(7))));
+        return accion(uuidSolicitud, token, () -> tramiteCU.rechazarPorDecano(uuidSolicitud,
+                peticion == null ? null : peticion.getObservacion(), token.substring(7)));
     }
 
     @PreAuthorize(ApplicationConstantes.FUNCIONARIO_ACADEMICO_ACCESO)
@@ -217,11 +215,6 @@ public class CancelacionAsignaturaRestController {
                 .contentType(MediaType.APPLICATION_PDF)
                 .contentLength(recurso.contentLength())
                 .body(recurso);
-    }
-
-    private SolicitudCancelacionAsignatura conFormatoDeLaDecision(String uuidSolicitud, String token, SolicitudCancelacionAsignatura cancelacion) {
-        formatoCU.guardarFormatoConDecision(uuidSolicitud, token.substring(7));
-        return cancelacion;
     }
 
     private ResponseEntity<?> accion(String uuidSolicitud, String token, Supplier<SolicitudCancelacionAsignatura> accion) {

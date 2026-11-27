@@ -89,7 +89,7 @@ export function programacionDesde(notificacion: NotificacionResolucionDTORespues
 export function erroresDeProgramacion(programacion: ProgramacionEnEdicion, ahora: string = ahoraEnColombia()): Record<string, string> {
   const errores: Record<string, string> = {};
   const fecha = fechaHoraLocal(programacion.fecha);
-  if (!fecha) errores['fecha'] = 'Elige la fecha y la hora de la comunicación.';
+  if (!fecha) errores['fecha'] = 'Se debe seleccionar la fecha y la hora de la comunicación.';
   else if (fecha <= ahora) errores['fecha'] = 'La fecha y hora deben ser posteriores a la hora actual de Colombia.';
   const numero = programacion.numero.trim();
   if (!numero) errores['numero'] = 'El número de la Resolución es obligatorio.';
@@ -106,14 +106,14 @@ export function erroresDeProgramacion(programacion: ProgramacionEnEdicion, ahora
 
 export function errorDeMensajeInicial(comunicacion: ComunicacionEnEdicion, maximo: number = MAXIMO_MENSAJE_INICIAL): string {
   const mensaje = comunicacion.mensaje.trim();
-  if (!mensaje) return 'Escribe el mensaje inmediato al estudiante; siempre se envía.';
+  if (!mensaje) return 'Se debe redactar el mensaje inmediato para el estudiante; este mensaje siempre se envía.';
   if (mensaje.length > maximo) return `El mensaje admite máximo ${maximo} caracteres.`;
   return '';
 }
 
 export function errorDeTextoComunicacion(texto: string, destinatario: string, maximo: number = MAXIMO_TEXTO_COMUNICACION): string {
   const limpio = texto.trim();
-  if (!limpio) return `Escribe el texto que recibirá ${destinatario}.`;
+  if (!limpio) return `Se debe redactar el texto que recibirá ${destinatario}.`;
   if (limpio.length > maximo) return `El texto admite máximo ${maximo} caracteres.`;
   return '';
 }

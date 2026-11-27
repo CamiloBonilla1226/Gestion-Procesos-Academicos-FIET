@@ -50,6 +50,8 @@ export interface DatoGeneral {
   valor: string;
 }
 
+const ETAPAS_FORMATO_EN_EDICION: readonly string[] = ['EN_REVISION_DECANO', 'APROBADA_POR_DECANO', 'RECHAZADA_POR_DECANO'];
+
 const TITULOS_ANEXOS: Partial<Record<ProcesoAcademico, string>> = {
   [PROCESOS_ACADEMICOS.CANCELACION_MATRICULA]: 'Documentación requerida',
   [PROCESOS_ACADEMICOS.CANCELACION_ASIGNATURA]: 'Soporte adjunto',
@@ -141,6 +143,21 @@ export class DetalleSolicitudAcademicaComponent implements OnInit {
 
   get categoriaEstado(): CategoriaEstado {
     return categoriaEstado(this.solicitud?.etiqueta);
+  }
+
+  get formatoEnEdicion(): boolean {
+    if (!this.solicitud || this.solicitud.formatoFirmadoDecanoUuid) return false;
+    if (this.rol !== ROLES_ETIQUETA.FUNCIONARIO && this.rol !== ROLES_ETIQUETA.DECANO) return false;
+    if (procesoDeTipoSolicitud(this.solicitud.tipoSolicitud) !== PROCESOS_ACADEMICOS.CANCELACION_ASIGNATURA) return false;
+    return ETAPAS_FORMATO_EN_EDICION.includes(this.solicitud.etapaCodigo);
+  }
+
+  get formatoConDecision(): boolean {
+    return this.solicitud?.etapaCodigo !== 'EN_REVISION_DECANO';
+  }
+
+  get cantidadAnexos(): number {
+    return (this.solicitud?.anexos.length ?? 0) + (this.formatoEnEdicion ? 1 : 0);
   }
 
   get tituloAnexos(): string {

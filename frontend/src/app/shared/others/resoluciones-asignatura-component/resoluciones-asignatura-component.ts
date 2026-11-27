@@ -10,6 +10,13 @@ import {
 import { BorradorResolucionDTOPeticion } from '../../../core/models/CancelacionAsignatura/DTORequest/BorradorResolucionDTOPeticion';
 import { AjusteAsignaturaDTOPeticion } from '../../../core/models/CancelacionAsignatura/DTORequest/AjusteAsignaturaDTOPeticion';
 import { abrirVentana, guardarArchivo, mostrarArchivo } from '../../../core/utils/descargas';
+import {
+  MAXIMO_CAMPO_RESOLUCION,
+  MAXIMO_CELDA_RESOLUCION,
+  MAXIMO_NUMERO_RESOLUCION,
+  MAXIMO_TEXTO_RESOLUCION,
+  erroresDeResolucion
+} from '../../../core/utils/validaciones-resolucion';
 
 type CampoTexto =
   | 'numero'
@@ -37,6 +44,12 @@ export class ResolucionesAsignaturaComponent {
   @Input({ required: true }) uuidSolicitud!: string;
   @Input({ required: true }) radicado!: string;
   @Input() ajustes: () => AjusteAsignaturaDTOPeticion[] = () => [];
+  @Input() asignaturasSinSituaciones = 0;
+
+  readonly maximoTexto = MAXIMO_TEXTO_RESOLUCION;
+  readonly maximoCampo = MAXIMO_CAMPO_RESOLUCION;
+  readonly maximoCelda = MAXIMO_CELDA_RESOLUCION;
+  readonly maximoNumero = MAXIMO_NUMERO_RESOLUCION;
 
   readonly columnas: { campo: CampoFila; titulo: string }[] = [
     { campo: 'asignatura', titulo: 'Asignatura' },
@@ -50,6 +63,9 @@ export class ResolucionesAsignaturaComponent {
   borradores: BorradorResolucionDTORespuesta[] = [];
   cargando = false;
   generando: Record<number, 'ver' | 'descargar' | null> = {};
+  errores: Record<number, Record<string, string>> = {};
+  editado = false;
+  confirmarRegenerar = false;
 
   constructor(
     private cancelacionAsignaturaService: CancelacionAsignaturaService,
@@ -60,8 +76,22 @@ export class ResolucionesAsignaturaComponent {
     return this.borradores.length > 0;
   }
 
+  pedirGeneracion(): void {
+    if (this.cargando) return;
+    if (this.hayBorradores && this.editado) {
+      this.confirmarRegenerar = true;
+      return;
+    }
+    this.generar();
+  }
+
+  cancelarRegeneracion(): void {
+    this.confirmarRegenerar = false;
+  }
+
   generar(): void {
     if (this.cargando) return;
+    this.confirmarRegenerar = false;
     this.cargando = true;
     this.cancelacionAsignaturaService
       .getBorradoresResolucion(this.uuidSolicitud, { ajustes: this.ajustes() })
@@ -70,17 +100,30 @@ export class ResolucionesAsignaturaComponent {
         next: borradores => {
           this.borradores = borradores.map(borrador => ({ ...borrador, filas: (borrador.filas ?? []).map(fila => ({ ...fila })) }));
           this.generando = {};
+          this.errores = {};
+          this.editado = false;
         },
-        error: err => this.errorHandlerService.handleError(err, 'Error', 'No se pudieron generar las resoluciones')
+        error: err => this.errorHandlerService.handleError(err, 'Error', 'No fue posible generar las resoluciones')
       });
   }
 
   cambiar(borrador: BorradorResolucionDTORespuesta, campo: CampoTexto, evento: Event): void {
     borrador[campo] = (evento.target as HTMLInputElement | HTMLTextAreaElement).value;
+    this.editado = true;
+    this.limpiarError(borrador, campo);
+  }
+
+  error(indice: number, clave: string): string {
+    return this.errores[indice]?.[clave] ?? '';
+  }
+
+  cantidadErrores(indice: number): number {
+    return Object.keys(this.errores[indice] ?? {}).length;
   }
 
   cambiarFila(fila: FilaResolucionDTO, campo: CampoFila, evento: Event): void {
     fila[campo] = (evento.target as HTMLInputElement).value;
+    this.editado = true;
   }
 
   ver(indice: number): void {
@@ -102,6 +145,12 @@ export class ResolucionesAsignaturaComponent {
       alFallar?.();
       return;
     }
+    const errores = erroresDeResolucion(borrador, accion === 'descargar');
+    this.errores = { ...this.errores, [indice]: errores };
+    if (Object.keys(errores).length > 0) {
+      alFallar?.();
+      return;
+    }
     this.generando[indice] = accion;
     this.cancelacionAsignaturaService
       .generarResolucion(this.uuidSolicitud, this.peticionDe(borrador))
@@ -110,9 +159,17 @@ export class ResolucionesAsignaturaComponent {
         next: alListo,
         error: err => {
           alFallar?.();
-          this.errorHandlerService.handleError(err, 'Error', 'No se pudo generar el PDF de la Resolución');
+          this.errorHandlerService.handleError(err, 'Error', 'No fue posible generar el PDF de la Resolución');
         }
       });
+  }
+
+  private limpiarError(borrador: BorradorResolucionDTORespuesta, campo: CampoTexto): void {
+    const indice = this.borradores.indexOf(borrador);
+    if (indice < 0 || !this.errores[indice]?.[campo]) return;
+    const restantes = { ...this.errores[indice] };
+    delete restantes[campo];
+    this.errores = { ...this.errores, [indice]: restantes };
   }
 
   private peticionDe(borrador: BorradorResolucionDTORespuesta): BorradorResolucionDTOPeticion {

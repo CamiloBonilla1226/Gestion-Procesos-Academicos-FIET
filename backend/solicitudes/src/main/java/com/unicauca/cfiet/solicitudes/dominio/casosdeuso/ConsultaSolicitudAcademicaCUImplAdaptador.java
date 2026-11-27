@@ -21,6 +21,8 @@ import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcad
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.FORMATO_FIRMADO_ESTUDIANTE;
 
 public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolicitudAcademicaCUIntPuerto {
+    private static final Set<String> ETAPAS_FORMATO_EN_EDICION = Set.of(EtapaSolicitudAcademicaConstantes.EN_REVISION_DECANO,
+            EtapaSolicitudAcademicaConstantes.APROBADA_POR_DECANO, EtapaSolicitudAcademicaConstantes.RECHAZADA_POR_DECANO);
     private static final String SOLICITUD_ACADEMICA = "Solicitud académica";
     private static final String ANEXO_ACADEMICO = "Anexo académico";
     private static final String USUARIO = "Usuario";
@@ -104,10 +106,11 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
         boolean puedeDescargar = tieneResolucion && (acceso.rol() != RolEtiquetaEtapa.ESTUDIANTE || maquinaEtapas.esFinal(etapa));
         TipoProcesoAcademico proceso = TipoProcesoAcademico.porNombre(solicitud.getTipoSolicitudAcademica().getNombre());
         boolean formatoDecanoVisible = formatoDecanoVisible(acceso, proceso, etapa);
-        List<AnexoAcademico> anexos = anexoGateway.getPorSolicitud(uuid).stream()
+        List<AnexoAcademico> todos = anexoGateway.getPorSolicitud(uuid).stream()
                 .filter(anexo -> !acceso.retenida() || !esDocumentoAdicional(anexo))
                 .filter(anexo -> formatoDecanoVisible || !esDelTipo(anexo, FORMATO_FIRMADO_DECANO))
                 .toList();
+        List<AnexoAcademico> anexos = proceso == TipoProcesoAcademico.CANCELACION_ASIGNATURA ? soloFormatoVigente(todos, etapa, acceso.rol()) : todos;
         return DetalleSolicitudAcademica.builder()
                 .solicitudAcademica(solicitud)
                 .etiqueta(acceso.etiqueta())
@@ -116,8 +119,8 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
                 .anexos(anexos)
                 .tieneResolucion(tieneResolucion)
                 .puedeDescargarResolucion(puedeDescargar)
-                .formatoFirmadoEstudianteUuid(uuidDelTipo(anexos, FORMATO_FIRMADO_ESTUDIANTE))
-                .formatoFirmadoDecanoUuid(uuidDelTipo(anexos, FORMATO_FIRMADO_DECANO))
+                .formatoFirmadoEstudianteUuid(uuidDelTipo(todos, FORMATO_FIRMADO_ESTUDIANTE))
+                .formatoFirmadoDecanoUuid(uuidDelTipo(todos, FORMATO_FIRMADO_DECANO))
                 .ajusteFormatoXmm(acceso.rol() == RolEtiquetaEtapa.ESTUDIANTE ? null : solicitud.getAjusteFormatoXmm())
                 .ajusteFormatoYmm(acceso.rol() == RolEtiquetaEtapa.ESTUDIANTE ? null : solicitud.getAjusteFormatoYmm())
                 .accionesDisponibles(proceso == null ? List.of() : maquinaEtapas.accionesDisponibles(proceso, etapa, acceso.rol()))
@@ -220,6 +223,13 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
         if (acceso.retenida()) return false;
         return maquinaEtapas.esFinal(etapa) || (proceso == TipoProcesoAcademico.EXAMEN_SUPLETORIO
                 && (EtapaSolicitudAcademicaConstantes.PENDIENTE_PAGO.equals(etapa) || EtapaSolicitudAcademicaConstantes.EN_VERIFICACION_PAGO.equals(etapa)));
+    }
+
+    private List<AnexoAcademico> soloFormatoVigente(List<AnexoAcademico> anexos, String etapa, RolEtiquetaEtapa rol) {
+        boolean hayFormatoDecano = anexos.stream().anyMatch(anexo -> esDelTipo(anexo, FORMATO_FIRMADO_DECANO));
+        boolean enEdicion = rol != RolEtiquetaEtapa.ESTUDIANTE && ETAPAS_FORMATO_EN_EDICION.contains(etapa);
+        if (!hayFormatoDecano && !enEdicion) return anexos;
+        return anexos.stream().filter(anexo -> !esDelTipo(anexo, FORMATO_FIRMADO_ESTUDIANTE)).toList();
     }
 
     private boolean esDelTipo(AnexoAcademico anexo, String nombre) {

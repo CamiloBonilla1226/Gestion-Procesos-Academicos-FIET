@@ -85,7 +85,7 @@ export class CargaExcelAcademicaComponent {
       return;
     }
     if (!this.archivo) {
-      this.error = 'Elige el archivo Excel que quieres cargar.';
+      this.error = 'Se debe seleccionar el archivo Excel que se desea cargar.';
       return;
     }
     this.enviando = true;

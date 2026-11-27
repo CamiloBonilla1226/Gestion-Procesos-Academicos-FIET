@@ -17,7 +17,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.APROBADA_POR_DECANO;
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.RECHAZADA_POR_DECANO;
@@ -71,8 +70,10 @@ public class ResolucionCancelacionAsignaturaCUImplAdaptador implements Resolucio
         if (ajustes != null)
             ajustes.stream().filter(ajuste -> ajuste != null && ajuste.getUuidAsignaturaSolicitud() != null)
                     .forEach(ajuste -> porAsignatura.put(ajuste.getUuidAsignaturaSolicitud(), ajuste));
-        Map<String, String> situaciones = situacionGateway.getTodas().stream()
-                .collect(Collectors.toMap(SituacionAcademicaAsignatura::getUuidSituacionAcademica, SituacionAcademicaAsignatura::getNombre));
+        Map<String, String> situaciones = new HashMap<>();
+        for (SituacionAcademicaAsignatura situacion : situacionGateway.getTodas())
+            if (situacion != null && situacion.getUuidSituacionAcademica() != null && situacion.getNombre() != null)
+                situaciones.put(situacion.getUuidSituacionAcademica(), situacion.getNombre());
         String observacionDecano = observacionDelDecano(uuidSolicitudAcademica, token);
         LocalDate hoy = LocalDate.now(reloj);
         String proyecto = funcionarioDe(solicitud);
@@ -148,6 +149,18 @@ public class ResolucionCancelacionAsignaturaCUImplAdaptador implements Resolucio
     }
 
     private void validarLargos(BorradorResolucion borrador) {
+        Map<String, String> obligatorios = Map.of("El asunto", valor(borrador.getAsunto()), "El preámbulo", valor(borrador.getPreambulo()),
+                "Los considerandos", valor(borrador.getConsiderandos()), "El artículo primero", valor(borrador.getArticuloPrimero()),
+                "Los demás artículos", valor(borrador.getArticulosSiguientes()), "El nombre de quien firma", valor(borrador.getFirmante()),
+                "El cargo de quien firma", valor(borrador.getCargoFirmante()));
+        obligatorios.forEach((campo, texto) -> {
+            if (texto.isEmpty())
+                formateadorExcepciones.lanzarMalFormato(String.format(MensajesError.DATO_RESOLUCION_REQUERIDO, campo));
+        });
+        if (!valor(borrador.getNumero()).matches("[0-9A-Za-z-]*"))
+            formateadorExcepciones.lanzarMalFormato(MensajesError.NUMERO_RESOLUCION_INVALIDO);
+        if (borrador.getFecha() != null && (borrador.getFecha().getYear() < 2000 || borrador.getFecha().getYear() > 2099))
+            formateadorExcepciones.lanzarMalFormato(MensajesError.FECHA_RESOLUCION_INVALIDA);
         Map<String, String> textos = Map.of("El preámbulo", valor(borrador.getPreambulo()), "Los considerandos", valor(borrador.getConsiderandos()),
                 "El artículo primero", valor(borrador.getArticuloPrimero()), "Los demás artículos", valor(borrador.getArticulosSiguientes()),
                 "La diligencia de notificación", valor(borrador.getDiligencia()));
@@ -266,11 +279,11 @@ public class ResolucionCancelacionAsignaturaCUImplAdaptador implements Resolucio
     private String observacionDelDecano(String uuidSolicitudAcademica, String token) {
         List<HistorialSolicitudAcademica> historial = consultaCU.getHistorial(uuidSolicitudAcademica, token);
         if (historial == null) return null;
-        return historial.stream()
-                .filter(fila -> ACCIONES_DECANO.contains(fila.getAccion()))
-                .map(HistorialSolicitudAcademica::getObservaciones)
-                .reduce((primera, segunda) -> segunda)
-                .orElse(null);
+        String ultima = null;
+        for (HistorialSolicitudAcademica fila : historial)
+            if (fila != null && ACCIONES_DECANO.contains(fila.getAccion()))
+                ultima = fila.getObservaciones();
+        return ultima;
     }
 
     private String funcionarioDe(SolicitudAcademica solicitud) {

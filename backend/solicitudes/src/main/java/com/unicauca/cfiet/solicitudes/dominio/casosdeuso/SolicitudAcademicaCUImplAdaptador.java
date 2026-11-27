@@ -126,7 +126,6 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
                     MensajesError.ENTIDAD_NO_ENCONTRADA, TIPO_SOLICITUD_ACADEMICA, uuidTipoSolicitudAcademica));
 
         TipoProcesoAcademico proceso = procesoDe(tipo);
-        verificarSinSolicitudEnCurso(estudiante.getUuidUsuario(), tipo);
         ResultadoTransicion resultado = maquinaEtapas.siguienteEtapa(proceso, null, AccionEtapa.GENERAR_FORMATO, RolEtiquetaEtapa.ESTUDIANTE);
         EtapaSolicitudAcademica etapa = etapaDe(tipo, resultado.getEtapaSiguiente());
         LocalDateTime ahora = LocalDateTime.now(reloj);
@@ -237,6 +236,7 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
                 + (supletorio ? String.format(CUERPO_SUPLETORIO, solicitud.getRadicado())
                 : rechazoDirecto ? String.format(CUERPO_RECHAZO_DIRECTO, solicitud.getRadicado()) : CUERPO_RESOLUCION);
         correo.enviar(destinatario, ASUNTOS_RESPUESTA.get(proceso), texto, adjuntos);
+        if (rechazoDirecto && proceso == TipoProcesoAcademico.CANCELACION_ASIGNATURA) return;
         notificador.avisarDarca(solicitud, proceso, accion, fecha);
     }
 

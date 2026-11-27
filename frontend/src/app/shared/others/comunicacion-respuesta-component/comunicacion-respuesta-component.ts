@@ -28,7 +28,7 @@ export class ComunicacionRespuestaComponent {
 
   readonly notaRetencion = NOTA_RETENCION_ESTUDIANTE;
   readonly ayudaEstudiante =
-    'Los datos entre llaves se llenan al enviar: {numero}, {anio}, {nombre} y {decision} (en negrilla). Si cambias el número, el año o la decisión arriba, el texto los toma solo.';
+    'Los datos entre llaves se llenan al enviar: {numero}, {anio}, {nombre} y {decision} (en negrilla). Si se modifican el número, el año o la decisión, el texto se actualiza automáticamente.';
   readonly ayudaDarca = '{fecha} se reemplaza por la fecha en que sale el correo.';
 
   get valoresEstudiante(): Record<string, string> {

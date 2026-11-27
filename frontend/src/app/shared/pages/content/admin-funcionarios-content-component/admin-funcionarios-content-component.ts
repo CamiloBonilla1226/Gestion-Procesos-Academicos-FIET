@@ -197,7 +197,7 @@ export class AdminFuncionariosContentComponent implements OnInit {
     const errores = validarCambiosPersonales(peticion);
     const errorCargo = errorDeTexto(peticion.cargo, 100, false, 'El cargo');
     if (errorCargo) errores['cargo'] = errorCargo;
-    if (Object.keys(peticion).length === 0) errores['edicion'] = 'No cambiaste ningún dato.';
+    if (Object.keys(peticion).length === 0) errores['edicion'] = 'No se ha modificado ningún dato.';
     return errores;
   }
 
@@ -219,7 +219,7 @@ export class AdminFuncionariosContentComponent implements OnInit {
     this.erroresServidor = [];
     llamada.pipe(finalize(() => (this.enviando = false))).subscribe({
       next: () => {
-        this.toastService.showSuccess('Listo', exito);
+        this.toastService.showSuccess('Operación realizada', exito);
         alTerminar();
         this.cargar();
       },

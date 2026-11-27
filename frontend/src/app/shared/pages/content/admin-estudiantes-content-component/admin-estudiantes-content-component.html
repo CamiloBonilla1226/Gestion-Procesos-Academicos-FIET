@@ -71,7 +71,7 @@
     </div>
     @if (confirmandoCambioPrograma) {
     <div class="alert alert-warning mb-0 py-2" data-confirmar-programa>
-      <p class="mb-2">Si cambias el programa se quitan las asignaturas que ya agregaste. ¿Quieres cambiarlo?</p>
+      <p class="mb-2">Si se cambia el programa, se retirarán las asignaturas ya agregadas. ¿Desea continuar con el cambio?</p>
       <div class="d-flex gap-2">
         <app-simple-button-component data-boton-confirmar-programa label="Cambiar programa" width="160px" height="30px"
           (clicked)="confirmarCambioPrograma()">
@@ -105,7 +105,7 @@
     </div>
     <h6 class="mb-0 mt-2">Asignaturas matriculadas</h6>
     @if (!uuidPrograma) {
-    <small class="text-secondary" data-aviso-asignaturas="sin-programa">Elige primero el programa para ver sus asignaturas.</small>
+    <small class="text-secondary" data-aviso-asignaturas="sin-programa">Se debe seleccionar primero el programa para ver sus asignaturas.</small>
     } @else if (cargandoAsignaturas) {
     <div class="d-flex align-items-center gap-2 text-secondary" data-aviso-asignaturas="cargando">
       <div class="spinner-border spinner-border-sm" role="status"></div>
@@ -164,7 +164,7 @@
   (visibleChange)="cerrarEditar($event)" (save)="editar()">
   <div class="d-flex flex-column gap-2" data-dialogo-editar (input)="revalidarEditar()" (change)="revalidarEditar()">
     <p class="mb-0 small text-secondary">
-      {{ nombreSeleccionado }}. Cambia solo los datos que necesites; un campo que dejes vacío conserva su valor.
+      {{ nombreSeleccionado }}. Modifique únicamente los datos necesarios; los campos que se dejen vacíos conservan su valor actual.
     </p>
     <dl class="row small mb-0" data-solo-lectura>
       <dt class="col-4">Nombre de usuario</dt>

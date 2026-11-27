@@ -79,8 +79,8 @@
     </p>
     } @else if (n.editable) {
     <p class="nota-gris mt-3 mb-0" data-nota-editable>
-      La Resolución vigente es la que subiste sin la firma del estudiante. Hasta la fecha y hora programadas puedes reprogramar,
-      corregir los datos o, si el estudiante firma en la Decanatura, registrar la firmada: eso cierra la comunicación.
+      La Resolución vigente es la que se adjuntó sin la firma del estudiante. Hasta la fecha y hora programadas es posible
+      reprogramar, corregir los datos o, si el estudiante firma en la Decanatura, registrar la firmada; esto cierra la comunicación.
     </p>
     } @else if (n.estado === 'PROGRAMADA' || n.estado === 'EN_PROCESO') {
     <p class="nota-gris mt-3 mb-0" data-nota-en-envio>La fecha programada ya llegó: la comunicación se está enviando y no se puede modificar.</p>
@@ -118,7 +118,7 @@
     }
     @case ('firma') {
     <p class="nota-gris mb-0" data-nota-firma>
-      Sube la Resolución firmada por el estudiante; reemplaza a la Resolución sin firmar. Al guardar, la comunicación programada
+      Se debe adjuntar la Resolución firmada por el estudiante, que reemplaza a la Resolución sin firmar. Al guardar, la comunicación programada
       queda cerrada: al estudiante no se le envía, DARCA recibe de inmediato el PDF de la respuesta y esta Resolución con el texto de
       abajo, y el estudiante ya ve la respuesta. Después no se puede subir otra firmada.
     </p>

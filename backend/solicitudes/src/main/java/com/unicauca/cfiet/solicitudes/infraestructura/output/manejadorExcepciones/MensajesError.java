@@ -72,7 +72,7 @@ public class MensajesError {
     public static final String RESOLUCION_ETAPA_FINAL = "La solicitud %s está en la etapa final %s y su Resolución ya no se puede subir ni reemplazar...";
     public static final String RESOLUCION_ETAPA_NO_PERMITIDA = "El escaneo de la Resolución solo se sube en las etapas %s y la solicitud está en %s...";
     public static final String RESOLUCION_NO_DISPONIBLE = "La Resolución de la solicitud %s estará disponible cuando la solicitud termine...";
-    public static final String SOLICITUD_EN_CURSO = "Ya tienes una solicitud de %s en curso (%s), debe terminar antes de radicar otra...";
+    public static final String SOLICITUD_EN_CURSO = "Ya existe una solicitud de %s en curso (%s); se debe esperar a que termine antes de radicar otra...";
     public static final String RADICADO_NO_GENERADO = "No se pudo generar el radicado, intente de nuevo...";
     public static final String MOTIVO_CANCELACION_REQUERIDO = "El motivo de la cancelación es obligatorio...";
     public static final String MOTIVO_CANCELACION_MUY_LARGO = "El motivo de la cancelación supera los %d caracteres permitidos...";
@@ -137,9 +137,12 @@ public class MensajesError {
     public static final String DATO_RESOLUCION_MUY_LARGO = "%s de la Resolución supera los %d caracteres permitidos...";
     public static final String ANIO_RESOLUCION_INVALIDO = "El año de la Resolución debe estar entre %d y %d...";
     public static final String DECISION_RESOLUCION_REQUERIDA = "Debe indicar la decisión de la Resolución...";
-    public static final String RESOLUCION_BORRADOR_REQUERIDO = "Debe enviar el contenido de la Resolución que se va a generar...";
+    public static final String RESOLUCION_BORRADOR_REQUERIDO = "Se debe enviar el contenido de la Resolución que se va a generar...";
     public static final String RESOLUCION_GENERADA_ETAPA = "La Resolución de la solicitud %s se genera cuando el Decano ya tomó la decisión y antes de enviar la respuesta...";
-    public static final String RESOLUCION_NO_GENERADA = "No se pudo generar el PDF de la Resolución de la solicitud %s...";
+    public static final String RESOLUCION_NO_GENERADA = "No fue posible generar el PDF de la Resolución de la solicitud %s...";
+    public static final String DATO_RESOLUCION_REQUERIDO = "%s de la Resolución es obligatorio...";
+    public static final String NUMERO_RESOLUCION_INVALIDO = "El número de la Resolución solo admite dígitos, letras y guiones, sin espacios...";
+    public static final String FECHA_RESOLUCION_INVALIDA = "La fecha de expedición de la Resolución debe estar entre los años 2000 y 2099...";
     public static final String MENSAJE_INICIAL_REQUERIDO = "El mensaje inmediato al estudiante es obligatorio: no puede estar vacío...";
     public static final String MENSAJE_INICIAL_MUY_LARGO = "El mensaje al estudiante supera los %d caracteres permitidos...";
     public static final String NOTIFICACION_NO_EDITABLE = "La comunicación de la Resolución de la solicitud %s ya no se puede modificar: solo se edita o se registra la firma mientras está programada, sin firma registrada y antes de la fecha y hora programadas...";
@@ -152,8 +155,7 @@ public class MensajesError {
     public static final String FORMATO_DECANO_FALTANTE = "Falta el formato firmado por el Decano...";
     public static final String FORMATO_ESTUDIANTE_FALTANTE = "Falta el formato firmado por el estudiante...";
     public static final String FORMATO_PAGINAS_INSUFICIENTES = "El formato firmado debe tener al menos %d páginas...";
-    public static final String FORMATO_NO_LEGIBLE = "El formato firmado no es un PDF que se pueda leer...";
-    public static final String AJUSTE_FORMATO_FUERA_DE_RANGO = "%s debe estar entre %d y %d milímetros...";
+    public static final String FORMATO_NO_LEGIBLE = "El formato firmado no es un PDF que se pueda leer...";    public static final String AJUSTE_FORMATO_FUERA_DE_RANGO = "%s debe estar entre %d y %d milímetros...";
     public static final String AJUSTE_FORMATO_ETAPA_FINAL = "La solicitud %s ya terminó y no admite ajustes del formato...";
     public static final String FORMATO_NO_GENERADO = "No se pudo generar el formato oficial de la solicitud %s...";
 }

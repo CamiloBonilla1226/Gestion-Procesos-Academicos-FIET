@@ -159,7 +159,7 @@ export class AdminAsignaturasContentComponent implements OnInit {
     llamada.pipe(finalize(() => (this.enviando = false))).subscribe({
       next: asignatura => {
         this.toastService.showSuccess(
-          'Listo',
+          'Operación realizada',
           editando ? 'La asignatura quedó actualizada.' : `Asignatura creada con el código ${asignatura.codigoAsignatura}`
         );
         this.dialogoVisible = false;
@@ -194,7 +194,7 @@ export class AdminAsignaturasContentComponent implements OnInit {
     const errores: Record<string, string> = {};
     const errorNombre = errorDeTexto(this.nombre, 150, true, 'El nombre');
     if (errorNombre) errores['nombre'] = errorNombre;
-    if (!this.editando && !this.uuidPrograma) errores['programa'] = 'Elige el programa académico.';
+    if (!this.editando && !this.uuidPrograma) errores['programa'] = 'Se debe seleccionar el programa académico.';
     return errores;
   }
 

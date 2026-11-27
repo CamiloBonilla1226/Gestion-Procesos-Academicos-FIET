@@ -214,8 +214,7 @@ public class AnexoAcademicoCUImplAdaptador implements AnexoAcademicoCUIntPuerto 
         } else if (COMPROBANTE_PAGO.equals(nombre)) {
             etapasPermitidas = List.of(PENDIENTE_PAGO);
         } else if (FORMATO_FIRMADO_DECANO.equals(nombre)) {
-            boolean loGeneraLaDecision = proceso == TipoProcesoAcademico.CANCELACION_ASIGNATURA;
-            rolPermitido = loGeneraLaDecision ? RolEtiquetaEtapa.DECANO : RolEtiquetaEtapa.FUNCIONARIO;
+            rolPermitido = RolEtiquetaEtapa.FUNCIONARIO;
             etapasPermitidas = ETAPAS_FORMATO_DECANO;
         } else if (esDocumentoAdicional(tipoAnexo)) {
             rolPermitido = RolEtiquetaEtapa.FUNCIONARIO;

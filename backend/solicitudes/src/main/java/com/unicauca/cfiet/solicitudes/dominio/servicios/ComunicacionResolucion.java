@@ -27,11 +27,15 @@ public class ComunicacionResolucion {
     private static final String ASUNTO_MENSAJE_INICIAL = "Respuesta a su solicitud de cancelación de asignatura - Radicado %s";
     private static final String FIRMA = "[FIRMA]";
     private static final String MENSAJE_INICIAL = """
-            Buen día, estudiante,
+            Respetado(a) estudiante:
 
-            Dando respuesta a la solicitud hecha por parte de usted, le recuerdo que debe acercarse a la Decanatura para revisar la respuesta que emitió el señor Decano, frente a la solicitud de cancelación de asignatura hecha por usted, quedo atento a cualquier inquietud.
+            Reciba un cordial saludo.
 
-            Cordialmente,
+            En atención a la solicitud de cancelación de asignatura radicada por usted, me permito informarle que el señor Decano de la Facultad ya emitió respuesta a la misma. Por tal motivo, le solicito comedidamente acercarse a la Decanatura de la Facultad de Ingeniería Electrónica y Telecomunicaciones para conocer la decisión y adelantar el trámite correspondiente.
+
+            Quedo atento a cualquier inquietud.
+
+            Atentamente,
 
             [FIRMA]""";
     private static final String COMUNICACION_ESTUDIANTE = """

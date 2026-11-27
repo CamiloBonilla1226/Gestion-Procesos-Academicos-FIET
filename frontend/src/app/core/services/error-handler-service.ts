@@ -33,6 +33,15 @@ export class ErrorHandlerService {
 
     console.error(`${titulo}`, err);
 
+    if (err?.status === 0) {
+      this.toastService.showError(titulo, `${mensaje}. No fue posible establecer comunicación con el servidor. Verifique la conexión e intente nuevamente.`);
+      return;
+    }
+    if (err?.error && typeof err.error === 'object' && err.error.codigoError && !err.error.mensaje) {
+      this.toastService.showError(titulo, `${mensaje}. Se presentó un inconveniente interno al procesar la operación. Intente nuevamente y, si el problema persiste, comuníquese con el administrador del sistema.`);
+      return;
+    }
+
     if (err.error && typeof err.error === 'object' && !err.error.mensaje && !err.error.descripcion) {
       const fieldErrors = Object.entries(err.error)
         .filter(([_, value]) => typeof value === 'string')

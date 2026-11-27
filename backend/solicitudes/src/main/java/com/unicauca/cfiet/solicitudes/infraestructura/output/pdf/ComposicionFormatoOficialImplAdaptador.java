@@ -22,7 +22,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HexFormat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,8 +35,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class ComposicionFormatoOficialImplAdaptador implements ComposicionFormatoOficialIntPuerto {
     private static final Map<TipoProcesoAcademico, String> CODIGOS = Map.of(
-            TipoProcesoAcademico.CANCELACION_MATRICULA, "PA-GA-4.2-FOR-14",
-            TipoProcesoAcademico.CANCELACION_ASIGNATURA, "PA-GA-4.2-FOR-9",
+            TipoProcesoAcademico.CANCELACION_MATRICULA, "PA-GA-4-FOR-83",
+            TipoProcesoAcademico.CANCELACION_ASIGNATURA, "PA-GA-4-FOR-84",
             TipoProcesoAcademico.EXAMEN_SUPLETORIO, "PM-FO-4-FOR-23");
     private static final String FASE_ESTUDIANTE = "estudiante";
     private static final String FASE_FACULTAD = "facultad";
@@ -42,6 +46,7 @@ public class ComposicionFormatoOficialImplAdaptador implements ComposicionFormat
     private static final float INTERLINEA = 1.1f;
     private static final float MARGEN_CAJA = 1.5f;
     private static final double PUNTOS_POR_MM = 72d / 25.4d;
+    private static final int MAXIMO_ALINEACIONES_GUARDADAS = 64;
     private static final float ALTO_FILA_CONTINUACION = 24f;
     private static final float ALTO_ENCABEZADO_CONTINUACION = 28f;
     private static final float INICIO_TABLA_CONTINUACION = 110f;
@@ -54,6 +59,7 @@ public class ComposicionFormatoOficialImplAdaptador implements ComposicionFormat
 
     private final ObjectMapper lector = new ObjectMapper();
     private final Map<TipoProcesoAcademico, Plantilla> plantillas = new ConcurrentHashMap<>();
+    private final Map<String, List<Homografia>> alineacionesCalculadas = new ConcurrentHashMap<>();
     private final PDType1Font fuente = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
     private final PDType1Font fuenteNegrita = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
 
@@ -67,9 +73,9 @@ public class ComposicionFormatoOficialImplAdaptador implements ComposicionFormat
             Map<String, String> valores = valoresEstudiante(datos);
             for (Campo campo : plantilla.campos())
                 if (FASE_ESTUDIANTE.equals(campo.fase()))
-                    estampar(documento, campo, valores, 0, 0);
+                    estampar(documento, campo, valores, 0, 0, List.of());
             for (Campo campo : camposContinuacion(plantilla, documento, extra, FASE_ESTUDIANTE))
-                estampar(documento, campo, valores, 0, 0);
+                estampar(documento, campo, valores, 0, 0, List.of());
             return guardar(documento);
         } catch (IOException error) {
             throw new UncheckedIOException(error);
@@ -85,14 +91,50 @@ public class ComposicionFormatoOficialImplAdaptador implements ComposicionFormat
             float dy = (float) (ajusteYmm * PUNTOS_POR_MM);
             Map<String, String> valores = valoresFacultad(datos);
             int extra = filasExtra(plantilla, datos);
+            List<Homografia> alineaciones = escaneo == null ? List.of() : alineaciones(escaneo, documento, plantilla, datos, extra > 0);
             for (Campo campo : plantilla.campos())
                 if (!FASE_ESTUDIANTE.equals(campo.fase()))
-                    estampar(documento, campo, valores, dx, dy);
+                    estampar(documento, campo, valores, dx, dy, alineaciones);
             for (Campo campo : camposContinuacion(plantilla, documento, extra, FASE_FACULTAD))
-                estampar(documento, campo, valores, dx, dy);
+                estampar(documento, campo, valores, dx, dy, alineaciones);
             return guardar(documento);
         } catch (IOException error) {
             throw new UncheckedIOException(error);
+        }
+    }
+
+    private List<Homografia> alineaciones(byte[] escaneo, PDDocument documento, Plantilla plantilla, DatosFormatoOficial datos,
+                                          boolean conContinuacion) {
+        String clave = huella(escaneo) + "#" + huella(generar(datos));
+        List<Homografia> guardadas = alineacionesCalculadas.get(clave);
+        if (guardadas != null) return guardadas;
+        List<Homografia> alineaciones = new ArrayList<>();
+        try (PDDocument referencia = Loader.loadPDF(generar(datos))) {
+            int ultima = documento.getNumberOfPages() - 1;
+            for (int i = 0; i <= ultima; i++) {
+                Homografia alineacion = null;
+                int paginaReferencia = conContinuacion && i == ultima ? referencia.getNumberOfPages() - 1 : i;
+                if (paginaReferencia < referencia.getNumberOfPages())
+                    try {
+                        alineacion = AlineacionEscaneo.alinear(documento, i, referencia, paginaReferencia, plantilla.ancho(), plantilla.alto());
+                    } catch (IOException | RuntimeException error) {
+                        alineacion = null;
+                    }
+                alineaciones.add(alineacion);
+            }
+        } catch (IOException error) {
+            return List.of();
+        }
+        if (alineacionesCalculadas.size() >= MAXIMO_ALINEACIONES_GUARDADAS) alineacionesCalculadas.clear();
+        alineacionesCalculadas.put(clave, alineaciones);
+        return alineaciones;
+    }
+
+    private String huella(byte[] contenido) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(contenido));
+        } catch (NoSuchAlgorithmException error) {
+            return String.valueOf(Arrays.hashCode(contenido));
         }
     }
 
@@ -128,9 +170,15 @@ public class ComposicionFormatoOficialImplAdaptador implements ComposicionFormat
                 float alto = girada ? caja.getWidth() : caja.getHeight();
                 PDPage pagina = new PDPage(new PDRectangle(tamano.getWidth(), tamano.getHeight()));
                 destino.addPage(pagina);
+                boolean acostada = (ancho > alto) != (tamano.getWidth() > tamano.getHeight());
                 try (PDPageContentStream contenido = new PDPageContentStream(destino, pagina)) {
                     contenido.saveGraphicsState();
-                    contenido.transform(Matrix.getScaleInstance(tamano.getWidth() / ancho, tamano.getHeight() / alto));
+                    if (acostada) {
+                        contenido.transform(Matrix.getTranslateInstance(tamano.getWidth(), 0));
+                        contenido.transform(Matrix.getRotateInstance(Math.PI / 2, 0, 0));
+                        contenido.transform(Matrix.getScaleInstance(tamano.getHeight() / ancho, tamano.getWidth() / alto));
+                    } else
+                        contenido.transform(Matrix.getScaleInstance(tamano.getWidth() / ancho, tamano.getHeight() / alto));
                     contenido.drawForm(forma);
                     contenido.restoreGraphicsState();
                 }
@@ -213,7 +261,7 @@ public class ComposicionFormatoOficialImplAdaptador implements ComposicionFormat
                 if (!faseColumna.equals(fase)) continue;
                 float[] limites = columnas.get(columna);
                 campos.add(new Campo(String.format(CLAVES_FILA[columna], indice), pagina, limites[0] + 1, y + 0.5f,
-                        limites[1] - limites[0] - 2, ALTO_FILA_CONTINUACION - 1, 9, "texto", "izquierda", faseColumna));
+                        limites[1] - limites[0] - 2, ALTO_FILA_CONTINUACION - 1, 9, "texto", "izquierda", faseColumna, 0));
             }
         }
         return campos;
@@ -281,7 +329,8 @@ public class ComposicionFormatoOficialImplAdaptador implements ComposicionFormat
         return valores;
     }
 
-    private void estampar(PDDocument documento, Campo campo, Map<String, String> valores, float dx, float dy) throws IOException {
+    private void estampar(PDDocument documento, Campo campo, Map<String, String> valores, float dx, float dy,
+                          List<Homografia> alineaciones) throws IOException {
         String valor = valores.get(campo.clave());
         if (valor == null || valor.isBlank()) return;
         List<Integer> paginas = new ArrayList<>();
@@ -292,11 +341,20 @@ public class ComposicionFormatoOficialImplAdaptador implements ComposicionFormat
         Caja caja = new Caja(campo.x() + dx, campo.y() + dy, campo.ancho(), campo.alto());
         for (int indice : paginas) {
             PDPage pagina = documento.getPage(indice);
+            Homografia alineacion = indice < alineaciones.size() ? alineaciones.get(indice) : null;
             try (PDPageContentStream contenido = new PDPageContentStream(documento, pagina, PDPageContentStream.AppendMode.APPEND, true, true)) {
+                Caja destino = caja;
+                if (alineacion != null) {
+                    contenido.saveGraphicsState();
+                    contenido.transform(alineacion.local(caja.x(), caja.y(), caja.ancho(), caja.alto()));
+                    destino = new Caja(0, 0, caja.ancho(), caja.alto());
+                }
                 if (MARCA.equals(campo.tipo()))
-                    marcar(contenido, caja);
+                    marcar(contenido, destino);
                 else
-                    escribir(contenido, fuente, valor.trim(), caja, campo.tamanoFuente(), "derecha".equals(campo.alinear()));
+                    escribir(contenido, fuente, valor.trim(), destino, campo.tamanoFuente(), campo.minimo(), "derecha".equals(campo.alinear()));
+                if (alineacion != null)
+                    contenido.restoreGraphicsState();
             }
         }
     }
@@ -313,12 +371,17 @@ public class ComposicionFormatoOficialImplAdaptador implements ComposicionFormat
 
     private void escribir(PDPageContentStream contenido, PDType1Font tipo, String texto, Caja caja, float tamanoInicial, boolean derecha)
             throws IOException {
+        escribir(contenido, tipo, texto, caja, tamanoInicial, TAMANO_MINIMO, derecha);
+    }
+
+    private void escribir(PDPageContentStream contenido, PDType1Font tipo, String texto, Caja caja, float tamanoInicial, float minimo,
+                          boolean derecha) throws IOException {
         String limpio = compatible(tipo, texto);
         float anchoUtil = caja.ancho() - 2 * MARGEN_CAJA;
         float tamano = tamanoInicial;
         List<String> lineas = partir(tipo, limpio, tamano, anchoUtil);
-        while (lineas.size() * tamano * INTERLINEA > caja.alto() + 0.5f && tamano > TAMANO_MINIMO) {
-            tamano = Math.max(TAMANO_MINIMO, tamano - 0.5f);
+        while (lineas.size() * tamano * INTERLINEA > caja.alto() + 0.5f && tamano > minimo) {
+            tamano = Math.max(minimo, tamano - 0.5f);
             lineas = partir(tipo, limpio, tamano, anchoUtil);
         }
         int maximo = Math.max(1, (int) ((caja.alto() + 0.5f) / (tamano * INTERLINEA)));
@@ -438,6 +501,10 @@ public class ComposicionFormatoOficialImplAdaptador implements ComposicionFormat
     }
 
     private record Campo(String clave, int pagina, float x, float y, float ancho, float alto, float tamanoFuente, String tipo,
-                         String alinear, String fase) {
+                         String alinear, String fase, float tamanoMinimo) {
+
+        float minimo() {
+            return tamanoMinimo > 0 ? Math.min(tamanoMinimo, tamanoFuente) : TAMANO_MINIMO;
+        }
     }
 }

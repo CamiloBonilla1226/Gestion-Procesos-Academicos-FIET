@@ -110,7 +110,7 @@ export class AdminResponsablesContentComponent implements OnInit {
   guardar(): void {
     if (this.enviando || !this.seleccionado) return;
     if (!this.funcionarioElegido) {
-      this.error = 'Elige el funcionario académico responsable.';
+      this.error = 'Se debe seleccionar el funcionario académico responsable.';
       return;
     }
     if (this.funcionarioElegido === this.seleccionado.uuidFuncionarioAcademico) {
@@ -125,7 +125,7 @@ export class AdminResponsablesContentComponent implements OnInit {
       .pipe(finalize(() => (this.enviando = false)))
       .subscribe({
         next: actualizado => {
-          this.toastService.showSuccess('Listo', `${actualizado.nombre} quedó a cargo de ${actualizado.nombreFuncionarioAcademico ?? 'el funcionario elegido'}.`);
+          this.toastService.showSuccess('Operación realizada', `${actualizado.nombre} quedó a cargo de ${actualizado.nombreFuncionarioAcademico ?? 'el funcionario elegido'}.`);
           this.dialogoVisible = false;
           this.cargar();
         },

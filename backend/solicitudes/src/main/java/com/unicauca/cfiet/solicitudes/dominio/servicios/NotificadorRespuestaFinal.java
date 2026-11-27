@@ -35,6 +35,7 @@ public class NotificadorRespuestaFinal {
     public static final String MARCA_FECHA = "{fecha}";
     private static final String PIE_DARCA_TEXTO = "La información de la respuesta está en el PDF adjunto.";
     private static final String PIE_DARCA = "%n%n" + PIE_DARCA_TEXTO;
+    private static final String PIE_DARCA_RESOLUCION = "Se adjuntan la Resolución, el formato de la solicitud firmado por el Decano y, si existen, los soportes del motivo de la cancelación.";
     private static final String NOTA_FIRMADA = " El estudiante firmó la Resolución en la Decanatura; se adjunta la Resolución firmada.";
     private static final String NOTA_COMUNICADA = " La Resolución se comunicó al estudiante por correo electrónico; se adjunta la constancia de la comunicación.";
     private static final String CUERPO_PROFESOR = "Sr(a) %s%n%nTiene una solicitud de examen supletorio %s del estudiante %s, con código %s, "
@@ -108,7 +109,6 @@ public class NotificadorRespuestaFinal {
         TipoProcesoAcademico proceso = TipoProcesoAcademico.CANCELACION_ASIGNATURA;
         ResumenRespuesta resumen = resumen(solicitud, proceso, AccionEtapa.ENVIAR_RESPUESTA, fecha);
         List<AdjuntoCorreo> adjuntos = new ArrayList<>();
-        adjuntos.add(pdf(resumen));
         adjuntos.addAll(resolucionDe(solicitud));
         adjuntos.addAll(formatoDecanoDe(solicitud));
         adjuntos.addAll(soportesDe(solicitud, proceso));
@@ -117,7 +117,7 @@ public class NotificadorRespuestaFinal {
         String texto = plantillaTexto != null && !plantillaTexto.isBlank()
                 ? plantillaTexto.replace(MARCA_FECHA, fecha.format(FECHA_CARTA))
                 : String.format(ENCABEZADO, fecha.format(FECHA_CARTA)) + frase(resumen, proceso)
-                + (firmada ? NOTA_FIRMADA : NOTA_COMUNICADA) + String.format(PIE_DARCA);
+                + (firmada ? NOTA_FIRMADA : NOTA_COMUNICADA) + "\n\n" + PIE_DARCA_RESOLUCION;
         return CorreoPreparado.builder()
                 .destinatario(destinatarioDarca)
                 .asunto(String.format(ASUNTOS_DARCA.get(proceso), solicitud.getRadicado()))
@@ -129,7 +129,7 @@ public class NotificadorRespuestaFinal {
     public String plantillaDarcaResolucion(SolicitudAcademica solicitud, boolean aprobada, boolean firmada) {
         ResumenRespuesta resumen = resumen(solicitud, TipoProcesoAcademico.CANCELACION_ASIGNATURA, AccionEtapa.ENVIAR_RESPUESTA, null, aprobada);
         return "Popayán, Cauca, " + MARCA_FECHA + "\n\n" + frase(resumen, TipoProcesoAcademico.CANCELACION_ASIGNATURA)
-                + (firmada ? NOTA_FIRMADA : NOTA_COMUNICADA) + "\n\n" + PIE_DARCA_TEXTO;
+                + (firmada ? NOTA_FIRMADA : NOTA_COMUNICADA) + "\n\n" + PIE_DARCA_RESOLUCION;
     }
 
     public String plantillaDarcaFirmada(String plantillaComunicada) {

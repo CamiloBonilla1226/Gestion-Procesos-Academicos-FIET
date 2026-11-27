@@ -1,7 +1,26 @@
-@if (anexos.length === 0) {
+@if (anexos.length === 0 && !formatoEnEdicion) {
 <p class="sin-anexos" data-estado="sin-anexos">La solicitud no tiene anexos.</p>
 } @else {
 <ul class="anexos">
+  @if (formatoEnEdicion) {
+  <li data-anexo data-formato-en-edicion>
+    <div class="anexo-nombre">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2A3A86" stroke-width="1.6" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>
+      <div class="anexo-texto">
+        <span class="anexo-archivo">{{ nombreFormato }}</span>
+        <small>{{ tipoFormato }}</small>
+      </div>
+    </div>
+    <div class="anexo-acciones">
+      <button type="button" class="enlace" data-visualizar-formato [disabled]="!!procesandoFormato" (click)="procesarFormato('ver')">
+        {{ procesandoFormato === 'ver' ? 'Abriendo...' : 'Visualizar' }}
+      </button>
+      <button type="button" class="enlace" data-descargar-formato [disabled]="!!procesandoFormato" (click)="procesarFormato('descargar')">
+        {{ procesandoFormato === 'descargar' ? 'Descargando...' : 'Descargar' }}
+      </button>
+    </div>
+  </li>
+  }
   @for (anexo of anexos; track anexo.uuidAnexoAcademico) {
   <li data-anexo>
     <div class="anexo-nombre">

@@ -109,7 +109,7 @@
     <app-resumen-solicitud-component [solicitud]="solicitud"></app-resumen-solicitud-component>
     @switch (accionActiva) {
     @case (acciones.RECHAZAR_FUNCIONARIO) {
-    <p class="nota-gris">La solicitud quedará no aprobada y terminará el trámite. Escribe la observación que verá el estudiante.</p>
+    <p class="nota-gris">La solicitud quedará no aprobada y el trámite terminará. Se debe registrar la observación que recibirá el estudiante.</p>
     }
     @case (acciones.REMITIR_DECANO) {
     @if (hayDocumentoAdicional) {
@@ -128,7 +128,7 @@
     }
     @case (acciones.APROBAR_COMPROBANTE) {
     <p class="nota-gris">
-      La solicitud quedará aprobada. Selecciona el profesor que atenderá el examen supletorio; al enviar la respuesta se le
+      La solicitud quedará aprobada. Se debe seleccionar el profesor que atenderá el examen supletorio; al enviar la respuesta se le
       notificará.
     </p>
     <div data-campo-docente>
@@ -154,7 +154,7 @@
     @if (pideAnexoPago && campoAnexoPago) {
     <div data-campo-anexo-pago>
       @if (anexoPagoYaCargado) {
-      <p class="nota-gris mb-2">El archivo ya está cargado en la solicitud. Puedes confirmar sin subirlo otra vez.</p>
+      <p class="nota-gris mb-2">El archivo ya se encuentra cargado en la solicitud. Es posible confirmar sin adjuntarlo nuevamente.</p>
       }
       <app-input-anexo-upload-component #entradaPago [tipoAnexo]="campoAnexoPago" [uploadedFile]="archivoPago"
         (fileSelected)="alSeleccionarAnexoPago($event, entradaPago)" (fileRemoved)="alQuitarAnexoPago()">

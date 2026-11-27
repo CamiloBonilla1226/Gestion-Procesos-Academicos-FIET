@@ -74,7 +74,7 @@ function filaVacia(): FilaMatricula {
 function erroresDeFila(fila: FilaMatricula, prefijo: string): Record<string, string> {
   const errores: Record<string, string> = {};
   const grupo = errorDeTexto(fila.grupo, 20, true, 'El grupo');
-  if (!fila.codigoAsignatura) errores[`${prefijo}codigo`] = 'Elige la asignatura.';
+  if (!fila.codigoAsignatura) errores[`${prefijo}codigo`] = 'Se debe seleccionar la asignatura.';
   if (grupo) errores[`${prefijo}grupo`] = grupo;
   return errores;
 }
@@ -423,7 +423,7 @@ export class AdminEstudiantesContentComponent implements OnInit, OnDestroy {
           );
           delete this.estadosNuevos[matricula.uuidAsignaturaMatriculada];
           this.actualizarOpcionesDetalle();
-          this.toastService.showSuccess('Listo', `La asignatura ${actualizada.codigoAsignatura} quedó ${actualizada.estado}.`);
+          this.toastService.showSuccess('Operación realizada', `La asignatura ${actualizada.codigoAsignatura} quedó ${actualizada.estado}.`);
         },
         error: err => {
           this.erroresServidor = mensajesDeError(err);
@@ -474,7 +474,7 @@ export class AdminEstudiantesContentComponent implements OnInit, OnDestroy {
       ...validarCambiosPersonales(peticion),
       ...this.erroresAcademicos({ codigoEstudiantil: peticion.codigoEstudiantil ?? '', semestre: peticion.semestre ?? '' }, false)
     };
-    if (Object.keys(peticion).length === 0) errores['edicion'] = 'No cambiaste ningún dato.';
+    if (Object.keys(peticion).length === 0) errores['edicion'] = 'No se ha modificado ningún dato.';
     return errores;
   }
 
@@ -545,7 +545,7 @@ export class AdminEstudiantesContentComponent implements OnInit, OnDestroy {
     this.erroresServidor = [];
     llamada.pipe(finalize(() => (this.enviando = false))).subscribe({
       next: respuesta => {
-        this.toastService.showSuccess('Listo', exito);
+        this.toastService.showSuccess('Operación realizada', exito);
         alTerminar(respuesta);
       },
       error: err => {
@@ -562,8 +562,8 @@ export class AdminEstudiantesContentComponent implements OnInit, OnDestroy {
 
   private validarCreacion(): Record<string, string> {
     const errores = { ...validarDatosUsuario(this.datosUsuario), ...this.erroresAcademicos(this.datosAcademicos, true) };
-    if (!this.uuidPrograma) errores['programa'] = 'Elige el programa académico.';
-    if (this.confirmandoCambioPrograma) errores['programa'] = 'Confirma o cancela el cambio de programa.';
+    if (!this.uuidPrograma) errores['programa'] = 'Se debe seleccionar el programa académico.';
+    if (this.confirmandoCambioPrograma) errores['programa'] = 'Se debe confirmar o cancelar el cambio de programa.';
     if (this.uuidPrograma && !this.cargandoAsignaturas && !this.errorAsignaturas && this.asignaturasPrograma.length === 0) {
       errores['asignaturas'] = 'El programa no tiene asignaturas registradas; créalas primero en la pestaña Asignaturas.';
     }

@@ -17,9 +17,9 @@ export function textoFechaCorta(valor: string): string {
 
 export function erroresDeRango(desde: string, hasta: string, hoy: string): Record<string, string> {
   const errores: Record<string, string> = {};
-  if (!FORMATO_FECHA.test(desde)) errores['desde'] = 'Elige la fecha inicial.';
+  if (!FORMATO_FECHA.test(desde)) errores['desde'] = 'Se debe seleccionar la fecha inicial.';
   else if (desde > hoy) errores['desde'] = 'La fecha inicial no puede ser posterior a hoy.';
-  if (!FORMATO_FECHA.test(hasta)) errores['hasta'] = 'Elige la fecha final.';
+  if (!FORMATO_FECHA.test(hasta)) errores['hasta'] = 'Se debe seleccionar la fecha final.';
   else if (hasta > hoy) errores['hasta'] = 'La fecha final no puede ser posterior a hoy.';
   if (!errores['desde'] && !errores['hasta'] && desde > hasta) errores['hasta'] = 'La fecha final debe ser igual o posterior a la inicial.';
   return errores;
@@ -104,7 +104,7 @@ export class EliminacionRespuestasComponent {
           this.dialogoVisible = false;
           this.rangoConfirmado = null;
           const texto = resultado.cantidad === 1 ? 'Se eliminó 1 respuesta.' : `Se eliminaron ${resultado.cantidad} respuestas.`;
-          this.toastService.showSuccess('Listo', texto);
+          this.toastService.showSuccess('Operación realizada', texto);
           this.eliminadas.emit(resultado.cantidad);
         },
         error: err => this.errorHandlerService.handleError(err, 'Error', 'No se pudieron eliminar las respuestas')

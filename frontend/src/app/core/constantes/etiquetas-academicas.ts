@@ -86,4 +86,4 @@ export const RUTAS_ENCABEZADO_ASIGNATURAS: Record<string, string[]> = {
   'Al matricularla de nuevo': [ESPACIO_FACULTAD, SITUACION_ACADEMICA, 'Al Matricularla de Nuevo']
 };
 
-export const NOTA_APROBAR_DECANO = 'Al aprobar, quedará registrada tu decisión. El Funcionario Académico se encargará de redactar la Resolución correspondiente (si aplica) y de enviar la respuesta al Estudiante.';
+export const NOTA_APROBAR_DECANO = 'Al aprobar, quedará registrada la decisión. El Funcionario Académico se encargará de redactar la Resolución correspondiente (si aplica) y de enviar la respuesta al Estudiante.';

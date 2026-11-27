@@ -80,10 +80,11 @@
     <header class="tarjeta-head">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M21 12.5l-8.5 8.5a5 5 0 0 1-7-7L14 5.5a3.5 3.5 0 0 1 5 5L10.5 19a2 2 0 0 1-3-3L15 8.5"/></svg>
       <h3>{{ tituloAnexos }}</h3>
-      <span class="contador-pill" data-contador-anexos>{{ solicitud.anexos.length }}</span>
+      <span class="contador-pill" data-contador-anexos>{{ cantidadAnexos }}</span>
     </header>
     <div class="tarjeta-body">
-      <app-anexos-academicos-component [uuidSolicitud]="uuidSolicitud" [anexos]="solicitud.anexos">
+      <app-anexos-academicos-component [uuidSolicitud]="uuidSolicitud" [anexos]="solicitud.anexos" [formatoEnEdicion]="formatoEnEdicion"
+        [formatoConDecision]="formatoConDecision" [radicado]="solicitud.radicado">
       </app-anexos-academicos-component>
     </div>
   </section>

@@ -40,7 +40,7 @@
 
     @if (erroresCarga.length > 0) {
     <div class="alert alert-danger mb-0 py-2" data-errores-carga>
-      <p class="mb-1 fw-semibold">No se creó ningún registro. Corrige el archivo y vuelve a cargarlo:</p>
+      <p class="mb-1 fw-semibold">No se creó ningún registro. Se deben corregir los siguientes errores en el archivo y cargarlo nuevamente:</p>
       <ul class="mb-0">
         @for (mensaje of erroresCarga; track $index) {
         <li>{{ mensaje }}</li>

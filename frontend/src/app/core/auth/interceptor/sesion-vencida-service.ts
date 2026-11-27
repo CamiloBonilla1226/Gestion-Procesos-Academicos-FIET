@@ -28,7 +28,7 @@ export class SesionVencidaService {
 
   private avisar(): void {
     import('../../services/toast-service')
-      .then(modulo => this.injector.get(modulo.ToastService).showError('Sesión vencida', 'Tu sesión venció, inicia sesión de nuevo'))
+      .then(modulo => this.injector.get(modulo.ToastService).showError('Sesión vencida', 'La sesión ha expirado. Por favor, inicie sesión nuevamente.'))
       .catch(() => undefined);
   }
 

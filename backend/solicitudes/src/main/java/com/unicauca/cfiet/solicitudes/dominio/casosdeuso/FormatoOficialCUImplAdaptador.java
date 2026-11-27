@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.FORMATO_FIRMADO_DECANO;
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.FORMATO_FIRMADO_ESTUDIANTE;
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcademicoConstantes.SOPORTE_JUSTIFICACION;
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.*;
@@ -161,15 +160,6 @@ public class FormatoOficialCUImplAdaptador implements FormatoOficialCUIntPuerto 
                 String.format("Solicitud académica %s: ajuste del formato X=%s mm, Y=%s mm", solicitud.getRadicado(), x, y), token);
     }
 
-    @Override
-    public void guardarFormatoConDecision(String uuidSolicitudAcademica, String token) {
-        ActorSolicitud actor = actorConRol(uuidSolicitudAcademica, token, Set.of(RolEtiquetaEtapa.DECANO));
-        ArchivoAdjunto compuesto = componer(uuidSolicitudAcademica, List.of(), token);
-        SolicitudAcademica solicitud = consultaCU.getDetalle(uuidSolicitudAcademica, token).getSolicitudAcademica();
-        ArchivoAdjunto formato = pdf("Formato-" + solicitud.getRadicado() + "-con-la-decision.pdf", compuesto.getContenido());
-        anexoCU.adjuntarAnexo(uuidSolicitudAcademica, uuidTipoFormato(solicitud, FORMATO_FIRMADO_DECANO), formato, actor, token);
-    }
-
     private List<ValorProvisionalFormato> provisionalesDe(RolEtiquetaEtapa rol, List<ValorProvisionalFormato> valores) {
         if (valores == null) return List.of();
         return valores.stream()
@@ -233,7 +223,7 @@ public class FormatoOficialCUImplAdaptador implements FormatoOficialCUIntPuerto 
             datos.setRevisionAcademica(funcionarioDe(solicitud));
             Boolean decision = decision(proceso, solicitud, asignaturas, token);
             boolean provisional = decision == null && decisionProvisionalCompleta(proceso, solicitud, asignaturas, provisionales);
-            datos.setDecisionDecano(provisional ? provisionales.stream().anyMatch(valor -> Boolean.TRUE.equals(valor.getAprobada())) : decision);
+            datos.setDecisionDecano(provisional ? Boolean.valueOf(provisionales.stream().anyMatch(valor -> Boolean.TRUE.equals(valor.getAprobada()))) : decision);
         }
         datos.setAsignaturas(filas(asignaturas, datos.getDecisionDecano() != null, provisionales));
         return datos;

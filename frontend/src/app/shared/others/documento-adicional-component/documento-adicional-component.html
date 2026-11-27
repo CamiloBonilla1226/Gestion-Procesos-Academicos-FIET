@@ -1,9 +1,9 @@
 <div data-campo-documento-adicional>
   <p class="nota-gris mb-2">
-    Puedes adjuntar un documento adicional en PDF. Si lo adjuntas, se enviará al estudiante por correo junto con la respuesta.
+    Es posible adjuntar un documento adicional en PDF. Si se adjunta, se enviará al estudiante por correo junto con la respuesta.
   </p>
   @if (yaCargado) {
-  <p class="nota-gris mb-2" data-documento-adicional-cargado>Ya hay un documento adicional cargado. Si eliges otro, lo reemplaza.</p>
+  <p class="nota-gris mb-2" data-documento-adicional-cargado>Ya existe un documento adicional cargado. Si se selecciona otro, lo reemplaza.</p>
   }
   <app-input-anexo-upload-component #entrada [tipoAnexo]="tipo" [uploadedFile]="archivo"
     (fileSelected)="alSeleccionar($event, entrada)" (fileRemoved)="alQuitar()">

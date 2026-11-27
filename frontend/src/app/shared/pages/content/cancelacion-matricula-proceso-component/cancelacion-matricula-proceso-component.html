@@ -94,7 +94,7 @@
         </table>
       </div>
       @if (editable && faltanDatosTabla) {
-      <p class="nota-error mt-3" data-error="tabla">Completa los datos resaltados en la tabla antes de remitir la solicitud al Decano.</p>
+      <p class="nota-error mt-3" data-error="tabla">Se deben completar los datos resaltados en la tabla antes de remitir la solicitud al Decano.</p>
       }
     </div>
   </section>
@@ -132,8 +132,8 @@
     @switch (accionActiva) {
     @case (acciones.RECHAZAR_FUNCIONARIO) {
     <p class="nota-gris" data-nota-rechazo-directo>
-      La solicitud quedará no aprobada y terminará el trámite sin pasar por el Decano, así que no lleva Resolución.
-      Escribe la observación que verá el estudiante.
+      La solicitud quedará no aprobada y el trámite terminará sin pasar por el Decano, por lo cual no requiere Resolución.
+      Se debe registrar la observación que recibirá el estudiante.
     </p>
     }
     @case (acciones.REMITIR_DECANO) {
@@ -156,7 +156,7 @@
     }
     @case (acciones.ENVIAR_RESPUESTA) {
     <p class="nota-gris">
-      Sube el escaneo de la Resolución firmada por el Decano. Al enviar la respuesta la solicitud termina
+      Se debe adjuntar el escaneo de la Resolución firmada por el Decano. Al enviar la respuesta la solicitud termina
       @if (solicitud.etapaCodigo === 'APROBADA_POR_DECANO') {
       y las asignaturas que sigan activas quedan canceladas.
       } @else {
@@ -169,7 +169,7 @@
     @if (accionActiva === acciones.ENVIAR_RESPUESTA) {
     <div data-campo-resolucion>
       @if (hayResolucion) {
-      <p class="nota-gris mb-2">Ya hay un escaneo de la Resolución cargado. Puedes reemplazarlo si lo necesitas.</p>
+      <p class="nota-gris mb-2">Ya existe un escaneo de la Resolución cargado. Si es necesario, se puede reemplazar.</p>
       }
       <app-input-anexo-upload-component #entradaResolucion [tipoAnexo]="tipoResolucion" [uploadedFile]="archivoResolucion"
         (fileSelected)="alSeleccionarResolucion($event, entradaResolucion)" (fileRemoved)="alQuitarResolucion()">

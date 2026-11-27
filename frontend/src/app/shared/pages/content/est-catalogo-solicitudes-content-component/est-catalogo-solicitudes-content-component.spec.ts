@@ -36,7 +36,7 @@ describe('EstCatalogoSolicitudesContentComponent', () => {
     expect(tarjetas[1].querySelectorAll('[data-lista="anexos"] li').length).toBe(3);
     expect(tarjetas[2].querySelector('.descripcion').textContent).toContain('examen parcial, final o de habilitación');
     expect(tarjetas[0].querySelector('[data-lista="anexos"] li').textContent.trim())
-      .toContain('Formato oficial PA-GA-4.2-FOR-14');
+      .toContain('Formato oficial PA-GA-4-FOR-83');
   });
 
   it('ninguna ficha ofrece descargar un formato fijo, porque el sistema genera el formato oficial', async () => {

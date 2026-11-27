@@ -20,6 +20,9 @@
       <li>Si se requiere, adjuntar en PDF el soporte del motivo de la cancelación. Este paso es opcional.</li>
       }
     </ol>
+    <p class="nota-gris mb-0" data-nota-escaneo>
+      Se recomienda escanear o fotografiar la hoja completa, con buena iluminación y sin cubrir partes del formato.
+    </p>
     <div>
       <app-simple-button-component data-boton-descargar-formato [label]="descargando ? 'Descargando...' : 'Descargar formato'"
         width="190px" height="38px" color="#2A3A86" [contorno]="true" [disabled]="descargando" (clicked)="descargar()">

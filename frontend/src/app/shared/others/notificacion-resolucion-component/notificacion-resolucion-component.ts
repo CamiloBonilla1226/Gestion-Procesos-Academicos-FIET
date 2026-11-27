@@ -192,7 +192,7 @@ export class NotificacionResolucionComponent implements OnChanges {
         next: notificacion => {
           this.notificacion = notificacion;
           this.dialogo = null;
-          this.toastService.showSuccess('Listo', EXITOS[dialogo]);
+          this.toastService.showSuccess('Operación realizada', EXITOS[dialogo]);
           this.cambio.emit();
         },
         error: err => {
@@ -206,7 +206,7 @@ export class NotificacionResolucionComponent implements OnChanges {
     if (dialogo === 'reprogramar') return erroresDeProgramacion(this.programacion);
     if (dialogo !== 'firma') return {};
     const errores: Record<string, string> = {};
-    if (!this.archivoFirma) errores['firma'] = 'Sube la Resolución firmada por el estudiante (PDF).';
+    if (!this.archivoFirma) errores['firma'] = 'Se debe adjuntar la Resolución firmada por el estudiante (PDF).';
     const errorTexto = errorDeTextoComunicacion(this.textoDarca, 'DARCA');
     if (errorTexto) errores['textoDarca'] = errorTexto;
     return errores;

@@ -49,8 +49,8 @@ class ComposicionFormatoOficialImplAdaptadorTest {
     }
 
     @Test
-    void elFor9ConCuatroAsignaturasLlevaLaHojaDeContinuacion() throws IOException {
-        DatosFormatoOficial datos = asignatura(4, false);
+    void elFor84ConSeisAsignaturasLlevaLaHojaDeContinuacion() throws IOException {
+        DatosFormatoOficial datos = asignatura(6, false);
 
         byte[] generado = composicion.generar(datos);
 
@@ -58,14 +58,14 @@ class ComposicionFormatoOficialImplAdaptadorTest {
         assertEquals(2, composicion.paginasMinimas(datos));
         String texto = texto(generado);
         assertTrue(texto.contains("Hoja de continuación"));
-        assertTrue(texto.contains("PIS-003"));
+        assertTrue(texto.contains("PIS-005"));
         assertTrue(texto.contains("Radicado 2026-CA-0007"));
         assertFalse(texto.contains("Laura Gómez"));
     }
 
     @Test
-    void conTresAsignaturasNoHayHojaDeContinuacion() {
-        DatosFormatoOficial datos = asignatura(3, false);
+    void conCincoAsignaturasNoHayHojaDeContinuacion() {
+        DatosFormatoOficial datos = asignatura(5, false);
 
         assertEquals(1, composicion.contarPaginas(composicion.generar(datos)));
         assertEquals(1, composicion.paginasMinimas(datos));
@@ -73,8 +73,8 @@ class ComposicionFormatoOficialImplAdaptadorTest {
 
     @Test
     void elCompuestoEstampaLaFacultadYLaDecisionSobreElEscaneoSinCambiarSusPaginas() throws IOException {
-        DatosFormatoOficial datos = asignatura(4, true);
-        byte[] escaneo = composicion.generar(asignatura(4, false));
+        DatosFormatoOficial datos = asignatura(6, true);
+        byte[] escaneo = composicion.generar(asignatura(6, false));
 
         byte[] compuesto = composicion.componer(escaneo, datos, 2.5, -1);
 
@@ -85,15 +85,15 @@ class ComposicionFormatoOficialImplAdaptadorTest {
         assertTrue(texto.contains("X"));
         Path destino = Path.of("target", "formatos-prueba");
         Files.createDirectories(destino);
-        Files.write(destino.resolve("FOR-9-compuesto.pdf"), compuesto);
+        Files.write(destino.resolve("FOR-84-compuesto.pdf"), compuesto);
     }
 
     @Test
-    void elFor14YElFor23SeGeneranConSusPaginas() throws IOException {
+    void elFor83YElFor23SeGeneranConSusPaginas() throws IOException {
         DatosFormatoOficial matricula = asignatura(2, true);
         matricula.setProceso(TipoProcesoAcademico.CANCELACION_MATRICULA);
-        byte[] for14 = composicion.componer(null, matricula, 0, 0);
-        assertEquals(2, composicion.contarPaginas(for14));
+        byte[] for83 = composicion.componer(null, matricula, 0, 0);
+        assertEquals(2, composicion.contarPaginas(for83));
 
         DatosFormatoOficial supletorio = asignatura(0, true);
         supletorio.setProceso(TipoProcesoAcademico.EXAMEN_SUPLETORIO);
@@ -111,7 +111,7 @@ class ComposicionFormatoOficialImplAdaptadorTest {
         assertTrue(texto(for23).contains("Señales y Sistemas"));
         Path destino = Path.of("target", "formatos-prueba");
         Files.createDirectories(destino);
-        Files.write(destino.resolve("FOR-14.pdf"), for14);
+        Files.write(destino.resolve("FOR-83.pdf"), for83);
         Files.write(destino.resolve("FOR-23.pdf"), for23);
     }
 

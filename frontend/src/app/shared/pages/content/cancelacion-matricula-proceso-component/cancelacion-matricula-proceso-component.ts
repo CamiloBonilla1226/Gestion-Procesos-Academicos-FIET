@@ -377,7 +377,7 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
       .pipe(finalize(() => (this.enviando = false)))
       .subscribe({
         next: () => {
-          this.toastService.showSuccess('Listo', MENSAJES_EXITO[accion] ?? 'Acción realizada.');
+          this.toastService.showSuccess('Operación realizada', MENSAJES_EXITO[accion] ?? 'Acción realizada.');
           this.dialogoVisible = false;
           this.accionActiva = null;
           this.recargar();
@@ -475,7 +475,7 @@ export class CancelacionMatriculaProcesoComponent implements OnChanges {
     if (errorObservacion) errores['observacion'] = errorObservacion;
 
     if (accion === ACCIONES_ACADEMICAS.ENVIAR_RESPUESTA && !this.archivoResolucion && !this.hayResolucion) {
-      errores['resolucion'] = 'Debes subir el escaneo de la Resolución firmada (PDF).';
+      errores['resolucion'] = 'Se debe adjuntar el escaneo de la Resolución firmada (PDF).';
     }
 
     if (accion === ACCIONES_ACADEMICAS.REMITIR_DECANO) Object.assign(errores, this.erroresDeEvaluacion());

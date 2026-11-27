@@ -6,20 +6,36 @@
   <div class="tarjeta-body d-flex flex-column gap-3">
     <p class="nota-gris" data-nota-resoluciones>
       Se genera una resolución por asignatura, "acepta" o "no acepta" según la decisión del Decano, con los datos del estudiante,
-      de la asignatura y de la tabla. Los textos se pueden editar antes de ver o descargar el PDF. Para resaltar en negrilla se
-      encierra el texto entre dos asteriscos (**así**), un párrafo que empieza con &gt; sale como cita con sangría y los párrafos
-      se separan con una línea en blanco. La Resolución firmada se sube después en el diálogo de "Enviar respuesta".
+      de la asignatura y de la tabla. Los textos pueden editarse antes de visualizar o descargar el PDF. Para resaltar en negrilla
+      se encierra el texto entre dos asteriscos (**así**); un párrafo que inicia con &gt; se presenta como cita con sangría, y los
+      párrafos se separan con una línea en blanco. La Resolución firmada se adjunta posteriormente en el diálogo de "Enviar respuesta".
     </p>
+    @if (asignaturasSinSituaciones > 0) {
+    <p class="nota-aviso mb-0" data-aviso-situaciones>
+      En la tabla de asignaturas aún faltan situaciones en
+      {{ asignaturasSinSituaciones === 1 ? 'una asignatura aprobada' : asignaturasSinSituaciones + ' asignaturas aprobadas' }}.
+      Se recomienda completarlas antes de generar la resolución; de lo contrario, la tabla de la resolución quedará incompleta.
+    </p>
+    }
+    @if (confirmarRegenerar) {
+    <div class="nota-aviso d-flex flex-column gap-2" data-confirmar-regenerar>
+      <span>Al generar nuevamente se reemplazarán los textos editados por los de la solicitud. ¿Desea continuar?</span>
+      <div class="d-flex flex-wrap gap-2">
+        <app-simple-button-component data-boton-confirmar-regenerar label="Sí, generar nuevamente" width="auto" height="34px"
+          color="#D0463B" [disabled]="cargando" (clicked)="generar()">
+        </app-simple-button-component>
+        <app-simple-button-component data-boton-cancelar-regenerar label="Cancelar" width="auto" height="34px" color="#2A3A86"
+          [contorno]="true" [disabled]="cargando" (clicked)="cancelarRegeneracion()">
+        </app-simple-button-component>
+      </div>
+    </div>
+    } @else {
     <div>
       <app-simple-button-component data-boton-generar-resoluciones
-        [label]="cargando ? 'Generando...' : (hayBorradores ? 'Volver a generar desde la solicitud' : 'Generar resolución')"
-        width="auto" height="38px" color="#2A3A86" [contorno]="hayBorradores" [disabled]="cargando" (clicked)="generar()">
+        [label]="cargando ? 'Generando...' : (hayBorradores ? 'Generar nuevamente desde la solicitud' : 'Generar resolución')"
+        width="auto" height="38px" color="#2A3A86" [contorno]="hayBorradores" [disabled]="cargando" (clicked)="pedirGeneracion()">
       </app-simple-button-component>
     </div>
-    @if (hayBorradores) {
-    <p class="nota-aviso mb-0" data-aviso-regenerar>
-      Volver a generar reemplaza los textos editados por los de la solicitud.
-    </p>
     }
 
     @for (borrador of borradores; track borrador.asignaturaSolicitudUuid; let i = $index) {
@@ -34,38 +50,46 @@
       <div class="d-flex flex-column gap-3 pt-3">
         <div class="campos-grid">
           <label class="campo">
-            <span class="campo-etiqueta">Número de la Resolución</span>
+            <span class="campo-etiqueta">Número de la Resolución <span class="text-danger">*</span></span>
             <div class="input-group">
               <span class="input-group-text">{{ borrador.prefijo }}</span>
-              <input class="form-control" type="text" maxlength="40" data-campo-resolucion="numero" [value]="borrador.numero"
-                (input)="cambiar(borrador, 'numero', $event)">
+              <input class="form-control" type="text" [attr.maxlength]="maximoNumero" data-campo-resolucion="numero"
+                [class.is-invalid]="!!error(i, 'numero')" [value]="borrador.numero" (input)="cambiar(borrador, 'numero', $event)">
             </div>
+            <small class="texto-error" data-error-resolucion="numero">{{ error(i, 'numero') }}</small>
           </label>
           <label class="campo">
-            <span class="campo-etiqueta">Fecha de expedición</span>
-            <input class="form-control" type="date" data-campo-resolucion="fecha" [value]="borrador.fecha"
-              (input)="cambiar(borrador, 'fecha', $event)">
+            <span class="campo-etiqueta">Fecha de expedición <span class="text-danger">*</span></span>
+            <input class="form-control" type="date" min="2000-01-01" max="2099-12-31" data-campo-resolucion="fecha"
+              [class.is-invalid]="!!error(i, 'fecha')" [value]="borrador.fecha" (input)="cambiar(borrador, 'fecha', $event)">
+            <small class="texto-error" data-error-resolucion="fecha">{{ error(i, 'fecha') }}</small>
           </label>
           <label class="campo">
-            <span class="campo-etiqueta">Asunto</span>
-            <input class="form-control" type="text" maxlength="300" data-campo-resolucion="asunto" [value]="borrador.asunto"
-              (input)="cambiar(borrador, 'asunto', $event)">
+            <span class="campo-etiqueta">Asunto <span class="text-danger">*</span></span>
+            <input class="form-control" type="text" [attr.maxlength]="maximoCampo" data-campo-resolucion="asunto"
+              [class.is-invalid]="!!error(i, 'asunto')" [value]="borrador.asunto" (input)="cambiar(borrador, 'asunto', $event)">
+            <small class="texto-error" data-error-resolucion="asunto">{{ error(i, 'asunto') }}</small>
           </label>
         </div>
         <label class="campo">
-          <span class="campo-etiqueta">Preámbulo</span>
-          <textarea class="form-control" rows="3" data-campo-resolucion="preambulo" [value]="borrador.preambulo"
-            (input)="cambiar(borrador, 'preambulo', $event)"></textarea>
+          <span class="campo-etiqueta">Preámbulo <span class="text-danger">*</span></span>
+          <textarea class="form-control" rows="3" [attr.maxlength]="maximoTexto" data-campo-resolucion="preambulo"
+            [class.is-invalid]="!!error(i, 'preambulo')" [value]="borrador.preambulo" (input)="cambiar(borrador, 'preambulo', $event)"></textarea>
+          <small class="texto-error" data-error-resolucion="preambulo">{{ error(i, 'preambulo') }}</small>
         </label>
         <label class="campo">
-          <span class="campo-etiqueta">Considerandos</span>
-          <textarea class="form-control" rows="16" data-campo-resolucion="considerandos" [value]="borrador.considerandos"
+          <span class="campo-etiqueta">Considerandos <span class="text-danger">*</span></span>
+          <textarea class="form-control" rows="16" [attr.maxlength]="maximoTexto" data-campo-resolucion="considerandos"
+            [class.is-invalid]="!!error(i, 'considerandos')" [value]="borrador.considerandos"
             (input)="cambiar(borrador, 'considerandos', $event)"></textarea>
+          <small class="texto-error" data-error-resolucion="considerandos">{{ error(i, 'considerandos') }}</small>
         </label>
         <label class="campo">
-          <span class="campo-etiqueta">Artículo primero</span>
-          <textarea class="form-control" rows="4" data-campo-resolucion="articuloPrimero" [value]="borrador.articuloPrimero"
+          <span class="campo-etiqueta">Artículo primero <span class="text-danger">*</span></span>
+          <textarea class="form-control" rows="4" [attr.maxlength]="maximoTexto" data-campo-resolucion="articuloPrimero"
+            [class.is-invalid]="!!error(i, 'articuloPrimero')" [value]="borrador.articuloPrimero"
             (input)="cambiar(borrador, 'articuloPrimero', $event)"></textarea>
+          <small class="texto-error" data-error-resolucion="articuloPrimero">{{ error(i, 'articuloPrimero') }}</small>
         </label>
         @if (borrador.filas.length > 0) {
         <div class="campo">
@@ -80,12 +104,14 @@
                 </tr>
               </thead>
               <tbody>
-                @for (fila of borrador.filas; track $index) {
+                @for (fila of borrador.filas; track $index; let f = $index) {
                 <tr>
                   @for (columna of columnas; track columna.campo) {
                   <td>
-                    <input class="form-control form-control-sm" type="text" maxlength="120" [attr.aria-label]="columna.titulo"
-                      [attr.data-celda-resolucion]="columna.campo" [value]="fila[columna.campo]" (input)="cambiarFila(fila, columna.campo, $event)">
+                    <input class="form-control form-control-sm" type="text" [attr.maxlength]="maximoCelda" [attr.aria-label]="columna.titulo"
+                      [class.is-invalid]="!!error(i, 'fila-' + f + '-' + columna.campo)" [attr.data-celda-resolucion]="columna.campo"
+                      [value]="fila[columna.campo]" (input)="cambiarFila(fila, columna.campo, $event)">
+                    <small class="texto-error d-block">{{ error(i, 'fila-' + f + '-' + columna.campo) }}</small>
                   </td>
                   }
                 </tr>
@@ -96,38 +122,53 @@
         </div>
         }
         <label class="campo">
-          <span class="campo-etiqueta">Demás artículos</span>
-          <textarea class="form-control" rows="9" data-campo-resolucion="articulosSiguientes" [value]="borrador.articulosSiguientes"
+          <span class="campo-etiqueta">Demás artículos <span class="text-danger">*</span></span>
+          <textarea class="form-control" rows="9" [attr.maxlength]="maximoTexto" data-campo-resolucion="articulosSiguientes"
+            [class.is-invalid]="!!error(i, 'articulosSiguientes')" [value]="borrador.articulosSiguientes"
             (input)="cambiar(borrador, 'articulosSiguientes', $event)"></textarea>
+          <small class="texto-error" data-error-resolucion="articulosSiguientes">{{ error(i, 'articulosSiguientes') }}</small>
         </label>
         <div class="campos-grid">
           <label class="campo">
-            <span class="campo-etiqueta">Firma</span>
-            <input class="form-control" type="text" maxlength="120" data-campo-resolucion="firmante" [value]="borrador.firmante"
-              (input)="cambiar(borrador, 'firmante', $event)">
+            <span class="campo-etiqueta">Nombre de quien firma <span class="text-danger">*</span></span>
+            <input class="form-control" type="text" [attr.maxlength]="maximoCampo" data-campo-resolucion="firmante"
+              [class.is-invalid]="!!error(i, 'firmante')" [value]="borrador.firmante" (input)="cambiar(borrador, 'firmante', $event)">
+            <small class="texto-error" data-error-resolucion="firmante">{{ error(i, 'firmante') }}</small>
           </label>
           <label class="campo">
-            <span class="campo-etiqueta">Cargo</span>
-            <input class="form-control" type="text" maxlength="120" data-campo-resolucion="cargoFirmante" [value]="borrador.cargoFirmante"
+            <span class="campo-etiqueta">Cargo <span class="text-danger">*</span></span>
+            <input class="form-control" type="text" [attr.maxlength]="maximoCampo" data-campo-resolucion="cargoFirmante"
+              [class.is-invalid]="!!error(i, 'cargoFirmante')" [value]="borrador.cargoFirmante"
               (input)="cambiar(borrador, 'cargoFirmante', $event)">
+            <small class="texto-error" data-error-resolucion="cargoFirmante">{{ error(i, 'cargoFirmante') }}</small>
           </label>
           <span></span>
           <label class="campo">
             <span class="campo-etiqueta">Proyectó</span>
-            <input class="form-control" type="text" maxlength="120" data-campo-resolucion="proyecto" [value]="borrador.proyecto"
-              (input)="cambiar(borrador, 'proyecto', $event)">
+            <input class="form-control" type="text" [attr.maxlength]="maximoCampo" data-campo-resolucion="proyecto"
+              [class.is-invalid]="!!error(i, 'proyecto')" [value]="borrador.proyecto" (input)="cambiar(borrador, 'proyecto', $event)">
+            <small class="texto-error" data-error-resolucion="proyecto">{{ error(i, 'proyecto') }}</small>
           </label>
           <label class="campo">
             <span class="campo-etiqueta">Revisó</span>
-            <input class="form-control" type="text" maxlength="120" data-campo-resolucion="reviso" [value]="borrador.reviso"
-              (input)="cambiar(borrador, 'reviso', $event)">
+            <input class="form-control" type="text" [attr.maxlength]="maximoCampo" data-campo-resolucion="reviso"
+              [class.is-invalid]="!!error(i, 'reviso')" [value]="borrador.reviso" (input)="cambiar(borrador, 'reviso', $event)">
+            <small class="texto-error" data-error-resolucion="reviso">{{ error(i, 'reviso') }}</small>
           </label>
         </div>
         <label class="campo">
           <span class="campo-etiqueta">Diligencia de notificación</span>
-          <textarea class="form-control" rows="4" data-campo-resolucion="diligencia" [value]="borrador.diligencia"
-            (input)="cambiar(borrador, 'diligencia', $event)"></textarea>
+          <textarea class="form-control" rows="4" [attr.maxlength]="maximoTexto" data-campo-resolucion="diligencia"
+            [class.is-invalid]="!!error(i, 'diligencia')" [value]="borrador.diligencia" (input)="cambiar(borrador, 'diligencia', $event)"></textarea>
+          <small class="texto-error" data-error-resolucion="diligencia">{{ error(i, 'diligencia') }}</small>
         </label>
+        @if (cantidadErrores(i) > 0) {
+        <p class="nota-error mb-0" data-errores-resolucion>
+          La Resolución presenta {{ cantidadErrores(i) === 1 ? 'un campo por corregir' : cantidadErrores(i) + ' campos por corregir' }}.
+          Se deben revisar los campos resaltados antes de continuar.
+        </p>
+        }
+        <p class="nota-gris mb-0">El número de la Resolución es obligatorio para descargarla; para la vista previa puede omitirse.</p>
         <div class="d-flex flex-wrap gap-2">
           <app-simple-button-component data-boton-ver-resolucion [label]="generando[i] === 'ver' ? 'Generando...' : 'Ver resolución'"
             width="auto" height="38px" color="#2A3A86" [contorno]="true" [disabled]="!!generando[i]" (clicked)="ver(i)">
