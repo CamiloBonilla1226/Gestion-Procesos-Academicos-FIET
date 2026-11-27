@@ -37,8 +37,6 @@ export class FormatoOficialComponent {
   @Input({ required: true }) solicitud!: SolicitudAcademicaDetalleDTORespuesta;
   @Input({ required: true }) rol!: RolEtiqueta;
   @Input() valoresProvisionales: () => ValorProvisionalFormatoDTOPeticion[] = () => [];
-  @Input() firmaElDecano = false;
-  @Input() decisionLista = true;
   @Output() formatoSubido = new EventEmitter<void>();
 
   readonly tipo = comoTipoAnexo('formato-decano', 'Formato firmado por el Decano (PDF)', FORMATOS_RESOLUCION, true);
@@ -70,7 +68,7 @@ export class FormatoOficialComponent {
   }
 
   get pideFormatoDecano(): boolean {
-    return this.esFuncionario && !this.firmaElDecano && ETAPAS_FORMATO_DECANO.includes(this.solicitud?.etapaCodigo);
+    return this.esFuncionario && ETAPAS_FORMATO_DECANO.includes(this.solicitud?.etapaCodigo);
   }
 
   get tieneFormatoDecano(): boolean {
@@ -119,12 +117,12 @@ export class FormatoOficialComponent {
   descargarCompuesto(): void {
     if (this.descargando) return;
     this.descargando = true;
-    const valores = this.esFuncionario || (this.esDecano && this.firmaElDecano) ? this.valoresProvisionales() : [];
+    const valores = this.esFuncionario ? this.valoresProvisionales() : [];
     this.solicitudAcademicaService
       .descargarFormatoCompuesto(this.uuidSolicitud, valores)
       .pipe(finalize(() => (this.descargando = false)))
       .subscribe({
-        next: blob => guardarArchivo(blob, `Formato-${this.solicitud.radicado}-${this.esDecano ? 'con-la-decision' : 'para-firma'}.pdf`),
+        next: blob => guardarArchivo(blob, `Formato-${this.solicitud.radicado}-para-firma.pdf`),
         error: err => this.errorHandlerService.handleError(err, 'Error', 'No se pudo generar el formato')
       });
   }

@@ -176,9 +176,59 @@
   }
   }
 
-  <app-formato-oficial-component [uuidSolicitud]="uuidSolicitud" [solicitud]="solicitud" [rol]="rol" [valoresProvisionales]="valoresProvisionales"
-    [firmaElDecano]="true" [decisionLista]="decisionLista" (formatoSubido)="recargar()">
-  </app-formato-oficial-component>
+  @if (detalle && muestraFormatos) {
+  <section class="tarjeta" data-tarjeta-formatos [appTarjetaPlegable]="esFuncionario">
+    <header class="tarjeta-head">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/></svg>
+      <h3>Formatos</h3>
+    </header>
+    <div class="tarjeta-body d-flex flex-column gap-3">
+      @if (solicitud.formatoFirmadoEstudianteUuid) {
+      <div class="d-flex flex-wrap align-items-center gap-2" data-formato="estudiante">
+        <span class="flex-grow-1">Formato firmado por el estudiante</span>
+        <app-simple-button-component data-boton-ver-formato-estudiante label="Ver" width="90px" height="34px" color="#2A3A86"
+          [contorno]="true" [disabled]="!!abriendoFormato" (clicked)="verFormato('estudiante', false)">
+        </app-simple-button-component>
+        <app-simple-button-component data-boton-descargar-formato-estudiante
+          [label]="abriendoFormato === 'estudiante' ? 'Descargando...' : 'Descargar'" width="120px" height="34px" color="#2A3A86"
+          [disabled]="!!abriendoFormato" (clicked)="verFormato('estudiante', true)">
+        </app-simple-button-component>
+      </div>
+      } @else {
+      <p class="nota-aviso mb-0" data-sin-formato-estudiante>La solicitud se radicó sin el formato firmado por el estudiante.</p>
+      }
+      @if (solicitud.formatoFirmadoDecanoUuid) {
+      <div class="d-flex flex-wrap align-items-center gap-2" data-formato="decano">
+        <span class="flex-grow-1">Formato con la decisión del Decano</span>
+        <app-simple-button-component data-boton-ver-formato-decano label="Ver" width="90px" height="34px" color="#2A3A86"
+          [contorno]="true" [disabled]="!!abriendoFormato" (clicked)="verFormato('decano', false)">
+        </app-simple-button-component>
+        <app-simple-button-component data-boton-descargar-formato-decano
+          [label]="abriendoFormato === 'decano' ? 'Descargando...' : 'Descargar'" width="120px" height="34px" color="#2A3A86"
+          [disabled]="!!abriendoFormato" (clicked)="verFormato('decano', true)">
+        </app-simple-button-component>
+      </div>
+      } @else {
+      <p class="nota-gris mb-0" data-sin-formato-decano>
+        El formato con la decisión del Decano se genera solo cuando el Decano envía su decisión: lleva el escaneo del estudiante,
+        los datos de la tabla y la decisión marcada.
+      </p>
+      }
+    </div>
+  </section>
+  }
+
+  @if (detalle && muestraResoluciones) {
+  @defer (on immediate) {
+  <app-resoluciones-asignatura-component [uuidSolicitud]="uuidSolicitud" [radicado]="solicitud.radicado" [ajustes]="ajustesResolucion">
+  </app-resoluciones-asignatura-component>
+  } @placeholder {
+  <div class="cargando" data-estado="cargando-resoluciones">
+    <div class="spinner-border spinner-border-sm" role="status"></div>
+    <span>Cargando la generación de la resolución...</span>
+  </div>
+  }
+  }
 
   @if (accionesVisibles.length > 0) {
   <section class="tarjeta tarjeta-acciones" data-acciones>
@@ -225,12 +275,16 @@
     @case (acciones.APROBAR_DECANO) {
     <p class="nota-gris" data-nota-aprobar>{{ notaAprobarDecano }}</p>
     <p class="mb-0" data-texto-decision>Se enviará tu decisión por asignatura; solo se cancelan las aprobadas.</p>
+    <p class="nota-gris mb-0" data-nota-formato-decision>
+      Al enviarla, el sistema genera el formato de la solicitud con tu decisión marcada y se lo hace llegar al Funcionario Académico.
+    </p>
     <ng-container *ngTemplateOutlet="resumenDecisiones"></ng-container>
     }
     @case (acciones.RECHAZAR_DECANO) {
     <p class="nota-gris">
       No aprobaste ninguna asignatura: se niega la solicitud completa. La solicitud pasará al Funcionario Académico para
-      que envíe la respuesta al estudiante.
+      que envíe la respuesta al estudiante, junto con el formato de la solicitud con tu decisión marcada, que el sistema genera
+      al enviarla.
     </p>
     <ng-container *ngTemplateOutlet="resumenDecisiones"></ng-container>
     }
@@ -244,29 +298,6 @@
       }
     </p>
     }
-    }
-
-    @if (esDecisionDecano) {
-    <section class="d-flex flex-column gap-2" data-campo-formato-decano>
-      <h4 class="subtitulo mb-0">Formato firmado por el Decano</h4>
-      <p class="nota-gris mb-0">
-        Descargar el formato con la decisión marcada, firmarlo, escanearlo y subirlo aquí. Viaja con la decisión al Funcionario
-        Académico y después al estudiante y a DARCA.
-      </p>
-      <div>
-        <app-simple-button-component data-boton-formato-decision
-          [label]="descargandoFormato ? 'Generando...' : 'Descargar formato con la decisión'" width="auto" height="34px"
-          color="#2A3A86" [contorno]="true" [disabled]="descargandoFormato || enviando" (clicked)="descargarFormatoConDecision()">
-        </app-simple-button-component>
-      </div>
-      @if (hayFormatoDecano) {
-      <p class="nota-gris mb-0">Ya hay un formato firmado cargado. Si se elige otro, lo reemplaza.</p>
-      }
-      <app-input-anexo-upload-component #entradaFormatoDecano [tipoAnexo]="tipoFormatoDecano" [uploadedFile]="archivoFormatoDecano"
-        (fileSelected)="alSeleccionarFormatoDecano($event, entradaFormatoDecano)" (fileRemoved)="alQuitarFormatoDecano()">
-      </app-input-anexo-upload-component>
-      <small class="texto-error" data-error="formato-decano">{{ errores['formato-decano'] || '' }}</small>
-    </section>
     }
 
     @if (accionActiva === acciones.ENVIAR_RESPUESTA && comunicacion) {
