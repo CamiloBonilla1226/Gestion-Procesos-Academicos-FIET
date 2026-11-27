@@ -15,6 +15,7 @@ $Global:Scripts = @(
     "t7_cancelacion_asignatura",
     "t8_examen_supletorio",
     "t10_eliminar_respuestas",
+    "t11_remision_consejo",
     "matriz-permisos"
 )
 if ($env:PRUEBAS_CORREOS) { $Global:Scripts += "t9_correo_respuesta" }

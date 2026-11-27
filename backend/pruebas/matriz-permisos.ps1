@@ -53,6 +53,8 @@ GET    catalogos-academicos/tipos-solicitud/{uuidTipo}/tipos-anexo              
 GET    catalogos-academicos/etiquetas                                           ninguno   denegado  permitido  permitido permitido      permitido
 GET    catalogos-academicos/situaciones                                         ninguno   denegado  permitido  permitido permitido      permitido
 GET    catalogos-academicos/programas                                           ninguno   denegado  permitido  permitido permitido      permitido
+GET    catalogos-academicos/tipos-solicitud-consejo/encargados                  ninguno   denegado  permitido  permitido denegado       denegado
+GET    catalogos-academicos/tipos-solicitud-consejo/{uuidTipoSolicitud}         ninguno   denegado  permitido  permitido denegado       denegado
 PUT    catalogos-academicos/tipos-solicitud/{uuidTipo}/funcionario              json      denegado  permitido  permitido denegado       denegado
 GET    solicitudes-academicas/estudiante                                        ninguno   denegado  denegado   denegado  denegado       permitido
 GET    solicitudes-academicas/funcionario                                       ninguno   denegado  denegado   denegado  permitido      denegado
@@ -84,6 +86,9 @@ POST   cancelaciones-asignatura                                                 
 GET    cancelaciones-asignatura/{uuidSolicitud}                                 ninguno   denegado  denegado   permitido permitido      permitido
 POST   cancelaciones-asignatura/{uuidSolicitud}/funcionario/rechazar            json      denegado  denegado   denegado  permitido      denegado
 POST   cancelaciones-asignatura/{uuidSolicitud}/funcionario/remitir             json      denegado  denegado   denegado  permitido      denegado
+POST   cancelaciones-asignatura/{uuidSolicitud}/funcionario/remitir-consejo     json      denegado  denegado   denegado  permitido      denegado
+GET    cancelaciones-asignatura/consejo/{uuidSolicitud}                         ninguno   denegado  permitido  permitido denegado       denegado
+POST   cancelaciones-asignatura/consejo/{uuidSolicitud}/decision                json      denegado  permitido  permitido denegado       denegado
 POST   cancelaciones-asignatura/{uuidSolicitud}/funcionario/responder           ninguno   denegado  denegado   denegado  permitido      denegado
 GET    cancelaciones-asignatura/{uuidSolicitud}/funcionario/notificacion        ninguno   denegado  denegado   denegado  permitido      denegado
 GET    cancelaciones-asignatura/{uuidSolicitud}/funcionario/notificacion/plantilla ninguno denegado denegado  denegado  permitido      denegado
