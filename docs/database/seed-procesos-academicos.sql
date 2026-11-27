@@ -28,7 +28,10 @@ INSERT IGNORE INTO ETAPA_SOLICITUD_ACADEMICA (uuidEtapa, codigo, TipoSolicitudAc
 ('475e51b3-f854-4b4e-818e-a792ef59f64c', 'RECHAZADA', NULL),
 ('6e4561a7-b354-4f21-9825-f35263882b36', 'PENDIENTE_PAGO', '459cde47-f3a3-4a74-9b44-1063a516326c'),
 ('ac289652-cf4e-4142-bec4-8809cbcb74fc', 'EN_VERIFICACION_PAGO', '459cde47-f3a3-4a74-9b44-1063a516326c'),
-('b3034d80-46ee-4fad-8364-0c45fbd0afee', 'PENDIENTE_FIRMA_ESTUDIANTE', NULL);
+('b3034d80-46ee-4fad-8364-0c45fbd0afee', 'PENDIENTE_FIRMA_ESTUDIANTE', NULL),
+('5ce8cbcf-59de-40f0-90d2-345ff0f69419', 'EN_REVISION_CONSEJO', '7b3d4347-3525-4ab7-a2b4-723b1ced80c8'),
+('88d34d62-6ba0-4815-b3c2-5e5a516b5ad4', 'APROBADA_POR_CONSEJO', '7b3d4347-3525-4ab7-a2b4-723b1ced80c8'),
+('386500e7-2fc6-44bb-b76d-9a5e24a3a1ae', 'NO_APROBADA_POR_CONSEJO', '7b3d4347-3525-4ab7-a2b4-723b1ced80c8');
 
 INSERT IGNORE INTO ETAPA_ETIQUETA_ROL (Etapa_uuid, rol, etiqueta) VALUES
 ('653e4772-562b-4d3c-becf-85f19a6dbdc9', 'ESTUDIANTE', 'En trámite'),
@@ -54,7 +57,16 @@ INSERT IGNORE INTO ETAPA_ETIQUETA_ROL (Etapa_uuid, rol, etiqueta) VALUES
 ('475e51b3-f854-4b4e-818e-a792ef59f64c', 'ESTUDIANTE', 'No aprobada'),
 ('475e51b3-f854-4b4e-818e-a792ef59f64c', 'FUNCIONARIO', 'Respondida'),
 ('475e51b3-f854-4b4e-818e-a792ef59f64c', 'DECANO', 'Respondida'),
-('b3034d80-46ee-4fad-8364-0c45fbd0afee', 'ESTUDIANTE', 'En gestión');
+('b3034d80-46ee-4fad-8364-0c45fbd0afee', 'ESTUDIANTE', 'En gestión'),
+('5ce8cbcf-59de-40f0-90d2-345ff0f69419', 'ESTUDIANTE', 'En trámite'),
+('5ce8cbcf-59de-40f0-90d2-345ff0f69419', 'FUNCIONARIO', 'En Consejo'),
+('5ce8cbcf-59de-40f0-90d2-345ff0f69419', 'DECANO', 'En Consejo'),
+('88d34d62-6ba0-4815-b3c2-5e5a516b5ad4', 'ESTUDIANTE', 'En trámite'),
+('88d34d62-6ba0-4815-b3c2-5e5a516b5ad4', 'FUNCIONARIO', 'Pendiente Notificar'),
+('88d34d62-6ba0-4815-b3c2-5e5a516b5ad4', 'DECANO', 'Respondida'),
+('386500e7-2fc6-44bb-b76d-9a5e24a3a1ae', 'ESTUDIANTE', 'En trámite'),
+('386500e7-2fc6-44bb-b76d-9a5e24a3a1ae', 'FUNCIONARIO', 'Pendiente Notificar'),
+('386500e7-2fc6-44bb-b76d-9a5e24a3a1ae', 'DECANO', 'Respondida');
 
 INSERT IGNORE INTO TIPO_ANEXO_ACADEMICO (uuidTipoAnexoAcademico, TipoSolicitudAcademica_uuid, nombre, formatosPermitidos, obligatorio) VALUES
 ('0870fd29-220d-4226-92b1-590804ac0974', '3b6dccc9-ff78-48ef-8e66-05fb9932e302', 'Paz y salvo - División de Bibliotecas', 'pdf', 1),

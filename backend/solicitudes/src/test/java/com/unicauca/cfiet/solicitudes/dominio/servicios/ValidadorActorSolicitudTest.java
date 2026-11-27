@@ -221,4 +221,18 @@ class ValidadorActorSolicitudTest {
 
         assertEquals(String.format(MensajesError.ACTOR_SIN_ROL, OTRO_ESTUDIANTE, "Funcionario Académico"), error.getMessage());
     }
+
+    @Test
+    void elConsejoLoEjercenElSecretarioGeneralYElDecano() {
+        assertDoesNotThrow(() -> validador.validar(solicitud, actor(SECRETARIO, RolEtiquetaEtapa.CONSEJO)));
+        assertDoesNotThrow(() -> validador.validar(solicitud, actor(DECANO, RolEtiquetaEtapa.CONSEJO)));
+    }
+
+    @Test
+    void elFuncionarioAcademicoNoEjerceElConsejo() {
+        ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
+                () -> validador.validar(solicitud, actor(ASIGNADO, RolEtiquetaEtapa.CONSEJO)));
+
+        assertEquals(String.format(MensajesError.ACTOR_SIN_ROL, ASIGNADO, "Secretario General o Decano"), error.getMessage());
+    }
 }

@@ -29,17 +29,21 @@ public class MaquinaEtapas {
             EnumSet.of(TipoProcesoAcademico.CANCELACION_MATRICULA, TipoProcesoAcademico.CANCELACION_ASIGNATURA);
     private static final Set<TipoProcesoAcademico> SUPLETORIO = EnumSet.of(TipoProcesoAcademico.EXAMEN_SUPLETORIO);
     private static final Set<TipoProcesoAcademico> TODOS = EnumSet.allOf(TipoProcesoAcademico.class);
+    private static final Set<TipoProcesoAcademico> ASIGNATURA = EnumSet.of(TipoProcesoAcademico.CANCELACION_ASIGNATURA);
 
-    private static final Map<String, ResponsableEtapa> RESPONSABLES = Map.of(
-            PENDIENTE_FIRMA_ESTUDIANTE, ResponsableEtapa.ESTUDIANTE,
-            RADICADA, ResponsableEtapa.FUNCIONARIO,
-            EN_REVISION_DECANO, ResponsableEtapa.DECANO,
-            APROBADA_POR_DECANO, ResponsableEtapa.FUNCIONARIO,
-            RECHAZADA_POR_DECANO, ResponsableEtapa.FUNCIONARIO,
-            PENDIENTE_PAGO, ResponsableEtapa.ESTUDIANTE,
-            EN_VERIFICACION_PAGO, ResponsableEtapa.FUNCIONARIO,
-            APROBADA, ResponsableEtapa.NINGUNO,
-            RECHAZADA, ResponsableEtapa.NINGUNO);
+    private static final Map<String, ResponsableEtapa> RESPONSABLES = Map.ofEntries(
+            Map.entry(PENDIENTE_FIRMA_ESTUDIANTE, ResponsableEtapa.ESTUDIANTE),
+            Map.entry(RADICADA, ResponsableEtapa.FUNCIONARIO),
+            Map.entry(EN_REVISION_DECANO, ResponsableEtapa.DECANO),
+            Map.entry(APROBADA_POR_DECANO, ResponsableEtapa.FUNCIONARIO),
+            Map.entry(RECHAZADA_POR_DECANO, ResponsableEtapa.FUNCIONARIO),
+            Map.entry(PENDIENTE_PAGO, ResponsableEtapa.ESTUDIANTE),
+            Map.entry(EN_VERIFICACION_PAGO, ResponsableEtapa.FUNCIONARIO),
+            Map.entry(EN_REVISION_CONSEJO, ResponsableEtapa.CONSEJO),
+            Map.entry(APROBADA_POR_CONSEJO, ResponsableEtapa.FUNCIONARIO),
+            Map.entry(NO_APROBADA_POR_CONSEJO, ResponsableEtapa.FUNCIONARIO),
+            Map.entry(APROBADA, ResponsableEtapa.NINGUNO),
+            Map.entry(RECHAZADA, ResponsableEtapa.NINGUNO));
 
     private static final List<Transicion> TRANSICIONES = List.of(
             new Transicion(TODOS, null, AccionEtapa.RADICAR, RADICADA, RolEtiquetaEtapa.ESTUDIANTE, false, false, false, false, false, false, true),
@@ -50,6 +54,11 @@ public class MaquinaEtapas {
             new Transicion(TODOS, RADICADA, AccionEtapa.REMITIR_DECANO, EN_REVISION_DECANO, RolEtiquetaEtapa.FUNCIONARIO, false, false, false, false),
             new Transicion(TODOS, EN_REVISION_DECANO, AccionEtapa.APROBAR_DECANO, APROBADA_POR_DECANO, RolEtiquetaEtapa.DECANO, false, false, false, false),
             new Transicion(TODOS, EN_REVISION_DECANO, AccionEtapa.RECHAZAR_DECANO, RECHAZADA_POR_DECANO, RolEtiquetaEtapa.DECANO, false, false, false, false),
+            new Transicion(ASIGNATURA, RADICADA, AccionEtapa.REMITIR_CONSEJO, EN_REVISION_CONSEJO, RolEtiquetaEtapa.FUNCIONARIO, false, false, false, false),
+            new Transicion(ASIGNATURA, EN_REVISION_CONSEJO, AccionEtapa.APROBAR_CONSEJO, APROBADA_POR_CONSEJO, RolEtiquetaEtapa.CONSEJO, false, false, false, false),
+            new Transicion(ASIGNATURA, EN_REVISION_CONSEJO, AccionEtapa.NO_APROBAR_CONSEJO, NO_APROBADA_POR_CONSEJO, RolEtiquetaEtapa.CONSEJO, false, false, false, false),
+            new Transicion(ASIGNATURA, APROBADA_POR_CONSEJO, AccionEtapa.ENVIAR_RESPUESTA, APROBADA, RolEtiquetaEtapa.FUNCIONARIO, false, true, false, false, false, true, false),
+            new Transicion(ASIGNATURA, NO_APROBADA_POR_CONSEJO, AccionEtapa.ENVIAR_RESPUESTA, RECHAZADA, RolEtiquetaEtapa.FUNCIONARIO, false, true, false, false, false, true, false),
             new Transicion(CANCELACIONES, APROBADA_POR_DECANO, AccionEtapa.ENVIAR_RESPUESTA, APROBADA, RolEtiquetaEtapa.FUNCIONARIO, false, true, false, false, false, true, false),
             new Transicion(CANCELACIONES, RECHAZADA_POR_DECANO, AccionEtapa.ENVIAR_RESPUESTA, RECHAZADA, RolEtiquetaEtapa.FUNCIONARIO, false, true, false, false, false, true, false),
             new Transicion(SUPLETORIO, RECHAZADA_POR_DECANO, AccionEtapa.ENVIAR_RESPUESTA, RECHAZADA, RolEtiquetaEtapa.FUNCIONARIO, false, false, false, false, false, true, false),

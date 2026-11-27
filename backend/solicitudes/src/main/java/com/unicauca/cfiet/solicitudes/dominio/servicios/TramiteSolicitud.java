@@ -5,16 +5,18 @@ import com.unicauca.cfiet.solicitudes.dominio.helper.constantes.ApplicationConst
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.MensajesError;
 
+import java.util.List;
 import java.util.Map;
 
 public class TramiteSolicitud {
     private static final String SOLICITUD_ACADEMICA = "Solicitud académica";
     private static final String USUARIO = "Usuario";
     private static final String USERNAME = "username";
-    private static final Map<RolEtiquetaEtapa, String> ROLES = Map.of(
-            RolEtiquetaEtapa.ESTUDIANTE, ApplicationConstantes.ESTUDIANTE_ROL,
-            RolEtiquetaEtapa.FUNCIONARIO, ApplicationConstantes.FUNCIONARIO_ACADEMICO_ROL,
-            RolEtiquetaEtapa.DECANO, ApplicationConstantes.DECANO);
+    private static final Map<RolEtiquetaEtapa, List<String>> ROLES = Map.of(
+            RolEtiquetaEtapa.ESTUDIANTE, List.of(ApplicationConstantes.ESTUDIANTE_ROL),
+            RolEtiquetaEtapa.FUNCIONARIO, List.of(ApplicationConstantes.FUNCIONARIO_ACADEMICO_ROL),
+            RolEtiquetaEtapa.DECANO, List.of(ApplicationConstantes.DECANO),
+            RolEtiquetaEtapa.CONSEJO, List.of(ApplicationConstantes.SECRETARIO_GENERAL, ApplicationConstantes.DECANO));
 
     private final SolicitudAcademicaGatewayIntPuerto solicitudGateway;
     private final SesionGatewayIntPuerto sesionGateway;
@@ -44,10 +46,11 @@ public class TramiteSolicitud {
         Usuario usuario = sesionGateway.getUsuario(username);
         if (usuario == null)
             formateadorExcepciones.lanzarEntidadNoExiste(String.format(MensajesError.ENTIDAD_NO_ENCONTRADA_FILTRO, USUARIO, USERNAME, username));
-        String nombreRol = ROLES.get(rol);
-        boolean tieneRol = usuario.getRoles() != null && usuario.getRoles().stream().anyMatch(r -> nombreRol.equals(r.getNombre()));
+        List<String> nombres = ROLES.get(rol);
+        boolean tieneRol = usuario.getRoles() != null && usuario.getRoles().stream().anyMatch(r -> nombres.contains(r.getNombre()));
         if (!tieneRol)
-            formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.ACTOR_SIN_ROL, usuario.getUuidUsuario(), nombreRol));
+            formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.ACTOR_SIN_ROL, usuario.getUuidUsuario(),
+                    String.join(" o ", nombres)));
         return ActorSolicitud.builder().uuidUsuario(usuario.getUuidUsuario()).rol(rol).build();
     }
 

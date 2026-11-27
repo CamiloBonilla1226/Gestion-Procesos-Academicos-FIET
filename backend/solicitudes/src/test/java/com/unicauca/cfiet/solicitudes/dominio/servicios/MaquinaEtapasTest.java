@@ -79,9 +79,19 @@ class MaquinaEtapasTest {
                 new Fila(EXAMEN_SUPLETORIO, EN_VERIFICACION_PAGO, RECHAZAR_COMPROBANTE, FUNCIONARIO, RECHAZADA, true, false, false, false));
     }
 
+    private static List<Fila> tablaConsejo() {
+        return List.of(
+                new Fila(CANCELACION_ASIGNATURA, RADICADA, REMITIR_CONSEJO, FUNCIONARIO, EN_REVISION_CONSEJO, false, false, false, false),
+                new Fila(CANCELACION_ASIGNATURA, EN_REVISION_CONSEJO, APROBAR_CONSEJO, RolEtiquetaEtapa.CONSEJO, APROBADA_POR_CONSEJO, false, false, false, false),
+                new Fila(CANCELACION_ASIGNATURA, EN_REVISION_CONSEJO, NO_APROBAR_CONSEJO, RolEtiquetaEtapa.CONSEJO, NO_APROBADA_POR_CONSEJO, false, false, false, false),
+                new Fila(CANCELACION_ASIGNATURA, APROBADA_POR_CONSEJO, ENVIAR_RESPUESTA, FUNCIONARIO, APROBADA, false, true, false, false),
+                new Fila(CANCELACION_ASIGNATURA, NO_APROBADA_POR_CONSEJO, ENVIAR_RESPUESTA, FUNCIONARIO, RECHAZADA, false, true, false, false));
+    }
+
     private static List<Fila> tablaCompleta() {
         List<Fila> filas = new ArrayList<>(tablaCancelacion(CANCELACION_MATRICULA));
         filas.addAll(tablaCancelacion(CANCELACION_ASIGNATURA));
+        filas.addAll(tablaConsejo());
         filas.addAll(tablaSupletorio());
         return filas;
     }
@@ -171,8 +181,8 @@ class MaquinaEtapasTest {
     }
 
     @Test
-    void laTablaTieneExactamenteTreintaTransiciones() {
-        assertEquals(30, tablaCompleta().size());
+    void laTablaTieneExactamenteTreintaYCincoTransiciones() {
+        assertEquals(35, tablaCompleta().size());
     }
 
     @Test
@@ -198,7 +208,7 @@ class MaquinaEtapasTest {
                         }
                     }
         assertTrue(sobrantes.isEmpty(), () -> "Transiciones que no estan en la tabla: " + sobrantes);
-        assertEquals(30, validas);
+        assertEquals(35, validas);
     }
 
     @ParameterizedTest(name = "{0}: {1} --{2}--> por {3} se rechaza")
@@ -410,7 +420,7 @@ class MaquinaEtapasTest {
                     }
                     ofrecidas += disponibles.size();
                 }
-        assertEquals(30, ofrecidas);
+        assertEquals(35, ofrecidas);
     }
 
     @ParameterizedTest(name = "{0} en {1} no ofrece acciones")
@@ -466,5 +476,48 @@ class MaquinaEtapasTest {
         assertNull(maquina.etapaDestino(EXAMEN_SUPLETORIO, RADICADA, null));
         assertNull(maquina.etapaDestino(null, null, RADICAR));
         assertEquals(RADICADA, maquina.etapaDestino(EXAMEN_SUPLETORIO, "  ", RADICAR));
+    }
+
+    @Test
+    void cancelacionDeAsignaturaPuedeRemitirseAlConsejo() {
+        assertEquals(EN_REVISION_CONSEJO, maquina.siguienteEtapa(CANCELACION_ASIGNATURA, RADICADA, REMITIR_CONSEJO, FUNCIONARIO).getEtapaSiguiente());
+        assertTrue(maquina.accionesDisponibles(CANCELACION_ASIGNATURA, RADICADA, FUNCIONARIO).contains(REMITIR_CONSEJO));
+        assertEquals(ResponsableEtapa.CONSEJO, maquina.responsableActual(EN_REVISION_CONSEJO));
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = TipoProcesoAcademico.class, names = {"CANCELACION_MATRICULA", "EXAMEN_SUPLETORIO"})
+    void losOtrosProcesosNoPuedenRemitirseAlConsejo(TipoProcesoAcademico tipo) {
+        ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
+                () -> maquina.siguienteEtapa(tipo, RADICADA, REMITIR_CONSEJO, FUNCIONARIO));
+
+        assertTrue(error.getMessage().contains(NO_PERMITIDA));
+        assertFalse(maquina.accionesDisponibles(tipo, RADICADA, FUNCIONARIO).contains(REMITIR_CONSEJO));
+    }
+
+    @Test
+    void elConsejoApruebaONoApruebaYElFuncionarioRespondeComoTrasElDecano() {
+        assertEquals(APROBADA_POR_CONSEJO,
+                maquina.siguienteEtapa(CANCELACION_ASIGNATURA, EN_REVISION_CONSEJO, APROBAR_CONSEJO, RolEtiquetaEtapa.CONSEJO).getEtapaSiguiente());
+        assertEquals(NO_APROBADA_POR_CONSEJO,
+                maquina.siguienteEtapa(CANCELACION_ASIGNATURA, EN_REVISION_CONSEJO, NO_APROBAR_CONSEJO, RolEtiquetaEtapa.CONSEJO).getEtapaSiguiente());
+
+        ResultadoTransicion aprobada = maquina.siguienteEtapa(CANCELACION_ASIGNATURA, APROBADA_POR_CONSEJO, ENVIAR_RESPUESTA, FUNCIONARIO);
+        ResultadoTransicion noAprobada = maquina.siguienteEtapa(CANCELACION_ASIGNATURA, NO_APROBADA_POR_CONSEJO, ENVIAR_RESPUESTA, FUNCIONARIO);
+        assertEquals(APROBADA, aprobada.getEtapaSiguiente());
+        assertEquals(RECHAZADA, noAprobada.getEtapaSiguiente());
+        assertTrue(aprobada.isResolucionObligatoria() && aprobada.isFormatoDecanoObligatorio());
+        assertTrue(noAprobada.isResolucionObligatoria() && noAprobada.isFormatoDecanoObligatorio());
+        assertEquals(ResponsableEtapa.FUNCIONARIO, maquina.responsableActual(APROBADA_POR_CONSEJO));
+        assertEquals(ResponsableEtapa.FUNCIONARIO, maquina.responsableActual(NO_APROBADA_POR_CONSEJO));
+    }
+
+    @Test
+    void elDecanoNoDecideComoDecanoUnaSolicitudQueEstaEnElConsejo() {
+        ErrorReglaNegocioVioladaExcepcion error = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
+                () -> maquina.siguienteEtapa(CANCELACION_ASIGNATURA, EN_REVISION_CONSEJO, APROBAR_DECANO, DECANO));
+
+        assertTrue(error.getMessage().contains(NO_PERMITIDA));
+        assertTrue(maquina.accionesDisponibles(CANCELACION_ASIGNATURA, EN_REVISION_CONSEJO, DECANO).isEmpty());
     }
 }

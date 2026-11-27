@@ -4,5 +4,6 @@ public enum ResponsableEtapa {
     ESTUDIANTE,
     FUNCIONARIO,
     DECANO,
+    CONSEJO,
     NINGUNO
 }

@@ -10,14 +10,16 @@ import com.unicauca.cfiet.solicitudes.dominio.modelos.TipoSolicitudAcademica;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.Usuario;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.MensajesError;
 
+import java.util.List;
 import java.util.Map;
 
 public class ValidadorActorSolicitud {
     private static final String USUARIO = "Usuario";
-    private static final Map<RolEtiquetaEtapa, String> ROLES = Map.of(
-            RolEtiquetaEtapa.ESTUDIANTE, ApplicationConstantes.ESTUDIANTE_ROL,
-            RolEtiquetaEtapa.FUNCIONARIO, ApplicationConstantes.FUNCIONARIO_ACADEMICO_ROL,
-            RolEtiquetaEtapa.DECANO, ApplicationConstantes.DECANO);
+    private static final Map<RolEtiquetaEtapa, List<String>> ROLES = Map.of(
+            RolEtiquetaEtapa.ESTUDIANTE, List.of(ApplicationConstantes.ESTUDIANTE_ROL),
+            RolEtiquetaEtapa.FUNCIONARIO, List.of(ApplicationConstantes.FUNCIONARIO_ACADEMICO_ROL),
+            RolEtiquetaEtapa.DECANO, List.of(ApplicationConstantes.DECANO),
+            RolEtiquetaEtapa.CONSEJO, List.of(ApplicationConstantes.SECRETARIO_GENERAL, ApplicationConstantes.DECANO));
 
     private final UsuarioActorGatewayIntPuerto usuarioActorGateway;
     private final ExcepcionesFormateadorIntPuerto formateadorExcepciones;
@@ -36,11 +38,12 @@ public class ValidadorActorSolicitud {
         Usuario usuario = usuarioActorGateway.getUsuario(actor.getUuidUsuario());
         if (usuario == null)
             formateadorExcepciones.lanzarEntidadNoExiste(String.format(MensajesError.ENTIDAD_NO_ENCONTRADA, USUARIO, actor.getUuidUsuario()));
-        String rolRequerido = ROLES.get(actor.getRol());
+        List<String> rolesRequeridos = ROLES.get(actor.getRol());
         boolean tieneRol = usuario.getRoles() != null && usuario.getRoles().stream()
-                .anyMatch(rol -> rolRequerido.equals(rol.getNombre()));
+                .anyMatch(rol -> rolesRequeridos.contains(rol.getNombre()));
         if (!tieneRol)
-            formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.ACTOR_SIN_ROL, actor.getUuidUsuario(), rolRequerido));
+            formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.ACTOR_SIN_ROL, actor.getUuidUsuario(),
+                    String.join(" o ", rolesRequeridos)));
     }
 
     public void validarAlcance(SolicitudAcademica solicitud, ActorSolicitud actor) {
