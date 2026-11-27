@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { parsearErrorBlob } from '../utils/descargas';
 import { environment } from '../../../enviroments/environment';
 import { ObservacionDTOPeticion } from '../models/CancelacionMatricula/DTORequest/ObservacionDTOPeticion';
 import { AprobacionCancelacionAsignaturaDTOPeticion } from '../models/CancelacionAsignatura/DTORequest/AprobacionCancelacionAsignaturaDTOPeticion';
@@ -13,6 +14,11 @@ import { PlantillaNotificacionResolucionDTORespuesta } from '../models/Cancelaci
 import { CancelacionAsignaturaDetalleDTORespuesta } from '../models/CancelacionAsignatura/DTOResponse/CancelacionAsignaturaDetalleDTORespuesta';
 import { FormularioCancelacionAsignaturaDTORespuesta } from '../models/CancelacionAsignatura/DTOResponse/FormularioCancelacionAsignaturaDTORespuesta';
 import { RadicacionCancelacionAsignaturaDTORespuesta } from '../models/CancelacionAsignatura/DTOResponse/RadicacionCancelacionAsignaturaDTORespuesta';
+import { BorradorResolucionDTORespuesta } from '../models/CancelacionAsignatura/DTOResponse/BorradorResolucionDTORespuesta';
+import {
+  BorradorResolucionDTOPeticion,
+  BorradoresResolucionDTOPeticion
+} from '../models/CancelacionAsignatura/DTORequest/BorradorResolucionDTOPeticion';
 
 @Injectable({
   providedIn: 'root'
@@ -93,6 +99,16 @@ export class CancelacionAsignaturaService {
 
   reintentarNotificacion(uuidSolicitud: string): Observable<NotificacionResolucionDTORespuesta> {
     return this.http.post<NotificacionResolucionDTORespuesta>(`${this.url}/${uuidSolicitud}/funcionario/notificacion/reintentar`, null);
+  }
+
+  getBorradoresResolucion(uuidSolicitud: string, peticion: BorradoresResolucionDTOPeticion): Observable<BorradorResolucionDTORespuesta[]> {
+    return this.http.post<BorradorResolucionDTORespuesta[]>(`${this.url}/${uuidSolicitud}/funcionario/resoluciones/borradores`, peticion);
+  }
+
+  generarResolucion(uuidSolicitud: string, borrador: BorradorResolucionDTOPeticion): Observable<Blob> {
+    return this.http
+      .post(`${this.url}/${uuidSolicitud}/funcionario/resoluciones/pdf`, borrador, { responseType: 'blob' })
+      .pipe(parsearErrorBlob());
   }
 
   private armarFormDataRadicacion(peticion: RadicacionCancelacionAsignaturaDTOPeticion): FormData {

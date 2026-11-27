@@ -92,12 +92,6 @@ export class SolicitudAcademicaService {
     return this.http.post<SolicitudAcademicaDetalleDTORespuesta>(`${this.url}/${uuidSolicitud}/estudiante/radicar`, formData);
   }
 
-  subirFormatoDecano(uuidSolicitud: string, archivo: File): Observable<SolicitudAcademicaDetalleDTORespuesta> {
-    const formData = new FormData();
-    formData.append('archivo', archivo, archivo.name);
-    return this.http.post<SolicitudAcademicaDetalleDTORespuesta>(`${this.url}/${uuidSolicitud}/formato/decano`, formData);
-  }
-
   descartarSolicitud(uuidSolicitud: string): Observable<void> {
     return this.http.delete<void>(`${this.url}/${uuidSolicitud}/estudiante`);
   }

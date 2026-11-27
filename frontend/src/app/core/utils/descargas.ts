@@ -11,6 +11,21 @@ export function guardarArchivo(blob: Blob, nombre: string): void {
   setTimeout(() => window.URL.revokeObjectURL(url), 1000);
 }
 
+export function abrirVentana(): Window | null {
+  if (typeof window === 'undefined') return null;
+  return window.open('', '_blank');
+}
+
+export function mostrarArchivo(ventana: Window | null, blob: Blob, nombre: string): void {
+  if (!ventana || ventana.closed) {
+    guardarArchivo(blob, nombre);
+    return;
+  }
+  const url = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+  ventana.location.href = url;
+  setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+}
+
 export function parsearErrorBlob<T>(): MonoTypeOperatorFunction<T> {
   return catchError((err: unknown) => {
     if (!(err instanceof HttpErrorResponse) || !(err.error instanceof Blob)) {

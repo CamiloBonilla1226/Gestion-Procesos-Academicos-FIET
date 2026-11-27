@@ -1,0 +1,144 @@
+<section class="tarjeta" data-tarjeta-resoluciones>
+  <header class="tarjeta-head">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h5"/></svg>
+    <h3>Generar resolución</h3>
+  </header>
+  <div class="tarjeta-body d-flex flex-column gap-3">
+    <p class="nota-gris" data-nota-resoluciones>
+      Se genera una resolución por asignatura, "acepta" o "no acepta" según la decisión del Decano, con los datos del estudiante,
+      de la asignatura y de la tabla. Los textos se pueden editar antes de ver o descargar el PDF. Para resaltar en negrilla se
+      encierra el texto entre dos asteriscos (**así**), un párrafo que empieza con &gt; sale como cita con sangría y los párrafos
+      se separan con una línea en blanco. La Resolución firmada se sube después en el diálogo de "Enviar respuesta".
+    </p>
+    <div>
+      <app-simple-button-component data-boton-generar-resoluciones
+        [label]="cargando ? 'Generando...' : (hayBorradores ? 'Volver a generar desde la solicitud' : 'Generar resolución')"
+        width="auto" height="38px" color="#2A3A86" [contorno]="hayBorradores" [disabled]="cargando" (clicked)="generar()">
+      </app-simple-button-component>
+    </div>
+    @if (hayBorradores) {
+    <p class="nota-aviso mb-0" data-aviso-regenerar>
+      Volver a generar reemplaza los textos editados por los de la solicitud.
+    </p>
+    }
+
+    @for (borrador of borradores; track borrador.asignaturaSolicitudUuid; let i = $index) {
+    <details class="resolucion" [open]="i === 0" [attr.data-resolucion]="borrador.asignaturaSolicitudUuid">
+      <summary>
+        <span class="resolucion-titulo">{{ titulo(borrador, i) }}</span>
+        <span class="pill" [attr.data-decision]="borrador.aceptada ? 'acepta' : 'no-acepta'"
+          [class.pill-acepta]="borrador.aceptada" [class.pill-no-acepta]="!borrador.aceptada">
+          {{ borrador.aceptada ? 'Acepta' : 'No acepta' }}
+        </span>
+      </summary>
+      <div class="d-flex flex-column gap-3 pt-3">
+        <div class="campos-grid">
+          <label class="campo">
+            <span class="campo-etiqueta">Número de la Resolución</span>
+            <div class="input-group">
+              <span class="input-group-text">{{ borrador.prefijo }}</span>
+              <input class="form-control" type="text" maxlength="40" data-campo-resolucion="numero" [value]="borrador.numero"
+                (input)="cambiar(borrador, 'numero', $event)">
+            </div>
+          </label>
+          <label class="campo">
+            <span class="campo-etiqueta">Fecha de expedición</span>
+            <input class="form-control" type="date" data-campo-resolucion="fecha" [value]="borrador.fecha"
+              (input)="cambiar(borrador, 'fecha', $event)">
+          </label>
+          <label class="campo">
+            <span class="campo-etiqueta">Asunto</span>
+            <input class="form-control" type="text" maxlength="300" data-campo-resolucion="asunto" [value]="borrador.asunto"
+              (input)="cambiar(borrador, 'asunto', $event)">
+          </label>
+        </div>
+        <label class="campo">
+          <span class="campo-etiqueta">Preámbulo</span>
+          <textarea class="form-control" rows="3" data-campo-resolucion="preambulo" [value]="borrador.preambulo"
+            (input)="cambiar(borrador, 'preambulo', $event)"></textarea>
+        </label>
+        <label class="campo">
+          <span class="campo-etiqueta">Considerandos</span>
+          <textarea class="form-control" rows="16" data-campo-resolucion="considerandos" [value]="borrador.considerandos"
+            (input)="cambiar(borrador, 'considerandos', $event)"></textarea>
+        </label>
+        <label class="campo">
+          <span class="campo-etiqueta">Artículo primero</span>
+          <textarea class="form-control" rows="4" data-campo-resolucion="articuloPrimero" [value]="borrador.articuloPrimero"
+            (input)="cambiar(borrador, 'articuloPrimero', $event)"></textarea>
+        </label>
+        @if (borrador.filas.length > 0) {
+        <div class="campo">
+          <span class="campo-etiqueta">Tabla de la asignatura</span>
+          <div class="tabla-scroll">
+            <table class="tabla-resolucion" data-tabla-resolucion>
+              <thead>
+                <tr>
+                  @for (columna of columnas; track columna.campo) {
+                  <th scope="col">{{ columna.titulo }}</th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (fila of borrador.filas; track $index) {
+                <tr>
+                  @for (columna of columnas; track columna.campo) {
+                  <td>
+                    <input class="form-control form-control-sm" type="text" maxlength="120" [attr.aria-label]="columna.titulo"
+                      [attr.data-celda-resolucion]="columna.campo" [value]="fila[columna.campo]" (input)="cambiarFila(fila, columna.campo, $event)">
+                  </td>
+                  }
+                </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+        }
+        <label class="campo">
+          <span class="campo-etiqueta">Demás artículos</span>
+          <textarea class="form-control" rows="9" data-campo-resolucion="articulosSiguientes" [value]="borrador.articulosSiguientes"
+            (input)="cambiar(borrador, 'articulosSiguientes', $event)"></textarea>
+        </label>
+        <div class="campos-grid">
+          <label class="campo">
+            <span class="campo-etiqueta">Firma</span>
+            <input class="form-control" type="text" maxlength="120" data-campo-resolucion="firmante" [value]="borrador.firmante"
+              (input)="cambiar(borrador, 'firmante', $event)">
+          </label>
+          <label class="campo">
+            <span class="campo-etiqueta">Cargo</span>
+            <input class="form-control" type="text" maxlength="120" data-campo-resolucion="cargoFirmante" [value]="borrador.cargoFirmante"
+              (input)="cambiar(borrador, 'cargoFirmante', $event)">
+          </label>
+          <span></span>
+          <label class="campo">
+            <span class="campo-etiqueta">Proyectó</span>
+            <input class="form-control" type="text" maxlength="120" data-campo-resolucion="proyecto" [value]="borrador.proyecto"
+              (input)="cambiar(borrador, 'proyecto', $event)">
+          </label>
+          <label class="campo">
+            <span class="campo-etiqueta">Revisó</span>
+            <input class="form-control" type="text" maxlength="120" data-campo-resolucion="reviso" [value]="borrador.reviso"
+              (input)="cambiar(borrador, 'reviso', $event)">
+          </label>
+        </div>
+        <label class="campo">
+          <span class="campo-etiqueta">Diligencia de notificación</span>
+          <textarea class="form-control" rows="4" data-campo-resolucion="diligencia" [value]="borrador.diligencia"
+            (input)="cambiar(borrador, 'diligencia', $event)"></textarea>
+        </label>
+        <div class="d-flex flex-wrap gap-2">
+          <app-simple-button-component data-boton-ver-resolucion [label]="generando[i] === 'ver' ? 'Generando...' : 'Ver resolución'"
+            width="auto" height="38px" color="#2A3A86" [contorno]="true" [disabled]="!!generando[i]" (clicked)="ver(i)">
+          </app-simple-button-component>
+          <app-simple-button-component data-boton-descargar-resolucion
+            [label]="generando[i] === 'descargar' ? 'Generando...' : 'Descargar resolución'" width="auto" height="38px"
+            color="#2A3A86" [disabled]="!!generando[i]" (clicked)="descargar(i)">
+          </app-simple-button-component>
+        </div>
+      </div>
+    </details>
+    }
+  </div>
+</section>
