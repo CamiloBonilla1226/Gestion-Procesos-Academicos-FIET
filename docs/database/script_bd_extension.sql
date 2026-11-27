@@ -512,14 +512,49 @@ CREATE TABLE CORREO_PENDIENTE (
     PRIMARY KEY (idCorreo)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- ---------------------------------------------------------------------
+-- 16. Remision al Consejo de Facultad (P89). TIPO_SOLICITUD_CONSEJO enlaza
+-- el tipo de solicitud de Julian que lleva Cancelacion de Asignatura a la
+-- orden del dia; EncargadoAcademico_uuid guarda al encargado cuando es un
+-- Funcionario Academico. REMISION_CONSEJO une cada solicitud remitida con su
+-- solicitud espejo en la tabla solicitudes de Julian. Las tablas de Julian
+-- no cambian de estructura.
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS TIPO_SOLICITUD_CONSEJO (
+    TipoSolicitud_uuid           VARCHAR(150) NOT NULL,
+    TipoSolicitudAcademica_uuid  VARCHAR(100) NOT NULL,
+    EncargadoAcademico_uuid      VARCHAR(100) NULL,
+    PRIMARY KEY (TipoSolicitud_uuid),
+    UNIQUE KEY uk_tsconsejo_tipoacademico (TipoSolicitudAcademica_uuid),
+    CONSTRAINT fk_tsconsejo_tiposolicitud
+        FOREIGN KEY (TipoSolicitud_uuid) REFERENCES tiposSolicitudes (uuidTipoSolicitud),
+    CONSTRAINT fk_tsconsejo_tipoacademico
+        FOREIGN KEY (TipoSolicitudAcademica_uuid) REFERENCES TIPO_SOLICITUD_ACADEMICA (uuidTipoSolicitudAcademica),
+    CONSTRAINT fk_tsconsejo_encargado
+        FOREIGN KEY (EncargadoAcademico_uuid) REFERENCES FUNCIONARIO_ACADEMICO (Usuario_uuid)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS REMISION_CONSEJO (
+    SolicitudAcademica_uuid  VARCHAR(100) NOT NULL,
+    Solicitud_uuid           VARCHAR(150) NOT NULL,
+    fechaRemision            DATETIME     NOT NULL,
+    PRIMARY KEY (SolicitudAcademica_uuid),
+    UNIQUE KEY uk_remconsejo_solicitud (Solicitud_uuid),
+    CONSTRAINT fk_remconsejo_solacad
+        FOREIGN KEY (SolicitudAcademica_uuid) REFERENCES SOLICITUD_ACADEMICA (uuidSolicitudAcademica),
+    CONSTRAINT fk_remconsejo_solicitud
+        FOREIGN KEY (Solicitud_uuid) REFERENCES solicitudes (uuidSolicitud)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- =====================================================================
--- Fin del script. Son 22 tablas nuevas en total. Orden de creación ya
+-- Fin del script. Son 24 tablas nuevas en total. Orden de creación ya
 -- resuelto para respetar FKs: ProgramaAcademico ->
 -- Estudiante/FuncionarioAcademico ->
 -- Asignatura/AsignaturaMatriculada -> TipoSolicitud -> Etapa/EtapaEtiqueta
 -- -> SolicitudAcademica -> especializaciones -> SituacionAcademica ->
 -- AsignaturaSolicitud -> Anexos -> Resolución -> Historial ->
--- NotificacionDocente -> NotificacionResolucion -> CorreoPendiente.
+-- NotificacionDocente -> NotificacionResolucion -> CorreoPendiente ->
+-- TipoSolicitudConsejo -> RemisionConsejo.
 -- =====================================================================

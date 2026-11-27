@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Locale;
 
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.APROBADA;
-import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.APROBADA_POR_DECANO;
+import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.APROBADAS_CON_DECISION;
 
 public class NotificacionResolucionCUImplAdaptador implements NotificacionResolucionCUIntPuerto {
     private static final String SOLICITUD_ACADEMICA = "Solicitud académica";
@@ -138,7 +138,7 @@ public class NotificacionResolucionCUImplAdaptador implements NotificacionResolu
                 .prefijoResolucion(comunicacion.getPrefijo())
                 .textoComunicacion(comunicacion.plantillaComunicacion())
                 .textoDarca(notificador.plantillaDarcaResolucion(solicitud,
-                        solicitud.getEtapa() != null && APROBADA_POR_DECANO.equals(solicitud.getEtapa().getCodigo()), false))
+                        solicitud.getEtapa() != null && APROBADAS_CON_DECISION.contains(solicitud.getEtapa().getCodigo()), false))
                 .nombreEstudiante(nombreDe(solicitud))
                 .build();
     }

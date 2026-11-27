@@ -18,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -197,7 +198,8 @@ class ConsultaSolicitudAcademicaCUImplAdaptadorTest {
                 deTipo("s7", RECHAZADA, "Examen Supletorio"));
         when(gateway.getPorFuncionarioAcademico(FUNCIONARIO)).thenReturn(solicitudes);
         when(gateway.getTodas()).thenReturn(solicitudes);
-        when(gateway.getUltimaAccion(List.of("s1", "s2", "s3", "s4", "s5", "s6", "s7"), List.of("APROBAR_DECANO", "RECHAZAR_DECANO")))
+        when(gateway.getUltimaAccion(List.of("s1", "s2", "s3", "s4", "s5", "s6", "s7"), List.of("APROBAR_DECANO", "RECHAZAR_DECANO",
+                "APROBAR_CONSEJO", "NO_APROBAR_CONSEJO")))
                 .thenReturn(Map.of("s1", "APROBAR_DECANO", "s2", "APROBAR_DECANO", "s3", "APROBAR_DECANO",
                         "s4", "RECHAZAR_DECANO", "s7", "APROBAR_DECANO"));
         when(gateway.getConAsignaturaNoAprobadaPorDecano(List.of("s2", "s3"))).thenReturn(Set.of("s2"));
@@ -205,6 +207,20 @@ class ConsultaSolicitudAcademicaCUImplAdaptadorTest {
         List<String> esperadas = Arrays.asList("APROBADA", "APROBADA_PARCIAL", "APROBADA", "RECHAZADA", null, null, "APROBADA");
         assertEquals(esperadas, casoDeUso.getBandejaFuncionario(token(FUNCIONARIO)).stream().map(ResumenSolicitudAcademica::getDecisionDecano).toList());
         assertEquals(esperadas, casoDeUso.getBandejaDecano(token(DECANO)).stream().map(ResumenSolicitudAcademica::getDecisionDecano).toList());
+    }
+
+    @Test
+    void unaUltimaAccionNulaNoRompeLaBandejaYSaleSinDecision() {
+        List<SolicitudAcademica> solicitudes = List.of(deTipo("s1", APROBADA, "Cancelación de Asignatura"));
+        when(gateway.getPorFuncionarioAcademico(FUNCIONARIO)).thenReturn(solicitudes);
+        Map<String, String> acciones = new HashMap<>();
+        acciones.put("s1", null);
+        when(gateway.getUltimaAccion(any(), any())).thenReturn(acciones);
+
+        List<ResumenSolicitudAcademica> bandeja = casoDeUso.getBandejaFuncionario(token(FUNCIONARIO));
+
+        assertEquals(1, bandeja.size());
+        assertNull(bandeja.get(0).getDecisionDecano());
     }
 
     @Test

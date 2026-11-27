@@ -41,8 +41,10 @@ public class FormatoOficialCUImplAdaptador implements FormatoOficialCUIntPuerto 
     private static final int AJUSTE_MAXIMO = 15;
     private static final DateTimeFormatter FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final Set<String> ETAPAS_CON_DECISION =
-            Set.of(APROBADA_POR_DECANO, RECHAZADA_POR_DECANO, PENDIENTE_PAGO, EN_VERIFICACION_PAGO, APROBADA, RECHAZADA);
-    private static final Set<String> ACCIONES_DECANO = Set.of(AccionEtapa.APROBAR_DECANO.name(), AccionEtapa.RECHAZAR_DECANO.name());
+            Set.of(APROBADA_POR_DECANO, RECHAZADA_POR_DECANO, PENDIENTE_PAGO, EN_VERIFICACION_PAGO, APROBADA, RECHAZADA, APROBADA_POR_CONSEJO,
+                    NO_APROBADA_POR_CONSEJO);
+    private static final Set<String> ACCIONES_DECANO = Set.of(AccionEtapa.APROBAR_DECANO.name(), AccionEtapa.RECHAZAR_DECANO.name(),
+            AccionEtapa.APROBAR_CONSEJO.name(), AccionEtapa.NO_APROBAR_CONSEJO.name());
 
     private final ConsultaSolicitudAcademicaCUIntPuerto consultaCU;
     private final ConsultaCancelacionMatriculaCUIntPuerto consultaMatriculaCU;
@@ -305,7 +307,7 @@ public class FormatoOficialCUImplAdaptador implements FormatoOficialCUIntPuerto 
         if (ultima == null) return null;
         if (proceso == TipoProcesoAcademico.CANCELACION_ASIGNATURA)
             return asignaturas.stream().anyMatch(fila -> Boolean.TRUE.equals(fila.getAprobadaPorDecano()));
-        return AccionEtapa.APROBAR_DECANO.name().equals(ultima);
+        return AccionEtapa.APROBAR_DECANO.name().equals(ultima) || AccionEtapa.APROBAR_CONSEJO.name().equals(ultima);
     }
 
     private String textoOVacio(String valor) {

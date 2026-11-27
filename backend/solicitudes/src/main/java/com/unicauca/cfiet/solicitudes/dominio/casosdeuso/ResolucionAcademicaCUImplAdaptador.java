@@ -27,7 +27,8 @@ public class ResolucionAcademicaCUImplAdaptador implements ResolucionAcademicaCU
     private static final String DOCUMENTO = "el escaneo de la Resolución";
     private static final String FORMATO = "pdf";
     private static final String TIPO_CONTENIDO = "application/pdf";
-    private static final List<String> ETAPAS_PERMITIDAS = List.of(RADICADA, APROBADA_POR_DECANO, RECHAZADA_POR_DECANO);
+    private static final List<String> ETAPAS_PERMITIDAS = List.of(RADICADA, APROBADA_POR_DECANO, RECHAZADA_POR_DECANO, APROBADA_POR_CONSEJO,
+            NO_APROBADA_POR_CONSEJO);
     private static final List<String> ETAPAS_FINALES = List.of(APROBADA, RECHAZADA);
 
     private final ResolucionAcademicaGatewayIntPuerto gateway;

@@ -27,7 +27,8 @@ public class AnexoAcademicoCUImplAdaptador implements AnexoAcademicoCUIntPuerto 
     private static final String SOPORTE_LIBRE = "Soporte libre";
     private static final List<String> ETAPAS_ADICIONAL_CANCELACION = List.of(RADICADA, APROBADA_POR_DECANO, RECHAZADA_POR_DECANO);
     private static final List<String> ETAPAS_ADICIONAL_SUPLETORIO = List.of(RADICADA, RECHAZADA_POR_DECANO, EN_VERIFICACION_PAGO);
-    private static final List<String> ETAPAS_FORMATO_DECANO = List.of(APROBADA_POR_DECANO, RECHAZADA_POR_DECANO);
+    private static final List<String> ETAPAS_FORMATO_DECANO = List.of(APROBADA_POR_DECANO, RECHAZADA_POR_DECANO, APROBADA_POR_CONSEJO,
+            NO_APROBADA_POR_CONSEJO);
 
     private final AnexoAcademicoGatewayIntPuerto anexoGateway;
     private final SolicitudAcademicaGatewayIntPuerto solicitudGateway;

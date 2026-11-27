@@ -26,6 +26,7 @@ public class EliminacionRespuestasGatewayImplAdaptador implements EliminacionRes
     private final NotificacionResolucionRepositorio notificacionResolucionRepositorio;
     private final ResolucionAcademicaRepositorio resolucionRepositorio;
     private final HistorialSolicitudAcademicaRepositorio historialRepositorio;
+    private final RemisionConsejoRepositorio remisionConsejoRepositorio;
 
     @Override
     @Transactional(readOnly = true)
@@ -53,6 +54,7 @@ public class EliminacionRespuestasGatewayImplAdaptador implements EliminacionRes
         notificacionResolucionRepositorio.eliminarPorSolicitudes(uuidsSolicitud);
         resolucionRepositorio.eliminarPorSolicitudes(uuidsSolicitud);
         historialRepositorio.eliminarPorSolicitudes(uuidsSolicitud);
+        remisionConsejoRepositorio.eliminarPorSolicitudes(uuidsSolicitud);
         solicitudRepositorio.eliminarPorSolicitudes(uuidsSolicitud);
         return archivos;
     }

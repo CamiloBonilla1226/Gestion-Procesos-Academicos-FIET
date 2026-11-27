@@ -170,7 +170,7 @@ public class SolicitudAcademicaCUImplAdaptador implements SolicitudAcademicaCUIn
         ResultadoTransicion resultado = maquinaEtapas.transicionar(
                 proceso, etapaAnterior, accion, actor.getRol(), evidencias(solicitud, observacion));
         solicitud.setEtapa(etapaDe(solicitud.getTipoSolicitudAcademica(), resultado.getEtapaSiguiente()));
-        boolean remite = accion == AccionEtapa.REMITIR_DECANO;
+        boolean remite = accion == AccionEtapa.REMITIR_DECANO || accion == AccionEtapa.REMITIR_CONSEJO;
         ResolucionAcademica escaneo = remite ? resolucionGateway.getPorSolicitud(solicitud.getUuidSolicitudAcademica()) : null;
         List<AnexoAcademico> adicionales = remite ? documentosAdicionales(solicitud.getUuidSolicitudAcademica()) : List.of();
 

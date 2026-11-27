@@ -22,7 +22,8 @@ import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.AnexoAcad
 
 public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolicitudAcademicaCUIntPuerto {
     private static final Set<String> ETAPAS_FORMATO_EN_EDICION = Set.of(EtapaSolicitudAcademicaConstantes.EN_REVISION_DECANO,
-            EtapaSolicitudAcademicaConstantes.APROBADA_POR_DECANO, EtapaSolicitudAcademicaConstantes.RECHAZADA_POR_DECANO);
+            EtapaSolicitudAcademicaConstantes.APROBADA_POR_DECANO, EtapaSolicitudAcademicaConstantes.RECHAZADA_POR_DECANO,
+            EtapaSolicitudAcademicaConstantes.APROBADA_POR_CONSEJO, EtapaSolicitudAcademicaConstantes.NO_APROBADA_POR_CONSEJO);
     private static final String SOLICITUD_ACADEMICA = "Solicitud académica";
     private static final String ANEXO_ACADEMICO = "Anexo académico";
     private static final String USUARIO = "Usuario";
@@ -32,13 +33,21 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
             RolEtiquetaEtapa.FUNCIONARIO, ApplicationConstantes.FUNCIONARIO_ACADEMICO_ROL,
             RolEtiquetaEtapa.DECANO, ApplicationConstantes.DECANO);
     private static final Set<AccionEtapa> OCULTAS_ESTUDIANTE =
-            EnumSet.of(AccionEtapa.REMITIR_DECANO, AccionEtapa.APROBAR_DECANO, AccionEtapa.RECHAZAR_DECANO);
-    private static final Set<AccionEtapa> FILAS_OCULTAS_ESTUDIANTE = EnumSet.of(AccionEtapa.APROBAR_DECANO, AccionEtapa.RECHAZAR_DECANO);
+            EnumSet.of(AccionEtapa.REMITIR_DECANO, AccionEtapa.APROBAR_DECANO, AccionEtapa.RECHAZAR_DECANO, AccionEtapa.REMITIR_CONSEJO,
+                    AccionEtapa.APROBAR_CONSEJO, AccionEtapa.NO_APROBAR_CONSEJO);
+    private static final Set<AccionEtapa> FILAS_OCULTAS_ESTUDIANTE = EnumSet.of(AccionEtapa.APROBAR_DECANO, AccionEtapa.RECHAZAR_DECANO,
+            AccionEtapa.APROBAR_CONSEJO, AccionEtapa.NO_APROBAR_CONSEJO);
+    private static final Set<String> DECISIONES_CONSEJO =
+            Set.of(EtapaSolicitudAcademicaConstantes.APROBADA_POR_CONSEJO, EtapaSolicitudAcademicaConstantes.NO_APROBADA_POR_CONSEJO);
+    private static final List<String> REMISIONES = List.of(AccionEtapa.REMITIR_DECANO.name(), AccionEtapa.REMITIR_CONSEJO.name());
     private static final Set<String> DECISIONES_DECANO =
             Set.of(EtapaSolicitudAcademicaConstantes.APROBADA_POR_DECANO, EtapaSolicitudAcademicaConstantes.RECHAZADA_POR_DECANO);
     private static final Set<String> ETAPAS_RESPONDIDAS =
             Set.of(EtapaSolicitudAcademicaConstantes.APROBADA, EtapaSolicitudAcademicaConstantes.RECHAZADA);
-    private static final List<String> ACCIONES_DECANO =List.of(AccionEtapa.APROBAR_DECANO.name(), AccionEtapa.RECHAZAR_DECANO.name());
+    private static final List<String> ACCIONES_DECANO =List.of(AccionEtapa.APROBAR_DECANO.name(), AccionEtapa.RECHAZAR_DECANO.name(),
+            AccionEtapa.APROBAR_CONSEJO.name(), AccionEtapa.NO_APROBAR_CONSEJO.name());
+    private static final Set<String> APROBACIONES = Set.of(AccionEtapa.APROBAR_DECANO.name(), AccionEtapa.APROBAR_CONSEJO.name());
+    private static final Set<String> NO_APROBACIONES = Set.of(AccionEtapa.RECHAZAR_DECANO.name(), AccionEtapa.NO_APROBAR_CONSEJO.name());
     private static final Set<AccionEtapa> FILAS_RETENIDAS_ESTUDIANTE = EnumSet.of(AccionEtapa.ENVIAR_RESPUESTA);
     private static final String ETIQUETA_EN_TRAMITE = "En trámite";
 
@@ -114,7 +123,8 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
         return DetalleSolicitudAcademica.builder()
                 .solicitudAcademica(solicitud)
                 .etiqueta(acceso.etiqueta())
-                .etapaCodigo(acceso.retenida() ? EtapaSolicitudAcademicaConstantes.EN_REVISION_DECANO : etapaVisible(etapa, acceso.rol()))
+                .etapaCodigo(acceso.retenida() ? etapaRetenida(gateway.getUltimaAccion(List.of(uuid), REMISIONES).get(uuid))
+                        : etapaVisible(etapa, acceso.rol()))
                 .numeroDocumento(acceso.rol() == RolEtiquetaEtapa.ESTUDIANTE ? null : numeroDocumento(solicitud))
                 .anexos(anexos)
                 .tieneResolucion(tieneResolucion)
@@ -151,7 +161,14 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
     private String etapaVisible(String codigo, RolEtiquetaEtapa rol) {
         if (rol == RolEtiquetaEtapa.ESTUDIANTE && codigo != null && DECISIONES_DECANO.contains(codigo))
             return EtapaSolicitudAcademicaConstantes.EN_REVISION_DECANO;
+        if (rol == RolEtiquetaEtapa.ESTUDIANTE && codigo != null && DECISIONES_CONSEJO.contains(codigo))
+            return EtapaSolicitudAcademicaConstantes.EN_REVISION_CONSEJO;
         return codigo;
+    }
+
+    private String etapaRetenida(String remision) {
+        return AccionEtapa.REMITIR_CONSEJO.name().equals(remision)
+                ? EtapaSolicitudAcademicaConstantes.EN_REVISION_CONSEJO : EtapaSolicitudAcademicaConstantes.EN_REVISION_DECANO;
     }
 
     private void asignarEtapas(List<HistorialSolicitudAcademica> historial, TipoProcesoAcademico proceso) {
@@ -268,11 +285,13 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
         Set<String> retenidas = rol == RolEtiquetaEtapa.ESTUDIANTE
                 ? notificacionGateway.getRetenidas(visibles.stream().map(SolicitudAcademica::getUuidSolicitudAcademica).toList()) : Set.of();
         String enTramite = retenidas.isEmpty() ? null : etiquetaEnTramite();
+        Map<String, String> remisiones = retenidas.isEmpty() ? Map.of() : gateway.getUltimaAccion(List.copyOf(retenidas), REMISIONES);
         return visibles.stream()
                 .map(solicitud -> ResumenSolicitudAcademica.builder()
                         .solicitudAcademica(solicitud)
                         .etiqueta(retenidas.contains(solicitud.getUuidSolicitudAcademica()) ? enTramite : etiquetaDe(solicitud, rol, etiquetas))
-                        .etapaCodigo(retenidas.contains(solicitud.getUuidSolicitudAcademica()) ? EtapaSolicitudAcademicaConstantes.EN_REVISION_DECANO
+                        .etapaCodigo(retenidas.contains(solicitud.getUuidSolicitudAcademica())
+                                ? etapaRetenida(remisiones.get(solicitud.getUuidSolicitudAcademica()))
                                 : etapaVisible(solicitud.getEtapa().getCodigo(), rol))
                         .numeroDocumento(rol == RolEtiquetaEtapa.ESTUDIANTE ? null : numeroDocumento(solicitud))
                         .decisionDecano(decisiones.get(solicitud.getUuidSolicitudAcademica()))
@@ -299,20 +318,24 @@ public class ConsultaSolicitudAcademicaCUImplAdaptador implements ConsultaSolici
         List<String> uuids = solicitudes.stream().map(SolicitudAcademica::getUuidSolicitudAcademica).toList();
         Map<String, String> acciones = gateway.getUltimaAccion(uuids, ACCIONES_DECANO);
         List<String> asignaturasAprobadas = solicitudes.stream()
-                .filter(solicitud -> AccionEtapa.APROBAR_DECANO.name().equals(acciones.get(solicitud.getUuidSolicitudAcademica())))
+                .filter(solicitud -> esDe(APROBACIONES, acciones.get(solicitud.getUuidSolicitudAcademica())))
                 .filter(solicitud -> procesoDe(solicitud) == TipoProcesoAcademico.CANCELACION_ASIGNATURA)
                 .map(SolicitudAcademica::getUuidSolicitudAcademica)
                 .toList();
         Set<String> parciales = asignaturasAprobadas.isEmpty() ? Set.of() : gateway.getConAsignaturaNoAprobadaPorDecano(asignaturasAprobadas);
         Map<String, String> decisiones = new HashMap<>();
         acciones.forEach((uuid, accion) -> {
-            if (AccionEtapa.RECHAZAR_DECANO.name().equals(accion))
+            if (esDe(NO_APROBACIONES, accion))
                 decisiones.put(uuid, EtapaSolicitudAcademicaConstantes.DECISION_RECHAZADA);
-            else if (AccionEtapa.APROBAR_DECANO.name().equals(accion))
+            else if (esDe(APROBACIONES, accion))
                 decisiones.put(uuid, parciales.contains(uuid)
                         ? EtapaSolicitudAcademicaConstantes.DECISION_APROBADA_PARCIAL : EtapaSolicitudAcademicaConstantes.DECISION_APROBADA);
         });
         return decisiones;
+    }
+
+    private boolean esDe(Set<String> acciones, String accion) {
+        return accion != null && acciones.contains(accion);
     }
 
     private TipoProcesoAcademico procesoDe(SolicitudAcademica solicitud) {

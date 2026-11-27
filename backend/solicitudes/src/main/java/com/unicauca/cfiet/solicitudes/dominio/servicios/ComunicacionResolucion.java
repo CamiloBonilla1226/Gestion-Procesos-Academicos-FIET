@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.RECHAZADA_POR_DECANO;
+import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.NO_APROBADAS_CON_DECISION;
 
 public class ComunicacionResolucion {
     public static final int MAXIMO_MENSAJE = 2000;
@@ -130,7 +130,7 @@ public class ComunicacionResolucion {
     }
 
     public String decisionPropuesta(String etapaCodigo, List<AsignaturaSolicitudAcademica> asignaturas) {
-        if (RECHAZADA_POR_DECANO.equals(etapaCodigo))
+        if (NO_APROBADAS_CON_DECISION.contains(etapaCodigo))
             return RECHAZA;
         List<AsignaturaSolicitudAcademica> todas = asignaturas == null ? List.of() : asignaturas;
         long aprobadas = todas.stream().filter(asignatura -> Boolean.TRUE.equals(asignatura.getAprobadaPorDecano())).count();
