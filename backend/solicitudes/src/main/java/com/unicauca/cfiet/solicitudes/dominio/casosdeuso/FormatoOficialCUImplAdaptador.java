@@ -162,12 +162,12 @@ public class FormatoOficialCUImplAdaptador implements FormatoOficialCUIntPuerto 
     }
 
     @Override
-    public void subirFormatoDecano(String uuidSolicitudAcademica, ArchivoAdjunto archivo, String token) {
-        ActorSolicitud actor = actorConRol(uuidSolicitudAcademica, token, Set.of(RolEtiquetaEtapa.FUNCIONARIO, RolEtiquetaEtapa.DECANO));
+    public void guardarFormatoConDecision(String uuidSolicitudAcademica, String token) {
+        ActorSolicitud actor = actorConRol(uuidSolicitudAcademica, token, Set.of(RolEtiquetaEtapa.DECANO));
+        ArchivoAdjunto compuesto = componer(uuidSolicitudAcademica, List.of(), token);
         SolicitudAcademica solicitud = consultaCU.getDetalle(uuidSolicitudAcademica, token).getSolicitudAcademica();
-        anexoCU.adjuntarAnexo(uuidSolicitudAcademica, uuidTipoFormato(solicitud, FORMATO_FIRMADO_DECANO), archivo, actor, token);
-        if (composicion.contarPaginas(archivo.getContenido()) < 0)
-            formateadorExcepciones.lanzarMalFormato(MensajesError.FORMATO_NO_LEGIBLE);
+        ArchivoAdjunto formato = pdf("Formato-" + solicitud.getRadicado() + "-con-la-decision.pdf", compuesto.getContenido());
+        anexoCU.adjuntarAnexo(uuidSolicitudAcademica, uuidTipoFormato(solicitud, FORMATO_FIRMADO_DECANO), formato, actor, token);
     }
 
     private List<ValorProvisionalFormato> provisionalesDe(RolEtiquetaEtapa rol, List<ValorProvisionalFormato> valores) {

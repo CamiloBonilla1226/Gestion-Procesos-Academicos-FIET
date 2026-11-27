@@ -19,5 +19,5 @@ public interface FormatoOficialCUIntPuerto {
 
     void guardarAjuste(String uuidSolicitudAcademica, BigDecimal ajusteXmm, BigDecimal ajusteYmm, String token);
 
-    void subirFormatoDecano(String uuidSolicitudAcademica, ArchivoAdjunto archivo, String token);
+    void guardarFormatoConDecision(String uuidSolicitudAcademica, String token);
 }

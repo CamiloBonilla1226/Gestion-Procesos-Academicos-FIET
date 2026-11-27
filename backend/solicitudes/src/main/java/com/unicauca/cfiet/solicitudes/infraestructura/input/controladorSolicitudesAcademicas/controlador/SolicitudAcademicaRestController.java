@@ -243,21 +243,6 @@ public class SolicitudAcademicaRestController {
         return descarga(formatoCU.componer(uuidSolicitud, valores, token.substring(7)));
     }
 
-    @PreAuthorize(ApplicationConstantes.FUNCIONARIO_ACADEMICO_DECANO_ACCESO)
-    @Transactional
-    @PostMapping(value = UUID_SOLICITUD + "/formato/decano", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> subirFormatoDecano(@PathVariable String uuidSolicitud,
-                                                @RequestParam("archivo") MultipartFile archivo,
-                                                @RequestHeader("Authorization") String token) {
-        try {
-            formatoCU.subirFormatoDecano(uuidSolicitud, mapper.mapearArchivo(archivo), token.substring(7));
-            return new ResponseEntity<SolicitudAcademicaDetalleDTORespuesta>(
-                    mapper.mapearDetalleARespuesta(consultaCU.getDetalle(uuidSolicitud, token.substring(7))), HttpStatus.OK);
-        } catch (DataAccessException ex) {
-            return errorBaseDeDatos(ex);
-        }
-    }
-
     @PreAuthorize(ApplicationConstantes.FUNCIONARIO_ACADEMICO_ACCESO)
     @Transactional
     @PutMapping(UUID_SOLICITUD + "/formato/ajuste")
