@@ -40,6 +40,11 @@ public final class RedaccionResolucion {
             + "**su competencia funcional indicado en el Acuerdo N°. 002 de 1988 Modificado por el Acuerdo 029 del 13 de septiembre de 2011 "
             + "Capítulo VIII, artículo 5** y,";
 
+    public static final String PREAMBULO_CONSEJO = "El Consejo de la Facultad de Ingeniería Electrónica y Telecomunicaciones de la Universidad del Cauca, en uso de "
+            + "**sus atribuciones reglamentarias, en especial las del parágrafo del artículo 5 del Capítulo VIII del Acuerdo N°. 002 de 1988 "
+            + "modificado por el Acuerdo 029 del 13 de septiembre de 2011** y,";
+    public static final String CONSEJO = "el Consejo de la Facultad de Ingeniería Electrónica y Telecomunicaciones";
+
     public static final String ASUNTO_ACEPTA = "Por la cual se acepta la cancelación de una asignatura (s).";
     public static final String ASUNTO_NO_ACEPTA = "Por la cual NO se acepta la cancelación de una asignatura (s).";
     public static final String CARGO_FIRMANTE = "Decano";

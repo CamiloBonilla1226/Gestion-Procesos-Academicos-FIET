@@ -3,6 +3,7 @@ package com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelac
 import com.unicauca.cfiet.solicitudes.aplicacion.input.CancelacionAsignaturaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.ConsultaCancelacionAsignaturaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.NotificacionResolucionCUIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.input.RemisionConsejoCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.ResolucionCancelacionAsignaturaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.TramiteCancelacionAsignaturaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.dominio.helper.constantes.ApplicationConstantes;
@@ -22,6 +23,10 @@ import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelaci
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTORespuesta.PlantillaNotificacionResolucionDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTORespuesta.RadicacionCancelacionAsignaturaDTORespuesta;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.mapeador.MapperCancelacionAsignaturaInfraestructuraDominio;
+import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.mapeador.MapperRemisionConsejoInfraestructuraDominio;
+import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTOPeticion.DecisionConsejoDTOPeticion;
+import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesAsignatura.DTORespuesta.RemisionConsejoDTORespuesta;
+import com.unicauca.cfiet.solicitudes.dominio.modelos.DetalleRemisionConsejo;
 import com.unicauca.cfiet.solicitudes.infraestructura.input.controladorCancelacionesMatricula.DTOPeticion.ObservacionDTOPeticion;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -60,7 +65,9 @@ public class CancelacionAsignaturaRestController {
     private final TramiteCancelacionAsignaturaCUIntPuerto tramiteCU;
     private final NotificacionResolucionCUIntPuerto notificacionCU;
     private final ResolucionCancelacionAsignaturaCUIntPuerto resolucionCU;
+    private final RemisionConsejoCUIntPuerto remisionConsejoCU;
     private final MapperCancelacionAsignaturaInfraestructuraDominio mapper;
+    private final MapperRemisionConsejoInfraestructuraDominio remisionMapper;
 
     @PreAuthorize(ApplicationConstantes.ESTUDIANTE_ACCESO)
     @Transactional(readOnly = true)
@@ -116,13 +123,53 @@ public class CancelacionAsignaturaRestController {
 
     @PreAuthorize(ApplicationConstantes.FUNCIONARIO_ACADEMICO_ACCESO)
     @Transactional
+    @PostMapping(UUID_SOLICITUD + "/funcionario/remitir-consejo")
+    public ResponseEntity<?> remitirAConsejo(@PathVariable String uuidSolicitud,
+                                             @Valid @RequestBody RemisionCancelacionAsignaturaDTOPeticion peticion,
+                                             @RequestHeader("Authorization") String token) {
+        return accion(uuidSolicitud, token, () -> remisionConsejoCU.remitir(uuidSolicitud,
+                mapper.mapearEvaluaciones(peticion.getEvaluaciones()), peticion.getObservacion(), token.substring(7)));
+    }
+
+    @PreAuthorize(ApplicationConstantes.FUNCIONARIO_ACADEMICO_ACCESO)
+    @Transactional
     @PostMapping(UUID_SOLICITUD + "/funcionario/responder")
     public ResponseEntity<?> enviarRespuesta(@PathVariable String uuidSolicitud,
                                              @RequestBody(required = false) RespuestaCancelacionAsignaturaDTOPeticion peticion,
                                              @RequestHeader("Authorization") String token) {
-        return accion(uuidSolicitud, token, () -> tramiteCU.enviarRespuesta(uuidSolicitud,
-                peticion == null ? null : peticion.getObservacion(),
-                peticion == null ? null : mapper.mapearAjustes(peticion.getAjustes()), mapper.mapearComunicacion(peticion), token.substring(7)));
+        return accion(uuidSolicitud, token, () -> {
+            SolicitudCancelacionAsignatura respondida = tramiteCU.enviarRespuesta(uuidSolicitud,
+                    peticion == null ? null : peticion.getObservacion(),
+                    peticion == null ? null : mapper.mapearAjustes(peticion.getAjustes()), mapper.mapearComunicacion(peticion), token.substring(7));
+            remisionConsejoCU.cerrar(uuidSolicitud, token.substring(7));
+            return respondida;
+        });
+    }
+
+    @PreAuthorize(ApplicationConstantes.SECRETARIO_DECANO_ACCESO)
+    @Transactional(readOnly = true)
+    @GetMapping("/consejo" + UUID_SOLICITUD)
+    public ResponseEntity<RemisionConsejoDTORespuesta> getRemisionConsejo(@PathVariable String uuidSolicitud) {
+        DetalleRemisionConsejo detalle = remisionConsejoCU.getDetalle(uuidSolicitud);
+        if (detalle == null)
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        return new ResponseEntity<>(remisionMapper.mapear(detalle), HttpStatus.OK);
+    }
+
+    @PreAuthorize(ApplicationConstantes.SECRETARIO_DECANO_ACCESO)
+    @Transactional
+    @PostMapping("/consejo" + UUID_SOLICITUD + "/decision")
+    public ResponseEntity<?> registrarDecisionConsejo(@PathVariable String uuidSolicitud,
+                                                      @Valid @RequestBody DecisionConsejoDTOPeticion peticion,
+                                                      @RequestHeader("Authorization") String token) {
+        DetalleRemisionConsejo detalle;
+        try {
+            detalle = remisionConsejoCU.registrarDecision(uuidSolicitud, mapper.mapearDecisiones(peticion.getDecisiones()),
+                    peticion.getTipoRespuesta(), peticion.getConsecutivoFiet(), peticion.getIndicaciones(), token.substring(7));
+        } catch (DataAccessException ex) {
+            return errorBaseDeDatos(ex);
+        }
+        return new ResponseEntity<RemisionConsejoDTORespuesta>(remisionMapper.mapear(detalle), HttpStatus.OK);
     }
 
     @PreAuthorize(ApplicationConstantes.FUNCIONARIO_ACADEMICO_ACCESO)

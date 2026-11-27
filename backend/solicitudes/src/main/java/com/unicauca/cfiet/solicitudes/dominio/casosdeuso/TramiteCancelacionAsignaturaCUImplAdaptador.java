@@ -16,13 +16,14 @@ import java.util.List;
 import java.util.Map;
 
 import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.APROBADA;
-import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.RECHAZADA_POR_DECANO;
+import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.NO_APROBADAS_CON_DECISION;
 
 public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCancelacionAsignaturaCUIntPuerto {
     private static final String CANCELACION_ASIGNATURA = "Solicitud de cancelación de asignatura";
     private static final String SITUACION_MATRICULA = "la situación en la matrícula";
     private static final String SITUACION_CANCELAR = "la situación al cancelar";
     private static final String DECISION = "la decisión del Decano";
+    private static final String DECISION_CONSEJO = "la decisión del Consejo";
     private static final String OBSERVACION_EVALUACION = "La observación de la evaluación";
     private static final String OBSERVACION_DECISION = "La observación de la decisión";
     private static final String NUEVA_MATRICULA = "el estado académico para cuando la matricule de nuevo";
@@ -67,10 +68,21 @@ public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCance
     @Override
     public SolicitudCancelacionAsignatura remitirADecano(String uuidSolicitudAcademica, List<EvaluacionAsignatura> evaluaciones,
                                                          String observacion, String token) {
+        return remitir(uuidSolicitudAcademica, evaluaciones, observacion, token, AccionEtapa.REMITIR_DECANO);
+    }
+
+    @Override
+    public SolicitudCancelacionAsignatura remitirAConsejo(String uuidSolicitudAcademica, List<EvaluacionAsignatura> evaluaciones,
+                                                          String observacion, String token) {
+        return remitir(uuidSolicitudAcademica, evaluaciones, observacion, token, AccionEtapa.REMITIR_CONSEJO);
+    }
+
+    private SolicitudCancelacionAsignatura remitir(String uuidSolicitudAcademica, List<EvaluacionAsignatura> evaluaciones,
+                                                   String observacion, String token, AccionEtapa accion) {
         ActorSolicitud actor = tramite.actorDe(token, RolEtiquetaEtapa.FUNCIONARIO);
         SolicitudCancelacionAsignatura cancelacion = cancelacionDe(uuidSolicitudAcademica);
         SolicitudAcademica solicitud = tramite.solicitudValidada(TipoProcesoAcademico.CANCELACION_ASIGNATURA, uuidSolicitudAcademica,
-                AccionEtapa.REMITIR_DECANO, actor);
+                accion, actor);
 
         Map<String, SituacionAcademicaAsignatura> catalogo = tramite.catalogoSituaciones();
         Map<String, EvaluacionAsignatura> porAsignatura = tramite.cobertura(cancelacion.getAsignaturas(), solicitud.getRadicado(), evaluaciones,
@@ -87,11 +99,11 @@ public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCance
                     OBSERVACION_EVALUACION, nombre));
         }
 
-        SolicitudAcademica actualizada = solicitudCU.cambiarEtapa(uuidSolicitudAcademica, AccionEtapa.REMITIR_DECANO, actor, observacion, token);
+        SolicitudAcademica actualizada = solicitudCU.cambiarEtapa(uuidSolicitudAcademica, accion, actor, observacion, token);
         cancelacion.setAsignaturas(tramite.guardarAsignaturas(cancelacion.getAsignaturas()));
         log.crearLog("Evaluar asignaturas de cancelación de asignatura",
                 String.format("Solicitud académica %s, acción %s: %d asignaturas evaluadas", actualizada.getRadicado(),
-                        AccionEtapa.REMITIR_DECANO, cancelacion.getAsignaturas().size()),
+                        accion, cancelacion.getAsignaturas().size()),
                 token);
         return conSolicitud(cancelacion, actualizada);
     }
@@ -138,6 +150,42 @@ public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCance
     }
 
     @Override
+    public SolicitudCancelacionAsignatura decidirPorConsejo(String uuidSolicitudAcademica, List<DecisionAsignatura> decisiones, String token) {
+        ActorSolicitud actor = tramite.actorDe(token, RolEtiquetaEtapa.CONSEJO);
+        SolicitudCancelacionAsignatura cancelacion = cancelacionDe(uuidSolicitudAcademica);
+        if (decisiones == null || decisiones.isEmpty())
+            formateadorExcepciones.lanzarReglaNegocioViolada(MensajesError.FORMA_DECISION_CONSEJO);
+        SolicitudAcademica solicitud = cancelacion.getSolicitudAcademica();
+        Map<String, DecisionAsignatura> porAsignatura = tramite.cobertura(cancelacion.getAsignaturas(),
+                solicitud == null ? uuidSolicitudAcademica : solicitud.getRadicado(), decisiones, DecisionAsignatura::getUuidAsignaturaSolicitud);
+        int aprobadas = 0;
+        for (AsignaturaSolicitudAcademica asignatura : cancelacion.getAsignaturas()) {
+            Boolean aprobada = porAsignatura.get(asignatura.getUuidAsignaturaSolicitud()).getAprobada();
+            if (aprobada == null)
+                formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.DATO_ASIGNATURA_FALTANTE, DECISION_CONSEJO,
+                        tramite.nombreDe(asignatura)));
+            if (aprobada)
+                aprobadas++;
+            else {
+                asignatura.setSituacionCancelar(null);
+                asignatura.setSituacionNuevaMatricula(null);
+            }
+            asignatura.setAprobadaPorDecano(aprobada);
+            asignatura.setObservacionDecision(null);
+        }
+        AccionEtapa accion = aprobadas > 0 ? AccionEtapa.APROBAR_CONSEJO : AccionEtapa.NO_APROBAR_CONSEJO;
+        tramite.solicitudValidada(TipoProcesoAcademico.CANCELACION_ASIGNATURA, uuidSolicitudAcademica, accion, actor);
+
+        SolicitudAcademica actualizada = solicitudCU.cambiarEtapa(uuidSolicitudAcademica, accion, actor, null, token);
+        cancelacion.setAsignaturas(tramite.guardarAsignaturas(cancelacion.getAsignaturas()));
+        log.crearLog("Registrar decisión del Consejo por asignatura",
+                String.format("Solicitud académica %s, acción %s: %d asignaturas aprobadas y %d no aprobadas", actualizada.getRadicado(),
+                        accion, aprobadas, cancelacion.getAsignaturas().size() - aprobadas),
+                token);
+        return conSolicitud(cancelacion, actualizada);
+    }
+
+    @Override
     public SolicitudCancelacionAsignatura rechazarPorDecano(String uuidSolicitudAcademica, String observacion, String token) {
         ActorSolicitud actor = tramite.actorDe(token, RolEtiquetaEtapa.DECANO);
         SolicitudCancelacionAsignatura cancelacion = cancelacionDe(uuidSolicitudAcademica);
@@ -156,7 +204,7 @@ public class TramiteCancelacionAsignaturaCUImplAdaptador implements TramiteCance
                 AccionEtapa.ENVIAR_RESPUESTA, actor);
 
         List<AjusteAsignatura> recibidos = ajustes == null ? List.of() : ajustes;
-        boolean rechazadaPorDecano = RECHAZADA_POR_DECANO.equals(solicitud.getEtapa().getCodigo());
+        boolean rechazadaPorDecano = NO_APROBADAS_CON_DECISION.contains(solicitud.getEtapa().getCodigo());
         if (rechazadaPorDecano && !recibidos.isEmpty())
             formateadorExcepciones.lanzarReglaNegocioViolada(String.format(MensajesError.AJUSTES_SOLICITUD_RECHAZADA, solicitud.getRadicado()));
         if (!rechazadaPorDecano)

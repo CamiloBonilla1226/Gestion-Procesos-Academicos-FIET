@@ -1,6 +1,9 @@
 package com.unicauca.cfiet.solicitudes.infraestructura.input.controladorTiposSolicitud.controlador;
 
 import com.unicauca.cfiet.solicitudes.aplicacion.input.TipoSolicitudCUIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.input.TipoSolicitudConsejoCUIntPuerto;
+import com.unicauca.cfiet.solicitudes.dominio.modelos.TipoSolicitudConsejo;
+import org.springframework.beans.factory.annotation.Autowired;
 import com.unicauca.cfiet.solicitudes.dominio.helper.constantes.ApplicationConstantes;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.TipoSolicitud;
 import com.unicauca.cfiet.solicitudes.infraestructura.configuracion.lectorArchivos.ProcesadorArchivos;
@@ -47,6 +50,13 @@ public class TiposSolicitudRestController {
         this.mapper = mapper;
         this.procesadorArchivos = procesadorArchivos;
         this.validadorPeticion = validadorPeticion;
+    }
+
+    private TipoSolicitudConsejoCUIntPuerto tipoSolicitudConsejoCU;
+
+    @Autowired
+    public void setTipoSolicitudConsejoCU(TipoSolicitudConsejoCUIntPuerto tipoSolicitudConsejoCU) {
+        this.tipoSolicitudConsejoCU = tipoSolicitudConsejoCU;
     }
 
     @PreAuthorize(ApplicationConstantes.SECRETARIO_DECANO_ACCESO)
@@ -105,8 +115,12 @@ public class TiposSolicitudRestController {
     public ResponseEntity<?> crearTipoSolicitud(@Valid @RequestBody TipoSolicitudDTOPeticion peticion,
                                                 @RequestHeader("Authorization") String token){
         TipoSolicitud tipo;
+        TipoSolicitudConsejo enlaceConsejo = tipoSolicitudConsejoCU.prepararEnlace(null, peticion.getProcesoAcademicoUuid(), peticion.getUuidFuncionario());
+        if (enlaceConsejo != null && enlaceConsejo.getEncargadoAcademico() != null)
+            peticion.setUuidFuncionario(null);
         try{
             tipo = casoDeUso.crearTipoSolicitud(mapper.mapearPeticionAModelo(peticion), token.substring(7));
+            tipoSolicitudConsejoCU.guardarEnlace(tipo.getUuidTipoSolicitud(), enlaceConsejo, token.substring(7));
         } catch (DataAccessException ex){
             Map<String, Object> response = new HashMap<>();
             response.put("mensaje", "Error insertando en la base de datos....");
@@ -153,8 +167,12 @@ public class TiposSolicitudRestController {
     public ResponseEntity<?> actualizarTipoSolicitud(@PathVariable String uuidTipoSolicitud, @Valid @RequestBody TipoSolicitudDTOPeticion peticion,
                                                @RequestHeader("Authorization") String token){
         TipoSolicitud tipo;
+        TipoSolicitudConsejo enlaceConsejo = tipoSolicitudConsejoCU.prepararEnlace(uuidTipoSolicitud, peticion.getProcesoAcademicoUuid(), peticion.getUuidFuncionario());
+        if (enlaceConsejo != null && enlaceConsejo.getEncargadoAcademico() != null)
+            peticion.setUuidFuncionario(null);
         try{
             tipo = casoDeUso.actualizarTipoSolicitud(uuidTipoSolicitud, mapper.mapearPeticionAModelo(peticion), token.substring(7));
+            tipoSolicitudConsejoCU.guardarEnlace(uuidTipoSolicitud, enlaceConsejo, token.substring(7));
         } catch (DataAccessException ex){
             Map<String, Object> response = new HashMap<>();
             response.put("mensaje", "Error insertando en la base de datos....");

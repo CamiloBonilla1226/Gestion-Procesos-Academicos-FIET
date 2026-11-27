@@ -361,6 +361,70 @@ class TramiteCancelacionAsignaturaCUImplAdaptadorTest {
     }
 
     @Test
+    void remitirAlConsejoGuardaLaMismaEvaluacionYPasaAEnRevisionConsejo() {
+        conFilas(true, true, false);
+        enEtapa(RADICADA);
+
+        SolicitudCancelacionAsignatura resultado = casoDeUso.remitirAConsejo(SOLICITUD, evaluacionesValidas(), "Para el Consejo", TOKEN_FUNCIONARIO);
+
+        assertEquals(EN_REVISION_CONSEJO, etapaGuardada());
+        assertEquals("REMITIR_CONSEJO", historialGuardado().getAccion());
+        assertEquals("Para el Consejo", historialGuardado().getObservaciones());
+        List<AsignaturaSolicitudAcademica> guardadas = asignaturasGuardadas();
+        assertEquals("4.5", guardadas.get(0).getNota());
+        assertEquals("sit-b", guardadas.get(2).getSituacionMatricula().getUuidSituacionAcademica());
+        assertEquals(EN_REVISION_CONSEJO, resultado.getSolicitudAcademica().getEtapa().getCodigo());
+        verify(log).crearLog(eq("Evaluar asignaturas de cancelación de asignatura"), contains("REMITIR_CONSEJO"), eq(TOKEN_FUNCIONARIO));
+    }
+
+    @Test
+    void elConsejoDecideConAlgunaAprobadaYPasaAAprobadaPorConsejo() {
+        enEtapa(EN_REVISION_CONSEJO);
+        List<DecisionAsignatura> decisiones = List.of(
+                decision("as-1", true),
+                decision("as-2", false),
+                decision("as-3", true));
+
+        casoDeUso.decidirPorConsejo(SOLICITUD, decisiones, TOKEN_DECANO);
+
+        assertEquals(APROBADA_POR_CONSEJO, etapaGuardada());
+        assertEquals("APROBAR_CONSEJO", historialGuardado().getAccion());
+        List<AsignaturaSolicitudAcademica> guardadas = asignaturasGuardadas();
+        assertEquals(List.of(true, false, true), guardadas.stream().map(AsignaturaSolicitudAcademica::getAprobadaPorDecano).toList());
+        verify(log).crearLog(eq("Registrar decisión del Consejo por asignatura"), contains("2 asignaturas aprobadas y 1 no aprobadas"), eq(TOKEN_DECANO));
+    }
+
+    @Test
+    void elConsejoSinAprobadasPasaANoAprobadaPorConsejo() {
+        enEtapa(EN_REVISION_CONSEJO);
+        List<DecisionAsignatura> decisiones = List.of(
+                decision("as-1", false),
+                decision("as-2", false),
+                decision("as-3", false));
+
+        casoDeUso.decidirPorConsejo(SOLICITUD, decisiones, TOKEN_DECANO);
+
+        assertEquals(NO_APROBADA_POR_CONSEJO, etapaGuardada());
+        assertEquals("NO_APROBAR_CONSEJO", historialGuardado().getAccion());
+    }
+
+    @Test
+    void elConsejoSinDecisionesOFueraDelConsejoNoGuardaNada() {
+        enEtapa(EN_REVISION_CONSEJO);
+        ErrorReglaNegocioVioladaExcepcion sinDecisiones = assertThrows(ErrorReglaNegocioVioladaExcepcion.class,
+                () -> casoDeUso.decidirPorConsejo(SOLICITUD, List.of(), TOKEN_DECANO));
+        assertEquals(MensajesError.FORMA_DECISION_CONSEJO, sinDecisiones.getMessage());
+
+        enEtapa(EN_REVISION_DECANO);
+        List<DecisionAsignatura> decisiones = List.of(
+                decision("as-1", true),
+                decision("as-2", true),
+                decision("as-3", true));
+        assertThrows(ErrorReglaNegocioVioladaExcepcion.class, () -> casoDeUso.decidirPorConsejo(SOLICITUD, decisiones, TOKEN_DECANO));
+        verify(solicitudGateway, never()).actualizarEtapa(any(), any());
+    }
+
+    @Test
     void remitirGuardaLaSituacionAlCancelarSiElFuncionarioLaRegistra() {
         enEtapa(RADICADA);
         List<EvaluacionAsignatura> evaluaciones = evaluacionesValidas();

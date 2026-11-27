@@ -158,4 +158,9 @@ public class MensajesError {
     public static final String FORMATO_NO_LEGIBLE = "El formato firmado no es un PDF que se pueda leer...";    public static final String AJUSTE_FORMATO_FUERA_DE_RANGO = "%s debe estar entre %d y %d milímetros...";
     public static final String AJUSTE_FORMATO_ETAPA_FINAL = "La solicitud %s ya terminó y no admite ajustes del formato...";
     public static final String FORMATO_NO_GENERADO = "No se pudo generar el formato oficial de la solicitud %s...";
+    public static final String PROCESO_SIN_CONSEJO = "El proceso %s no se lleva al Consejo de Facultad; solo Cancelación de Asignatura se puede enlazar a un tipo de solicitud...";
+    public static final String TIPO_CONSEJO_YA_ENLAZADO = "Ya hay un tipo de solicitud enlazado a %s; quite ese enlace antes de enlazar otro...";
+    public static final String FORMA_DECISION_CONSEJO = "La decisión del Consejo se registra por asignatura: indique para cada una si queda Aprobada o No aprobada...";
+    public static final String ESPEJO_SIN_ORDEN_DEL_DIA = "La solicitud %s todavía no está en una orden del día; agréguela a una antes de registrar la decisión del Consejo...";
+    public static final String SIN_TIPO_CONSEJO = "No hay un tipo de solicitud enlazado a Cancelación de Asignatura, así que no se puede llevar al Consejo de Facultad; el Secretario General o el Decano deben enlazarlo en el tipo de solicitud...";
 }

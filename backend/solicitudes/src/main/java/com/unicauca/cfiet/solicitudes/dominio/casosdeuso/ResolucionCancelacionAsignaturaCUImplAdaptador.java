@@ -1,11 +1,13 @@
 package com.unicauca.cfiet.solicitudes.dominio.casosdeuso;
 
 import com.unicauca.cfiet.solicitudes.aplicacion.input.ConsultaCancelacionAsignaturaCUIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.input.RemisionConsejoCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.ConsultaSolicitudAcademicaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.ResolucionCancelacionAsignaturaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.ExcepcionesFormateadorIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.GeneradorResolucionIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.SituacionAcademicaAsignaturaGatewayIntPuerto;
+import com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes;
 import com.unicauca.cfiet.solicitudes.dominio.modelos.*;
 import com.unicauca.cfiet.solicitudes.dominio.servicios.RedaccionResolucion;
 import com.unicauca.cfiet.solicitudes.infraestructura.output.manejadorExcepciones.MensajesError;
@@ -18,8 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.APROBADA_POR_DECANO;
-import static com.unicauca.cfiet.solicitudes.dominio.helper.constantes.EtapaSolicitudAcademicaConstantes.RECHAZADA_POR_DECANO;
 
 public class ResolucionCancelacionAsignaturaCUImplAdaptador implements ResolucionCancelacionAsignaturaCUIntPuerto {
     private static final String SOLICITUD_ACADEMICA = "Solicitud académica";
@@ -28,8 +28,9 @@ public class ResolucionCancelacionAsignaturaCUImplAdaptador implements Resolucio
     private static final String SIN_NUMERO = "____";
     private static final int MAXIMO_TEXTO = 20000;
     private static final int MAXIMO_CAMPO = 300;
-    private static final Set<String> ETAPAS_PERMITIDAS = Set.of(APROBADA_POR_DECANO, RECHAZADA_POR_DECANO);
-    private static final Set<String> ACCIONES_DECANO = Set.of(AccionEtapa.APROBAR_DECANO.name(), AccionEtapa.RECHAZAR_DECANO.name());
+    private static final Set<String> ETAPAS_PERMITIDAS = EtapaSolicitudAcademicaConstantes.CON_DECISION;
+    private static final Set<String> ACCIONES_DECANO = Set.of(AccionEtapa.APROBAR_DECANO.name(), AccionEtapa.RECHAZAR_DECANO.name(),
+            AccionEtapa.APROBAR_CONSEJO.name(), AccionEtapa.NO_APROBAR_CONSEJO.name());
 
     private final ConsultaCancelacionAsignaturaCUIntPuerto consultaAsignaturaCU;
     private final ConsultaSolicitudAcademicaCUIntPuerto consultaCU;
@@ -40,6 +41,7 @@ public class ResolucionCancelacionAsignaturaCUImplAdaptador implements Resolucio
     private final String prefijo;
     private final String firmante;
     private final String reviso;
+    private final RemisionConsejoCUIntPuerto remisionConsejoCU;
 
     public ResolucionCancelacionAsignaturaCUImplAdaptador(ConsultaCancelacionAsignaturaCUIntPuerto consultaAsignaturaCU,
                                                           ConsultaSolicitudAcademicaCUIntPuerto consultaCU,
@@ -49,7 +51,8 @@ public class ResolucionCancelacionAsignaturaCUImplAdaptador implements Resolucio
                                                           Clock reloj,
                                                           String prefijo,
                                                           String firmante,
-                                                          String reviso) {
+                                                          String reviso,
+                                                          RemisionConsejoCUIntPuerto remisionConsejoCU) {
         this.consultaAsignaturaCU = consultaAsignaturaCU;
         this.consultaCU = consultaCU;
         this.situacionGateway = situacionGateway;
@@ -59,13 +62,14 @@ public class ResolucionCancelacionAsignaturaCUImplAdaptador implements Resolucio
         this.prefijo = prefijo == null ? "" : prefijo;
         this.firmante = firmante == null ? "" : firmante;
         this.reviso = reviso == null ? "" : reviso;
+        this.remisionConsejoCU = remisionConsejoCU;
     }
 
     @Override
     public List<BorradorResolucion> getBorradores(String uuidSolicitudAcademica, List<AjusteAsignatura> ajustes, String token) {
         DetalleCancelacionAsignatura cancelacion = cancelacionDelFuncionario(uuidSolicitudAcademica, token);
         SolicitudAcademica solicitud = cancelacion.getDetalle().getSolicitudAcademica();
-        boolean rechazadaCompleta = RECHAZADA_POR_DECANO.equals(solicitud.getEtapa().getCodigo());
+        boolean rechazadaCompleta = EtapaSolicitudAcademicaConstantes.NO_APROBADAS_CON_DECISION.contains(solicitud.getEtapa().getCodigo());
         Map<String, AjusteAsignatura> porAsignatura = new HashMap<>();
         if (ajustes != null)
             ajustes.stream().filter(ajuste -> ajuste != null && ajuste.getUuidAsignaturaSolicitud() != null)
@@ -77,6 +81,7 @@ public class ResolucionCancelacionAsignaturaCUImplAdaptador implements Resolucio
         String observacionDecano = observacionDelDecano(uuidSolicitudAcademica, token);
         LocalDate hoy = LocalDate.now(reloj);
         String proyecto = funcionarioDe(solicitud);
+        SesionConsejo sesion = sesionDe(uuidSolicitudAcademica, solicitud.getEtapa().getCodigo());
         List<BorradorResolucion> borradores = new ArrayList<>();
         for (AsignaturaSolicitudAcademica fila : cancelacion.getAsignaturas()) {
             boolean aceptada = !rechazadaCompleta && Boolean.TRUE.equals(fila.getAprobadaPorDecano());
@@ -86,15 +91,15 @@ public class ResolucionCancelacionAsignaturaCUImplAdaptador implements Resolucio
                     .asignatura(datos.asignatura())
                     .aceptada(aceptada)
                     .prefijo(prefijo)
-                    .numero("")
+                    .numero(sesion == null || sesion.getConsecutivo() == null ? "" : sesion.getConsecutivo())
                     .fecha(hoy)
                     .asunto(aceptada ? RedaccionResolucion.ASUNTO_ACEPTA : RedaccionResolucion.ASUNTO_NO_ACEPTA)
-                    .preambulo(RedaccionResolucion.PREAMBULO)
-                    .considerandos(aceptada ? considerandosAcepta(datos, fila, porAsignatura.get(fila.getUuidAsignaturaSolicitud()), situaciones)
-                            : considerandosNoAcepta(datos, observacionDecano))
+                    .preambulo(sesion == null ? RedaccionResolucion.PREAMBULO : RedaccionResolucion.PREAMBULO_CONSEJO)
+                    .considerandos(aceptada ? considerandosAcepta(datos, fila, porAsignatura.get(fila.getUuidAsignaturaSolicitud()), situaciones, sesion)
+                            : considerandosNoAcepta(datos, observacionDecano, sesion))
                     .articuloPrimero(aceptada ? articuloPrimeroAcepta(datos) : articuloPrimeroNoAcepta(datos))
                     .filas(aceptada ? List.of(filaDe(datos, fila, porAsignatura.get(fila.getUuidAsignaturaSolicitud()), situaciones)) : List.of())
-                    .articulosSiguientes(aceptada ? articulosAcepta(datos) : articulosNoAcepta(datos))
+                    .articulosSiguientes(aceptada ? articulosAcepta(datos, sesion) : articulosNoAcepta(datos, sesion))
                     .firmante(firmante)
                     .cargoFirmante(RedaccionResolucion.CARGO_FIRMANTE)
                     .diligencia(RedaccionResolucion.diligencia(hoy))
@@ -194,7 +199,24 @@ public class ResolucionCancelacionAsignaturaCUImplAdaptador implements Resolucio
                 motivo(cancelacion.getMotivoCancelacion()));
     }
 
-    private String considerandosAcepta(Datos datos, AsignaturaSolicitudAcademica fila, AjusteAsignatura ajuste, Map<String, String> situaciones) {
+    private SesionConsejo sesionDe(String uuidSolicitudAcademica, String etapa) {
+        if (!EtapaSolicitudAcademicaConstantes.APROBADA_POR_CONSEJO.equals(etapa) && !EtapaSolicitudAcademicaConstantes.NO_APROBADA_POR_CONSEJO.equals(etapa))
+            return null;
+        SesionConsejo sesion = remisionConsejoCU == null ? null : remisionConsejoCU.getSesion(uuidSolicitudAcademica);
+        return sesion == null ? new SesionConsejo() : sesion;
+    }
+
+    private String enSesion(SesionConsejo sesion) {
+        String texto = "";
+        if (tieneTexto(sesion.getFecha()))
+            texto += " en la sesión del " + sesion.getFecha();
+        if (tieneTexto(sesion.getNumeroActa()))
+            texto += ", según consta en el Acta N° " + sesion.getNumeroActa();
+        return texto.isEmpty() ? "" : texto + ",";
+    }
+
+    private String considerandosAcepta(Datos datos, AsignaturaSolicitudAcademica fila, AjusteAsignatura ajuste, Map<String, String> situaciones,
+                                       SesionConsejo sesion) {
         String cancelar = situacion(fila.getSituacionCancelar(), ajuste == null ? null : ajuste.getUuidSituacionCancelar(), situaciones);
         String como = cancelar == null ? "" : ", " + comoTexto(cancelar);
         return RedaccionResolucion.CONSIDERANDOS_COMUNES + "\n\n"
@@ -202,12 +224,16 @@ public class ResolucionCancelacionAsignaturaCUImplAdaptador implements Resolucio
                 + datos.cedula() + " y código estudiantil N° " + datos.codigo() + ", solicitó el día " + datos.fechaSolicitud()
                 + " la cancelación de la(s) asignatura(s) **" + datos.asignatura() + "** matriculada en el " + datos.periodo() + ", argumentando: \""
                 + datos.motivo() + "\".\n\n"
-                + "De conformidad con los artículos antes mencionados y atendiendo la solicitud del estudiante, el Decano de la Facultad de "
-                + "Ingeniería Electrónica y Telecomunicaciones decide Aceptar la petición de cancelación de la asignatura" + como + ".";
+                + "De conformidad con los artículos antes mencionados y atendiendo la solicitud del estudiante, "
+                + (sesion == null ? "el Decano de la Facultad de Ingeniería Electrónica y Telecomunicaciones"
+                        : RedaccionResolucion.CONSEJO + enSesion(sesion))
+                + " decide Aceptar la petición de cancelación de la asignatura" + como + ".";
     }
 
-    private String considerandosNoAcepta(Datos datos, String observacionDecano) {
+    private String considerandosNoAcepta(Datos datos, String observacionDecano, SesionConsejo sesion) {
         String razones = tieneTexto(observacionDecano) ? observacionDecano.trim()
+                : sesion != null ? "Revisada la solicitud de cancelación del estudiante, " + RedaccionResolucion.CONSEJO + enSesion(sesion)
+                        + " decidió no aprobar la cancelación de la(s) asignatura(s) **" + datos.asignatura() + "**."
                 : "Revisada la solicitud de cancelación del estudiante, [escriba aquí las razones por las que no se acepta la cancelación].";
         return RedaccionResolucion.CONSIDERANDOS_COMUNES + "\n\n" + RedaccionResolucion.CONSIDERANDO_MATRICULA + "\n\n"
                 + "7. El estudiante del Programa " + datos.programa() + ", **" + datos.nombre() + "**, identificado con cédula de ciudadanía N° "
@@ -230,26 +256,26 @@ public class ResolucionCancelacionAsignaturaCUImplAdaptador implements Resolucio
                 + " y código estudiantil N° " + datos.codigo() + ", correspondiente al " + datos.periodo() + ".";
     }
 
-    private String articulosAcepta(Datos datos) {
+    private String articulosAcepta(Datos datos, SesionConsejo sesion) {
         return "**ARTÍCULO SEGUNDO:** Informar al estudiante que teniendo en cuenta lo dispuesto en el artículo 12 del Reglamento Estudiantil, "
                 + "deberá matricular obligatoriamente en el siguiente periodo académico la o las asignaturas que se le cancelen como perdida y demás "
                 + "que haya perdido: \"12. Los alumnos que tuvieren asignaturas pendientes por cursar o repetir, de períodos de carreras anteriores\".\n\n"
-                + notificacion("a " + datos.correo(), "TERCERO") + "\n\n"
+                + notificacion("a " + datos.correo(), "TERCERO", sesion) + "\n\n"
                 + "**ARTÍCULO CUARTO:** Enviar la presente resolución a la División de Admisiones, Registro y Control Académico – DARCA, para que "
                 + "sea registrado en la historia académica del estudiante.";
     }
 
-    private String articulosNoAcepta(Datos datos) {
-        return notificacion("al estudiante **" + datos.nombre() + "**", "SEGUNDO") + "\n\n"
+    private String articulosNoAcepta(Datos datos, SesionConsejo sesion) {
+        return notificacion("al estudiante **" + datos.nombre() + "**", "SEGUNDO", sesion) + "\n\n"
                 + "**ARTÍCULO TERCERO:** Enviar copia de esta resolución a la División de Admisiones, Registro y Control Académico – DARCA, para "
                 + "que sea registrado en la hoja de vida académica del estudiante.";
     }
 
-    private String notificacion(String destinatario, String ordinal) {
+    private String notificacion(String destinatario, String ordinal, SesionConsejo sesion) {
         return "**ARTÍCULO " + ordinal + ":** Notificar personalmente o por aviso mediante correo electrónico " + destinatario
                 + ", del contenido de la presente resolución, advirtiéndole que contra el presente Acto Administrativo procede el recurso de "
-                + "reposición ante el Decano de la Facultad de Ingeniería Electrónica y Telecomunicaciones y de apelación ante el Consejo de "
-                + "Facultad, el cual deberá ser interpuesto en la diligencia de notificación o dentro de los diez (10) días hábiles siguientes a "
+                + (sesion == null ? "reposición ante el Decano de la Facultad de Ingeniería Electrónica y Telecomunicaciones y de apelación ante el Consejo de "
+                        + "Facultad" : "reposición ante " + RedaccionResolucion.CONSEJO) + ", el cual deberá ser interpuesto en la diligencia de notificación o dentro de los diez (10) días hábiles siguientes a "
                 + "la notificación personal o por aviso.";
     }
 

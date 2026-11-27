@@ -62,6 +62,11 @@ public class FuncionarioAcademicoGatewayImplAdaptador implements FuncionarioAcad
                 .orElse(null);
     }
 
+    @Override
+    public List<FuncionarioAcademico> getTodos() {
+        return repositorio.findAll().stream().map(mapper::toDominio).toList();
+    }
+
     private FuncionarioAcademicoEntidad aEntidad(FuncionarioAcademico funcionarioAcademico) {
         FuncionarioAcademicoEntidad entidad = mapper.toEntidad(funcionarioAcademico);
         entidad.setNuevo(!repositorio.existsById(funcionarioAcademico.getUuidUsuario()));

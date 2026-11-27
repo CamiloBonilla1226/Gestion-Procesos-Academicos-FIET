@@ -7,8 +7,11 @@ import com.unicauca.cfiet.solicitudes.aplicacion.input.ConsultaExamenSupletorioC
 import com.unicauca.cfiet.solicitudes.aplicacion.input.ConsultaSolicitudAcademicaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.LogCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.NotificacionResolucionCUIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.input.RemisionConsejoCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.ResolucionAcademicaCUIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.input.RespuestaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.SolicitudAcademicaCUIntPuerto;
+import com.unicauca.cfiet.solicitudes.aplicacion.input.TramiteCancelacionAsignaturaCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.input.UsuarioCUIntPuerto;
 import com.unicauca.cfiet.solicitudes.aplicacion.output.*;
 import com.unicauca.cfiet.solicitudes.dominio.casosdeuso.*;
@@ -343,6 +346,38 @@ public class BeanConfiguracion {
     }
 
     @Bean
+    public TipoSolicitudConsejoCUImplAdaptador crearTipoSolicitudConsejoCU(TipoSolicitudConsejoGatewayIntPuerto gateway,
+                                                                         TipoSolicitudAcademicaGatewayIntPuerto tipoAcademicoGateway,
+                                                                         FuncionarioAcademicoGatewayIntPuerto funcionarioAcademicoGateway,
+                                                                         UsuarioGatewayIntPuerto usuarioGateway,
+                                                                         ExcepcionesFormateadorIntPuerto formateadorExcepciones,
+                                                                         LogCUIntPuerto log){
+        return new TipoSolicitudConsejoCUImplAdaptador(gateway, tipoAcademicoGateway, funcionarioAcademicoGateway, usuarioGateway,
+                formateadorExcepciones, log);
+    }
+
+    @Bean
+    public RemisionConsejoCUImplAdaptador crearRemisionConsejoCU(TramiteCancelacionAsignaturaCUIntPuerto tramiteCU,
+                                                               TipoSolicitudConsejoGatewayIntPuerto tipoConsejoGateway,
+                                                               TipoSolicitudAcademicaGatewayIntPuerto tipoAcademicoGateway,
+                                                               TipoSolicitudGatewayIntPuerto tipoSolicitudGateway,
+                                                               SolicitudGatewayIntPuerto solicitudGateway,
+                                                               RemisionConsejoGatewayIntPuerto remisionGateway,
+                                                               AnexoAcademicoGatewayIntPuerto anexoGateway,
+                                                               AlmacenamientoAnexosIntPuerto almacenamiento,
+                                                               SolicitudCancelacionAsignaturaGatewayIntPuerto cancelacionGateway,
+                                                               RespuestaCUIntPuerto respuestaCU,
+                                                               RespuestaGatewayIntPuerto respuestaGateway,
+                                                               ResolucionAcademicaGatewayIntPuerto resolucionGateway,
+                                                               ExcepcionesFormateadorIntPuerto formateadorExcepciones,
+                                                               LogCUIntPuerto log,
+                                                               @Value("${url.application}") String urlAplicacion){
+        return new RemisionConsejoCUImplAdaptador(tramiteCU, tipoConsejoGateway, tipoAcademicoGateway, tipoSolicitudGateway, solicitudGateway,
+                remisionGateway, anexoGateway, almacenamiento, cancelacionGateway, respuestaCU, respuestaGateway, resolucionGateway,
+                formateadorExcepciones, log, Clock.system(ZoneId.of("America/Bogota")), urlAplicacion);
+    }
+
+    @Bean
     public TramiteCancelacionAsignaturaCUImplAdaptador crearTramiteCancelacionAsignaturaCU(SolicitudCancelacionAsignaturaGatewayIntPuerto gateway,
                                                                                          SolicitudCancelacionMatriculaGatewayIntPuerto asignaturaSolicitudGateway,
                                                                                          SolicitudAcademicaGatewayIntPuerto solicitudGateway,
@@ -475,8 +510,9 @@ public class BeanConfiguracion {
                                                                                                ExcepcionesFormateadorIntPuerto formateadorExcepciones,
                                                                                                @Value("${correo.resolucion.prefijo:}") String prefijo,
                                                                                                @Value("${resolucion.firmante:}") String firmante,
-                                                                                               @Value("${resolucion.reviso:}") String reviso){
+                                                                                               @Value("${resolucion.reviso:}") String reviso,
+                                                                                               RemisionConsejoCUIntPuerto remisionConsejoCU){
         return new ResolucionCancelacionAsignaturaCUImplAdaptador(consultaAsignaturaCU, consultaCU, situacionGateway, generador,
-                formateadorExcepciones, Clock.system(ZoneId.of("America/Bogota")), prefijo, firmante, reviso);
+                formateadorExcepciones, Clock.system(ZoneId.of("America/Bogota")), prefijo, firmante, reviso, remisionConsejoCU);
     }
 }

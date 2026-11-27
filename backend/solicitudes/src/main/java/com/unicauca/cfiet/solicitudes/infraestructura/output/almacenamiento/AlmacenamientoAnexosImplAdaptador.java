@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.DirectoryStream;
@@ -18,6 +19,7 @@ import java.util.regex.Pattern;
 @Service
 public class AlmacenamientoAnexosImplAdaptador implements AlmacenamientoAnexosIntPuerto {
     private static final String CARPETA = "anexos";
+    private static final String CARPETA_RESPUESTAS = "respuestas";
     private static final String PREFIJO_URL = "/api/anexos/";
     private static final Pattern UUID = Pattern.compile("[0-9a-fA-F\\-]{36}");
     private static final Pattern NOMBRE_GENERADO = Pattern.compile("[0-9a-fA-F\\-]{36}\\.(pdf|jpg|png)");
@@ -95,6 +97,51 @@ public class AlmacenamientoAnexosImplAdaptador implements AlmacenamientoAnexosIn
             borrarCarpetaSiEstaVacia(ruta.getParent());
         } catch (IOException error) {
             throw new UncheckedIOException(error);
+        }
+    }
+
+    @Override
+    public String guardarRespuesta(String uuidRespuesta, String nombreArchivo, byte[] contenido) {
+        if (!UUID.matcher(uuidRespuesta).matches())
+            throw new IllegalArgumentException("Carpeta de respuesta no permitida");
+        String url;
+        try {
+            url = almacenador.guardarArchivoRespuesta(uuidRespuesta, new ArchivoEnMemoria(nombreArchivo, contenido));
+        } catch (IOException error) {
+            throw new UncheckedIOException(error);
+        }
+        String archivo = url.substring(url.lastIndexOf('/') + 1);
+        if (TransactionSynchronizationManager.isSynchronizationActive())
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCompletion(int estado) {
+                    if (estado == STATUS_ROLLED_BACK) eliminarRespuestaSinFallar(uuidRespuesta, archivo);
+                }
+            });
+        return archivo;
+    }
+
+    @Override
+    public void eliminarRespuestaTrasConfirmar(String uuidRespuesta, String nombreArchivo) {
+        if (uuidRespuesta == null || nombreArchivo == null) return;
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            eliminarRespuestaSinFallar(uuidRespuesta, nombreArchivo);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                eliminarRespuestaSinFallar(uuidRespuesta, nombreArchivo);
+            }
+        });
+    }
+
+    private void eliminarRespuestaSinFallar(String uuidRespuesta, String nombreArchivo) {
+        File archivo = almacenador.resolverArchivo(CARPETA_RESPUESTAS, uuidRespuesta, nombreArchivo);
+        if (archivo == null) return;
+        try {
+            Files.deleteIfExists(archivo.toPath());
+        } catch (IOException ignorado) {
         }
     }
 

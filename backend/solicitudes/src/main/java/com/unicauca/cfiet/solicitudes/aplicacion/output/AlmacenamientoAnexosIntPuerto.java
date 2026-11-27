@@ -9,4 +9,8 @@ public interface AlmacenamientoAnexosIntPuerto {
     void eliminar(String urlArchivo);
 
     void eliminarTrasConfirmar(String urlArchivo);
+
+    String guardarRespuesta(String uuidRespuesta, String nombreArchivo, byte[] contenido);
+
+    void eliminarRespuestaTrasConfirmar(String uuidRespuesta, String nombreArchivo);
 }

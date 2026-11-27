@@ -43,4 +43,7 @@ public class TipoSolicitudDTOPeticion {
     @NotNull(message = "La uuid del funcionario no puede ser nula")
     @NotBlank(message = "La uuid del funcionario no puede estar vacia")
     private String uuidFuncionario;
+
+    @Size(max = 100, message = "El proceso académico no puede exceder los 100 caracteres")
+    private String procesoAcademicoUuid;
 }

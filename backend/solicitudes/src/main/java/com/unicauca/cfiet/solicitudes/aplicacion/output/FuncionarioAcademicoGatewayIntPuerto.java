@@ -16,4 +16,6 @@ public interface FuncionarioAcademicoGatewayIntPuerto {
     PaginacionRespuestaDTO<FuncionarioAcademico> getPorFiltro(String nombre, String apellido, String cargo, int pagina, int tamanio);
 
     FuncionarioAcademico getPorUuid(String uuidUsuario);
+
+    List<FuncionarioAcademico> getTodos();
 }

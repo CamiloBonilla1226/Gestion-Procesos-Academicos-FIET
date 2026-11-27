@@ -15,6 +15,11 @@ public interface TramiteCancelacionAsignaturaCUIntPuerto {
     SolicitudCancelacionAsignatura remitirADecano(String uuidSolicitudAcademica, List<EvaluacionAsignatura> evaluaciones,
                                                   String observacion, String token);
 
+    SolicitudCancelacionAsignatura remitirAConsejo(String uuidSolicitudAcademica, List<EvaluacionAsignatura> evaluaciones,
+                                                   String observacion, String token);
+
+    SolicitudCancelacionAsignatura decidirPorConsejo(String uuidSolicitudAcademica, List<DecisionAsignatura> decisiones, String token);
+
     SolicitudCancelacionAsignatura aprobarPorDecano(String uuidSolicitudAcademica, Boolean aceptarEvaluacion, List<DecisionAsignatura> decisiones,
                                                     String observacion, String token);
 
